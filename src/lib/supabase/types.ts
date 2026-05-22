@@ -138,7 +138,7 @@ export interface Database {
       flights: {
         Row: {
           id: string
-          anchor_member_id: string
+          anchor_member_id: string | null
           origin_code: string
           dest_code: string
           date: string
@@ -156,7 +156,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          anchor_member_id: string
+          anchor_member_id?: string | null
           origin_code: string
           dest_code: string
           date: string
@@ -174,7 +174,7 @@ export interface Database {
         }
         Update: {
           id?: string
-          anchor_member_id?: string
+          anchor_member_id?: string | null
           origin_code?: string
           dest_code?: string
           date?: string
@@ -195,7 +195,7 @@ export interface Database {
       excursions: {
         Row: {
           id: string
-          anchor_member_id: string
+          anchor_member_id: string | null
           template_id: string | null
           origin_code: string
           aircraft_id: string | null
@@ -215,7 +215,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          anchor_member_id: string
+          anchor_member_id?: string | null
           template_id?: string | null
           origin_code: string
           aircraft_id?: string | null
@@ -235,7 +235,7 @@ export interface Database {
         }
         Update: {
           id?: string
-          anchor_member_id?: string
+          anchor_member_id?: string | null
           template_id?: string | null
           origin_code?: string
           aircraft_id?: string | null
