@@ -27,7 +27,7 @@ type ExcForm = {
   arrive_time: string; return_time: string
   stay_type: Excursion['stay_type']; pitch: string
   visibility: 'members' | 'public'; spots_total: number
-  spots_anchor: number; status: Excursion['status']
+  spots_anchor: number; price_per_pax: number; status: Excursion['status']
   anchor_member_id: string
 }
 
@@ -41,7 +41,7 @@ const defaultExcForm: ExcForm = {
   name: '', origin_code: '', date: '', template_id: '', aircraft_id: '',
   start_time: '', depart_time: '', arrive_time: '', return_time: '',
   stay_type: 'day_trip', pitch: '', visibility: 'members',
-  spots_total: 8, spots_anchor: 1, status: 'draft',
+  spots_total: 8, spots_anchor: 1, price_per_pax: 0, status: 'draft',
   anchor_member_id: '',
 }
 
@@ -116,7 +116,7 @@ export default function TripsPage() {
       arrive_time: e.arrive_time ?? '', return_time: e.return_time ?? '',
       stay_type: e.stay_type, pitch: e.pitch ?? '', visibility: e.visibility,
       spots_total: e.spots_total, spots_anchor: e.spots_anchor,
-      status: e.status, anchor_member_id: e.anchor_member_id ?? '',
+      price_per_pax: e.price_per_pax, status: e.status, anchor_member_id: e.anchor_member_id ?? '',
     })
   }
 
@@ -160,8 +160,8 @@ export default function TripsPage() {
         arrive_time: excForm.arrive_time || null, return_time: excForm.return_time || null,
         stay_type: excForm.stay_type, pitch: excForm.pitch || null,
         visibility: excForm.visibility, spots_total: excForm.spots_total,
-        spots_anchor: excForm.spots_anchor, status: excForm.status,
-        anchor_member_id: excForm.anchor_member_id,
+        spots_anchor: excForm.spots_anchor, price_per_pax: excForm.price_per_pax,
+        status: excForm.status, anchor_member_id: excForm.anchor_member_id || null,
       }
       if (editExcId) {
         const { error } = await supabase.from('excursions').update(payload).eq('id', editExcId)
@@ -388,6 +388,10 @@ export default function TripsPage() {
               <input className="input" type="number" min={0} value={EF.spots_anchor} onChange={e => setExcForm(f => ({ ...f, spots_anchor: Number(e.target.value) }))} />
             </div>
             <div className="field">
+              <label className="field-lab">Price Per Pax ($)</label>
+              <input className="input" type="number" min={0} value={EF.price_per_pax} onChange={e => setExcForm(f => ({ ...f, price_per_pax: Number(e.target.value) }))} />
+            </div>
+            <div className="field">
               <label className="field-lab">Visibility</label>
               <select className="select" value={EF.visibility} onChange={e => setExcForm(f => ({ ...f, visibility: e.target.value as 'members' | 'public' }))}>
                 <option value="members">Members Only</option>
@@ -458,6 +462,7 @@ export default function TripsPage() {
                 <th>Date</th>
                 <th>Stay Type</th>
                 <th>Spots</th>
+                <th>Price/Pax</th>
                 <th>Status</th>
                 <th>Template</th>
                 <th>Anchor</th>
@@ -472,6 +477,7 @@ export default function TripsPage() {
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{e.date}</td>
                   <td><span className="pill ink">{e.stay_type.replace('_', ' ')}</span></td>
                   <td style={{ fontWeight: 600 }}>{e.spots_anchor}/{e.spots_total}</td>
+                  <td style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}>${e.price_per_pax.toLocaleString()}</td>
                   <td><span className={`pill ${statusColor[e.status]}`}>{e.status}</span></td>
                   <td style={{ fontSize: 12, color: 'var(--ink-light)' }}>{templates.find(t => t.id === e.template_id)?.name ?? '—'}</td>
                   <td style={{ fontSize: 12 }}>{members.find(m => m.id === e.anchor_member_id)?.name ?? '—'}</td>

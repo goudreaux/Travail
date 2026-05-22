@@ -210,6 +210,7 @@ export interface Database {
           visibility: 'members' | 'public'
           spots_total: number
           spots_anchor: number
+          price_per_pax: number
           status: 'draft' | 'open' | 'full' | 'completed' | 'cancelled'
           created_at: string
         }
@@ -230,6 +231,7 @@ export interface Database {
           visibility?: 'members' | 'public'
           spots_total: number
           spots_anchor?: number
+          price_per_pax?: number
           status?: 'draft' | 'open' | 'full' | 'completed' | 'cancelled'
           created_at?: string
         }
@@ -250,6 +252,7 @@ export interface Database {
           visibility?: 'members' | 'public'
           spots_total?: number
           spots_anchor?: number
+          price_per_pax?: number
           status?: 'draft' | 'open' | 'full' | 'completed' | 'cancelled'
           created_at?: string
         }
