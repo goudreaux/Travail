@@ -82,7 +82,7 @@ export default function ReservePage() {
 
   const pricePerSeat = flight
     ? flight.price_per_seat
-    : template?.price_per_pax ?? 0
+    : excursion?.price_per_pax ?? template?.price_per_pax ?? 0
 
   const subtotal = pricePerSeat * seats
   const serviceFee = Math.round(subtotal * SERVICE_FEE_RATE)
