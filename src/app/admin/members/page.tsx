@@ -102,8 +102,9 @@ export default function MembersPage() {
 
   async function deleteMember(id: string, name: string) {
     if (!confirm(`Delete ${name}? This cannot be undone.`)) return
-    const { error } = await supabase.from('members').delete().eq('id', id)
+    const { error, data } = await supabase.from('members').delete().eq('id', id).select()
     if (error) { showToast(error.message, 'error'); return }
+    if (!data || data.length === 0) { showToast('Delete blocked — add RLS delete policy in Supabase', 'error'); return }
     showToast('Member deleted')
     load()
   }
