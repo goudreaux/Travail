@@ -102,7 +102,7 @@ export default function TripsPage() {
       aircraft_id: f.aircraft_id, pitch: f.pitch ?? '', visibility: f.visibility,
       seats_total: f.seats_total, seats_anchor: f.seats_anchor,
       price_per_seat: f.price_per_seat, status: f.status,
-      anchor_member_id: f.anchor_member_id,
+      anchor_member_id: f.anchor_member_id ?? '',
     })
   }
 
@@ -116,7 +116,7 @@ export default function TripsPage() {
       arrive_time: e.arrive_time ?? '', return_time: e.return_time ?? '',
       stay_type: e.stay_type, pitch: e.pitch ?? '', visibility: e.visibility,
       spots_total: e.spots_total, spots_anchor: e.spots_anchor,
-      status: e.status, anchor_member_id: e.anchor_member_id,
+      status: e.status, anchor_member_id: e.anchor_member_id ?? '',
     })
   }
 
