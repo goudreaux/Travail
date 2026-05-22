@@ -43,14 +43,8 @@ function Avatar({ member, size = 52 }: { member: Member; size?: number }) {
   )
 }
 
-function TierBadge({ tier }: { tier: Member['tier'] }) {
-  const map: Record<Member['tier'], { label: string; cls: string }> = {
-    founder: { label: 'Founder', cls: 'sun' },
-    anchor:  { label: 'Anchor',  cls: 'tropic' },
-    explorer:{ label: 'Explorer',cls: '' },
-  }
-  const { label, cls } = map[tier]
-  return <span className={`pill${cls ? ' ' + cls : ''}`}>{label}</span>
+function TierBadge() {
+  return <span className="pill sun">Founder</span>
 }
 
 interface MemberWithCount extends Member {
@@ -202,7 +196,7 @@ export default function NetworkPage() {
                         {member.name}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <TierBadge tier={member.tier} />
+                        <TierBadge />
                         <span className="mono" style={{ fontSize: 9.5 }}>
                           {member.id.slice(0, 8).toUpperCase()}
                         </span>
@@ -222,7 +216,7 @@ export default function NetworkPage() {
                         <path d="M11 3a6 6 0 0 1 6 6c0 4-6 10-6 10S5 13 5 9a6 6 0 0 1 6-6z" />
                         <circle cx="11" cy="9" r="2" />
                       </svg>
-                      <span className="mono" style={{ fontSize: 9.5, color: 'var(--ink-mid)' }}>
+                      <span style={{ fontSize: 11, color: 'var(--ink-mid)' }}>
                         {member.home_base_code}
                       </span>
                     </div>

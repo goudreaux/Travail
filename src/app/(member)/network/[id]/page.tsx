@@ -47,14 +47,8 @@ function Avatar({ member, size = 80 }: { member: Member; size?: number }) {
   )
 }
 
-function TierBadge({ tier }: { tier: Member['tier'] }) {
-  const map: Record<Member['tier'], { label: string; cls: string }> = {
-    founder: { label: 'Founder', cls: 'sun' },
-    anchor:  { label: 'Anchor',  cls: 'tropic' },
-    explorer:{ label: 'Explorer',cls: '' },
-  }
-  const { label, cls } = map[tier]
-  return <span className={`pill${cls ? ' ' + cls : ''}`}>{label}</span>
+function TierBadge() {
+  return <span className="pill sun">Founder</span>
 }
 
 function formatDate(dateStr: string) {
@@ -232,7 +226,7 @@ export default function MemberProfilePage() {
                   {member.name}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <TierBadge tier={member.tier} />
+                  <TierBadge />
                   <span className="mono" style={{ fontSize: 9.5 }}>
                     {member.id.slice(0, 8).toUpperCase()}
                   </span>

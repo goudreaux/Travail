@@ -6,14 +6,14 @@ import type { Member, Booking, AnchorSubmission } from '@/lib/supabase/types'
 
 const TIER_LABEL: Record<string, string> = {
   founder: 'Founding Member',
-  anchor: 'Anchor Member',
-  explorer: 'Explorer',
+  anchor: 'Founding Member',
+  explorer: 'Founding Member',
 }
 
 const TIER_PILL: Record<string, string> = {
   founder: 'sun',
-  anchor: 'tropic',
-  explorer: 'ink',
+  anchor: 'sun',
+  explorer: 'sun',
 }
 
 function timeAgo(dateStr: string) {
@@ -449,9 +449,8 @@ export default function MembershipPage() {
                   { label: 'Member ID', value: <span className="mono" style={{ fontSize: 10 }}>#{member.id.slice(0, 8).toUpperCase()}</span> },
                   { label: 'Joined', value: `${dp.mo} ${dp.day}, ${new Date(member.joined_at).getFullYear()}` },
                   { label: 'KYC status', value: member.kyc_verified ? <span className="pill moss">Verified</span> : <span className="pill signal">Pending</span> },
-                  { label: 'Seat credits', value: <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{member.seat_credits}</span> },
                   { label: 'Card on file', value: member.card_last4 ? `••••  ••••  ••••  ${member.card_last4}` : <span style={{ color: 'var(--ink-faint)' }}>None on file</span> },
-                  ...(member.home_base_code ? [{ label: 'Home base', value: <span className="mono" style={{ fontSize: 10 }}>{member.home_base_code}</span> }] : []),
+                  ...(member.home_base_code ? [{ label: 'Home base', value: member.home_base_code }] : []),
                 ].map(({ label, value }) => (
                   <div
                     key={label}
@@ -481,7 +480,6 @@ export default function MembershipPage() {
                 { label: 'Trips taken', val: approvedTrips.length },
                 { label: 'Trips pending', val: pendingTrips.length },
                 { label: 'Anchors filed', val: submissions.length },
-                { label: 'Credits', val: member.seat_credits },
               ].map(({ label, val }) => (
                 <div key={label} className="stat">
                   <div className="val">{val}</div>

@@ -32,7 +32,7 @@ export default function ReservePage() {
 
   // Form state
   const [seats, setSeats] = useState(1)
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'credits'>('card')
+  const [paymentMethod] = useState<'card'>('card')
 
   // Submission state
   const [submitting, setSubmitting] = useState(false)
@@ -447,7 +447,7 @@ export default function ReservePage() {
                     </div>
                   </div>
                   {member.home_base_code && (
-                    <span className="mono" style={{ fontSize: 9.5, color: 'var(--ink-mid)' }}>
+                    <span style={{ fontSize: 11, color: 'var(--ink-mid)' }}>
                       {member.home_base_code}
                     </span>
                   )}
@@ -464,8 +464,7 @@ export default function ReservePage() {
                 {/* Card on file */}
                 <div
                   className="toggle-row"
-                  style={{ padding: '13px 16px', cursor: 'pointer', borderBottom: '1px solid var(--hair)' }}
-                  onClick={() => setPaymentMethod('card')}
+                  style={{ padding: '13px 16px', borderBottom: '1px solid var(--hair)' }}
                 >
                   <div>
                     <div className="t-lab">Card on file</div>
@@ -476,20 +475,6 @@ export default function ReservePage() {
                     </div>
                   </div>
                   <div className={`toggle${paymentMethod === 'card' ? ' active' : ''}`} style={{ pointerEvents: 'none' }} />
-                </div>
-                {/* Credits */}
-                <div
-                  className="toggle-row"
-                  style={{ padding: '13px 16px', cursor: 'pointer', borderBottom: 'none' }}
-                  onClick={() => setPaymentMethod('credits')}
-                >
-                  <div>
-                    <div className="t-lab">Use seat credits</div>
-                    <div className="t-sub">
-                      {member ? `${member.seat_credits} credits available` : ''}
-                    </div>
-                  </div>
-                  <div className={`toggle${paymentMethod === 'credits' ? ' active' : ''}`} style={{ pointerEvents: 'none' }} />
                 </div>
               </div>
             </div>
@@ -618,9 +603,7 @@ export default function ReservePage() {
                   <rect x="2" y="6" width="18" height="13" rx="2" />
                   <line x1="2" y1="10" x2="20" y2="10" />
                 </svg>
-                {paymentMethod === 'credits'
-                  ? `${member?.seat_credits ?? 0} credits will be applied`
-                  : member?.card_last4
+                {member?.card_last4
                   ? `Card ending ••${member.card_last4}`
                   : 'No payment on file'}
               </div>

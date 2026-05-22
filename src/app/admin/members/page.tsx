@@ -3,14 +3,19 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Member } from '@/lib/supabase/types'
 
+const HOME_BASES = ['Tampa Bay', 'SFL']
+
+function autoInitials(name: string): string {
+  return name.trim().split(/\s+/).filter(Boolean).slice(0, 3).map(w => w[0]).join('').toUpperCase()
+}
+
 type EditForm = {
   name: string
   initials: string
-  tier: 'explorer' | 'anchor' | 'founder'
+  tier: 'founder'
   home_base_code: string
   bio: string
   interests: string
-  seat_credits: number
   kyc_verified: boolean
   is_admin: boolean
 }
@@ -18,11 +23,10 @@ type EditForm = {
 const defaultForm: EditForm = {
   name: '',
   initials: '',
-  tier: 'explorer',
-  home_base_code: '',
+  tier: 'founder',
+  home_base_code: 'Tampa Bay',
   bio: '',
   interests: '',
-  seat_credits: 0,
   kyc_verified: false,
   is_admin: false,
 }
@@ -84,11 +88,10 @@ export default function MembersPage() {
     setForm({
       name: m.name,
       initials: m.initials,
-      tier: m.tier,
-      home_base_code: m.home_base_code ?? '',
+      tier: 'founder',
+      home_base_code: m.home_base_code ?? 'Tampa Bay',
       bio: m.bio ?? '',
       interests: (m.interests ?? []).join(', '),
-      seat_credits: m.seat_credits,
       kyc_verified: m.kyc_verified,
       is_admin: m.is_admin,
     })
@@ -116,10 +119,9 @@ export default function MembersPage() {
         name: form.name.trim(),
         initials: form.initials.trim().toUpperCase().slice(0, 3),
         tier: form.tier,
-        home_base_code: form.home_base_code.trim() || null,
+        home_base_code: form.home_base_code || null,
         bio: form.bio.trim() || null,
         interests: form.interests ? form.interests.split(',').map(s => s.trim()).filter(Boolean) : null,
-        seat_credits: form.seat_credits,
         kyc_verified: form.kyc_verified,
         is_admin: form.is_admin,
       }
@@ -148,11 +150,6 @@ export default function MembersPage() {
     }
   }
 
-  const tierColor: Record<string, string> = {
-    explorer: 'ink',
-    anchor: 'sun',
-    founder: 'tropic',
-  }
 
   const isEditing = editId !== null || showAdd
 
@@ -182,23 +179,25 @@ export default function MembersPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div className="field">
               <label className="field-lab">Full Name <span className="req">*</span></label>
-              <input className="input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Alexandra Chen" />
+              <input
+                className="input"
+                value={form.name}
+                onChange={e => {
+                  const name = e.target.value
+                  setForm(f => ({ ...f, name, initials: autoInitials(name) }))
+                }}
+                placeholder="Alexandra Chen"
+              />
             </div>
             <div className="field">
               <label className="field-lab">Initials</label>
-              <input className="input" value={form.initials} onChange={e => setForm(f => ({ ...f, initials: e.target.value }))} placeholder="AC" maxLength={3} />
+              <input className="input" value={form.initials} onChange={e => setForm(f => ({ ...f, initials: e.target.value.toUpperCase().slice(0, 3) }))} placeholder="AC" maxLength={3} />
             </div>
             <div className="field">
-              <label className="field-lab">Tier</label>
-              <select className="select" value={form.tier} onChange={e => setForm(f => ({ ...f, tier: e.target.value as EditForm['tier'] }))}>
-                <option value="explorer">Explorer</option>
-                <option value="anchor">Anchor</option>
-                <option value="founder">Founder</option>
+              <label className="field-lab">Home Base</label>
+              <select className="select" value={form.home_base_code} onChange={e => setForm(f => ({ ...f, home_base_code: e.target.value }))}>
+                {HOME_BASES.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
-            </div>
-            <div className="field">
-              <label className="field-lab">Home Base (IATA)</label>
-              <input className="input" value={form.home_base_code} onChange={e => setForm(f => ({ ...f, home_base_code: e.target.value.toUpperCase() }))} placeholder="MIA" maxLength={3} />
             </div>
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label className="field-lab">Bio</label>
@@ -207,10 +206,6 @@ export default function MembersPage() {
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label className="field-lab">Interests (comma-separated)</label>
               <input className="input" value={form.interests} onChange={e => setForm(f => ({ ...f, interests: e.target.value }))} placeholder="surfing, sailing, tech, gastronomy" />
-            </div>
-            <div className="field">
-              <label className="field-lab">Seat Credits</label>
-              <input className="input" type="number" min={0} value={form.seat_credits} onChange={e => setForm(f => ({ ...f, seat_credits: Number(e.target.value) }))} />
             </div>
           </div>
 
@@ -261,10 +256,8 @@ export default function MembersPage() {
               <tr>
                 <th>Name</th>
                 <th>ID</th>
-                <th>Tier</th>
                 <th>Home Base</th>
                 <th>KYC</th>
-                <th>Credits</th>
                 <th>Admin</th>
                 <th>Joined</th>
                 <th></th>
@@ -282,12 +275,10 @@ export default function MembersPage() {
                     </div>
                   </td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-light)' }}>{m.id.slice(0, 8)}…</td>
-                  <td><span className={`pill ${tierColor[m.tier]}`}>{m.tier}</span></td>
-                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{m.home_base_code ?? '—'}</td>
+                  <td style={{ fontSize: 13 }}>{m.home_base_code ?? '—'}</td>
                   <td>
                     <span className={`pill ${m.kyc_verified ? 'moss' : 'signal'}`}>{m.kyc_verified ? 'Verified' : 'Pending'}</span>
                   </td>
-                  <td style={{ fontWeight: 600, color: 'var(--ink)' }}>{m.seat_credits}</td>
                   <td>
                     {m.is_admin && <span className="pill tropic">Admin</span>}
                   </td>
