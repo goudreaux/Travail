@@ -88,19 +88,19 @@ export interface Database {
         Row: {
           id: string
           name: string
-          desc: string | null
+          description: string | null
           capacity: number
         }
         Insert: {
           id?: string
           name: string
-          desc?: string | null
+          description?: string | null
           capacity: number
         }
         Update: {
           id?: string
           name?: string
-          desc?: string | null
+          description?: string | null
           capacity?: number
         }
         Relationships: []

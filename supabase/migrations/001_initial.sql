@@ -32,7 +32,7 @@ create table public.airports (
 create table public.aircraft (
   id text primary key,
   name text not null,
-  desc text not null,
+  description text not null,
   capacity integer not null
 );
 
@@ -287,7 +287,7 @@ insert into public.airports (code, name, sub, role) values
   ('KGIF', 'Winter Haven', 'Central FL', 'destination');
 
 -- Aircraft
-insert into public.aircraft (id, name, desc, capacity) values
+insert into public.aircraft (id, name, description, capacity) values
   ('c206',    'Cessna 206',           'Amphibious single', 4),
   ('caravan', 'Cessna Grand Caravan', 'Turboprop',         8);
 
