@@ -3,8 +3,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Flight, Excursion, Aircraft, ExcursionTemplate, Member } from '@/lib/supabase/types'
 
-type FlightRow = Flight & { anchor_member: Pick<Member, 'name' | 'initials'> | null }
-type ExcursionRow = Excursion & { anchor_member: Pick<Member, 'name' | 'initials'> | null; template: Pick<ExcursionTemplate, 'name'> | null }
+type FlightRow = Flight
+type ExcursionRow = Excursion
 
 function Toast({ msg, kind }: { msg: string; kind: 'success' | 'error' | 'info' }) {
   return <div className={`toast ${kind}`}>{msg}</div>
@@ -77,14 +77,14 @@ export default function TripsPage() {
       { data: templateData },
       { data: memberData },
     ] = await Promise.all([
-      supabase.from('flights').select('*, anchor_member:members!anchor_member_id(name, initials)').order('date', { ascending: false }),
-      supabase.from('excursions').select('*, anchor_member:members!anchor_member_id(name, initials), template:excursion_templates!template_id(name)').order('date', { ascending: false }),
+      supabase.from('flights').select('*').order('date', { ascending: false }),
+      supabase.from('excursions').select('*').order('date', { ascending: false }),
       supabase.from('aircraft').select('*'),
       supabase.from('excursion_templates').select('*'),
       supabase.from('members').select('id, name, initials').order('name'),
     ])
-    setFlights((flightData ?? []) as unknown as FlightRow[])
-    setExcursions((excData ?? []) as unknown as ExcursionRow[])
+    setFlights((flightData ?? []) as FlightRow[])
+    setExcursions((excData ?? []) as ExcursionRow[])
     setAircraft(aircraftData ?? [])
     setTemplates(templateData ?? [])
     setMembers(memberData ?? [])
@@ -130,7 +130,7 @@ export default function TripsPage() {
         aircraft_id: flightForm.aircraft_id, pitch: flightForm.pitch || null,
         visibility: flightForm.visibility, seats_total: flightForm.seats_total,
         seats_anchor: flightForm.seats_anchor, price_per_seat: flightForm.price_per_seat,
-        status: flightForm.status, anchor_member_id: flightForm.anchor_member_id,
+        status: flightForm.status, anchor_member_id: flightForm.anchor_member_id || null,
       }
       if (editFlightId) {
         const { error } = await supabase.from('flights').update(payload).eq('id', editFlightId)
@@ -436,7 +436,7 @@ export default function TripsPage() {
                   <td style={{ fontWeight: 600 }}>{f.seats_anchor}/{f.seats_total}</td>
                   <td style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}>${f.price_per_seat.toLocaleString()}</td>
                   <td><span className={`pill ${statusColor[f.status]}`}>{f.status}</span></td>
-                  <td style={{ fontSize: 12 }}>{f.anchor_member?.name ?? '—'}</td>
+                  <td style={{ fontSize: 12 }}>{members.find(m => m.id === f.anchor_member_id)?.name ?? '—'}</td>
                   <td onClick={e => e.stopPropagation()}>
                     <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={() => openEditFlight(f)}>Edit</button>
                   </td>
@@ -473,8 +473,8 @@ export default function TripsPage() {
                   <td><span className="pill ink">{e.stay_type.replace('_', ' ')}</span></td>
                   <td style={{ fontWeight: 600 }}>{e.spots_anchor}/{e.spots_total}</td>
                   <td><span className={`pill ${statusColor[e.status]}`}>{e.status}</span></td>
-                  <td style={{ fontSize: 12, color: 'var(--ink-light)' }}>{e.template?.name ?? '—'}</td>
-                  <td style={{ fontSize: 12 }}>{e.anchor_member?.name ?? '—'}</td>
+                  <td style={{ fontSize: 12, color: 'var(--ink-light)' }}>{templates.find(t => t.id === e.template_id)?.name ?? '—'}</td>
+                  <td style={{ fontSize: 12 }}>{members.find(m => m.id === e.anchor_member_id)?.name ?? '—'}</td>
                   <td onClick={ev => ev.stopPropagation()}>
                     <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={() => openEditExc(e)}>Edit</button>
                   </td>
