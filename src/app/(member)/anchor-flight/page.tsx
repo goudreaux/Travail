@@ -19,7 +19,57 @@ const ANCHOR_DESTS: AirportMeta[] = [
   { code: 'HMI', name: 'Honeymoon Island', sub: 'Dunedin, FL', role: 'destination' },
 ]
 
-const DEPART_TIMES = ['7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM']
+function TimeInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [focused, setFocused] = useState(false)
+  const [raw, setRaw] = useState(value)
+
+  function handleBlur() {
+    setFocused(false)
+    // Normalize common formats to "H:MM AM/PM"
+    const m = raw.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i)
+    if (m) {
+      const h = parseInt(m[1])
+      const min = m[2] ?? '00'
+      const meridiem = m[3] ? m[3].toUpperCase() : h >= 12 ? 'PM' : 'AM'
+      const hour = h > 12 ? h - 12 : h === 0 ? 12 : h
+      const formatted = `${hour}:${min} ${meridiem}`
+      setRaw(formatted)
+      onChange(formatted)
+    } else if (raw.match(/^\d{1,2}:\d{2}\s*(AM|PM)$/i)) {
+      onChange(raw.trim())
+    }
+  }
+
+  return (
+    <div className="field">
+      <label className="field-lab">{label}</label>
+      <div style={{ position: 'relative' }}>
+        <svg
+          width="15" height="15" viewBox="0 0 22 22" fill="none"
+          stroke="var(--ink-faint)" strokeWidth="1.6" strokeLinecap="round"
+          style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+        >
+          <circle cx="11" cy="11" r="9" />
+          <path d="M11 6v5l3 3" />
+        </svg>
+        <input
+          className="input"
+          style={{ paddingLeft: 34 }}
+          placeholder="9:00 AM"
+          value={raw}
+          onChange={e => setRaw(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={handleBlur}
+        />
+        {!focused && !raw && (
+          <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'var(--ink-faint)', fontFamily: 'var(--mono)', pointerEvents: 'none' }}>
+            H:MM AM/PM
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function AirportDropdown({
   label,
@@ -148,9 +198,9 @@ export default function AnchorFlightPage() {
   const isRoundTrip = tripType === 'round-trip'
 
   async function handleSubmit() {
-    if (!date.trim()) { setError('Please enter a departure date.'); return }
+    if (!date) { setError('Please select a departure date.'); return }
     if (!tripName.trim()) { setError('Please enter a trip name.'); return }
-    if (isRoundTrip && !returnDate.trim()) { setError('Please enter a return date.'); return }
+    if (isRoundTrip && !returnDate) { setError('Please select a return date.'); return }
     setError('')
     setSubmitting(true)
 
@@ -311,46 +361,36 @@ export default function AnchorFlightPage() {
             </div>
 
             {/* Outbound */}
-            <div className="field">
-              <label className="field-lab">Departure date <span className="req">*</span></label>
-              <input
-                type="text"
-                className="input"
-                placeholder="e.g. June 15, 2025"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label className="field-lab">Departure time</label>
-              <div className="chips">
-                {DEPART_TIMES.map(t => (
-                  <button key={t} className={`chip${departTime === t ? ' active' : ''}`} onClick={() => setDepartTime(t)}>{t}</button>
-                ))}
+            <div className="row-2">
+              <div className="field">
+                <label className="field-lab">Departure date <span className="req">*</span></label>
+                <input
+                  type="date"
+                  className="input"
+                  value={date}
+                  onChange={e => setDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
               </div>
+              <TimeInput label="Departure time" value={departTime} onChange={setDepartTime} />
             </div>
 
             {/* Return leg (round-trip only) */}
             {isRoundTrip && (
               <>
                 <div style={{ height: 1, background: 'var(--hair)', margin: '4px 0' }} />
-                <div className="field">
-                  <label className="field-lab">Return date <span className="req">*</span></label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="e.g. June 17, 2025"
-                    value={returnDate}
-                    onChange={e => setReturnDate(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label className="field-lab">Return departure time</label>
-                  <div className="chips">
-                    {DEPART_TIMES.map(t => (
-                      <button key={t} className={`chip${returnDepartTime === t ? ' active' : ''}`} onClick={() => setReturnDepartTime(t)}>{t}</button>
-                    ))}
+                <div className="row-2">
+                  <div className="field">
+                    <label className="field-lab">Return date <span className="req">*</span></label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={returnDate}
+                      onChange={e => setReturnDate(e.target.value)}
+                      min={date || new Date().toISOString().split('T')[0]}
+                    />
                   </div>
+                  <TimeInput label="Return departure time" value={returnDepartTime} onChange={setReturnDepartTime} />
                 </div>
               </>
             )}
