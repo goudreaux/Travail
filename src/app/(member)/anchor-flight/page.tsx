@@ -115,6 +115,10 @@ export default function AnchorFlightPage() {
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (pax > aircraft) setPax(aircraft)
+  }, [aircraft]) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (isAdmin === null) return null
 
   if (!isAdmin) return (
@@ -131,11 +135,6 @@ export default function AnchorFlightPage() {
   const anchorSeats = visibility === 'private' ? aircraft : pax
   const aircraftLabel = aircraft === 4 ? 'Cessna 206' : 'Cessna Grand Caravan'
   const blockTime = fmtDur(90)
-
-  // Clamp pax to aircraft capacity
-  useEffect(() => {
-    if (pax > aircraft) setPax(aircraft)
-  }, [aircraft])
 
   async function handleSubmit() {
     if (!date) { setError('Please set a departure date.'); return }
