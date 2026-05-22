@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Flight, Excursion, Aircraft, ExcursionTemplate, Member } from '@/lib/supabase/types'
+import type { Flight, Excursion, Aircraft, Member } from '@/lib/supabase/types'
 
 type FlightRow = Flight
 type ExcursionRow = Excursion
@@ -22,7 +22,7 @@ type FlightForm = {
   anchor_member_id: string
 }
 type ExcForm = {
-  name: string; origin_code: string; date: string; template_id: string
+  name: string; origin_code: string; date: string
   aircraft_id: string; start_time: string; depart_time: string
   arrive_time: string; return_time: string
   stay_type: Excursion['stay_type']; pitch: string
@@ -38,7 +38,7 @@ const defaultFlightForm: FlightForm = {
   anchor_member_id: '',
 }
 const defaultExcForm: ExcForm = {
-  name: '', origin_code: '', date: '', template_id: '', aircraft_id: '',
+  name: '', origin_code: '', date: '', aircraft_id: '',
   start_time: '', depart_time: '', arrive_time: '', return_time: '',
   stay_type: 'day_trip', pitch: '', visibility: 'members',
   spots_total: 8, spots_anchor: 1, price_per_pax: 0, status: 'draft',
@@ -51,7 +51,6 @@ export default function TripsPage() {
   const [flights, setFlights] = useState<FlightRow[]>([])
   const [excursions, setExcursions] = useState<ExcursionRow[]>([])
   const [aircraft, setAircraft] = useState<Aircraft[]>([])
-  const [templates, setTemplates] = useState<ExcursionTemplate[]>([])
   const [members, setMembers] = useState<Pick<Member, 'id' | 'name' | 'initials'>[]>([])
   const [loading, setLoading] = useState(true)
   const [showFlightForm, setShowFlightForm] = useState(false)
@@ -74,19 +73,16 @@ export default function TripsPage() {
       { data: flightData },
       { data: excData },
       { data: aircraftData },
-      { data: templateData },
       { data: memberData },
     ] = await Promise.all([
       supabase.from('flights').select('*').order('date', { ascending: false }),
       supabase.from('excursions').select('*').order('date', { ascending: false }),
       supabase.from('aircraft').select('*'),
-      supabase.from('excursion_templates').select('*'),
       supabase.from('members').select('id, name, initials').order('name'),
     ])
     setFlights((flightData ?? []) as FlightRow[])
     setExcursions((excData ?? []) as ExcursionRow[])
     setAircraft(aircraftData ?? [])
-    setTemplates(templateData ?? [])
     setMembers(memberData ?? [])
     setLoading(false)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -111,7 +107,7 @@ export default function TripsPage() {
     setShowExcForm(true)
     setExcForm({
       name: e.name, origin_code: e.origin_code, date: e.date,
-      template_id: e.template_id ?? '', aircraft_id: e.aircraft_id ?? '',
+      aircraft_id: e.aircraft_id ?? '',
       start_time: e.start_time ?? '', depart_time: e.depart_time ?? '',
       arrive_time: e.arrive_time ?? '', return_time: e.return_time ?? '',
       stay_type: e.stay_type, pitch: e.pitch ?? '', visibility: e.visibility,
@@ -154,7 +150,7 @@ export default function TripsPage() {
     try {
       const payload = {
         name: excForm.name, origin_code: excForm.origin_code.toUpperCase(),
-        date: excForm.date, template_id: excForm.template_id || null,
+        date: excForm.date, template_id: null,
         aircraft_id: excForm.aircraft_id || null,
         start_time: excForm.start_time || null, depart_time: excForm.depart_time || null,
         arrive_time: excForm.arrive_time || null, return_time: excForm.return_time || null,
@@ -323,13 +319,6 @@ export default function TripsPage() {
               <input className="input" value={EF.name} onChange={e => setExcForm(f => ({ ...f, name: e.target.value }))} placeholder="Bora Bora Overwater Experience" />
             </div>
             <div className="field">
-              <label className="field-lab">Template</label>
-              <select className="select" value={EF.template_id} onChange={e => setExcForm(f => ({ ...f, template_id: e.target.value }))}>
-                <option value="">No template</option>
-                {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </div>
-            <div className="field">
               <label className="field-lab">Origin (IATA)</label>
               <input className="input" value={EF.origin_code} onChange={e => setExcForm(f => ({ ...f, origin_code: e.target.value.toUpperCase() }))} placeholder="LAX" maxLength={3} />
             </div>
@@ -464,7 +453,6 @@ export default function TripsPage() {
                 <th>Spots</th>
                 <th>Price/Pax</th>
                 <th>Status</th>
-                <th>Template</th>
                 <th>Anchor</th>
                 <th></th>
               </tr>
@@ -479,7 +467,6 @@ export default function TripsPage() {
                   <td style={{ fontWeight: 600 }}>{e.spots_anchor}/{e.spots_total}</td>
                   <td style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}>${e.price_per_pax.toLocaleString()}</td>
                   <td><span className={`pill ${statusColor[e.status]}`}>{e.status}</span></td>
-                  <td style={{ fontSize: 12, color: 'var(--ink-light)' }}>{templates.find(t => t.id === e.template_id)?.name ?? '—'}</td>
                   <td style={{ fontSize: 12 }}>{members.find(m => m.id === e.anchor_member_id)?.name ?? '—'}</td>
                   <td onClick={ev => ev.stopPropagation()}>
                     <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={() => openEditExc(e)}>Edit</button>

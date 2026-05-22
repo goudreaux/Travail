@@ -2,12 +2,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ORIGINS, DESTINATIONS, EXCURSION_TEMPLATES_BY_DEST, fmtDur } from '@/lib/data'
-import type { AirportMeta, TemplateCatalogEntry } from '@/lib/data'
+import { ORIGINS, DESTINATIONS } from '@/lib/data'
+import type { AirportMeta } from '@/lib/data'
 
-// Excursion destinations: only those with templates
-const EXCURSION_DEST_CODES = Object.keys(EXCURSION_TEMPLATES_BY_DEST)
-const EXCURSION_DESTS: AirportMeta[] = DESTINATIONS.filter(d => EXCURSION_DEST_CODES.includes(d.code))
+const EXCURSION_DESTS: AirportMeta[] = DESTINATIONS
 
 const DEPART_TIMES = ['6:00 AM', '7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM']
 const RETURN_TIMES_DAY = ['2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM']
@@ -86,78 +84,20 @@ function AirportDropdown<T extends AirportMeta>({
   )
 }
 
-function ExperienceCard({
-  tpl,
-  selected,
-  onClick,
-}: {
-  tpl: TemplateCatalogEntry
-  selected: boolean
-  onClick: () => void
-}) {
-  const iconMap: Record<string, string> = {
-    fish: '🎣',
-    sail: '⛵',
-    snorkel: '🤿',
-    golf: '⛳',
-    wave: '🌊',
-    quail: '🦅',
-    hog: '🍽️',
-  }
-  const emoji = iconMap[tpl.icon] ?? '✦'
-
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        border: `1px solid ${selected ? 'var(--tropic)' : 'var(--hair-2)'}`,
-        borderRadius: 10,
-        padding: '12px 14px',
-        cursor: 'pointer',
-        background: selected ? 'var(--tropic-glow)' : 'var(--bg)',
-        transition: 'border-color 0.15s, background 0.15s',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 12,
-      }}
-    >
-      <span style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>{emoji}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, color: selected ? 'var(--tropic-d)' : 'var(--ink)', lineHeight: 1.3, marginBottom: 2 }}>{tpl.name}</div>
-        {tpl.operator && (
-          <div style={{ fontSize: 11.5, color: 'var(--ink-light)', marginBottom: 4 }}>{tpl.operator}</div>
-        )}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {tpl.tags.map(tag => (
-            <span key={tag} className="pill" style={{ fontSize: 9.5 }}>{tag}</span>
-          ))}
-        </div>
-      </div>
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-light)' }}>per person</div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
-          ${tpl.pricePerPax.toLocaleString()}
-        </div>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-faint)', marginTop: 2 }}>
-          cap {tpl.capacity}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function AnchorExcursionPage() {
   const [origin, setOrigin] = useState<AirportMeta>(ORIGINS[0])
   const [dest, setDest] = useState<AirportMeta>(EXCURSION_DESTS[0])
   const [aircraft, setAircraft] = useState<4 | 8>(8)
   const [tripType, setTripType] = useState<'day' | 'overnight'>('day')
-  const [selectedTplIdx, setSelectedTplIdx] = useState(0)
   const [date, setDate] = useState('')
   const [startTime, setStartTime] = useState('9:00 AM')
   const [departTime, setDepartTime] = useState('7:00 AM')
   const [returnTime, setReturnTime] = useState('4:00 PM')
   const [tripName, setTripName] = useState('')
   const [pitch, setPitch] = useState('')
+  const [experienceName, setExperienceName] = useState('')
+  const [operatorName, setOperatorName] = useState('')
+  const [priceInput, setPriceInput] = useState('')
   const [visibility, setVisibility] = useState<'public' | 'private'>('public')
   const [pax, setPax] = useState(2)
   const [submitting, setSubmitting] = useState(false)
@@ -176,6 +116,14 @@ export default function AnchorExcursionPage() {
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (pax > aircraft) setPax(aircraft)
+  }, [aircraft]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setReturnTime(tripType === 'day' ? '4:00 PM' : '9:00 AM')
+  }, [tripType])
+
   if (isAdmin === null) return null
 
   if (!isAdmin) return (
@@ -188,36 +136,16 @@ export default function AnchorExcursionPage() {
     </div>
   )
 
-  // Templates for selected destination
-  const templates = EXCURSION_TEMPLATES_BY_DEST[dest.code] ?? []
-  const selectedTpl = templates[selectedTplIdx] ?? templates[0]
-
-  // When destination changes, reset template selection
-  useEffect(() => {
-    setSelectedTplIdx(0)
-  }, [dest.code])
-
-  // When aircraft changes, clamp pax
-  useEffect(() => {
-    if (pax > aircraft) setPax(aircraft)
-  }, [aircraft]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // When trip type changes, reset return time to a sensible default
-  useEffect(() => {
-    setReturnTime(tripType === 'day' ? '4:00 PM' : '9:00 AM')
-  }, [tripType])
-
   const capacity = aircraft
   const openSeats = visibility === 'private' ? 0 : Math.max(0, capacity - pax)
   const anchorSeats = visibility === 'private' ? capacity : pax
-  const pricePerPax = selectedTpl?.pricePerPax ?? 0
+  const pricePerPax = parseFloat(priceInput) || 0
   const total = pricePerPax * anchorSeats
   const aircraftLabel = aircraft === 4 ? 'Cessna 206' : 'Cessna Grand Caravan'
 
   async function handleSubmit() {
     if (!date) { setError('Please set a departure date.'); return }
     if (!tripName.trim()) { setError('Please enter a trip name.'); return }
-    if (!selectedTpl) { setError('Please select an experience.'); return }
     setError('')
     setSubmitting(true)
 
@@ -246,16 +174,14 @@ export default function AnchorExcursionPage() {
             startTime,
             returnTime,
             aircraftId: aircraft === 4 ? 'c206' : 'caravan',
-            experienceName: selectedTpl.name,
-            experienceOperator: selectedTpl.operator ?? null,
-            experienceIcon: selectedTpl.icon,
+            experienceName: experienceName.trim() || null,
+            experienceOperator: operatorName.trim() || null,
             name: tripName,
             pitch,
             visibility,
             spotsTotal: capacity,
             spotsAnchor: anchorSeats,
             pricePerPax,
-            tags: selectedTpl.tags,
           },
           status: 'pending',
         })
@@ -335,7 +261,7 @@ export default function AnchorExcursionPage() {
       <div className="page-head">
         <div>
           <h1>Anchor an Excursion</h1>
-          <p className="sub">Choose a destination experience, lock your spots, and invite the network to join.</p>
+          <p className="sub">Set up a destination experience and invite the network to join.</p>
         </div>
       </div>
 
@@ -375,25 +301,54 @@ export default function AnchorExcursionPage() {
               </div>
             </div>
 
-            {/* Experience selection */}
+            {/* Experience details */}
             <div className="field">
-              <label className="field-lab">Experience <span className="req">*</span></label>
-              {templates.length === 0 ? (
-                <div style={{ padding: '16px', background: 'var(--warm)', borderRadius: 10, fontSize: 13, color: 'var(--ink-light)', textAlign: 'center' }}>
-                  No curated experiences for this destination yet.
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {templates.map((tpl, idx) => (
-                    <ExperienceCard
-                      key={tpl.name}
-                      tpl={tpl}
-                      selected={selectedTplIdx === idx}
-                      onClick={() => setSelectedTplIdx(idx)}
-                    />
-                  ))}
-                </div>
-              )}
+              <label className="field-lab">Experience name</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. Flats Fishing, Snorkel Charter, Golf Day"
+                value={experienceName}
+                onChange={e => setExperienceName(e.target.value)}
+                maxLength={80}
+              />
+            </div>
+
+            <div className="field">
+              <label className="field-lab">Operator / Vendor</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. Keys Seaplanes, Island Water Sports"
+                value={operatorName}
+                onChange={e => setOperatorName(e.target.value)}
+                maxLength={80}
+              />
+            </div>
+
+            {/* Pricing note */}
+            <div style={{
+              background: 'var(--tropic-glow)',
+              border: '1px solid rgba(0,179,199,0.25)',
+              borderRadius: 10,
+              padding: '12px 16px',
+              fontSize: 13,
+              color: 'var(--tropic-d)',
+              lineHeight: 1.55,
+            }}>
+              <strong>Pricing</strong> — Enter the price per person if confirmed. Otherwise leave blank and the Travail team will follow up with the operator to confirm before this anchor goes live.
+            </div>
+
+            <div className="field">
+              <label className="field-lab">Price per person (USD)</label>
+              <input
+                type="number"
+                className="input"
+                placeholder="e.g. 450"
+                value={priceInput}
+                onChange={e => setPriceInput(e.target.value)}
+                min={0}
+              />
             </div>
 
             {/* Trip type */}
@@ -575,8 +530,8 @@ export default function AnchorExcursionPage() {
                 </div>
               )}
 
-              {/* Experience */}
-              {selectedTpl && (
+              {/* Experience preview */}
+              {(experienceName || operatorName) && (
                 <div style={{
                   background: 'var(--night)',
                   borderRadius: 10,
@@ -585,28 +540,16 @@ export default function AnchorExcursionPage() {
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--tropic)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
                     {dest.sub}
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
-                    {selectedTpl.name}
-                  </div>
-                  {selectedTpl.operator && (
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginBottom: 8 }}>
-                      {selectedTpl.operator}
+                  {experienceName && (
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+                      {experienceName}
                     </div>
                   )}
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {selectedTpl.tags.map(tag => (
-                      <span key={tag} style={{
-                        fontFamily: 'var(--mono)',
-                        fontSize: 9,
-                        letterSpacing: '0.1em',
-                        textTransform: 'uppercase',
-                        color: 'var(--tropic)',
-                        background: 'rgba(0,179,199,0.12)',
-                        borderRadius: 4,
-                        padding: '2px 6px',
-                      }}>{tag}</span>
-                    ))}
-                  </div>
+                  {operatorName && (
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                      {operatorName}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -649,8 +592,8 @@ export default function AnchorExcursionPage() {
                   { label: 'Aircraft', value: aircraftLabel },
                   { label: 'Party', value: `${pax} ${pax === 1 ? 'person' : 'people'}` },
                   { label: 'Open spots', value: visibility === 'private' ? 'Private' : `${openSeats}` },
-                  { label: 'Per person', value: selectedTpl ? `$${selectedTpl.pricePerPax.toLocaleString()}` : '—' },
-                  { label: 'Operator', value: selectedTpl?.operator ?? '—' },
+                  { label: 'Per person', value: pricePerPax > 0 ? `$${pricePerPax.toLocaleString()}` : 'TBD' },
+                  { label: 'Operator', value: operatorName || '—' },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ background: 'var(--card)', padding: '10px 14px' }}>
                     <div className="mono" style={{ marginBottom: 2 }}>{label}</div>
@@ -671,11 +614,11 @@ export default function AnchorExcursionPage() {
                 <div>
                   <div className="mono">Your total</div>
                   <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 2 }}>
-                    {anchorSeats} {anchorSeats === 1 ? 'person' : 'people'} × ${(selectedTpl?.pricePerPax ?? 0).toLocaleString()}
+                    {anchorSeats} {anchorSeats === 1 ? 'person' : 'people'} × {pricePerPax > 0 ? `$${pricePerPax.toLocaleString()}` : 'TBD'}
                   </div>
                 </div>
                 <div style={{ fontFamily: 'var(--display)', fontSize: 28, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
-                  ${total.toLocaleString()}
+                  {total > 0 ? `$${total.toLocaleString()}` : 'TBD'}
                 </div>
               </div>
 
