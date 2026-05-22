@@ -2,13 +2,21 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { DESTINATIONS, fmtDur } from '@/lib/data'
+import { fmtDur } from '@/lib/data'
 import type { AirportMeta } from '@/lib/data'
 
 const ANCHOR_ORIGINS: AirportMeta[] = [
   { code: 'TPF', name: 'Peter O. Knight Airport', sub: 'Davis Island, Tampa', role: 'origin' },
   { code: 'TPA', name: 'Tampa International Airport', sub: 'Tampa, FL', role: 'origin' },
   { code: 'FLL', name: 'Fort Lauderdale-Hollywood Intl', sub: 'Fort Lauderdale, FL', role: 'origin' },
+]
+
+const ANCHOR_DESTS: AirportMeta[] = [
+  { code: 'WHV', name: 'Country Club of Winter Haven', sub: 'Winter Haven, FL', role: 'destination' },
+  { code: 'SRS', name: 'St. Regis Sarasota', sub: 'Sarasota, FL', role: 'destination' },
+  { code: 'EYW', name: 'Key West', sub: 'Key West, FL', role: 'destination' },
+  { code: 'ISM', name: 'Islamorada', sub: 'Florida Keys, FL', role: 'destination' },
+  { code: 'HMI', name: 'Honeymoon Island', sub: 'Dunedin, FL', role: 'destination' },
 ]
 
 const DEPART_TIMES = ['7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM']
@@ -43,7 +51,7 @@ function AirportDropdown({
         onClick={() => setOpen(o => !o)}
       >
         <span style={{ fontWeight: 600, marginRight: 6, color: 'var(--ink)' }}>{value.code}</span>
-        <span style={{ fontSize: 12, color: 'var(--ink-light)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value.sub}</span>
+        <span style={{ fontSize: 12, color: 'var(--ink-light)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value.name}</span>
       </div>
       {open && (
         <div style={{
@@ -90,12 +98,14 @@ function AirportDropdown({
 
 export default function AnchorFlightPage() {
   const [origin, setOrigin] = useState<AirportMeta>(ANCHOR_ORIGINS[0])
-  const [dest, setDest] = useState<AirportMeta>(DESTINATIONS[0])
+  const [dest, setDest] = useState<AirportMeta>(ANCHOR_DESTS[0])
+  const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('one-way')
   const [aircraft, setAircraft] = useState<4 | 8>(8)
   const [pax, setPax] = useState(2)
   const [date, setDate] = useState('')
-  const [returnDate, setReturnDate] = useState('')
   const [departTime, setDepartTime] = useState('9:00 AM')
+  const [returnDate, setReturnDate] = useState('')
+  const [returnDepartTime, setReturnDepartTime] = useState('3:00 PM')
   const [visibility, setVisibility] = useState<'public' | 'private'>('public')
   const [tripName, setTripName] = useState('')
   const [pitch, setPitch] = useState('')
@@ -135,10 +145,12 @@ export default function AnchorFlightPage() {
   const anchorSeats = visibility === 'private' ? aircraft : pax
   const aircraftLabel = aircraft === 4 ? 'Cessna 206' : 'Cessna Grand Caravan'
   const blockTime = fmtDur(90)
+  const isRoundTrip = tripType === 'round-trip'
 
   async function handleSubmit() {
-    if (!date) { setError('Please set a departure date.'); return }
+    if (!date.trim()) { setError('Please enter a departure date.'); return }
     if (!tripName.trim()) { setError('Please enter a trip name.'); return }
+    if (isRoundTrip && !returnDate.trim()) { setError('Please enter a return date.'); return }
     setError('')
     setSubmitting(true)
 
@@ -160,18 +172,21 @@ export default function AnchorFlightPage() {
           member_id: member.id,
           payload: {
             originCode: origin.code,
+            originName: origin.name,
             destCode: dest.code,
+            destName: dest.name,
+            tripType,
             date,
-            returnDate: returnDate || null,
             departTime,
-            durationMins: 90,
+            returnDate: isRoundTrip ? returnDate : null,
+            returnDepartTime: isRoundTrip ? returnDepartTime : null,
             aircraftId: aircraft === 4 ? 'c206' : 'caravan',
             name: tripName,
             pitch,
             visibility,
             seatsTotal: aircraft,
             seatsAnchor: anchorSeats,
-            },
+          },
           status: 'pending',
         })
         .select()
@@ -184,7 +199,7 @@ export default function AnchorFlightPage() {
           member_id: member.id,
           kind: 'system',
           title: 'Anchor submitted for review',
-          body: 'Ops will confirm aircraft availability before opening seats.',
+          body: 'The Travail team will get a Tropic quote and confirm pricing with you.',
           ref: { kind: 'anchor', id: data.id },
           read: false,
         })
@@ -219,7 +234,7 @@ export default function AnchorFlightPage() {
               Anchor in review.
             </h2>
             <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 8px' }}>
-              We've received your <strong>{origin.code} → {dest.code}</strong> anchor request.
+              We've received your <strong>{origin.name} → {dest.name}</strong> anchor request.
             </p>
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', lineHeight: 1.5, margin: '0 0 32px' }}>
               The Travail team will get a quote from Tropic and reach back out to confirm pricing before your anchor goes live to the network.
@@ -259,55 +274,86 @@ export default function AnchorFlightPage() {
           {/* ── Left: Form ── */}
           <div className="builder-form">
 
+            {/* One-way / Round-trip toggle */}
+            <div className="field">
+              <div style={{ display: 'flex', background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: 4, gap: 4 }}>
+                {(['one-way', 'round-trip'] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTripType(t)}
+                    style={{
+                      flex: 1,
+                      height: 34,
+                      border: 'none',
+                      borderRadius: 7,
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      background: tripType === t ? 'var(--tropic)' : 'transparent',
+                      color: tripType === t ? '#fff' : 'var(--ink-light)',
+                    }}
+                  >
+                    {t === 'one-way' ? 'One Way' : 'Round Trip'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Route */}
             <div className="field">
               <label className="field-lab">Route <span className="req">*</span></label>
               <div className="select-row" style={{ alignItems: 'stretch' }}>
                 <AirportDropdown label="From" value={origin} options={ANCHOR_ORIGINS} onChange={setOrigin} />
                 <div style={{ display: 'flex', alignItems: 'center', padding: '0 8px', color: 'var(--ink-faint)', fontSize: 18, flexShrink: 0 }}>→</div>
-                <AirportDropdown label="To" value={dest} options={DESTINATIONS} onChange={setDest} />
+                <AirportDropdown label="To" value={dest} options={ANCHOR_DESTS} onChange={setDest} />
               </div>
             </div>
 
-            {/* Dates */}
-            <div className="row-2">
-              <div className="field">
-                <label className="field-lab">Date out <span className="req">*</span></label>
-                <input
-                  type="date"
-                  className="input"
-                  value={date}
-                  onChange={e => setDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-              <div className="field">
-                <label className="field-lab">Return date</label>
-                <input
-                  type="date"
-                  className="input"
-                  value={returnDate}
-                  onChange={e => setReturnDate(e.target.value)}
-                  min={date || new Date().toISOString().split('T')[0]}
-                />
-              </div>
+            {/* Outbound */}
+            <div className="field">
+              <label className="field-lab">Departure date <span className="req">*</span></label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. June 15, 2025"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+              />
             </div>
-
-            {/* Departure time */}
             <div className="field">
               <label className="field-lab">Departure time</label>
               <div className="chips">
                 {DEPART_TIMES.map(t => (
-                  <button
-                    key={t}
-                    className={`chip${departTime === t ? ' active' : ''}`}
-                    onClick={() => setDepartTime(t)}
-                  >
-                    {t}
-                  </button>
+                  <button key={t} className={`chip${departTime === t ? ' active' : ''}`} onClick={() => setDepartTime(t)}>{t}</button>
                 ))}
               </div>
             </div>
+
+            {/* Return leg (round-trip only) */}
+            {isRoundTrip && (
+              <>
+                <div style={{ height: 1, background: 'var(--hair)', margin: '4px 0' }} />
+                <div className="field">
+                  <label className="field-lab">Return date <span className="req">*</span></label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="e.g. June 17, 2025"
+                    value={returnDate}
+                    onChange={e => setReturnDate(e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label className="field-lab">Return departure time</label>
+                  <div className="chips">
+                    {DEPART_TIMES.map(t => (
+                      <button key={t} className={`chip${returnDepartTime === t ? ' active' : ''}`} onClick={() => setReturnDepartTime(t)}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Trip name */}
             <div className="field">
@@ -315,7 +361,7 @@ export default function AnchorFlightPage() {
               <input
                 type="text"
                 className="input"
-                placeholder="e.g. Nassau weekend escape"
+                placeholder="e.g. Islamorada weekend"
                 value={tripName}
                 onChange={e => setTripName(e.target.value)}
                 maxLength={80}
@@ -441,23 +487,29 @@ export default function AnchorFlightPage() {
                 gap: 12,
               }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontFamily: 'var(--display)', fontSize: 36, fontWeight: 500, color: '#fff', lineHeight: 1 }}>{origin.code}</div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginTop: 4, textTransform: 'uppercase' }}>{origin.sub}</div>
+                  <div style={{ fontFamily: 'var(--display)', fontSize: 32, fontWeight: 500, color: '#fff', lineHeight: 1 }}>{origin.code}</div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginTop: 4 }}>{origin.sub}</div>
                 </div>
-                <div style={{ color: 'var(--tropic)', fontSize: 22, flex: 1, textAlign: 'center' }}>→</div>
+                <div style={{ color: 'var(--tropic)', fontSize: 20, flex: 1, textAlign: 'center' }}>
+                  {isRoundTrip ? '⇄' : '→'}
+                </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontFamily: 'var(--display)', fontSize: 36, fontWeight: 500, color: '#fff', lineHeight: 1 }}>{dest.code}</div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginTop: 4, textTransform: 'uppercase' }}>{dest.sub}</div>
+                  <div style={{ fontFamily: 'var(--display)', fontSize: 32, fontWeight: 500, color: '#fff', lineHeight: 1 }}>{dest.code}</div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginTop: 4 }}>{dest.sub}</div>
                 </div>
               </div>
 
               {/* Summary grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--hair)', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--hair)' }}>
                 {[
-                  { label: 'Date', value: date || '—' },
-                  { label: 'Return', value: returnDate || '—' },
-                  { label: 'Departs', value: departTime },
+                  { label: 'Trip type', value: isRoundTrip ? 'Round trip' : 'One way' },
                   { label: 'Aircraft', value: aircraftLabel },
+                  { label: 'Departs', value: date || '—' },
+                  { label: 'Departure time', value: departTime },
+                  ...(isRoundTrip ? [
+                    { label: 'Returns', value: returnDate || '—' },
+                    { label: 'Return time', value: returnDepartTime },
+                  ] : []),
                   { label: 'Block time', value: blockTime },
                   { label: 'Party', value: `${pax} seat${pax > 1 ? 's' : ''}` },
                   { label: 'Open to fill', value: visibility === 'private' ? 'No' : `${openSeats} seat${openSeats !== 1 ? 's' : ''}` },
