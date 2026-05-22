@@ -91,6 +91,18 @@ export function airportFull(code: string): AirportMeta | undefined {
   return ALL_AIRPORTS.find(x => x.code === code)
 }
 
+const HOME_BASE_MAP: Record<string, string> = {
+  TPA: 'Tampa Bay', KTPA: 'Tampa Bay', KTPF: 'Tampa Bay', TPF: 'Tampa Bay',
+  PIE: 'Tampa Bay', KPIE: 'Tampa Bay', SRQ: 'Tampa Bay', KSRQ: 'Tampa Bay',
+  MIA: 'SFL', KMIA: 'SFL', FLL: 'SFL', KFLL: 'SFL',
+  OPF: 'SFL', KOPF: 'SFL', PBI: 'SFL', KPBI: 'SFL', TMB: 'SFL', KTMB: 'SFL',
+}
+
+export function fmtHomeBase(code: string | null | undefined): string | null {
+  if (!code) return null
+  return HOME_BASE_MAP[code] ?? code
+}
+
 // ─── Formatting helpers ───────────────────────────────────────────────────────
 
 export function fmtDur(mins: number): string {

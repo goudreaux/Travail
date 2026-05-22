@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { fmtHomeBase } from '@/lib/data'
 import type { Member, MemberSensitive } from '@/lib/supabase/types'
 
 const HOME_BASES = ['Tampa Bay', 'SFL']
@@ -304,7 +305,7 @@ export default function MembersPage() {
                     </div>
                   </td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-light)' }}>{m.id.slice(0, 8)}…</td>
-                  <td style={{ fontSize: 13 }}>{m.home_base_code ?? '—'}</td>
+                  <td style={{ fontSize: 13 }}>{fmtHomeBase(m.home_base_code) ?? '—'}</td>
                   <td>
                     <span className={`pill ${m.kyc_verified ? 'moss' : 'signal'}`}>{m.kyc_verified ? 'Verified' : 'Pending'}</span>
                   </td>

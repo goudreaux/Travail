@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { fmtDate, fmtDur, fmtMoney, fmtTime, airportSub } from '@/lib/data'
+import { fmtDate, fmtDur, fmtMoney, fmtTime, airportSub, fmtHomeBase } from '@/lib/data'
 import type { Member, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 
 const SERVICE_FEE_RATE = 0.08
@@ -446,9 +446,9 @@ export default function ReservePage() {
                       )}
                     </div>
                   </div>
-                  {member.home_base_code && (
+                  {fmtHomeBase(member.home_base_code) && (
                     <span style={{ fontSize: 11, color: 'var(--ink-mid)' }}>
-                      {member.home_base_code}
+                      {fmtHomeBase(member.home_base_code)}
                     </span>
                   )}
                 </div>

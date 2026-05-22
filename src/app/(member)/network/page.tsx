@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { fmtHomeBase } from '@/lib/data'
 import type { Member } from '@/lib/supabase/types'
 
 function Avatar({ member, size = 52 }: { member: Member; size?: number }) {
@@ -205,7 +206,7 @@ export default function NetworkPage() {
                   </div>
 
                   {/* Home base */}
-                  {member.home_base_code && (
+                  {fmtHomeBase(member.home_base_code) && (
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -217,7 +218,7 @@ export default function NetworkPage() {
                         <circle cx="11" cy="9" r="2" />
                       </svg>
                       <span style={{ fontSize: 11, color: 'var(--ink-mid)' }}>
-                        {member.home_base_code}
+                        {fmtHomeBase(member.home_base_code)}
                       </span>
                     </div>
                   )}

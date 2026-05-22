@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { fmtHomeBase } from '@/lib/data'
 import type { Member, Booking, Post } from '@/lib/supabase/types'
 
 function Avatar({ member, size = 80 }: { member: Member; size?: number }) {
@@ -232,7 +233,7 @@ export default function MemberProfilePage() {
                   </span>
                   {member.home_base_code && (
                     <span className="mono" style={{ fontSize: 9.5, color: 'var(--ink-mid)' }}>
-                      · {member.home_base_code}
+                      · {fmtHomeBase(member.home_base_code)}
                     </span>
                   )}
                 </div>
@@ -257,11 +258,11 @@ export default function MemberProfilePage() {
                   {approvedTrips.length}
                 </div>
               </div>
-              {member.home_base_code && (
+              {fmtHomeBase(member.home_base_code) && (
                 <div>
                   <div className="mono" style={{ marginBottom: 2, fontSize: 9.5 }}>Home base</div>
                   <div style={{ fontSize: 13, color: 'var(--ink-soft)', fontWeight: 500 }}>
-                    {member.home_base_code}
+                    {fmtHomeBase(member.home_base_code)}
                   </div>
                 </div>
               )}
