@@ -163,9 +163,30 @@ export default function AnchorExcursionPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState<{ id: string } | null>(null)
   const [error, setError] = useState('')
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
 
   const supabase = createClient()
   const router = useRouter()
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { setIsAdmin(false); return }
+      const { data } = await supabase.from('members').select('is_admin').eq('user_id', user.id).single()
+      setIsAdmin(data?.is_admin ?? false)
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (isAdmin === null) return null
+
+  if (!isAdmin) return (
+    <div className="page">
+      <div className="page-head">
+        <p className="mono" style={{ marginBottom: 6 }}>ANCHOR AN EXCURSION</p>
+        <h1>Coming soon.</h1>
+        <p className="sub">This feature is under development. Check back soon.</p>
+      </div>
+    </div>
+  )
 
   // Templates for selected destination
   const templates = EXCURSION_TEMPLATES_BY_DEST[dest.code] ?? []
