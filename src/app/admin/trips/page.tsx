@@ -137,7 +137,8 @@ export default function TripsPage() {
         if (error) throw error
         showToast('Flight updated')
       } else {
-        const { error } = await supabase.from('flights').insert(payload)
+        const id = 'F-' + Date.now().toString(36).toUpperCase()
+        const { error } = await supabase.from('flights').insert({ ...payload, id })
         if (error) throw error
         showToast('Flight created')
       }
@@ -167,7 +168,8 @@ export default function TripsPage() {
         if (error) throw error
         showToast('Excursion updated')
       } else {
-        const { error } = await supabase.from('excursions').insert(payload)
+        const id = 'E-' + Date.now().toString(36).toUpperCase()
+        const { error } = await supabase.from('excursions').insert({ ...payload, id })
         if (error) throw error
         showToast('Excursion created')
       }
