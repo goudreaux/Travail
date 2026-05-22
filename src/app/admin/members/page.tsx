@@ -100,6 +100,14 @@ export default function MembersPage() {
     setForm(defaultForm)
   }
 
+  async function deleteMember(id: string, name: string) {
+    if (!confirm(`Delete ${name}? This cannot be undone.`)) return
+    const { error } = await supabase.from('members').delete().eq('id', id)
+    if (error) { showToast(error.message, 'error'); return }
+    showToast('Member deleted')
+    load()
+  }
+
   async function save() {
     setSaving(true)
     try {
@@ -285,13 +293,20 @@ export default function MembersPage() {
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-light)' }}>
                     {new Date(m.joined_at).toLocaleDateString()}
                   </td>
-                  <td onClick={e => e.stopPropagation()}>
+                  <td onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 6, padding: '8px 12px' }}>
                     <button
                       className="btn-ghost"
                       style={{ height: 28, padding: '0 10px', fontSize: 12 }}
                       onClick={() => openEdit(m)}
                     >
                       Edit
+                    </button>
+                    <button
+                      className="btn-ghost"
+                      style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--signal)' }}
+                      onClick={() => deleteMember(m.id, m.name)}
+                    >
+                      Delete
                     </button>
                   </td>
                 </tr>
