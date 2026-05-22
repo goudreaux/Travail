@@ -150,8 +150,8 @@ function ExcursionCard({
           {excursion.stay_type === 'day_trip' ? 'Day trip' : excursion.stay_type === 'overnight' ? 'Overnight' : 'Multi-night'}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {excursion.templateMeta?.price_per_pax ? (
-            <span className="trip-card__price">{fmtMoney(excursion.templateMeta.price_per_pax)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/person</span></span>
+          {(excursion.price_per_pax || excursion.templateMeta?.price_per_pax) ? (
+            <span className="trip-card__price">{fmtMoney(excursion.price_per_pax || excursion.templateMeta?.price_per_pax || 0)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/person</span></span>
           ) : null}
           <button
             className="btn-primary"
