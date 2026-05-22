@@ -19,53 +19,84 @@ const ANCHOR_DESTS: AirportMeta[] = [
   { code: 'HMI', name: 'Honeymoon Island', sub: 'Dunedin, FL', role: 'destination' },
 ]
 
-function TimeInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  const [focused, setFocused] = useState(false)
-  const [raw, setRaw] = useState(value)
+const HOURS = ['1','2','3','4','5','6','7','8','9','10','11','12']
+const MINUTES = ['00','15','30','45']
 
-  function handleBlur() {
-    setFocused(false)
-    // Normalize common formats to "H:MM AM/PM"
-    const m = raw.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i)
-    if (m) {
-      const h = parseInt(m[1])
-      const min = m[2] ?? '00'
-      const meridiem = m[3] ? m[3].toUpperCase() : h >= 12 ? 'PM' : 'AM'
-      const hour = h > 12 ? h - 12 : h === 0 ? 12 : h
-      const formatted = `${hour}:${min} ${meridiem}`
-      setRaw(formatted)
-      onChange(formatted)
-    } else if (raw.match(/^\d{1,2}:\d{2}\s*(AM|PM)$/i)) {
-      onChange(raw.trim())
-    }
+function TimeInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  // Parse "9:00 AM" → { h: '9', m: '00', meridiem: 'AM' }
+  const parse = (v: string) => {
+    const match = v.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/)
+    return match ? { h: match[1], m: match[2], meridiem: match[3] as 'AM' | 'PM' } : { h: '9', m: '00', meridiem: 'AM' as const }
+  }
+  const parsed = parse(value)
+  const [h, setH] = useState(parsed.h)
+  const [m, setM] = useState(parsed.m)
+  const [meridiem, setMeridiem] = useState<'AM' | 'PM'>(parsed.meridiem)
+
+  function emit(nh: string, nm: string, nmer: 'AM' | 'PM') {
+    onChange(`${nh}:${nm} ${nmer}`)
+  }
+
+  const sel: React.CSSProperties = {
+    height: 38,
+    border: '1px solid var(--hair-2)',
+    borderRadius: 8,
+    background: 'var(--card)',
+    color: 'var(--ink)',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    outline: 'none',
+    appearance: 'none',
+    WebkitAppearance: 'none',
+    textAlign: 'center',
+    padding: '0 8px',
   }
 
   return (
     <div className="field">
       <label className="field-lab">{label}</label>
-      <div style={{ position: 'relative' }}>
-        <svg
-          width="15" height="15" viewBox="0 0 22 22" fill="none"
-          stroke="var(--ink-faint)" strokeWidth="1.6" strokeLinecap="round"
-          style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {/* Hour */}
+        <select
+          style={{ ...sel, width: 58 }}
+          value={h}
+          onChange={e => { setH(e.target.value); emit(e.target.value, m, meridiem) }}
         >
-          <circle cx="11" cy="11" r="9" />
-          <path d="M11 6v5l3 3" />
-        </svg>
-        <input
-          className="input"
-          style={{ paddingLeft: 34 }}
-          placeholder="9:00 AM"
-          value={raw}
-          onChange={e => setRaw(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={handleBlur}
-        />
-        {!focused && !raw && (
-          <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'var(--ink-faint)', fontFamily: 'var(--mono)', pointerEvents: 'none' }}>
-            H:MM AM/PM
-          </span>
-        )}
+          {HOURS.map(v => <option key={v} value={v}>{v}</option>)}
+        </select>
+        <span style={{ color: 'var(--ink-faint)', fontWeight: 700, fontSize: 16, lineHeight: 1 }}>:</span>
+        {/* Minute */}
+        <select
+          style={{ ...sel, width: 62 }}
+          value={m}
+          onChange={e => { setM(e.target.value); emit(h, e.target.value, meridiem) }}
+        >
+          {MINUTES.map(v => <option key={v} value={v}>{v}</option>)}
+        </select>
+        {/* AM / PM toggle */}
+        <div style={{ display: 'flex', background: 'var(--card)', border: '1px solid var(--hair-2)', borderRadius: 8, overflow: 'hidden', height: 38 }}>
+          {(['AM', 'PM'] as const).map(p => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => { setMeridiem(p); emit(h, m, p) }}
+              style={{
+                width: 42,
+                height: '100%',
+                border: 'none',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.12s',
+                background: meridiem === p ? 'var(--tropic)' : 'transparent',
+                color: meridiem === p ? '#fff' : 'var(--ink-light)',
+              }}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
