@@ -2,8 +2,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ORIGINS, DESTINATIONS, fmtDur } from '@/lib/data'
+import { DESTINATIONS, fmtDur } from '@/lib/data'
 import type { AirportMeta } from '@/lib/data'
+
+const ANCHOR_ORIGINS: AirportMeta[] = [
+  { code: 'TPF', name: 'Peter O. Knight Airport', sub: 'Davis Island, Tampa', role: 'origin' },
+  { code: 'TPA', name: 'Tampa International Airport', sub: 'Tampa, FL', role: 'origin' },
+  { code: 'FLL', name: 'Fort Lauderdale-Hollywood Intl', sub: 'Fort Lauderdale, FL', role: 'origin' },
+]
 
 const DEPART_TIMES = ['7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM']
 
@@ -83,7 +89,7 @@ function AirportDropdown({
 }
 
 export default function AnchorFlightPage() {
-  const [origin, setOrigin] = useState<AirportMeta>(ORIGINS[0])
+  const [origin, setOrigin] = useState<AirportMeta>(ANCHOR_ORIGINS[0])
   const [dest, setDest] = useState<AirportMeta>(DESTINATIONS[0])
   const [aircraft, setAircraft] = useState<4 | 8>(8)
   const [pax, setPax] = useState(2)
@@ -121,12 +127,9 @@ export default function AnchorFlightPage() {
     </div>
   )
 
-  const seatPrice = aircraft === 4 ? 720 : 640
   const openSeats = visibility === 'private' ? 0 : Math.max(0, aircraft - pax)
   const anchorSeats = visibility === 'private' ? aircraft : pax
-  const total = seatPrice * anchorSeats
   const aircraftLabel = aircraft === 4 ? 'Cessna 206' : 'Cessna Grand Caravan'
-  const aircraftDesc = aircraft === 4 ? '4 seats · amphibious single' : '8 seats · turboprop'
   const blockTime = fmtDur(90)
 
   // Clamp pax to aircraft capacity
@@ -169,8 +172,7 @@ export default function AnchorFlightPage() {
             visibility,
             seatsTotal: aircraft,
             seatsAnchor: anchorSeats,
-            pricePerSeat: seatPrice,
-          },
+            },
           status: 'pending',
         })
         .select()
@@ -218,10 +220,10 @@ export default function AnchorFlightPage() {
               Anchor in review.
             </h2>
             <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 8px' }}>
-              Ops is confirming aircraft availability for your <strong>{origin.code} → {dest.code}</strong> flight.
+              We've received your <strong>{origin.code} → {dest.code}</strong> anchor request.
             </p>
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', lineHeight: 1.5, margin: '0 0 32px' }}>
-              You'll receive a notification once your anchor is approved and seats open to the network.
+              The Travail team will get a quote from Tropic and reach back out to confirm pricing before your anchor goes live to the network.
             </p>
             <div style={{
               background: 'var(--warm)',
@@ -262,7 +264,7 @@ export default function AnchorFlightPage() {
             <div className="field">
               <label className="field-lab">Route <span className="req">*</span></label>
               <div className="select-row" style={{ alignItems: 'stretch' }}>
-                <AirportDropdown label="From" value={origin} options={ORIGINS} onChange={setOrigin} />
+                <AirportDropdown label="From" value={origin} options={ANCHOR_ORIGINS} onChange={setOrigin} />
                 <div style={{ display: 'flex', alignItems: 'center', padding: '0 8px', color: 'var(--ink-faint)', fontSize: 18, flexShrink: 0 }}>→</div>
                 <AirportDropdown label="To" value={dest} options={DESTINATIONS} onChange={setDest} />
               </div>
@@ -349,15 +351,7 @@ export default function AnchorFlightPage() {
                       <div className="t-lab">{cap === 4 ? 'Cessna 206' : 'Cessna Grand Caravan'}</div>
                       <div className="t-sub">{cap === 4 ? '4 seats · amphibious single' : '8 seats · turboprop'}</div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-light)' }}>
-                        ${cap === 4 ? '720' : '640'}/seat
-                      </span>
-                      <div
-                        className={`toggle${aircraft === cap ? ' active' : ''}`}
-                        style={{ pointerEvents: 'none' }}
-                      />
-                    </div>
+                    <div className={`toggle${aircraft === cap ? ' active' : ''}`} style={{ pointerEvents: 'none' }} />
                   </div>
                 ))}
               </div>
@@ -468,7 +462,6 @@ export default function AnchorFlightPage() {
                   { label: 'Block time', value: blockTime },
                   { label: 'Party', value: `${pax} seat${pax > 1 ? 's' : ''}` },
                   { label: 'Open to fill', value: visibility === 'private' ? 'No' : `${openSeats} seat${openSeats !== 1 ? 's' : ''}` },
-                  { label: 'Per seat', value: `$${seatPrice.toLocaleString()}` },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ background: 'var(--card)', padding: '10px 14px' }}>
                     <div className="mono" style={{ marginBottom: 2 }}>{label}</div>
@@ -477,24 +470,17 @@ export default function AnchorFlightPage() {
                 ))}
               </div>
 
-              {/* Total */}
+              {/* Pricing note */}
               <div style={{
-                background: 'var(--warm)',
+                background: 'var(--tropic-glow)',
+                border: '1px solid rgba(0,179,199,0.2)',
                 borderRadius: 10,
                 padding: '14px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
               }}>
-                <div>
-                  <div className="mono">Your total</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 2 }}>
-                    {anchorSeats} seat{anchorSeats > 1 ? 's' : ''} × ${seatPrice.toLocaleString()}
-                  </div>
-                </div>
-                <div style={{ fontFamily: 'var(--display)', fontSize: 28, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
-                  ${total.toLocaleString()}
-                </div>
+                <div className="mono" style={{ color: 'var(--tropic-d)', marginBottom: 6 }}>Pricing</div>
+                <p style={{ fontSize: 12.5, color: 'var(--ink-mid)', lineHeight: 1.55, margin: 0 }}>
+                  Seat pricing will be confirmed by the Travail team. We'll check with Tropic for a quote and reach out to confirm before your anchor goes live.
+                </p>
               </div>
 
               {/* Submit */}
