@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { fmtDate } from '@/lib/data'
-import type { Member, Booking, AnchorSubmission } from '@/lib/supabase/types'
+import type { Member, Booking, AnchorSubmission, MemberSensitive } from '@/lib/supabase/types'
 
 const TIER_LABEL: Record<string, string> = {
   founder: 'Founding Member',
@@ -39,6 +39,8 @@ export default function MembershipPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
+  const [sensitive, setSensitive] = useState<MemberSensitive | null>(null)
+
   // Editable fields
   const [name, setName] = useState('')
   const [bio, setBio] = useState('')
@@ -71,8 +73,15 @@ export default function MembershipPage() {
         .eq('member_id', m.id)
         .order('submitted_at', { ascending: false })
 
+      const { data: sensitiveData } = await supabase
+        .from('member_sensitive')
+        .select('*')
+        .eq('member_id', m.id)
+        .single()
+
       setBookings((bookingData as Booking[] | null) ?? [])
       setSubmissions((submissionData as AnchorSubmission[] | null) ?? [])
+      setSensitive(sensitiveData as MemberSensitive | null)
       setLoading(false)
     }
     load()
@@ -451,6 +460,7 @@ export default function MembershipPage() {
                   { label: 'KYC status', value: member.kyc_verified ? <span className="pill moss">Verified</span> : <span className="pill signal">Pending</span> },
                   { label: 'Card on file', value: member.card_last4 ? `••••  ••••  ••••  ${member.card_last4}` : <span style={{ color: 'var(--ink-faint)' }}>None on file</span> },
                   ...(member.home_base_code ? [{ label: 'Home base', value: member.home_base_code }] : []),
+                  ...(sensitive?.date_of_birth ? [{ label: 'Date of birth', value: new Date(sensitive.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) }] : []),
                 ].map(({ label, value }) => (
                   <div
                     key={label}

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Member } from '@/lib/supabase/types'
+import type { Member, MemberSensitive } from '@/lib/supabase/types'
 
 const HOME_BASES = ['Tampa Bay', 'SFL']
 
@@ -16,6 +16,7 @@ type EditForm = {
   home_base_code: string
   bio: string
   interests: string
+  date_of_birth: string
   kyc_verified: boolean
   is_admin: boolean
 }
@@ -27,6 +28,7 @@ const defaultForm: EditForm = {
   home_base_code: 'Tampa Bay',
   bio: '',
   interests: '',
+  date_of_birth: '',
   kyc_verified: false,
   is_admin: false,
 }
@@ -50,6 +52,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
 export default function MembersPage() {
   const supabase = createClient()
   const [members, setMembers] = useState<Member[]>([])
+  const [sensitiveData, setSensitiveData] = useState<Record<string, MemberSensitive>>({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [editId, setEditId] = useState<string | null>(null)
@@ -65,11 +68,14 @@ export default function MembersPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase
-      .from('members')
-      .select('*')
-      .order('joined_at', { ascending: false })
-    setMembers(data ?? [])
+    const [{ data: memberData }, { data: sensitiveRows }] = await Promise.all([
+      supabase.from('members').select('*').order('joined_at', { ascending: false }),
+      supabase.from('member_sensitive').select('*'),
+    ])
+    setMembers(memberData ?? [])
+    const map: Record<string, MemberSensitive> = {}
+    for (const row of (sensitiveRows ?? [])) map[row.member_id] = row
+    setSensitiveData(map)
     setLoading(false)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -92,6 +98,7 @@ export default function MembersPage() {
       home_base_code: m.home_base_code ?? 'Tampa Bay',
       bio: m.bio ?? '',
       interests: (m.interests ?? []).join(', '),
+      date_of_birth: sensitiveData[m.id]?.date_of_birth ?? '',
       kyc_verified: m.kyc_verified,
       is_admin: m.is_admin,
     })
@@ -129,14 +136,27 @@ export default function MembersPage() {
       if (editId) {
         const { error } = await supabase.from('members').update(payload).eq('id', editId)
         if (error) throw error
+        if (form.date_of_birth) {
+          const { error: dobErr } = await supabase.from('member_sensitive').upsert({
+            member_id: editId,
+            date_of_birth: form.date_of_birth,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'member_id' })
+          if (dobErr) throw dobErr
+        }
         showToast('Member updated')
       } else {
-        // Insert new member profile (user_id required — use a placeholder note)
-        const { error } = await supabase.from('members').insert({
+        const { data: inserted, error } = await supabase.from('members').insert({
           ...payload,
           user_id: '00000000-0000-0000-0000-000000000000',
-        })
+        }).select().single()
         if (error) throw error
+        if (form.date_of_birth && inserted) {
+          await supabase.from('member_sensitive').insert({
+            member_id: inserted.id,
+            date_of_birth: form.date_of_birth,
+          })
+        }
         showToast('Member created — link a user_id in Supabase Auth')
       }
 
@@ -198,6 +218,15 @@ export default function MembersPage() {
               <select className="select" value={form.home_base_code} onChange={e => setForm(f => ({ ...f, home_base_code: e.target.value }))}>
                 {HOME_BASES.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
+            </div>
+            <div className="field">
+              <label className="field-lab">Date of Birth</label>
+              <input
+                className="input"
+                type="date"
+                value={form.date_of_birth}
+                onChange={e => setForm(f => ({ ...f, date_of_birth: e.target.value }))}
+              />
             </div>
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label className="field-lab">Bio</label>

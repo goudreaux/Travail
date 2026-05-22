@@ -63,6 +63,24 @@ export interface Database {
         }
         Relationships: []
       }
+      member_sensitive: {
+        Row: {
+          member_id: string
+          date_of_birth: string | null
+          updated_at: string
+        }
+        Insert: {
+          member_id: string
+          date_of_birth?: string | null
+          updated_at?: string
+        }
+        Update: {
+          member_id?: string
+          date_of_birth?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       airports: {
         Row: {
           code: string
@@ -463,6 +481,7 @@ export type Post = Database['public']['Tables']['posts']['Row']
 export type Comment = Database['public']['Tables']['comments']['Row']
 
 export type MemberTier = Member['tier']
+export type MemberSensitive = Database['public']['Tables']['member_sensitive']['Row']
 export type FlightStatus = Flight['status']
 export type ExcursionStatus = Excursion['status']
 export type BookingStatus = Booking['status']
