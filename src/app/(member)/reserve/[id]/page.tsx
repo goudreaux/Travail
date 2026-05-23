@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { fmtDate, fmtDur, fmtMoney, fmtTime, airportSub, fmtHomeBase } from '@/lib/data'
 import type { Member, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
+import { type Guest, type GuestSlot, NEW_GUEST, emptyGuestSlot } from '@/lib/guests'
 
 const SERVICE_FEE_RATE = 0.03
 
@@ -35,6 +36,8 @@ export default function ReservePage() {
   // Form state
   const [seats, setSeats] = useState(1)
   const [paymentMethod] = useState<'card'>('card')
+  const [savedGuests, setSavedGuests] = useState<Guest[]>([])
+  const [guestSlots, setGuestSlots] = useState<GuestSlot[]>([])
 
   // Submission state
   const [submitting, setSubmitting] = useState(false)
@@ -54,6 +57,15 @@ export default function ReservePage() {
 
       if (!memberData) { router.push('/login'); return }
       setMember(memberData as Member)
+
+      // Member's saved guest roster (empty/erroring if the migration hasn't run yet)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: guestData } = await (supabase as any)
+        .from('guests')
+        .select('*')
+        .eq('host_member_id', (memberData as Member).id)
+        .order('first_name')
+      setSavedGuests((guestData ?? []) as Guest[])
 
       if (kind === 'flight') {
         const { data } = await supabase.from('flights').select('*').eq('id', itemId).single()
@@ -80,6 +92,26 @@ export default function ReservePage() {
   }, [itemId, kind, returnId])
 
   const isRoundTrip = !!(flight && returnFlight)
+
+  // Keep one guest slot per seat beyond the member's own (seat 1).
+  useEffect(() => {
+    const need = Math.max(0, seats - 1)
+    setGuestSlots(prev => {
+      const next = prev.slice(0, need)
+      while (next.length < need) next.push(emptyGuestSlot())
+      return next
+    })
+  }, [seats])
+
+  const updateSlot = (i: number, patch: Partial<GuestSlot>) =>
+    setGuestSlots(prev => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)))
+
+  const guestsComplete =
+    seats <= 1 ||
+    (guestSlots.length === seats - 1 &&
+      guestSlots.every(s =>
+        s.savedGuestId !== '' &&
+        (s.savedGuestId !== NEW_GUEST || (s.first_name.trim() !== '' && s.last_name.trim() !== ''))))
 
   // Derived values
   const maxSeats = flight
@@ -112,74 +144,105 @@ export default function ReservePage() {
   async function handleSubmit() {
     if (!member) return
     setError('')
+
+    if (seats > 1) {
+      for (const s of guestSlots) {
+        if (!s.savedGuestId) { setError('Select or add a guest for every additional seat.'); return }
+        if (s.savedGuestId === NEW_GUEST && (!s.first_name.trim() || !s.last_name.trim())) {
+          setError('Enter a first and last name for each new guest.'); return
+        }
+      }
+    }
+
     setSubmitting(true)
 
     try {
-      let booking: { id: string; confirmation_code: string | null }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+
+      // 1. Resolve guests — insert new ones into the member's roster so they're reusable.
+      type Pax = { guest_id: string; first_name: string; last_name: string; email: string | null; phone: string | null }
+      const guestPax: Pax[] = []
+      for (const s of guestSlots) {
+        if (s.savedGuestId === NEW_GUEST) {
+          const { data: g, error: gErr } = await db.from('guests').insert({
+            host_member_id: member.id,
+            first_name: s.first_name.trim(),
+            last_name: s.last_name.trim(),
+            email: s.email.trim() || null,
+            phone: s.phone.trim() || null,
+          }).select().single()
+          if (gErr) throw gErr
+          guestPax.push({ guest_id: g.id, first_name: g.first_name, last_name: g.last_name, email: g.email, phone: g.phone })
+        } else {
+          const g = savedGuests.find(x => x.id === s.savedGuestId)
+          if (g) guestPax.push({ guest_id: g.id, first_name: g.first_name, last_name: g.last_name, email: g.email, phone: g.phone })
+        }
+      }
+
+      // 2. Create booking(s) — one per leg for round-trips.
+      let bookingIds: string[] = []
+      let primary: { id: string; confirmation_code: string | null }
 
       if (isRoundTrip && flight && returnFlight) {
-        // One action, two legs → one booking row per flight.
         const rows = [flight, returnFlight].map(leg => {
           const sub = leg.price_per_seat * seats
           const fee = Math.round(sub * SERVICE_FEE_RATE)
           return {
-            member_id: member.id,
-            item_kind: 'flight',
-            item_id: leg.id,
-            seats,
-            price_per_seat: leg.price_per_seat,
-            fees: fee,
-            total: sub + fee,
-            payment_method: paymentMethod,
-            status: 'pending',
+            member_id: member.id, item_kind: 'flight', item_id: leg.id, seats,
+            price_per_seat: leg.price_per_seat, fees: fee, total: sub + fee,
+            payment_method: paymentMethod, status: 'pending',
           }
         })
-        const { data: rowsData, error: insertError } = await supabase
-          .from('bookings')
-          .insert(rows as never)
-          .select()
+        const { data: rowsData, error: insertError } = await supabase.from('bookings').insert(rows as never).select()
         if (insertError) throw insertError
-        booking = (rowsData as { id: string; confirmation_code: string | null }[])[0]
-
-        await supabase.from('notifications').insert({
-          member_id: member.id,
-          kind: 'booking',
-          title: 'Round-trip booking submitted',
-          body: `Your round-trip reservation for "${itemName}" (both legs) has been submitted. Ops will confirm shortly.`,
-          ref: { kind, id: itemId, booking_id: booking.id },
-          read: false,
-        } as never)
+        const arr = rowsData as { id: string; confirmation_code: string | null }[]
+        bookingIds = arr.map(r => r.id)
+        primary = arr[0]
       } else {
         const { data: bookingRaw, error: insertError } = await supabase
           .from('bookings')
           .insert({
-            member_id: member.id,
-            item_kind: kind,
-            item_id: itemId,
-            seats,
-            price_per_seat: pricePerSeat,
-            fees: serviceFee,
-            total,
-            payment_method: paymentMethod,
-            status: 'pending',
+            member_id: member.id, item_kind: kind, item_id: itemId, seats,
+            price_per_seat: pricePerSeat, fees: serviceFee, total,
+            payment_method: paymentMethod, status: 'pending',
           } as never)
           .select()
           .single()
-
         if (insertError) throw insertError
-        booking = bookingRaw as { id: string; confirmation_code: string | null }
-
-        await supabase.from('notifications').insert({
-          member_id: member.id,
-          kind: 'booking',
-          title: 'Booking submitted for review',
-          body: `Your ${kind} reservation for "${itemName}" has been submitted. Ops will confirm shortly.`,
-          ref: { kind, id: itemId, booking_id: booking.id },
-          read: false,
-        } as never)
+        primary = bookingRaw as { id: string; confirmation_code: string | null }
+        bookingIds = [primary.id]
       }
 
-      setSubmitted({ id: booking.id, confirmationCode: booking.confirmation_code })
+      // 3. Record passengers (the member is always seat 1) on every leg.
+      const [hostFirst, ...hostRest] = member.name.trim().split(/\s+/)
+      const paxRows = bookingIds.flatMap(bid => [
+        { booking_id: bid, guest_id: null, is_host: true, first_name: hostFirst ?? member.name, last_name: hostRest.join(' '), email: null, phone: null },
+        ...guestPax.map(gp => ({
+          booking_id: bid, guest_id: gp.guest_id, is_host: false,
+          first_name: gp.first_name, last_name: gp.last_name, email: gp.email, phone: gp.phone,
+        })),
+      ])
+      // Best-effort: the booking is the source of truth; don't fail it if the
+      // manifest table isn't present yet.
+      try {
+        const { error: paxErr } = await db.from('booking_passengers').insert(paxRows)
+        if (paxErr) throw paxErr
+      } catch (paxErr) {
+        console.error('Passenger manifest not recorded:', paxErr)
+      }
+
+      // 4. Notify.
+      await supabase.from('notifications').insert({
+        member_id: member.id,
+        kind: 'booking',
+        title: isRoundTrip ? 'Round-trip booking submitted' : 'Booking submitted for review',
+        body: `Your reservation for "${itemName}"${seats > 1 ? ` (${seats} seats)` : ''} has been submitted. Ops will confirm shortly.`,
+        ref: { kind, id: itemId, booking_id: primary.id },
+        read: false,
+      } as never)
+
+      setSubmitted({ id: primary.id, confirmationCode: primary.confirmation_code })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
     } finally {
@@ -452,6 +515,47 @@ export default function ReservePage() {
               )}
             </div>
 
+            {/* 2b. Guest registration */}
+            {seats > 1 && (
+              <div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 6 }}>
+                  Guests · {seats - 1}
+                </div>
+                <p style={{ fontSize: 12.5, color: 'var(--ink-light)', margin: '0 0 12px', lineHeight: 1.5 }}>
+                  You hold seat 1. Register {seats - 1} guest{seats - 1 !== 1 ? 's' : ''} — pick from your saved guests or add new. New guests are saved for next time.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {guestSlots.map((slot, i) => (
+                    <div key={i} style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: slot.savedGuestId === NEW_GUEST ? 12 : 0 }}>
+                        <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-mid)', letterSpacing: '0.1em' }}>GUEST {i + 1}</span>
+                        <select
+                          className="select"
+                          style={{ maxWidth: 240 }}
+                          value={slot.savedGuestId}
+                          onChange={e => updateSlot(i, { savedGuestId: e.target.value })}
+                        >
+                          <option value="">Select a guest…</option>
+                          {savedGuests.map(g => (
+                            <option key={g.id} value={g.id}>{g.first_name} {g.last_name}</option>
+                          ))}
+                          <option value={NEW_GUEST}>+ Add new guest</option>
+                        </select>
+                      </div>
+                      {slot.savedGuestId === NEW_GUEST && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                          <input className="input" placeholder="First name *" value={slot.first_name} onChange={e => updateSlot(i, { first_name: e.target.value })} />
+                          <input className="input" placeholder="Last name *" value={slot.last_name} onChange={e => updateSlot(i, { last_name: e.target.value })} />
+                          <input className="input" type="email" placeholder="Email" value={slot.email} onChange={e => updateSlot(i, { email: e.target.value })} />
+                          <input className="input" placeholder="Phone" value={slot.phone} onChange={e => updateSlot(i, { phone: e.target.value })} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* 3. Passenger profile */}
             {member && (
               <div>
@@ -671,7 +775,7 @@ export default function ReservePage() {
                 className="btn-primary"
                 style={{ width: '100%', height: 46, fontSize: 14, justifyContent: 'center' }}
                 onClick={handleSubmit}
-                disabled={submitting || maxSeats === 0}
+                disabled={submitting || maxSeats === 0 || !guestsComplete}
               >
                 {submitting ? (
                   <>
