@@ -8,7 +8,6 @@ interface Props {
   pathname: string
   member: Member | null
   pendingCount?: number
-  unreadCount?: number
   openSeatsCount?: number
 }
 
@@ -18,7 +17,7 @@ const TIER_COLOR: Record<string, string> = {
   founder: '#c9a84c',
 }
 
-export default function Sidebar({ pathname, member, pendingCount = 0, unreadCount = 0, openSeatsCount = 0 }: Props) {
+export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsCount = 0 }: Props) {
   const nav = [
     { href: '/',                   label: 'Feed',                icon: Icons.feed },
     { href: '/calendar',           label: 'Calendar',            icon: Icons.cal },
@@ -26,7 +25,7 @@ export default function Sidebar({ pathname, member, pendingCount = 0, unreadCoun
     { href: '/bookings',           label: 'Bookings',            icon: Icons.member, badge: pendingCount > 0 ? `${pendingCount} PENDING` : undefined, badgeColor: 'var(--signal)' },
     { href: '/anchor-flight',      label: 'Anchor a flight',     icon: Icons.build },
     { href: '/anchor-excursion',   label: 'Anchor an excursion', icon: Icons.compass },
-    { href: '/inbox',              label: 'Inbox',               icon: Icons.inbox,  badge: unreadCount > 0 ? `${unreadCount}` : undefined, badgeColor: 'var(--signal)' },
+    { href: '/contact',            label: 'Contact us',          icon: Icons.phone },
   ]
 
   const account = [

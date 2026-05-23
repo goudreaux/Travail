@@ -474,8 +474,8 @@ export default function ReservePage() {
             </div>
 
             <div style={{ display: 'flex', gap: 10, flexDirection: 'column' }}>
-              <button className="btn-ghost" style={{ width: '100%' }} onClick={() => router.push('/inbox')}>
-                Go to inbox
+              <button className="btn-ghost" style={{ width: '100%' }} onClick={() => router.push('/bookings')}>
+                View my trips
               </button>
               <button className="btn-ghost" style={{ width: '100%' }} onClick={() => router.push('/seats')}>
                 Back to open seats

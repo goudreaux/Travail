@@ -254,8 +254,8 @@ export default function BoardingPassPage() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href={`/trip/${booking.id}`} className="btn-ghost" style={{ height: 34, padding: '0 16px', fontSize: 12.5, display: 'inline-flex', alignItems: 'center' }}>
-            Open trip thread
+          <Link href="/contact" className="btn-ghost" style={{ height: 34, padding: '0 16px', fontSize: 12.5, display: 'inline-flex', alignItems: 'center' }}>
+            Contact ops
           </Link>
           {(booking.status === 'pending' || booking.status === 'approved') && (
             cancelRequested ? (

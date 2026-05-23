@@ -6,7 +6,7 @@ const ITEMS = [
   { href: '/', label: 'Feed', icon: Icons.feed, exact: true },
   { href: '/seats', label: 'Seats', icon: Icons.seat },
   { href: '/bookings', label: 'Trips', icon: Icons.paper },
-  { href: '/inbox', label: 'Inbox', icon: Icons.inbox },
+  { href: '/contact', label: 'Contact', icon: Icons.phone },
   { href: '/membership', label: 'Account', icon: Icons.member },
 ]
 
