@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import { Icons } from '@/lib/icons'
 import { createClient } from '@/lib/supabase/client'
 import type { Member, Notification } from '@/lib/supabase/types'
@@ -7,7 +8,6 @@ import type { Member, Notification } from '@/lib/supabase/types'
 interface Props {
   member: Member | null
   notifications: Notification[]
-  onNewTrip: () => void
   onOpenBookings: () => void
 }
 
@@ -87,7 +87,7 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export default function TopBar({ member, notifications, onNewTrip, onOpenBookings }: Props) {
+export default function TopBar({ member, notifications, onOpenBookings }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [localNotifs, setLocalNotifs] = useState<Notification[]>(notifications)
   const drawerRef = useRef<HTMLDivElement>(null)
@@ -317,11 +317,13 @@ export default function TopBar({ member, notifications, onNewTrip, onOpenBooking
           )}
         </div>
 
-        {/* New trip primary CTA */}
-        <button className="btn-primary" onClick={onNewTrip}>
-          {Icons.plus}
-          New trip
-        </button>
+        {/* Anchor CTAs — Flight (teal) + Excursion (gold) */}
+        <Link href="/anchor-flight" className="btn-primary" style={{ height: 36, padding: '0 14px', fontSize: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          + Flight
+        </Link>
+        <Link href="/anchor-excursion" className="btn-sun" style={{ height: 36, padding: '0 14px', fontSize: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          + Exc.
+        </Link>
       </div>
     </div>
   )

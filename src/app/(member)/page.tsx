@@ -461,18 +461,18 @@ export default function FeedPage() {
           {/* CTA buttons */}
           <div style={{ display: 'flex', gap: 10 }}>
             <button
-              className="btn-sun"
+              className="btn-primary"
               style={{ flex: 1 }}
               onClick={() => router.push('/anchor-flight')}
             >
-              Anchor a flight +
+              + Flight
             </button>
             <button
-              className="btn-primary"
+              className="btn-sun"
               style={{ flex: 1 }}
               onClick={() => router.push('/anchor-excursion')}
             >
-              Anchor an excursion +
+              + Exc.
             </button>
           </div>
         </div>
