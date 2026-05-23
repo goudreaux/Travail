@@ -131,13 +131,15 @@ export default function BookingsPage() {
       }).eq('id', id)
       if (error) throw error
 
-      await supabase.from('notifications').insert({
-        member_id: booking.member_id,
-        kind: 'booking',
-        title: 'Booking Declined',
-        body: reason || 'Your booking request was not approved at this time.',
-        ref: { booking_id: id },
-      })
+      try {
+        await supabase.from('notifications').insert({
+          member_id: booking.member_id,
+          kind: 'booking',
+          title: 'Booking Declined',
+          body: reason || 'Your booking request was not approved at this time.',
+          ref: { booking_id: id },
+        })
+      } catch { /* notification is supplementary */ }
 
       showToast('Booking declined')
       setDeclineModal(null)
