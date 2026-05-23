@@ -399,7 +399,7 @@ export default function FeedPage() {
                   <p>No open {typeFilter === 'all' ? 'seats' : typeFilter} trips right now.</p>
                 </div>
               ) : (
-                filteredOpenItems.slice(0, 8).map(({ type, item }) => {
+                filteredOpenItems.map(({ type, item }) => {
                   if (type === 'flight') {
                     const f = item as DisplayFlight
                     const dp = f.dateParts
