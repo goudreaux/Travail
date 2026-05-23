@@ -237,6 +237,22 @@ export default function BookingsPage() {
     } finally { setWorking(null) }
   }
 
+  // Permanently remove a closed booking record (both legs of a round trip).
+  // Passengers, messages, and cancellation requests cascade-delete with it.
+  async function deleteBooking(booking: BookingRow) {
+    if (!confirm('Permanently delete this closed booking record? This cannot be undone.')) return
+    setWorking(booking.id)
+    try {
+      const { data, error } = await supabase.from('bookings').delete().in('id', legIdsOf(booking.id)).select()
+      if (error) throw error
+      if (!data || data.length === 0) throw new Error('Delete blocked — run migration 016 (admin delete policy on bookings)')
+      showToast('Booking deleted')
+      load()
+    } catch (e: unknown) {
+      showToast((e as Error).message ?? 'Delete failed', 'error')
+    } finally { setWorking(null) }
+  }
+
   const statusColor: Record<string, string> = {
     pending: 'sun', approved: 'moss', declined: 'signal',
     cancelled: 'ink', refunded: 'ink',
@@ -381,6 +397,16 @@ export default function BookingsPage() {
                           onClick={() => cancelBooking(b)}
                         >
                           Cancel
+                        </button>
+                      )}
+                      {CLOSED_STATUSES.includes(b.status as BookingStatus) && (
+                        <button
+                          className="btn-ghost"
+                          style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.3)' }}
+                          disabled={working === b.id}
+                          onClick={() => deleteBooking(b)}
+                        >
+                          {working === b.id ? '…' : 'Delete'}
                         </button>
                       )}
                     </div>
