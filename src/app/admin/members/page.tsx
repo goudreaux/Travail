@@ -25,6 +25,8 @@ type EditForm = {
   home_base_code: string
   bio: string
   interests: string
+  email: string
+  phone: string
   date_of_birth: string
   joined_at: string
   card_last4: string
@@ -35,6 +37,14 @@ type EditForm = {
 
 const PLACEHOLDER_USER_ID = '00000000-0000-0000-0000-000000000000'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function formatPhone(v: string): string {
+  const d = v.replace(/\D/g, '').slice(0, 10)
+  if (d.length <= 3) return d
+  if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`
+  return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`
+}
 
 const defaultForm: EditForm = {
   name: '',
@@ -43,6 +53,8 @@ const defaultForm: EditForm = {
   home_base_code: 'Tampa Bay',
   bio: '',
   interests: '',
+  email: '',
+  phone: '',
   date_of_birth: '',
   joined_at: '',
   card_last4: '',
@@ -137,6 +149,8 @@ export default function MembersPage() {
       home_base_code: m.home_base_code ?? 'Tampa Bay',
       bio: m.bio ?? '',
       interests: Array.isArray(m.interests) ? m.interests.join(', ') : (m.interests ?? ''),
+      email: sensitiveData[m.id]?.email ?? '',
+      phone: sensitiveData[m.id]?.phone ? formatPhone(sensitiveData[m.id].phone as string) : '',
       date_of_birth: sensitiveData[m.id]?.date_of_birth ?? '',
       joined_at: (m.joined_at || m.created_at || '').slice(0, 10),
       card_last4: m.card_last4 ?? '',
@@ -167,6 +181,19 @@ export default function MembersPage() {
       showToast('User ID must be a valid Supabase Auth UID (UUID) — leave blank to link later', 'error')
       return
     }
+    const email = form.email.trim()
+    if (email && !EMAIL_RE.test(email)) {
+      showToast('Enter a valid email address', 'error')
+      return
+    }
+    const phoneDigits = form.phone.replace(/\D/g, '')
+    if (phoneDigits && phoneDigits.length !== 10) {
+      showToast('Enter a 10-digit phone number (xxx-xxx-xxxx)', 'error')
+      return
+    }
+    const dobVal = form.date_of_birth || null
+    const emailVal = email || null
+    const phoneVal = phoneDigits || null
     setSaving(true)
     try {
       const payload = {
@@ -187,14 +214,14 @@ export default function MembersPage() {
         const { data: updated, error } = await supabase.from('members').update(updatePayload).eq('id', editId).select()
         if (error) throw error
         if (!updated || updated.length === 0) throw new Error('Update blocked — verify the admin RLS update policy on members in Supabase')
-        if (form.date_of_birth) {
-          const { error: dobErr } = await supabase.from('member_sensitive').upsert({
-            member_id: editId,
-            date_of_birth: form.date_of_birth,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'member_id' })
-          if (dobErr) throw dobErr
-        }
+        const { error: sErr } = await supabase.from('member_sensitive').upsert({
+          member_id: editId,
+          date_of_birth: dobVal,
+          email: emailVal,
+          phone: phoneVal,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'member_id' })
+        if (sErr) throw sErr
         showToast(uid ? 'Member updated — login linked' : 'Member updated')
       } else {
         const { data: inserted, error } = await supabase.from('members').insert({
@@ -202,10 +229,12 @@ export default function MembersPage() {
           user_id: uid || PLACEHOLDER_USER_ID,
         }).select().single()
         if (error) throw error
-        if (form.date_of_birth && inserted) {
+        if ((dobVal || emailVal || phoneVal) && inserted) {
           await supabase.from('member_sensitive').insert({
             member_id: inserted.id,
-            date_of_birth: form.date_of_birth,
+            date_of_birth: dobVal,
+            email: emailVal,
+            phone: phoneVal,
           })
         }
         if (convertGuestId && inserted) {
@@ -268,6 +297,27 @@ export default function MembersPage() {
             <div className="field">
               <label className="field-lab">Initials</label>
               <input className="input" value={form.initials} onChange={e => setForm(f => ({ ...f, initials: e.target.value.toUpperCase().slice(0, 3) }))} placeholder="AC" maxLength={3} />
+            </div>
+            <div className="field">
+              <label className="field-lab">Email</label>
+              <input
+                className="input"
+                type="email"
+                value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                placeholder="alexandra@example.com"
+              />
+              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>Contact email. Should match the member&apos;s Supabase Auth login email.</div>
+            </div>
+            <div className="field">
+              <label className="field-lab">Phone</label>
+              <input
+                className="input"
+                inputMode="tel"
+                value={form.phone}
+                onChange={e => setForm(f => ({ ...f, phone: formatPhone(e.target.value) }))}
+                placeholder="813-555-0142"
+              />
             </div>
             <div className="field">
               <label className="field-lab">Home Base</label>

@@ -67,16 +67,22 @@ export interface Database {
         Row: {
           member_id: string
           date_of_birth: string | null
+          email: string | null
+          phone: string | null
           updated_at: string
         }
         Insert: {
           member_id: string
           date_of_birth?: string | null
+          email?: string | null
+          phone?: string | null
           updated_at?: string
         }
         Update: {
           member_id?: string
           date_of_birth?: string | null
+          email?: string | null
+          phone?: string | null
           updated_at?: string
         }
         Relationships: []
