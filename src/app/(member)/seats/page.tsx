@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { adaptFlight, adaptExcursion, fmtDate, fmtMoney, fmtTime } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
+import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 import type { DisplayFlight, DisplayExcursion } from '@/lib/data'
 
@@ -131,11 +132,13 @@ function FlightCard({
   onCTA,
   waitlisted,
   onWaitlist,
+  roster,
 }: {
   flight: DisplayFlight
   onCTA: () => void
   waitlisted: boolean
   onWaitlist: () => void
+  roster?: RosterEntry[]
 }) {
   const dp = fmtDate(flight.date)
   const colors = getFlightColors()
@@ -170,6 +173,9 @@ function FlightCard({
             {flight.durationStr ? ` · ${flight.durationStr}` : ''}
           </div>
           <SeatMeter total={flight.seats_total} available={flight.seatsAvailable} accent={colors.dot} unit="seats" />
+          {roster && roster.length > 0 && (
+            <div onClick={e => e.stopPropagation()}><RosterStack entries={roster} /></div>
+          )}
         </div>
       </div>
       <div className="trip-card__cta">
@@ -191,12 +197,14 @@ function RoundTripCard({
   onCTA,
   waitlisted,
   onWaitlist,
+  roster,
 }: {
   outbound: DisplayFlight
   ret: DisplayFlight
   onCTA: () => void
   waitlisted: boolean
   onWaitlist: () => void
+  roster?: RosterEntry[]
 }) {
   const dpOut = fmtDate(outbound.date)
   const dpRet = fmtDate(ret.date)
@@ -228,6 +236,9 @@ function RoundTripCard({
             Return {dpRet.mo} {dpRet.day} · {ret.departTimeStr}
           </div>
           <SeatMeter total={outbound.seats_total} available={seatsLeft} accent={colors.dot} unit="seats" />
+          {roster && roster.length > 0 && (
+            <div onClick={e => e.stopPropagation()}><RosterStack entries={roster} /></div>
+          )}
         </div>
       </div>
       <div className="trip-card__cta">
@@ -248,11 +259,13 @@ function ExcursionCard({
   onCTA,
   waitlisted,
   onWaitlist,
+  roster,
 }: {
   excursion: DisplayExcursion
   onCTA: () => void
   waitlisted: boolean
   onWaitlist: () => void
+  roster?: RosterEntry[]
 }) {
   const dp = fmtDate(excursion.date)
   const icon = excursion.templateMeta?.icon ?? 'fish'
@@ -285,6 +298,9 @@ function ExcursionCard({
             {excursion.templateMeta?.operator ? ` · ${excursion.templateMeta.operator}` : ''}
           </div>
           <SeatMeter total={excursion.spots_total} available={excursion.spotsAvailable} accent={colors.dot} unit="spots" />
+          {roster && roster.length > 0 && (
+            <div onClick={e => e.stopPropagation()}><RosterStack entries={roster} /></div>
+          )}
         </div>
       </div>
       <div className="trip-card__cta">
@@ -315,6 +331,8 @@ export default function SeatsPage() {
   const [waitlisted, setWaitlisted] = useState<Set<string>>(new Set())
   const [memberId, setMemberId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [flightRosters, setFlightRosters] = useState<Record<string, RosterEntry[]>>({})
+  const [excRosters, setExcRosters] = useState<Record<string, RosterEntry[]>>({})
 
   const load = useCallback(async (silent = false) => {
       if (!silent) setLoading(true)
@@ -383,6 +401,14 @@ export default function SeatsPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setWaitlisted(new Set((wl ?? []).map((w: any) => w.item_id)))
       }
+
+      // Public rosters (opted-in members) for the FOMO avatar stacks.
+      const [fRosters, eRosters] = await Promise.all([
+        fetchRosters(supabase, 'flight', (rawFlights ?? []).map(f => f.id)),
+        fetchRosters(supabase, 'excursion', (rawExcursions ?? []).map(e => e.id)),
+      ])
+      setFlightRosters(fRosters)
+      setExcRosters(eRosters)
 
       setFlights(adaptedFlights)
       setExcursions(adaptedExcursions)
@@ -499,6 +525,7 @@ export default function SeatsPage() {
                       onCTA={() => router.push(`/reserve/${entry.outbound.id}?kind=flight&return=${entry.ret.id}`)}
                       waitlisted={waitlisted.has(entry.outbound.id)}
                       onWaitlist={() => joinWaitlist('flight', entry.outbound.id)}
+                      roster={flightRosters[entry.outbound.id]}
                     />
                   ) : (
                     <FlightCard
@@ -507,6 +534,7 @@ export default function SeatsPage() {
                       onCTA={() => router.push(`/reserve/${entry.flight.id}?kind=flight`)}
                       waitlisted={waitlisted.has(entry.flight.id)}
                       onWaitlist={() => joinWaitlist('flight', entry.flight.id)}
+                      roster={flightRosters[entry.flight.id]}
                     />
                   ))}
                 </div>
@@ -528,6 +556,7 @@ export default function SeatsPage() {
                       onCTA={() => router.push(`/reserve/${excursion.id}?kind=excursion`)}
                       waitlisted={waitlisted.has(excursion.id)}
                       onWaitlist={() => joinWaitlist('excursion', excursion.id)}
+                      roster={excRosters[excursion.id]}
                     />
                   ))}
                 </div>

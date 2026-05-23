@@ -305,6 +305,7 @@ export interface Database {
           status: 'pending' | 'approved' | 'declined' | 'cancelled' | 'refunded'
           confirmation_code: string | null
           decline_reason: string | null
+          show_on_roster: boolean
           submitted_at: string
           decided_at: string | null
         }
@@ -321,6 +322,7 @@ export interface Database {
           status?: 'pending' | 'approved' | 'declined' | 'cancelled' | 'refunded'
           confirmation_code?: string | null
           decline_reason?: string | null
+          show_on_roster?: boolean
           submitted_at?: string
           decided_at?: string | null
         }
@@ -337,6 +339,7 @@ export interface Database {
           status?: 'pending' | 'approved' | 'declined' | 'cancelled' | 'refunded'
           confirmation_code?: string | null
           decline_reason?: string | null
+          show_on_roster?: boolean
           submitted_at?: string
           decided_at?: string | null
         }
