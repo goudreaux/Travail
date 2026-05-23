@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { fmtDate, fmtDur, fmtMoney, fmtTime, fmtHomeBase, memberCode } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
+import { fetchRosters, RosterList, type RosterEntry } from '@/components/Roster'
 import type { Member, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 import { type Guest, type GuestSlot, NEW_GUEST, emptyGuestSlot } from '@/lib/guests'
 
@@ -107,6 +108,8 @@ export default function ReservePage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState<{ id: string; confirmationCode: string | null } | null>(null)
   const [error, setError] = useState('')
+  const [rosterPublic, setRosterPublic] = useState(true)
+  const [roster, setRoster] = useState<RosterEntry[]>([])
 
   useEffect(() => {
     async function load() {
@@ -155,6 +158,10 @@ export default function ReservePage() {
         const tpl = (templates ?? []).find((t: ExcursionTemplate) => t.id === (excData as Excursion).template_id)
         if (tpl) setTemplate(tpl as ExcursionTemplate)
       }
+
+      // Who's already going (opted-in members only).
+      const rosters = await fetchRosters(supabase, kind, [itemId])
+      setRoster(rosters[itemId] ?? [])
 
       setLoading(false)
     }
@@ -289,7 +296,7 @@ export default function ReservePage() {
             id: `B-${stamp}${idx === 0 ? '' : 'R'}`,
             member_id: member.id, item_kind: 'flight', item_id: leg.id, seats,
             price_per_seat: leg.price_per_seat, fees: fee, total: sub + fee,
-            payment_method: paymentMethod, status: 'pending',
+            payment_method: paymentMethod, status: 'pending', show_on_roster: rosterPublic,
           }
         })
         const { data: rowsData, error: insertError } = await supabase.from('bookings').insert(rows as never).select()
@@ -304,7 +311,7 @@ export default function ReservePage() {
             id: `B-${stamp}`,
             member_id: member.id, item_kind: kind, item_id: itemId, seats,
             price_per_seat: pricePerSeat, fees: serviceFee, total,
-            payment_method: paymentMethod, status: 'pending',
+            payment_method: paymentMethod, status: 'pending', show_on_roster: rosterPublic,
           } as never)
           .select()
           .single()
@@ -754,7 +761,45 @@ export default function ReservePage() {
               </div>
             </div>
 
-            {/* 5. Trip pitch */}
+            {/* 5. Flight roster visibility */}
+            <div>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 10 }}>
+                5 — Flight roster
+              </div>
+              <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
+                <div
+                  className="toggle-row"
+                  style={{ padding: '13px 16px', cursor: 'pointer' }}
+                  role="checkbox"
+                  aria-checked={rosterPublic}
+                  onClick={() => setRosterPublic(v => !v)}
+                >
+                  <div>
+                    <div className="t-lab">{rosterPublic ? 'Public — listed on the roster' : 'Private — hidden'}</div>
+                    <div className="t-sub">
+                      {rosterPublic
+                        ? 'Other members can see you’re on this trip and open your profile.'
+                        : 'You won’t appear on this trip’s roster. Guests are always private.'}
+                    </div>
+                  </div>
+                  <div className={`toggle${rosterPublic ? ' active' : ''}`} />
+                </div>
+              </div>
+            </div>
+
+            {/* Who's going */}
+            {roster.length > 0 && (
+              <div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 10 }}>
+                  Who’s going · {roster.reduce((s, e) => s + e.seats, 0)}
+                </div>
+                <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: 16 }}>
+                  <RosterList entries={roster} />
+                </div>
+              </div>
+            )}
+
+            {/* 6. Trip pitch */}
             {pitch && (
               <div style={{
                 background: 'var(--warm)',
