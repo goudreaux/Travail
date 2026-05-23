@@ -5,10 +5,22 @@ import type { Booking, AnchorSubmission, Member, Flight, Excursion, Aircraft } f
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type Passenger = {
+  id: string
+  booking_id: string
+  guest_id: string | null
+  is_host: boolean
+  first_name: string
+  last_name: string
+  email: string | null
+  phone: string | null
+}
+
 type BookingRow = Booking & {
   member: Pick<Member, 'name' | 'initials'> | null
   flight: Pick<Flight, 'name' | 'origin_code' | 'dest_code' | 'date'> | null
   excursion: Pick<Excursion, 'name' | 'date'> | null
+  passengers?: Passenger[]
 }
 
 type AnchorRow = AnchorSubmission & {
@@ -97,6 +109,16 @@ export default function QueuePage() {
     ])
     const all = [...(fb ?? []), ...(eb ?? [])] as unknown as BookingRow[]
     all.sort((a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime())
+
+    // Attach the passenger manifest (member + registered guests) for each booking.
+    const ids = all.map(b => b.id)
+    if (ids.length) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: pax } = await (supabase as any).from('booking_passengers').select('*').in('booking_id', ids)
+      const byBooking: Record<string, Passenger[]> = {}
+      for (const p of (pax ?? []) as Passenger[]) (byBooking[p.booking_id] ??= []).push(p)
+      for (const b of all) b.passengers = byBooking[b.id] ?? []
+    }
     setBookings(all)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -457,14 +479,20 @@ export default function QueuePage() {
               return (
                 <div key={b.id} style={{
                   background: 'var(--card)',
-                  border: `1px solid ${isFirst ? 'var(--tropic)' : 'var(--hair)'}`,
+                  border: `1px solid ${isFirst || expanded === b.id ? 'var(--tropic)' : 'var(--hair)'}`,
                   borderRadius: 12,
-                  padding: '14px 18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
+                  overflow: 'hidden',
                   transition: 'border-color 0.15s',
                 }}>
+                  <div
+                    style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}
+                    onClick={() => setExpanded(expanded === b.id ? null : b.id)}
+                  >
+                  {/* Expand caret */}
+                  <div style={{ color: 'var(--ink-faint)', fontSize: 10, width: 10, flexShrink: 0 }}>
+                    {expanded === b.id ? '▲' : '▶'}
+                  </div>
+
                   {/* Queue position */}
                   <div style={{
                     width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
@@ -542,7 +570,7 @@ export default function QueuePage() {
                   </div>
 
                   {/* Actions */}
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     <button
                       className="btn-primary"
                       style={{ height: 32, padding: '0 16px', fontSize: 12.5 }}
@@ -560,6 +588,33 @@ export default function QueuePage() {
                       Decline
                     </button>
                   </div>
+                  </div>
+
+                  {/* Passenger manifest */}
+                  {expanded === b.id && (
+                    <div style={{ borderTop: '1px solid var(--hair)', padding: '14px 18px', background: 'rgba(0,179,199,0.02)' }}>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.14em', color: 'var(--tropic-d)', textTransform: 'uppercase', marginBottom: 10 }}>
+                        Passengers · {b.passengers?.length ?? 0}
+                      </div>
+                      {(b.passengers ?? []).length === 0 ? (
+                        <div style={{ fontSize: 12, color: 'var(--ink-light)' }}>No passenger manifest recorded for this booking.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {b.passengers!.map(p => (
+                            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, flexWrap: 'wrap' }}>
+                              <span className={`pill ${p.is_host ? 'tropic' : 'ink'}`} style={{ fontSize: 9 }}>{p.is_host ? 'Member' : 'Guest'}</span>
+                              <span style={{ fontWeight: 500, color: 'var(--ink)' }}>{p.first_name} {p.last_name}</span>
+                              {(p.phone || p.email) && (
+                                <span style={{ color: 'var(--ink-light)', fontFamily: 'var(--mono)', fontSize: 11 }}>
+                                  {[p.phone, p.email].filter(Boolean).join('  ·  ')}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })}
