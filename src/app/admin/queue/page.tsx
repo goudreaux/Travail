@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { Booking, AnchorSubmission, Member, Flight, Excursion, Aircraft } from '@/lib/supabase/types'
 
@@ -613,6 +614,11 @@ export default function QueuePage() {
                           ))}
                         </div>
                       )}
+                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--hair)' }}>
+                        <Link href={`/trip/${b.id}`} className="mono" style={{ fontSize: 10, color: 'var(--tropic-d)', letterSpacing: '0.1em' }}>
+                          OPEN TRIP THREAD →
+                        </Link>
+                      </div>
                     </div>
                   )}
                 </div>

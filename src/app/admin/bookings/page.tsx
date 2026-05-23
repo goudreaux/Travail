@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { Booking, Member, Flight, Excursion } from '@/lib/supabase/types'
 
@@ -231,28 +232,33 @@ export default function BookingsPage() {
                     {new Date(b.submitted_at).toLocaleDateString()}
                   </td>
                   <td>
-                    {b.status === 'pending' && (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          className="btn-primary"
-                          style={{ height: 28, padding: '0 10px', fontSize: 12 }}
-                          disabled={working === b.id}
-                          onClick={() => approve(b)}
-                        >
-                          {working === b.id ? '…' : 'Approve'}
-                        </button>
-                        <button
-                          className="btn-ghost"
-                          style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.3)' }}
-                          disabled={working === b.id}
-                          onClick={() => setDeclineModal(b.id)}
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {b.status === 'pending' && (
+                        <>
+                          <button
+                            className="btn-primary"
+                            style={{ height: 28, padding: '0 10px', fontSize: 12 }}
+                            disabled={working === b.id}
+                            onClick={() => approve(b)}
+                          >
+                            {working === b.id ? '…' : 'Approve'}
+                          </button>
+                          <button
+                            className="btn-ghost"
+                            style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.3)' }}
+                            disabled={working === b.id}
+                            onClick={() => setDeclineModal(b.id)}
+                          >
+                            Decline
+                          </button>
+                        </>
+                      )}
+                      <Link href={`/trip/${b.id}`} className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center' }}>
+                        Thread
+                      </Link>
+                    </div>
                     {b.status !== 'pending' && b.decline_reason && (
-                      <span style={{ fontSize: 11.5, color: 'var(--ink-light)', fontStyle: 'italic', maxWidth: 160, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={b.decline_reason}>
+                      <span style={{ fontSize: 11.5, color: 'var(--ink-light)', fontStyle: 'italic', maxWidth: 160, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 4 }} title={b.decline_reason}>
                         {b.decline_reason}
                       </span>
                     )}
