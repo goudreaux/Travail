@@ -98,6 +98,24 @@ const defaultExcForm: ExcForm = {
   anchor_member_id: '',
 }
 
+const TEMPLATE_ICONS = ['fish', 'sail', 'wave', 'snorkel', 'golf', 'quail', 'hog', 'compass', 'flight'] as const
+
+type TemplateForm = {
+  name: string
+  destSel: string
+  destCustomCode: string
+  destCustomName: string
+  destCustomRegion: string
+  operator: string
+  capacity: number
+  price_per_pax: number
+  icon: string
+}
+const defaultTemplateForm: TemplateForm = {
+  name: '', destSel: '', destCustomCode: '', destCustomName: '', destCustomRegion: '',
+  operator: '', capacity: 8, price_per_pax: 0, icon: 'fish',
+}
+
 const sectionLabelStyle: React.CSSProperties = {
   gridColumn: '1 / -1', fontFamily: 'var(--mono)', fontSize: 10,
   letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)',
@@ -106,7 +124,7 @@ const sectionLabelStyle: React.CSSProperties = {
 
 export default function TripsPage() {
   const supabase = createClient()
-  const [tab, setTab] = useState<'flights' | 'excursions'>('flights')
+  const [tab, setTab] = useState<'flights' | 'excursions' | 'templates'>('flights')
   const [flights, setFlights] = useState<FlightRow[]>([])
   const [excursions, setExcursions] = useState<ExcursionRow[]>([])
   const [aircraft, setAircraft] = useState<Aircraft[]>([])
@@ -120,6 +138,9 @@ export default function TripsPage() {
   const [editExcId, setEditExcId] = useState<string | null>(null)
   const [flightForm, setFlightForm] = useState<FlightForm>(defaultFlightForm)
   const [excForm, setExcForm] = useState<ExcForm>(defaultExcForm)
+  const [showTemplateForm, setShowTemplateForm] = useState(false)
+  const [editTemplateId, setEditTemplateId] = useState<string | null>(null)
+  const [templateForm, setTemplateForm] = useState<TemplateForm>(defaultTemplateForm)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' | 'info' } | null>(null)
 
@@ -158,6 +179,7 @@ export default function TripsPage() {
 
   const FF = flightForm
   const EF = excForm
+  const TF = templateForm
 
   // ─── Derived flight values ──────────────────────────────────────────────
   const originAirports = airports.filter(a => a.role === 'origin' || a.role === 'both')
@@ -188,6 +210,8 @@ export default function TripsPage() {
   const excDestLabel = selectedTemplate ? airportName(selectedTemplate.dest_code) : ''
   const effExcOrigin = EF.originSel === CUSTOM ? EF.originCustomCode.trim().toUpperCase() : EF.originSel
   const perPax = EF.spots_total > 0 ? Math.round(EF.total_cost / EF.spots_total) : 0
+
+  const effTplDest = TF.destSel === CUSTOM ? TF.destCustomCode.trim().toUpperCase() : TF.destSel
 
   // Auto-fill the excursion name from the chosen catalog experience.
   useEffect(() => {
@@ -381,6 +405,70 @@ export default function TripsPage() {
     }))
   }
 
+  function openEditTemplate(t: ExcursionTemplate) {
+    setEditTemplateId(t.id)
+    setShowTemplateForm(true)
+    setTemplateForm({
+      ...defaultTemplateForm,
+      name: t.name, destSel: t.dest_code,
+      operator: t.operator ?? '', capacity: t.capacity,
+      price_per_pax: t.price_per_pax, icon: t.icon ?? 'fish',
+    })
+  }
+
+  function templateError(): string | null {
+    if (!TF.name.trim()) return 'Template name is required'
+    if (!effTplDest) return 'Select or enter a destination'
+    if (TF.destSel === CUSTOM && !TF.destCustomName.trim()) return 'Name the custom destination airport'
+    if (TF.capacity < 1) return 'Capacity must be at least 1'
+    if (TF.price_per_pax < 0) return 'Price cannot be negative'
+    return null
+  }
+
+  async function saveTemplate() {
+    const err = templateError()
+    if (err) { showToast(err, 'error'); return }
+    setSaving(true)
+    try {
+      if (TF.destSel === CUSTOM) {
+        const { error } = await supabase.from('airports').upsert(
+          { code: effTplDest, name: TF.destCustomName.trim(), sub: TF.destCustomRegion.trim() || null, role: 'both' },
+          { onConflict: 'code' },
+        )
+        if (error) throw error
+      }
+      const payload = {
+        name: TF.name.trim(), dest_code: effTplDest,
+        operator: TF.operator.trim() || '', capacity: TF.capacity,
+        price_per_pax: TF.price_per_pax, icon: TF.icon,
+      }
+      if (editTemplateId) {
+        const { data, error } = await supabase.from('excursion_templates').update(payload).eq('id', editTemplateId).select()
+        if (error) throw error
+        if (!data || data.length === 0) throw new Error('Update blocked — verify the admin RLS policy on excursion_templates')
+        showToast('Template updated')
+      } else {
+        const id = 'tpl-' + Date.now().toString(36).toUpperCase()
+        const { error } = await supabase.from('excursion_templates').insert({ ...payload, id })
+        if (error) throw error
+        showToast('Template created')
+      }
+      setShowTemplateForm(false); setEditTemplateId(null); setTemplateForm(defaultTemplateForm)
+      load()
+    } catch (e: unknown) {
+      showToast((e as Error).message ?? 'Save failed', 'error')
+    } finally { setSaving(false) }
+  }
+
+  async function deleteTemplate(id: string, name: string) {
+    if (!confirm(`Delete template "${name}"? This cannot be undone.`)) return
+    const { error, data } = await supabase.from('excursion_templates').delete().eq('id', id).select()
+    if (error) { showToast(error.message.includes('foreign key') ? 'In use by an excursion — delete or repoint those first' : error.message, 'error'); return }
+    if (!data || data.length === 0) { showToast('Delete blocked — check the admin RLS policy on excursion_templates', 'error'); return }
+    showToast('Template deleted')
+    load()
+  }
+
   const statusColor: Record<string, string> = {
     draft: 'ink', open: 'moss', full: 'sun', departed: 'tropic',
     completed: 'tropic', cancelled: 'signal',
@@ -399,6 +487,10 @@ export default function TripsPage() {
   if (EF.originSel && EF.originSel !== CUSTOM && !excOriginOptions.some(a => a.code === EF.originSel)) {
     excOriginOptions.unshift({ code: EF.originSel, name: EF.originSel, sub: null, role: 'origin' })
   }
+  const tplDestOptions = [...destAirports]
+  if (TF.destSel && TF.destSel !== CUSTOM && !tplDestOptions.some(a => a.code === TF.destSel)) {
+    tplDestOptions.unshift({ code: TF.destSel, name: TF.destSel, sub: null, role: 'destination' })
+  }
 
   return (
     <div style={{ padding: 32 }}>
@@ -413,16 +505,17 @@ export default function TripsPage() {
           className="btn-primary"
           onClick={() => {
             if (tab === 'flights') { setShowFlightForm(true); setEditFlightId(null); setFlightForm(defaultFlightForm) }
-            else { setShowExcForm(true); setEditExcId(null); setExcForm(defaultExcForm) }
+            else if (tab === 'excursions') { setShowExcForm(true); setEditExcId(null); setExcForm(defaultExcForm) }
+            else { setShowTemplateForm(true); setEditTemplateId(null); setTemplateForm(defaultTemplateForm) }
           }}
         >
-          + Add {tab === 'flights' ? 'Flight' : 'Excursion'}
+          + Add {tab === 'flights' ? 'Flight' : tab === 'excursions' ? 'Excursion' : 'Template'}
         </button>
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--hair)', marginBottom: 24, gap: 0 }}>
-        {(['flights', 'excursions'] as const).map(t => (
+        {(['flights', 'excursions', 'templates'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -434,7 +527,7 @@ export default function TripsPage() {
               marginBottom: -1,
             }}
           >
-            {t === 'flights' ? 'Flights' : 'Excursions'}
+            {t === 'flights' ? 'Flights' : t === 'excursions' ? 'Excursions' : 'Excursion Templates'}
           </button>
         ))}
       </div>
@@ -656,9 +749,14 @@ export default function TripsPage() {
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label className="field-lab">Excursion <span className="req">*</span></label>
               <select className="select" value={EF.template_id} onChange={e => selectTemplate(e.target.value)}>
-                <option value="">Select from catalog…</option>
+                <option value="">Select a template…</option>
                 {templates.map(t => <option key={t.id} value={t.id}>{t.name} · {airportName(t.dest_code)}</option>)}
               </select>
+              {templates.length === 0 && (
+                <div style={{ fontSize: 11, color: 'var(--signal)', marginTop: 6 }}>
+                  No templates yet — create one in the <strong>Excursion Templates</strong> tab first.
+                </div>
+              )}
               {selectedTemplate && (
                 <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 6 }}>
                   Destination: <strong>{excDestLabel}</strong>
@@ -799,8 +897,102 @@ export default function TripsPage() {
         </div>
       )}
 
+      {/* Template form */}
+      {tab === 'templates' && showTemplateForm && (
+        <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 14, padding: 24, marginBottom: 24 }}>
+          <h3 style={{ fontFamily: 'var(--display)', fontSize: 20, margin: '0 0 20px', color: 'var(--ink)' }}>
+            {editTemplateId ? 'Edit Template' : 'New Excursion Template'}
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label className="field-lab">Template Name <span className="req">*</span></label>
+              <input className="input" value={TF.name} onChange={e => setTemplateForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Lobster Mini Season" />
+            </div>
+            <div className="field">
+              <label className="field-lab">Destination <span className="req">*</span></label>
+              <select className="select" value={TF.destSel} onChange={e => setTemplateForm(f => ({ ...f, destSel: e.target.value }))}>
+                <option value="">Select destination…</option>
+                {tplDestOptions.map(a => <option key={a.code} value={a.code}>{a.name} ({a.code})</option>)}
+                <option value={CUSTOM}>+ Custom landing area…</option>
+              </select>
+            </div>
+            <div className="field">
+              <label className="field-lab">Operator</label>
+              <input className="input" value={TF.operator} onChange={e => setTemplateForm(f => ({ ...f, operator: e.target.value }))} placeholder="e.g. Bud N' Mary's × Field & Stream" />
+            </div>
+            <div className="field">
+              <label className="field-lab">Icon</label>
+              <select className="select" value={TF.icon} onChange={e => setTemplateForm(f => ({ ...f, icon: e.target.value }))}>
+                {TEMPLATE_ICONS.map(i => <option key={i} value={i}>{i}</option>)}
+              </select>
+            </div>
+
+            {TF.destSel === CUSTOM && (
+              <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, padding: 14, background: 'var(--warm)', borderRadius: 10 }}>
+                <div style={{ gridColumn: '1 / -1', fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-light)' }}>Custom destination</div>
+                <div className="field"><label className="field-lab">Code <span className="req">*</span></label><input className="input" value={TF.destCustomCode} onChange={e => setTemplateForm(f => ({ ...f, destCustomCode: e.target.value.toUpperCase() }))} placeholder="e.g. MYGF" maxLength={6} /></div>
+                <div className="field"><label className="field-lab">Airport name <span className="req">*</span></label><input className="input" value={TF.destCustomName} onChange={e => setTemplateForm(f => ({ ...f, destCustomName: e.target.value }))} placeholder="e.g. Grand Cay" /></div>
+                <div className="field"><label className="field-lab">Region</label><input className="input" value={TF.destCustomRegion} onChange={e => setTemplateForm(f => ({ ...f, destCustomRegion: e.target.value }))} placeholder="e.g. Bahamas" /></div>
+              </div>
+            )}
+
+            <div className="field">
+              <label className="field-lab">Capacity (max pax) <span className="req">*</span></label>
+              <input className="input" type="number" min={1} value={TF.capacity} onChange={e => setTemplateForm(f => ({ ...f, capacity: Number(e.target.value) }))} />
+            </div>
+            <div className="field">
+              <label className="field-lab">Base Price Per Pax ($)</label>
+              <input className="input" type="number" min={0} value={TF.price_per_pax} onChange={e => setTemplateForm(f => ({ ...f, price_per_pax: Number(e.target.value) }))} />
+              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>Default cost when scheduling — adjustable per trip.</div>
+            </div>
+            <div className="field" />
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+            <button className="btn-primary" onClick={saveTemplate} disabled={saving}>
+              {saving ? 'Saving…' : 'Save Template'}
+            </button>
+            <button className="btn-ghost" onClick={() => { setShowTemplateForm(false); setEditTemplateId(null) }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div style={{ textAlign: 'center', padding: 48, color: 'var(--ink-light)', fontSize: 14 }}>Loading…</div>
+      ) : tab === 'templates' ? (
+        <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, overflow: 'hidden' }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Destination</th>
+                <th>Operator</th>
+                <th>Capacity</th>
+                <th>Base Price</th>
+                <th>Icon</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {templates.map(t => (
+                <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => openEditTemplate(t)}>
+                  <td style={{ fontWeight: 500, color: 'var(--ink)' }}>{t.name}</td>
+                  <td style={{ fontSize: 13 }}>{airportName(t.dest_code)}</td>
+                  <td style={{ fontSize: 12, color: 'var(--ink-light)' }}>{t.operator || '—'}</td>
+                  <td style={{ fontWeight: 600 }}>{t.capacity}</td>
+                  <td style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}>${t.price_per_pax.toLocaleString()}</td>
+                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink-light)' }}>{t.icon}</td>
+                  <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
+                    <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={() => openEditTemplate(t)}>Edit</button>
+                    <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12, marginLeft: 6, color: 'var(--signal)' }} onClick={() => deleteTemplate(t.id, t.name)}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {templates.length === 0 && (
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>No templates yet — create one to start building excursions.</div>
+          )}
+        </div>
       ) : tab === 'flights' ? (
         <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, overflow: 'hidden' }}>
           <table className="admin-table">
