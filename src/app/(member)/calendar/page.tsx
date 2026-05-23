@@ -129,21 +129,20 @@ export default function CalendarPage() {
         bookings.filter(b => b.item_kind === 'excursion').map(b => b.item_id)
       )
 
-      const adaptedFlights: DisplayFlight[] = (rawFlights ?? []).map(f => {
-        const booksForFlight: Record<string, number> = {}
-        bookings
-          .filter(b => b.item_kind === 'flight' && b.item_id === f.id)
-          .forEach(b => { booksForFlight[b.member_id] = (booksForFlight[b.member_id] ?? 0) + b.seats })
-        return adaptFlight(f as Flight, booksForFlight, member.id)
-      })
+      const myFlightSeats: Record<string, number> = {}
+      const myExcSpots: Record<string, number> = {}
+      for (const b of bookings) {
+        if (b.item_kind === 'flight') myFlightSeats[b.item_id] = (myFlightSeats[b.item_id] ?? 0) + b.seats
+        else myExcSpots[b.item_id] = (myExcSpots[b.item_id] ?? 0) + b.seats
+      }
 
-      const adaptedExcursions: DisplayExcursion[] = (rawExcursions ?? []).map(e => {
-        const booksForExc: Record<string, number> = {}
-        bookings
-          .filter(b => b.item_kind === 'excursion' && b.item_id === e.id)
-          .forEach(b => { booksForExc[b.member_id] = (booksForExc[b.member_id] ?? 0) + b.seats })
-        return adaptExcursion(e as Excursion, templates, booksForExc, member.id)
-      })
+      const adaptedFlights: DisplayFlight[] = (rawFlights ?? []).map(f =>
+        adaptFlight(f as Flight, myFlightSeats[f.id] ?? 0, member.id)
+      )
+
+      const adaptedExcursions: DisplayExcursion[] = (rawExcursions ?? []).map(e =>
+        adaptExcursion(e as Excursion, templates, myExcSpots[e.id] ?? 0, member.id)
+      )
 
       setFlights(adaptedFlights)
       setExcursions(adaptedExcursions)
