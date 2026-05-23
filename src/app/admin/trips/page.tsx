@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Flight, Excursion, Aircraft, Member, Airport } from '@/lib/supabase/types'
+import type { Flight, Excursion, Aircraft, Member, Airport, ExcursionTemplate } from '@/lib/supabase/types'
 
 type FlightRow = Flight
 type ExcursionRow = Excursion
@@ -56,12 +56,26 @@ type FlightForm = {
   anchor_member_id: string
 }
 type ExcForm = {
-  name: string; origin_code: string; date: string
-  aircraft_id: string; start_time: string; depart_time: string
-  arrive_time: string; return_time: string
-  stay_type: Excursion['stay_type']; pitch: string
-  visibility: 'members' | 'public'; spots_total: number
-  spots_anchor: number; price_per_pax: number; status: Excursion['status']
+  template_id: string
+  name: string
+  nameTouched: boolean
+  originSel: string
+  originCustomCode: string
+  originCustomName: string
+  originCustomRegion: string
+  date: string
+  aircraft_id: string
+  start_time: string
+  depart_time: string
+  arrive_time: string
+  return_time: string
+  stay_type: Excursion['stay_type']
+  pitch: string
+  visibility: 'members' | 'public'
+  spots_total: number
+  spots_anchor: number
+  total_cost: number
+  status: Excursion['status']
   anchor_member_id: string
 }
 
@@ -75,10 +89,12 @@ const defaultFlightForm: FlightForm = {
   anchor_member_id: '',
 }
 const defaultExcForm: ExcForm = {
-  name: '', origin_code: '', date: '', aircraft_id: '',
+  template_id: '', name: '', nameTouched: false,
+  originSel: '', originCustomCode: '', originCustomName: '', originCustomRegion: '',
+  date: '', aircraft_id: '',
   start_time: '', depart_time: '', arrive_time: '', return_time: '',
   stay_type: 'day_trip', pitch: '', visibility: 'members',
-  spots_total: 8, spots_anchor: 1, price_per_pax: 0, status: 'draft',
+  spots_total: 8, spots_anchor: 1, total_cost: 0, status: 'draft',
   anchor_member_id: '',
 }
 
@@ -95,6 +111,7 @@ export default function TripsPage() {
   const [excursions, setExcursions] = useState<ExcursionRow[]>([])
   const [aircraft, setAircraft] = useState<Aircraft[]>([])
   const [airports, setAirports] = useState<Airport[]>([])
+  const [templates, setTemplates] = useState<ExcursionTemplate[]>([])
   const [members, setMembers] = useState<Pick<Member, 'id' | 'name' | 'initials'>[]>([])
   const [loading, setLoading] = useState(true)
   const [showFlightForm, setShowFlightForm] = useState(false)
@@ -118,18 +135,21 @@ export default function TripsPage() {
       { data: excData },
       { data: aircraftData },
       { data: airportData },
+      { data: templateData },
       { data: memberData },
     ] = await Promise.all([
       supabase.from('flights').select('*').order('date', { ascending: false }),
       supabase.from('excursions').select('*').order('date', { ascending: false }),
       supabase.from('aircraft').select('*'),
       supabase.from('airports').select('*').order('name'),
+      supabase.from('excursion_templates').select('*').order('name'),
       supabase.from('members').select('id, name, initials').order('name'),
     ])
     setFlights((flightData ?? []) as FlightRow[])
     setExcursions((excData ?? []) as ExcursionRow[])
     setAircraft(aircraftData ?? [])
     setAirports(airportData ?? [])
+    setTemplates(templateData ?? [])
     setMembers(memberData ?? [])
     setLoading(false)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -162,6 +182,20 @@ export default function TripsPage() {
       setFlightForm(f => ({ ...f, name: `${originLabel} → ${destLabel}` }))
     }
   }, [effOrigin, effDest, originLabel, destLabel, FF.nameTouched])
+
+  // ─── Derived excursion values ───────────────────────────────────────────
+  const selectedTemplate = templates.find(t => t.id === EF.template_id)
+  const excDestLabel = selectedTemplate ? airportName(selectedTemplate.dest_code) : ''
+  const effExcOrigin = EF.originSel === CUSTOM ? EF.originCustomCode.trim().toUpperCase() : EF.originSel
+  const perPax = EF.spots_total > 0 ? Math.round(EF.total_cost / EF.spots_total) : 0
+
+  // Auto-fill the excursion name from the chosen catalog experience.
+  useEffect(() => {
+    if (EF.nameTouched) return
+    if (selectedTemplate) {
+      setExcForm(f => ({ ...f, name: `${selectedTemplate.name} · ${airportName(selectedTemplate.dest_code)}` }))
+    }
+  }, [EF.template_id, EF.nameTouched]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function flightError(): string | null {
     if (!effOrigin) return 'Select or enter an origin'
@@ -205,14 +239,29 @@ export default function TripsPage() {
     setEditExcId(e.id)
     setShowExcForm(true)
     setExcForm({
-      name: e.name, origin_code: e.origin_code, date: e.date,
+      ...defaultExcForm,
+      template_id: e.template_id ?? '', name: e.name, nameTouched: true,
+      originSel: e.origin_code, date: e.date,
       aircraft_id: e.aircraft_id ?? '',
       start_time: e.start_time ?? '', depart_time: e.depart_time ?? '',
       arrive_time: e.arrive_time ?? '', return_time: e.return_time ?? '',
       stay_type: e.stay_type, pitch: e.pitch ?? '', visibility: e.visibility,
       spots_total: e.spots_total, spots_anchor: e.spots_anchor,
-      price_per_pax: e.price_per_pax, status: e.status, anchor_member_id: e.anchor_member_id ?? '',
+      total_cost: e.price_per_pax * e.spots_total, status: e.status,
+      anchor_member_id: e.anchor_member_id ?? '',
     })
+  }
+
+  function excError(): string | null {
+    if (!EF.template_id) return 'Choose an excursion from the catalog'
+    if (!effExcOrigin) return 'Select or enter an origin'
+    if (EF.originSel === CUSTOM && !EF.originCustomName.trim()) return 'Name the custom origin airport'
+    if (!EF.name.trim()) return 'Excursion name is required'
+    if (!EF.date) return 'Pick a date'
+    if (EF.spots_total < 1) return 'Spots total must be at least 1'
+    if (EF.spots_anchor < 0 || EF.spots_anchor > EF.spots_total) return 'Anchor spots must be between 0 and spots total'
+    if (EF.total_cost < 0) return 'Cost cannot be negative'
+    return null
   }
 
   async function saveFlight() {
@@ -280,22 +329,33 @@ export default function TripsPage() {
   }
 
   async function saveExc() {
+    const err = excError()
+    if (err) { showToast(err, 'error'); return }
     setSaving(true)
     try {
+      if (EF.originSel === CUSTOM) {
+        const { error } = await supabase.from('airports').upsert(
+          { code: effExcOrigin, name: EF.originCustomName.trim(), sub: EF.originCustomRegion.trim() || null, role: 'both' },
+          { onConflict: 'code' },
+        )
+        if (error) throw error
+      }
+
       const payload = {
-        name: excForm.name, origin_code: excForm.origin_code.toUpperCase(),
-        date: excForm.date, template_id: null,
-        aircraft_id: excForm.aircraft_id || null,
-        start_time: excForm.start_time || null, depart_time: excForm.depart_time || null,
-        arrive_time: excForm.arrive_time || null, return_time: excForm.return_time || null,
-        stay_type: excForm.stay_type, pitch: excForm.pitch || null,
-        visibility: excForm.visibility, spots_total: excForm.spots_total,
-        spots_anchor: excForm.spots_anchor, price_per_pax: excForm.price_per_pax,
-        status: excForm.status, anchor_member_id: excForm.anchor_member_id || null,
+        name: EF.name.trim(), origin_code: effExcOrigin,
+        date: EF.date, template_id: EF.template_id || null,
+        aircraft_id: EF.aircraft_id || null,
+        start_time: EF.start_time || null, depart_time: EF.depart_time || null,
+        arrive_time: EF.arrive_time || null, return_time: EF.return_time || null,
+        stay_type: EF.stay_type, pitch: EF.pitch || null,
+        visibility: EF.visibility, spots_total: EF.spots_total,
+        spots_anchor: EF.spots_anchor, price_per_pax: perPax,
+        status: EF.status, anchor_member_id: EF.anchor_member_id || null,
       }
       if (editExcId) {
-        const { error } = await supabase.from('excursions').update(payload).eq('id', editExcId)
+        const { data, error } = await supabase.from('excursions').update(payload).eq('id', editExcId).select()
         if (error) throw error
+        if (!data || data.length === 0) throw new Error('Update blocked — verify the admin RLS update policy on excursions')
         showToast('Excursion updated')
       } else {
         const id = 'E-' + Date.now().toString(36).toUpperCase()
@@ -308,6 +368,17 @@ export default function TripsPage() {
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Save failed', 'error')
     } finally { setSaving(false) }
+  }
+
+  function selectTemplate(id: string) {
+    const t = templates.find(x => x.id === id)
+    setExcForm(f => ({
+      ...f,
+      template_id: id,
+      nameTouched: false,
+      spots_total: t?.capacity ?? f.spots_total,
+      total_cost: t ? t.price_per_pax * t.capacity : f.total_cost,
+    }))
   }
 
   const statusColor: Record<string, string> = {
@@ -323,6 +394,10 @@ export default function TripsPage() {
   const destOptions = [...destAirports]
   if (FF.destSel && FF.destSel !== CUSTOM && !destOptions.some(a => a.code === FF.destSel)) {
     destOptions.unshift({ code: FF.destSel, name: FF.destSel, sub: null, role: 'destination' })
+  }
+  const excOriginOptions = [...originAirports]
+  if (EF.originSel && EF.originSel !== CUSTOM && !excOriginOptions.some(a => a.code === EF.originSel)) {
+    excOriginOptions.unshift({ code: EF.originSel, name: EF.originSel, sub: null, role: 'origin' })
   }
 
   return (
@@ -575,16 +650,52 @@ export default function TripsPage() {
             {editExcId ? 'Edit Excursion' : 'Add Excursion'}
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+
+            {/* ─── Experience (from catalog) ─── */}
+            <div style={sectionLabelStyle}>Experience</div>
             <div className="field" style={{ gridColumn: '1 / -1' }}>
-              <label className="field-lab">Name <span className="req">*</span></label>
-              <input className="input" value={EF.name} onChange={e => setExcForm(f => ({ ...f, name: e.target.value }))} placeholder="Bora Bora Overwater Experience" />
+              <label className="field-lab">Excursion <span className="req">*</span></label>
+              <select className="select" value={EF.template_id} onChange={e => selectTemplate(e.target.value)}>
+                <option value="">Select from catalog…</option>
+                {templates.map(t => <option key={t.id} value={t.id}>{t.name} · {airportName(t.dest_code)}</option>)}
+              </select>
+              {selectedTemplate && (
+                <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 6 }}>
+                  Destination: <strong>{excDestLabel}</strong>
+                  {selectedTemplate.operator ? ` · ${selectedTemplate.operator}` : ''}
+                  {' · '}catalog ${selectedTemplate.price_per_pax.toLocaleString()}/pax · up to {selectedTemplate.capacity} pax
+                </div>
+              )}
+            </div>
+
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label className="field-lab">Excursion Name <span className="req">*</span></label>
+              <input
+                className="input"
+                value={EF.name}
+                onChange={e => setExcForm(f => ({ ...f, name: e.target.value, nameTouched: true }))}
+                placeholder="Auto-fills from the catalog experience"
+              />
+              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>
+                {EF.nameTouched ? 'Custom name — ' : 'Auto-filled — '}
+                <button type="button" onClick={() => setExcForm(f => ({ ...f, nameTouched: false }))} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--tropic-d)', cursor: 'pointer', fontSize: 11, textDecoration: 'underline' }}>
+                  {EF.nameTouched ? 'reset to auto' : 'edit to override'}
+                </button>
+              </div>
+            </div>
+
+            {/* ─── Logistics ─── */}
+            <div style={sectionLabelStyle}>Logistics</div>
+            <div className="field">
+              <label className="field-lab">Departure Origin <span className="req">*</span></label>
+              <select className="select" value={EF.originSel} onChange={e => setExcForm(f => ({ ...f, originSel: e.target.value }))}>
+                <option value="">Select origin…</option>
+                {excOriginOptions.map(a => <option key={a.code} value={a.code}>{a.name} ({a.code})</option>)}
+                <option value={CUSTOM}>+ Custom landing area…</option>
+              </select>
             </div>
             <div className="field">
-              <label className="field-lab">Origin (IATA)</label>
-              <input className="input" value={EF.origin_code} onChange={e => setExcForm(f => ({ ...f, origin_code: e.target.value.toUpperCase() }))} placeholder="LAX" maxLength={3} />
-            </div>
-            <div className="field">
-              <label className="field-lab">Date</label>
+              <label className="field-lab">Date <span className="req">*</span></label>
               <input className="input" type="date" value={EF.date} onChange={e => setExcForm(f => ({ ...f, date: e.target.value }))} />
             </div>
             <div className="field">
@@ -593,53 +704,72 @@ export default function TripsPage() {
                 {STAY_TYPES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
               </select>
             </div>
+
+            {EF.originSel === CUSTOM && (
+              <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, padding: 14, background: 'var(--warm)', borderRadius: 10 }}>
+                <div style={{ gridColumn: '1 / -1', fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-light)' }}>Custom origin</div>
+                <div className="field"><label className="field-lab">Code <span className="req">*</span></label><input className="input" value={EF.originCustomCode} onChange={e => setExcForm(f => ({ ...f, originCustomCode: e.target.value.toUpperCase() }))} placeholder="e.g. MYGF" maxLength={6} /></div>
+                <div className="field"><label className="field-lab">Airport name <span className="req">*</span></label><input className="input" value={EF.originCustomName} onChange={e => setExcForm(f => ({ ...f, originCustomName: e.target.value }))} placeholder="e.g. Grand Cay" /></div>
+                <div className="field"><label className="field-lab">Region</label><input className="input" value={EF.originCustomRegion} onChange={e => setExcForm(f => ({ ...f, originCustomRegion: e.target.value }))} placeholder="e.g. Bahamas" /></div>
+              </div>
+            )}
+
+            <div className="field">
+              <label className="field-lab">Aircraft (optional)</label>
+              <select className="select" value={EF.aircraft_id} onChange={e => setExcForm(f => ({ ...f, aircraft_id: e.target.value }))}>
+                <option value="">None</option>
+                {aircraft.map(a => <option key={a.id} value={a.id}>{a.name} ({a.capacity} seats)</option>)}
+              </select>
+            </div>
+
+            {/* ─── Day schedule ─── */}
+            <div style={sectionLabelStyle}>Day Schedule</div>
+            <div className="field">
+              <label className="field-lab">Flight Departs (origin)</label>
+              <input className="input" type="time" value={EF.depart_time} onChange={e => setExcForm(f => ({ ...f, depart_time: e.target.value }))} />
+            </div>
+            <div className="field">
+              <label className="field-lab">Flight Arrives (dest)</label>
+              <input className="input" type="time" value={EF.arrive_time} onChange={e => setExcForm(f => ({ ...f, arrive_time: e.target.value }))} />
+            </div>
+            <div className="field">
+              <label className="field-lab">Activity Start</label>
+              <input className="input" type="time" value={EF.start_time} onChange={e => setExcForm(f => ({ ...f, start_time: e.target.value }))} />
+            </div>
+            <div className="field">
+              <label className="field-lab">Return Pickup</label>
+              <input className="input" type="time" value={EF.return_time} onChange={e => setExcForm(f => ({ ...f, return_time: e.target.value }))} />
+            </div>
+            <div className="field" />
+            <div className="field" />
+
+            {/* ─── Capacity & pricing ─── */}
+            <div style={sectionLabelStyle}>Capacity &amp; Pricing</div>
+            <div className="field">
+              <label className="field-lab">Spots Total <span className="req">*</span></label>
+              <input className="input" type="number" min={1} value={EF.spots_total} onChange={e => setExcForm(f => ({ ...f, spots_total: Number(e.target.value) }))} />
+              {selectedTemplate && <div style={{ fontSize: 11, color: EF.spots_total > selectedTemplate.capacity ? 'var(--signal)' : 'var(--ink-light)', marginTop: 4 }}>Catalog capacity {selectedTemplate.capacity}</div>}
+            </div>
+            <div className="field">
+              <label className="field-lab">Anchor Spots</label>
+              <input className="input" type="number" min={0} max={EF.spots_total} value={EF.spots_anchor} onChange={e => setExcForm(f => ({ ...f, spots_anchor: Number(e.target.value) }))} />
+              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>{Math.max(0, EF.spots_total - EF.spots_anchor)} spots open to members</div>
+            </div>
+            <div className="field">
+              <label className="field-lab">Total Cost ($)</label>
+              <input className="input" type="number" min={0} value={EF.total_cost} onChange={e => setExcForm(f => ({ ...f, total_cost: Number(e.target.value) }))} placeholder="Confirmed total with operator" />
+              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>
+                = ${perPax.toLocaleString()} / pax{EF.spots_total > 0 ? ` (÷ ${EF.spots_total} spots)` : ''}
+              </div>
+            </div>
+
+            {/* ─── Listing ─── */}
+            <div style={sectionLabelStyle}>Listing</div>
             <div className="field">
               <label className="field-lab">Status</label>
               <select className="select" value={EF.status} onChange={e => setExcForm(f => ({ ...f, status: e.target.value as Excursion['status'] }))}>
                 {EXCURSION_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-            </div>
-            <div className="field">
-              <label className="field-lab">Anchor Member</label>
-              <select className="select" value={EF.anchor_member_id} onChange={e => setExcForm(f => ({ ...f, anchor_member_id: e.target.value }))}>
-                <option value="">Select member…</option>
-                {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-            </div>
-            <div className="field">
-              <label className="field-lab">Aircraft (optional)</label>
-              <select className="select" value={EF.aircraft_id} onChange={e => setExcForm(f => ({ ...f, aircraft_id: e.target.value }))}>
-                <option value="">None</option>
-                {aircraft.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </div>
-            <div className="field">
-              <label className="field-lab">Start Time</label>
-              <input className="input" type="time" value={EF.start_time} onChange={e => setExcForm(f => ({ ...f, start_time: e.target.value }))} />
-            </div>
-            <div className="field">
-              <label className="field-lab">Depart Time</label>
-              <input className="input" type="time" value={EF.depart_time} onChange={e => setExcForm(f => ({ ...f, depart_time: e.target.value }))} />
-            </div>
-            <div className="field">
-              <label className="field-lab">Arrive Time</label>
-              <input className="input" type="time" value={EF.arrive_time} onChange={e => setExcForm(f => ({ ...f, arrive_time: e.target.value }))} />
-            </div>
-            <div className="field">
-              <label className="field-lab">Return Time</label>
-              <input className="input" type="time" value={EF.return_time} onChange={e => setExcForm(f => ({ ...f, return_time: e.target.value }))} />
-            </div>
-            <div className="field">
-              <label className="field-lab">Spots Total</label>
-              <input className="input" type="number" min={1} value={EF.spots_total} onChange={e => setExcForm(f => ({ ...f, spots_total: Number(e.target.value) }))} />
-            </div>
-            <div className="field">
-              <label className="field-lab">Anchor Spots</label>
-              <input className="input" type="number" min={0} value={EF.spots_anchor} onChange={e => setExcForm(f => ({ ...f, spots_anchor: Number(e.target.value) }))} />
-            </div>
-            <div className="field">
-              <label className="field-lab">Price Per Pax ($)</label>
-              <input className="input" type="number" min={0} value={EF.price_per_pax} onChange={e => setExcForm(f => ({ ...f, price_per_pax: Number(e.target.value) }))} />
             </div>
             <div className="field">
               <label className="field-lab">Visibility</label>
@@ -648,13 +778,20 @@ export default function TripsPage() {
                 <option value="public">Public</option>
               </select>
             </div>
+            <div className="field">
+              <label className="field-lab">Anchor Member</label>
+              <select className="select" value={EF.anchor_member_id} onChange={e => setExcForm(f => ({ ...f, anchor_member_id: e.target.value }))}>
+                <option value="">None</option>
+                {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </div>
             <div className="field" style={{ gridColumn: '1 / -1' }}>
-              <label className="field-lab">Pitch</label>
-              <input className="input" value={EF.pitch} onChange={e => setExcForm(f => ({ ...f, pitch: e.target.value }))} placeholder="An unforgettable overwater escape…" />
+              <label className="field-lab">Pitch (tagline)</label>
+              <input className="input" value={EF.pitch} onChange={e => setExcForm(f => ({ ...f, pitch: e.target.value }))} placeholder="An unforgettable escape…" />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-            <button className="btn-primary" onClick={saveExc} disabled={saving || !EF.name || !EF.date}>
+            <button className="btn-primary" onClick={saveExc} disabled={saving}>
               {saving ? 'Saving…' : 'Save Excursion'}
             </button>
             <button className="btn-ghost" onClick={() => { setShowExcForm(false); setEditExcId(null) }}>Cancel</button>
@@ -722,7 +859,7 @@ export default function TripsPage() {
               {excursions.map(e => (
                 <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => openEditExc(e)}>
                   <td style={{ fontWeight: 500, color: 'var(--ink)' }}>{e.name}</td>
-                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{e.origin_code}</td>
+                  <td style={{ fontSize: 12 }}>{(() => { const t = templates.find(tt => tt.id === e.template_id); return t ? airportName(t.dest_code) : e.origin_code })()}</td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{e.date}</td>
                   <td><span className="pill ink">{e.stay_type.replace('_', ' ')}</span></td>
                   <td style={{ fontWeight: 600 }}>{e.spots_anchor}/{e.spots_total}</td>
