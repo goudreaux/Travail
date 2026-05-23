@@ -24,11 +24,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchPending = useCallback(async () => {
-    const [{ count: b }, { count: a }] = await Promise.all([
-      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    const [{ data: bks }, { count: a }] = await Promise.all([
+      supabase.from('bookings').select('id').eq('status', 'pending'),
       supabase.from('anchor_submissions').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     ])
-    setPendingCount((b ?? 0) + (a ?? 0))
+    // A round trip is two leg bookings (B-X + B-XR) — count it once.
+    const ids = new Set((bks ?? []).map(b => b.id))
+    const bookingCount = (bks ?? []).filter(b => !(b.id.endsWith('R') && ids.has(b.id.slice(0, -1)))).length
+    setPendingCount(bookingCount + (a ?? 0))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
