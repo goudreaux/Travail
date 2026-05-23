@@ -74,10 +74,12 @@ export default function FeedPage() {
 
       const myId = memberData.id
 
-      const [flightsRes, excursionsRes, bookingsRes, postsRes, templatesRes] = await Promise.all([
+      const [flightsRes, excursionsRes, bookingsRes, activeBookingsRes, postsRes, templatesRes] = await Promise.all([
         supabase.from('flights').select('*').in('status', ['open', 'full']),
         supabase.from('excursions').select('*').in('status', ['open', 'full']),
         supabase.from('bookings').select('*').eq('member_id', myId),
+        // Every member's active bookings — availability must reflect the whole cabin.
+        supabase.from('bookings').select('*').in('status', ['pending', 'approved']),
         supabase
           .from('posts')
           .select('*')
@@ -89,11 +91,12 @@ export default function FeedPage() {
       const flightsData: Flight[] = (flightsRes.data ?? []) as unknown as Flight[]
       const excursionsData: Excursion[] = (excursionsRes.data ?? []) as unknown as Excursion[]
       const myBookings: Booking[] = (bookingsRes.data ?? []) as unknown as Booking[]
+      const activeBookings: Booking[] = (activeBookingsRes.data ?? []) as unknown as Booking[]
 
       // Build booked-by-member maps per flight/excursion for accurate seat counts
       const flightBookingMap: Record<string, Record<string, number>> = {}
       const excursionBookingMap: Record<string, Record<string, number>> = {}
-      for (const b of myBookings) {
+      for (const b of activeBookings) {
         if (b.item_kind === 'flight') {
           if (!flightBookingMap[b.item_id]) flightBookingMap[b.item_id] = {}
           flightBookingMap[b.item_id][b.member_id] = (flightBookingMap[b.item_id][b.member_id] ?? 0) + b.seats

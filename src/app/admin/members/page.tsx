@@ -28,9 +28,13 @@ type EditForm = {
   date_of_birth: string
   joined_at: string
   card_last4: string
+  user_id: string
   kyc_verified: boolean
   is_admin: boolean
 }
+
+const PLACEHOLDER_USER_ID = '00000000-0000-0000-0000-000000000000'
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const defaultForm: EditForm = {
   name: '',
@@ -42,6 +46,7 @@ const defaultForm: EditForm = {
   date_of_birth: '',
   joined_at: '',
   card_last4: '',
+  user_id: '',
   kyc_verified: false,
   is_admin: false,
 }
@@ -135,6 +140,7 @@ export default function MembersPage() {
       date_of_birth: sensitiveData[m.id]?.date_of_birth ?? '',
       joined_at: (m.joined_at || m.created_at || '').slice(0, 10),
       card_last4: m.card_last4 ?? '',
+      user_id: m.user_id && m.user_id !== PLACEHOLDER_USER_ID ? m.user_id : '',
       kyc_verified: m.kyc_verified,
       is_admin: m.is_admin,
     })
@@ -156,6 +162,11 @@ export default function MembersPage() {
   }
 
   async function save() {
+    const uid = form.user_id.trim()
+    if (uid && !UUID_RE.test(uid)) {
+      showToast('User ID must be a valid Supabase Auth UID (UUID) — leave blank to link later', 'error')
+      return
+    }
     setSaving(true)
     try {
       const payload = {
@@ -172,7 +183,8 @@ export default function MembersPage() {
       }
 
       if (editId) {
-        const { data: updated, error } = await supabase.from('members').update(payload).eq('id', editId).select()
+        const updatePayload = uid ? { ...payload, user_id: uid } : payload
+        const { data: updated, error } = await supabase.from('members').update(updatePayload).eq('id', editId).select()
         if (error) throw error
         if (!updated || updated.length === 0) throw new Error('Update blocked — verify the admin RLS update policy on members in Supabase')
         if (form.date_of_birth) {
@@ -183,11 +195,11 @@ export default function MembersPage() {
           }, { onConflict: 'member_id' })
           if (dobErr) throw dobErr
         }
-        showToast('Member updated')
+        showToast(uid ? 'Member updated — login linked' : 'Member updated')
       } else {
         const { data: inserted, error } = await supabase.from('members').insert({
           ...payload,
-          user_id: '00000000-0000-0000-0000-000000000000',
+          user_id: uid || PLACEHOLDER_USER_ID,
         }).select().single()
         if (error) throw error
         if (form.date_of_birth && inserted) {
@@ -201,7 +213,7 @@ export default function MembersPage() {
           await (supabase as any).from('guests').update({ member_id: inserted.id }).eq('id', convertGuestId)
           setConvertGuestId(null)
         }
-        showToast(convertGuestId ? 'Member created from guest — link a user_id in Supabase Auth' : 'Member created — link a user_id in Supabase Auth')
+        showToast(uid ? 'Member created — login linked' : 'Member created — add a User ID to link a login')
       }
 
       setEditId(null)
@@ -292,6 +304,19 @@ export default function MembersPage() {
                 placeholder="e.g. 4242"
               />
               <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>Marks a card on file. Full card details are stored with the payment processor, not here.</div>
+            </div>
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label className="field-lab">User ID (Supabase Auth UID)</label>
+              <input
+                className="input"
+                style={{ fontFamily: 'var(--mono)', fontSize: 13 }}
+                value={form.user_id}
+                onChange={e => setForm(f => ({ ...f, user_id: e.target.value.trim() }))}
+                placeholder="e.g. fe9f539d-4289-4d14-aa0a-17f68134d622"
+              />
+              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>
+                Paste the UID from Supabase → Authentication → Users to let this member log in. Leave blank to link later.
+              </div>
             </div>
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label className="field-lab">Bio</label>

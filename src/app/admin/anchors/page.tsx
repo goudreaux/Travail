@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import type { AnchorSubmission, Member, Flight, Excursion } from '@/lib/supabase/types'
+import type { AnchorSubmission, Member, Flight, Excursion, SubmissionStatus } from '@/lib/supabase/types'
 
 type AnchorRow = AnchorSubmission & {
   member: Pick<Member, 'name' | 'initials'> | null
@@ -15,9 +16,11 @@ function Toast({ msg, kind }: { msg: string; kind: 'success' | 'error' | 'info' 
   return <div className={`toast ${kind}`}>{msg}</div>
 }
 
-type StatusFilter = 'all' | 'pending' | 'published' | 'declined'
+type StatusFilter = 'all' | 'pending' | 'published'
 
-const FILTERS: StatusFilter[] = ['all', 'pending', 'published', 'declined']
+// Active anchors only — declined submissions live in History.
+const FILTERS: StatusFilter[] = ['all', 'pending', 'published']
+const ACTIVE_STATUSES: SubmissionStatus[] = ['pending', 'published']
 
 export default function AnchorsPage() {
   const supabase = createClient()
@@ -40,6 +43,7 @@ export default function AnchorsPage() {
     const { data } = await supabase
       .from('anchor_submissions')
       .select('*, member:members!member_id(name, initials)')
+      .in('status', ACTIVE_STATUSES)
       .order('submitted_at', { ascending: false })
     setAnchors((data ?? []) as unknown as AnchorRow[])
     setLoading(false)
@@ -53,7 +57,6 @@ export default function AnchorsPage() {
     all: anchors.length,
     pending: anchors.filter(a => a.status === 'pending').length,
     published: anchors.filter(a => a.status === 'published').length,
-    declined: anchors.filter(a => a.status === 'declined').length,
   }
 
   async function publish(anchor: AnchorRow) {
@@ -224,7 +227,7 @@ export default function AnchorsPage() {
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Anchor Queue</h1>
         <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>
-          Review and publish anchor-submitted flights and excursions.
+          Active anchor-submitted flights and excursions. Declined submissions live in <Link href="/admin/history" style={{ color: 'var(--tropic-d)' }}>History</Link>.
         </p>
       </div>
 

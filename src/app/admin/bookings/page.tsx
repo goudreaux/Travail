@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import type { Booking, Member, Flight, Excursion } from '@/lib/supabase/types'
+import type { Booking, Member, Flight, Excursion, BookingStatus } from '@/lib/supabase/types'
 
 type BookingRow = Booking & {
   member: Pick<Member, 'name' | 'initials'> | null
@@ -18,8 +18,10 @@ function Toast({ msg, kind }: { msg: string; kind: 'success' | 'error' | 'info' 
   return <div className={`toast ${kind}`}>{msg}</div>
 }
 
-const STATUS_FILTERS = ['all', 'pending', 'approved', 'declined', 'cancelled', 'refunded'] as const
+// Bookings is the *active* board — declined/cancelled/refunded live in History.
+const STATUS_FILTERS = ['all', 'pending', 'approved'] as const
 type StatusFilter = typeof STATUS_FILTERS[number]
+const ACTIVE_STATUSES: BookingStatus[] = ['pending', 'approved']
 
 export default function BookingsPage() {
   const supabase = createClient()
@@ -43,6 +45,7 @@ export default function BookingsPage() {
     const { data: bk } = await supabase
       .from('bookings')
       .select('*')
+      .in('status', ACTIVE_STATUSES)
       .order('submitted_at', { ascending: false })
     const all = (bk ?? []) as unknown as BookingRow[]
 
@@ -131,13 +134,15 @@ export default function BookingsPage() {
       }).eq('id', id)
       if (error) throw error
 
-      await supabase.from('notifications').insert({
-        member_id: booking.member_id,
-        kind: 'booking',
-        title: 'Booking Declined',
-        body: reason || 'Your booking request was not approved at this time.',
-        ref: { booking_id: id },
-      })
+      try {
+        await supabase.from('notifications').insert({
+          member_id: booking.member_id,
+          kind: 'booking',
+          title: 'Booking Declined',
+          body: reason || 'Your booking request was not approved at this time.',
+          ref: { booking_id: id },
+        })
+      } catch { /* notification is supplementary */ }
 
       showToast('Booking declined')
       setDeclineModal(null)
@@ -257,7 +262,7 @@ export default function BookingsPage() {
 
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Bookings</h1>
-        <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>All flight and excursion bookings across all members.</p>
+        <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>Active flight and excursion bookings. Declined &amp; cancelled bookings live in <Link href="/admin/history" style={{ color: 'var(--tropic-d)' }}>History</Link>.</p>
       </div>
 
       {/* Filter tabs */}

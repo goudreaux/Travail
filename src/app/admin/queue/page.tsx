@@ -327,16 +327,20 @@ export default function QueuePage() {
       }).eq('id', id)
       if (error) throw error
 
-      await supabase.from('notifications').insert({
-        member_id: b.member_id,
-        kind: 'booking',
-        title: 'Booking Declined',
-        body: reason || 'Your booking request was not approved at this time.',
-        ref: { booking_id: id },
-        read: false,
-      } as never)
+      try {
+        await supabase.from('notifications').insert({
+          member_id: b.member_id,
+          kind: 'booking',
+          title: 'Booking Declined',
+          body: reason || 'Your booking request was not approved at this time.',
+          ref: { booking_id: id },
+          read: false,
+        } as never)
+      } catch { /* notification is supplementary */ }
 
       showToast('Booking declined')
+      loadBookings()
+      loadExtras()
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Decline failed', 'error')
     } finally { setWorking(null) }
@@ -485,16 +489,19 @@ export default function QueuePage() {
       }).eq('id', id)
       if (error) throw error
 
-      await supabase.from('notifications').insert({
-        member_id: anchor.member_id,
-        kind: 'approval',
-        title: 'Anchor Submission Declined',
-        body: reason || 'Your anchor submission could not be approved at this time.',
-        ref: { anchor_id: id },
-        read: false,
-      } as never)
+      try {
+        await supabase.from('notifications').insert({
+          member_id: anchor.member_id,
+          kind: 'approval',
+          title: 'Anchor Submission Declined',
+          body: reason || 'Your anchor submission could not be approved at this time.',
+          ref: { anchor_id: id },
+          read: false,
+        } as never)
+      } catch { /* notification is supplementary */ }
 
       showToast('Submission declined')
+      loadAnchors()
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Decline failed', 'error')
     } finally { setWorking(null) }

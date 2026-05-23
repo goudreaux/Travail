@@ -347,13 +347,12 @@ export default function SeatsPage() {
           .in('status', ['open'])
           .order('date'),
         supabase.from('excursion_templates').select('*'),
-        memberId
-          ? supabase
-              .from('bookings')
-              .select('*')
-              .eq('member_id', memberId)
-              .in('status', ['pending', 'approved'])
-          : Promise.resolve({ data: [] }),
+        // All active bookings across every member — availability must reflect the
+        // whole cabin, not just the viewer's own seats.
+        supabase
+          .from('bookings')
+          .select('*')
+          .in('status', ['pending', 'approved']),
       ])
 
       const templates: ExcursionTemplate[] = rawTemplates ?? []
