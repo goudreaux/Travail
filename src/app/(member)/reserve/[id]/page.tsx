@@ -217,11 +217,14 @@ export default function ReservePage() {
       let bookingIds: string[] = []
       let primary: { id: string; confirmation_code: string | null }
 
+      const stamp = Date.now().toString(36).toUpperCase()
+
       if (isRoundTrip && flight && returnFlight) {
-        const rows = [flight, returnFlight].map(leg => {
+        const rows = [flight, returnFlight].map((leg, idx) => {
           const sub = leg.price_per_seat * seats
           const fee = Math.round(sub * SERVICE_FEE_RATE)
           return {
+            id: `B-${stamp}${idx === 0 ? '' : 'R'}`,
             member_id: member.id, item_kind: 'flight', item_id: leg.id, seats,
             price_per_seat: leg.price_per_seat, fees: fee, total: sub + fee,
             payment_method: paymentMethod, status: 'pending',
@@ -236,6 +239,7 @@ export default function ReservePage() {
         const { data: bookingRaw, error: insertError } = await supabase
           .from('bookings')
           .insert({
+            id: `B-${stamp}`,
             member_id: member.id, item_kind: kind, item_id: itemId, seats,
             price_per_seat: pricePerSeat, fees: serviceFee, total,
             payment_method: paymentMethod, status: 'pending',
