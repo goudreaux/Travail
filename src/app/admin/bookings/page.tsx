@@ -148,6 +148,78 @@ export default function BookingsPage() {
     } finally { setWorking(null) }
   }
 
+  // When a confirmed seat frees up, auto-promote the oldest waitlister into a
+  // PENDING booking (Ops still confirms + charges).
+  async function promoteWaitlist(itemKind: string, itemId: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    const table = itemKind === 'flight' ? 'flights' : 'excursions'
+    const { data: item } = await db.from(table).select('*').eq('id', itemId).single()
+    if (!item) return
+    const capacity = itemKind === 'flight' ? item.seats_total - item.seats_anchor : item.spots_total - item.spots_anchor
+    const { data: approvedRows } = await db.from('bookings').select('seats').eq('item_kind', itemKind).eq('item_id', itemId).eq('status', 'approved')
+    const taken = (approvedRows ?? []).reduce((s: number, r: { seats: number }) => s + r.seats, 0)
+    if (taken >= capacity) return // still full
+    const { data: wl } = await db.from('waitlist').select('*').eq('item_kind', itemKind).eq('item_id', itemId).order('created_at').limit(1)
+    const first = (wl ?? [])[0]
+    if (!first) return
+    const price = itemKind === 'flight' ? item.price_per_seat : item.price_per_pax
+    const fee = Math.round(price * 0.03)
+    const id = 'B-' + Date.now().toString(36).toUpperCase()
+    await db.from('bookings').insert({
+      id, member_id: first.member_id, item_kind: itemKind, item_id: itemId,
+      seats: 1, price_per_seat: price, fees: fee, total: price + fee, payment_method: 'card', status: 'pending',
+    })
+    await db.from('waitlist').delete().eq('id', first.id)
+    try {
+      await supabase.from('notifications').insert({
+        member_id: first.member_id, kind: 'booking',
+        title: 'A seat opened up', body: 'A seat opened on a trip you waitlisted — Ops is confirming it now.',
+        ref: { item_kind: itemKind, item_id: itemId },
+      })
+    } catch { /* supplementary */ }
+  }
+
+  async function cancelBooking(booking: BookingRow) {
+    if (!confirm('Cancel this booking? The member will be notified.')) return
+    setWorking(booking.id)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      // Anchor rule: an anchor can't be cancelled while other members are booked.
+      const table = booking.item_kind === 'flight' ? 'flights' : 'excursions'
+      const { data: item } = await db.from(table).select('anchor_member_id').eq('id', booking.item_id).single()
+      if (item?.anchor_member_id && item.anchor_member_id === booking.member_id) {
+        const { data: others } = await db.from('bookings').select('id')
+          .eq('item_kind', booking.item_kind).eq('item_id', booking.item_id)
+          .neq('member_id', booking.member_id).in('status', ['pending', 'approved'])
+        if ((others ?? []).length > 0) throw new Error('Anchor cannot cancel — other members are booked on this trip.')
+      }
+
+      const wasApproved = booking.status === 'approved'
+      const { error } = await supabase.from('bookings').update({
+        status: 'cancelled', decided_at: new Date().toISOString(),
+      }).eq('id', booking.id)
+      if (error) throw error
+
+      try {
+        await supabase.from('notifications').insert({
+          member_id: booking.member_id, kind: 'booking',
+          title: 'Booking Cancelled', body: 'Your reservation has been cancelled by Ops.',
+          ref: { booking_id: booking.id },
+        })
+      } catch { /* supplementary */ }
+
+      // Freed a confirmed seat → promote the waitlist.
+      if (wasApproved) await promoteWaitlist(booking.item_kind, booking.item_id)
+
+      showToast('Booking cancelled')
+      load()
+    } catch (e: unknown) {
+      showToast((e as Error).message ?? 'Cancel failed', 'error')
+    } finally { setWorking(null) }
+  }
+
   const statusColor: Record<string, string> = {
     pending: 'sun', approved: 'moss', declined: 'signal',
     cancelled: 'ink', refunded: 'ink',
@@ -284,6 +356,16 @@ export default function BookingsPage() {
                       <Link href={`/admin/inbox?b=${b.id}`} className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center' }}>
                         Thread
                       </Link>
+                      {(b.status === 'approved' || b.status === 'pending') && (
+                        <button
+                          className="btn-ghost"
+                          style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.3)' }}
+                          disabled={working === b.id}
+                          onClick={() => cancelBooking(b)}
+                        >
+                          Cancel
+                        </button>
+                      )}
                     </div>
                     {b.status !== 'pending' && b.decline_reason && (
                       <span style={{ fontSize: 11.5, color: 'var(--ink-light)', fontStyle: 'italic', maxWidth: 160, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 4 }} title={b.decline_reason}>

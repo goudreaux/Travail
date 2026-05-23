@@ -68,6 +68,30 @@ function SeatMeter({ total, available, accent, unit }: { total: number; availabl
   )
 }
 
+// ─── Book / Waitlist CTA ─────────────────────────────────────────────────────
+
+function CtaButton({ available, waitlisted, onBook, onWaitlist, label, accent }: {
+  available: number; waitlisted: boolean; onBook: () => void; onWaitlist: () => void; label: string; accent: string
+}) {
+  if (available > 0) {
+    return (
+      <button className="btn-primary" style={{ height: 30, padding: '0 14px', fontSize: 12, background: accent }} onClick={e => { e.stopPropagation(); onBook() }}>
+        {label}
+      </button>
+    )
+  }
+  return (
+    <button
+      className="btn-ghost"
+      disabled={waitlisted}
+      style={{ height: 30, padding: '0 14px', fontSize: 12, opacity: waitlisted ? 0.7 : 1 }}
+      onClick={e => { e.stopPropagation(); if (!waitlisted) onWaitlist() }}
+    >
+      {waitlisted ? 'On waitlist ✓' : 'Join waitlist'}
+    </button>
+  )
+}
+
 // ─── Round-trip grouping ─────────────────────────────────────────────────────
 // Round-trips are stored as two flights: outbound "F-x" and return "F-xR" with
 // swapped origin/dest. Pair them so the board shows one entry per round-trip.
@@ -104,9 +128,13 @@ function buildFlightEntries(flights: DisplayFlight[]): FlightEntry[] {
 function FlightCard({
   flight,
   onCTA,
+  waitlisted,
+  onWaitlist,
 }: {
   flight: DisplayFlight
   onCTA: () => void
+  waitlisted: boolean
+  onWaitlist: () => void
 }) {
   const dp = fmtDate(flight.date)
   const colors = getFlightColors()
@@ -115,7 +143,7 @@ function FlightCard({
     <div
       className="trip-card"
       style={{ marginBottom: 12 }}
-      onClick={onCTA}
+      onClick={flight.seatsAvailable > 0 ? onCTA : undefined}
     >
       <div className="trip-card__main">
         <div className="trip-card__date">
@@ -149,13 +177,7 @@ function FlightCard({
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="trip-card__price">{fmtMoney(flight.price_per_seat)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/seat</span></span>
-          <button
-            className="btn-primary"
-            style={{ height: 30, padding: '0 14px', fontSize: 12, background: colors.dot }}
-            onClick={e => { e.stopPropagation(); onCTA() }}
-          >
-            Take seat →
-          </button>
+          <CtaButton available={flight.seatsAvailable} waitlisted={waitlisted} onBook={onCTA} onWaitlist={onWaitlist} label="Take seat →" accent={colors.dot} />
         </div>
       </div>
     </div>
@@ -166,10 +188,14 @@ function RoundTripCard({
   outbound,
   ret,
   onCTA,
+  waitlisted,
+  onWaitlist,
 }: {
   outbound: DisplayFlight
   ret: DisplayFlight
   onCTA: () => void
+  waitlisted: boolean
+  onWaitlist: () => void
 }) {
   const dpOut = fmtDate(outbound.date)
   const dpRet = fmtDate(ret.date)
@@ -178,7 +204,7 @@ function RoundTripCard({
   const combined = outbound.price_per_seat + ret.price_per_seat
 
   return (
-    <div className="trip-card" style={{ marginBottom: 12 }} onClick={onCTA}>
+    <div className="trip-card" style={{ marginBottom: 12 }} onClick={seatsLeft > 0 ? onCTA : undefined}>
       <div className="trip-card__main">
         <div className="trip-card__date">
           <div className="trip-card__date-mo">{dpOut.mo}</div>
@@ -209,13 +235,7 @@ function RoundTripCard({
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="trip-card__price">{fmtMoney(combined)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/seat round trip</span></span>
-          <button
-            className="btn-primary"
-            style={{ height: 30, padding: '0 14px', fontSize: 12, background: colors.dot }}
-            onClick={e => { e.stopPropagation(); onCTA() }}
-          >
-            Take seat →
-          </button>
+          <CtaButton available={seatsLeft} waitlisted={waitlisted} onBook={onCTA} onWaitlist={onWaitlist} label="Take seat →" accent={colors.dot} />
         </div>
       </div>
     </div>
@@ -225,9 +245,13 @@ function RoundTripCard({
 function ExcursionCard({
   excursion,
   onCTA,
+  waitlisted,
+  onWaitlist,
 }: {
   excursion: DisplayExcursion
   onCTA: () => void
+  waitlisted: boolean
+  onWaitlist: () => void
 }) {
   const dp = fmtDate(excursion.date)
   const icon = excursion.templateMeta?.icon ?? 'fish'
@@ -238,7 +262,7 @@ function ExcursionCard({
     <div
       className="trip-card"
       style={{ marginBottom: 12 }}
-      onClick={onCTA}
+      onClick={excursion.spotsAvailable > 0 ? onCTA : undefined}
     >
       <div className="trip-card__main">
         <div className="trip-card__date">
@@ -270,13 +294,7 @@ function ExcursionCard({
           {(excursion.price_per_pax || excursion.templateMeta?.price_per_pax) ? (
             <span className="trip-card__price">{fmtMoney(excursion.price_per_pax || excursion.templateMeta?.price_per_pax || 0)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/person</span></span>
           ) : null}
-          <button
-            className="btn-primary"
-            style={{ height: 30, padding: '0 14px', fontSize: 12, background: colors.dot }}
-            onClick={e => { e.stopPropagation(); onCTA() }}
-          >
-            Reserve spot →
-          </button>
+          <CtaButton available={excursion.spotsAvailable} waitlisted={waitlisted} onBook={onCTA} onWaitlist={onWaitlist} label="Reserve spot →" accent={colors.dot} />
         </div>
       </div>
     </div>
@@ -293,6 +311,9 @@ export default function SeatsPage() {
   const [excursions, setExcursions] = useState<DisplayExcursion[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<ActivityFilter>('all')
+  const [waitlisted, setWaitlisted] = useState<Set<string>>(new Set())
+  const [memberId, setMemberId] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -306,6 +327,7 @@ export default function SeatsPage() {
         .single()
 
       const memberId = member?.id
+      setMemberId(memberId ?? null)
 
       const [
         { data: rawFlights },
@@ -343,7 +365,7 @@ export default function SeatsPage() {
           .forEach(b => { booksForFlight[b.member_id] = (booksForFlight[b.member_id] ?? 0) + b.seats })
         const df = adaptFlight(f as Flight, booksForFlight, memberId)
         return df
-      }).filter(f => f.seatsAvailable > 0)
+      })
 
       const adaptedExcursions: DisplayExcursion[] = (rawExcursions ?? []).map(e => {
         const booksForExc: Record<string, number> = {}
@@ -351,7 +373,15 @@ export default function SeatsPage() {
           .filter(b => b.item_kind === 'excursion' && b.item_id === e.id)
           .forEach(b => { booksForExc[b.member_id] = (booksForExc[b.member_id] ?? 0) + b.seats })
         return adaptExcursion(e as Excursion, templates, booksForExc, memberId)
-      }).filter(e => e.spotsAvailable > 0)
+      })
+
+      // What this member is already waitlisted for
+      if (memberId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: wl } = await (supabase as any).from('waitlist').select('item_id').eq('member_id', memberId)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setWaitlisted(new Set((wl ?? []).map((w: any) => w.item_id)))
+      }
 
       setFlights(adaptedFlights)
       setExcursions(adaptedExcursions)
@@ -360,6 +390,20 @@ export default function SeatsPage() {
 
     load()
   }, [])
+
+  async function joinWaitlist(itemKind: 'flight' | 'excursion', itemId: string) {
+    if (!memberId) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).from('waitlist').insert({ member_id: memberId, item_kind: itemKind, item_id: itemId })
+    // 23505 = already on the list — treat as success
+    if (!error || error.code === '23505') {
+      setWaitlisted(prev => new Set(prev).add(itemId))
+      setToast('Added to the waitlist — Ops will offer the next open seat.')
+    } else {
+      setToast(error.message ?? 'Could not join waitlist.')
+    }
+    setTimeout(() => setToast(null), 3500)
+  }
 
   // Apply filter
   const flightEntries = buildFlightEntries(flights)
@@ -375,6 +419,7 @@ export default function SeatsPage() {
 
   return (
     <div className="page">
+      {toast && <div className="toast success">{toast}</div>}
       <div className="page-head">
         <div>
           <p className="mono" style={{ marginBottom: 6 }}>DEPARTURES BOARD</p>
@@ -445,12 +490,16 @@ export default function SeatsPage() {
                       outbound={entry.outbound}
                       ret={entry.ret}
                       onCTA={() => router.push(`/reserve/${entry.outbound.id}?kind=flight&return=${entry.ret.id}`)}
+                      waitlisted={waitlisted.has(entry.outbound.id)}
+                      onWaitlist={() => joinWaitlist('flight', entry.outbound.id)}
                     />
                   ) : (
                     <FlightCard
                       key={entry.flight.id}
                       flight={entry.flight}
                       onCTA={() => router.push(`/reserve/${entry.flight.id}?kind=flight`)}
+                      waitlisted={waitlisted.has(entry.flight.id)}
+                      onWaitlist={() => joinWaitlist('flight', entry.flight.id)}
                     />
                   ))}
                 </div>
@@ -470,6 +519,8 @@ export default function SeatsPage() {
                       key={excursion.id}
                       excursion={excursion}
                       onCTA={() => router.push(`/reserve/${excursion.id}?kind=excursion`)}
+                      waitlisted={waitlisted.has(excursion.id)}
+                      onWaitlist={() => joinWaitlist('excursion', excursion.id)}
                     />
                   ))}
                 </div>
