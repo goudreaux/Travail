@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
 import TopBar from '@/components/TopBar'
+import MobileNav from '@/components/MobileNav'
 import ToastHost from '@/components/ToastHost'
 import type { Member, Notification } from '@/lib/supabase/types'
 
@@ -74,6 +75,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
         />
         {children}
       </main>
+      <MobileNav pathname={pathname} />
       <ToastHost />
     </div>
   )
