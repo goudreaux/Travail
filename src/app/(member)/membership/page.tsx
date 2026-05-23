@@ -48,41 +48,34 @@ export default function MembershipPage() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
 
-      const { data: memberData } = await supabase
-        .from('members').select('*').eq('user_id', user.id).single()
+        const { data: memberData } = await supabase
+          .from('members').select('*').eq('user_id', user.id).single()
+        if (!memberData) return
 
-      if (!memberData) { setLoading(false); return }
-      const m = memberData as Member
-      setMember(m)
-      setName(m.name)
-      setBio(m.bio ?? '')
-      setInterests((m.interests ?? []).join(', '))
+        const m = memberData as Member
+        setMember(m)
+        setName(m.name)
+        setBio(m.bio ?? '')
+        setInterests(Array.isArray(m.interests) ? m.interests.join(', ') : (m.interests ?? ''))
 
-      const { data: bookingData } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('member_id', m.id)
-        .order('submitted_at', { ascending: false })
+        const [{ data: bookingData }, { data: submissionData }, { data: sensitiveData }] = await Promise.all([
+          supabase.from('bookings').select('*').eq('member_id', m.id).order('submitted_at', { ascending: false }),
+          supabase.from('anchor_submissions').select('*').eq('member_id', m.id).order('submitted_at', { ascending: false }),
+          supabase.from('member_sensitive').select('*').eq('member_id', m.id).maybeSingle(),
+        ])
 
-      const { data: submissionData } = await supabase
-        .from('anchor_submissions')
-        .select('*')
-        .eq('member_id', m.id)
-        .order('submitted_at', { ascending: false })
-
-      const { data: sensitiveData } = await supabase
-        .from('member_sensitive')
-        .select('*')
-        .eq('member_id', m.id)
-        .single()
-
-      setBookings((bookingData as Booking[] | null) ?? [])
-      setSubmissions((submissionData as AnchorSubmission[] | null) ?? [])
-      setSensitive(sensitiveData as MemberSensitive | null)
-      setLoading(false)
+        setBookings((bookingData as Booking[] | null) ?? [])
+        setSubmissions((submissionData as AnchorSubmission[] | null) ?? [])
+        setSensitive(sensitiveData as MemberSensitive | null)
+      } catch (e) {
+        console.error('Membership load failed:', e)
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [])
@@ -179,7 +172,7 @@ export default function MembershipPage() {
     bookings.filter(b => b.status === 'approved' && b.item_kind === 'flight').map(b => b.item_id)
   ).size
 
-  const dp = fmtDate(member.joined_at.split('T')[0])
+  const dp = member.joined_at ? fmtDate(member.joined_at.split('T')[0]) : null
 
   return (
     <div className="page">
@@ -456,7 +449,7 @@ export default function MembershipPage() {
                 {[
                   { label: 'Tier', value: <span className={`pill ${TIER_PILL[member.tier] ?? 'ink'}`}>{TIER_LABEL[member.tier] ?? member.tier}</span> },
                   { label: 'Member ID', value: <span className="mono" style={{ fontSize: 10 }}>#{member.id.slice(0, 8).toUpperCase()}</span> },
-                  { label: 'Joined', value: `${dp.mo} ${dp.day}, ${new Date(member.joined_at).getFullYear()}` },
+                  { label: 'Joined', value: dp ? `${dp.mo} ${dp.day}, ${new Date(member.joined_at).getFullYear()}` : '—' },
                   { label: 'KYC status', value: member.kyc_verified ? <span className="pill moss">Verified</span> : <span className="pill signal">Pending</span> },
                   { label: 'Card on file', value: member.card_last4 ? `••••  ••••  ••••  ${member.card_last4}` : <span style={{ color: 'var(--ink-faint)' }}>None on file</span> },
                   ...(fmtHomeBase(member.home_base_code) ? [{ label: 'Home base', value: fmtHomeBase(member.home_base_code) }] : []),

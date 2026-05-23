@@ -27,6 +27,7 @@ type EditForm = {
   interests: string
   date_of_birth: string
   joined_at: string
+  card_last4: string
   kyc_verified: boolean
   is_admin: boolean
 }
@@ -40,6 +41,7 @@ const defaultForm: EditForm = {
   interests: '',
   date_of_birth: '',
   joined_at: '',
+  card_last4: '',
   kyc_verified: false,
   is_admin: false,
 }
@@ -132,6 +134,7 @@ export default function MembersPage() {
       interests: Array.isArray(m.interests) ? m.interests.join(', ') : (m.interests ?? ''),
       date_of_birth: sensitiveData[m.id]?.date_of_birth ?? '',
       joined_at: (m.joined_at || m.created_at || '').slice(0, 10),
+      card_last4: m.card_last4 ?? '',
       kyc_verified: m.kyc_verified,
       is_admin: m.is_admin,
     })
@@ -163,6 +166,7 @@ export default function MembersPage() {
         bio: form.bio.trim() || null,
         interests: form.interests ? form.interests.split(',').map(s => s.trim()).filter(Boolean) : null,
         joined_at: form.joined_at || new Date().toISOString().slice(0, 10),
+        card_last4: form.card_last4.replace(/\D/g, '').slice(0, 4) || null,
         kyc_verified: form.kyc_verified,
         is_admin: form.is_admin,
       }
@@ -276,6 +280,18 @@ export default function MembersPage() {
                 value={form.joined_at}
                 onChange={e => setForm(f => ({ ...f, joined_at: e.target.value }))}
               />
+            </div>
+            <div className="field">
+              <label className="field-lab">Card on file (last 4)</label>
+              <input
+                className="input"
+                inputMode="numeric"
+                maxLength={4}
+                value={form.card_last4}
+                onChange={e => setForm(f => ({ ...f, card_last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
+                placeholder="e.g. 4242"
+              />
+              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>Marks a card on file. Full card details are stored with the payment processor, not here.</div>
             </div>
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label className="field-lab">Bio</label>
