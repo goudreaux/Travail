@@ -2,7 +2,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { returnLegIds } from '@/lib/data'
-import type { Flight, Excursion, Aircraft, Member, Airport, ExcursionTemplate } from '@/lib/supabase/types'
+import { logActivity } from '@/lib/activity'
+import type { Flight, Excursion, Aircraft, Member, Airport, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 
 type FlightRow = Flight
 type ExcursionRow = Excursion
@@ -143,6 +144,7 @@ export default function TripsPage() {
   const [editTemplateId, setEditTemplateId] = useState<string | null>(null)
   const [templateForm, setTemplateForm] = useState<TemplateForm>(defaultTemplateForm)
   const [saving, setSaving] = useState(false)
+  const [cancelling, setCancelling] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' | 'info' } | null>(null)
 
   const showToast = (msg: string, kind: 'success' | 'error' | 'info' = 'success') => {
@@ -487,6 +489,48 @@ export default function TripsPage() {
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Save failed', 'error')
     } finally { setSaving(false) }
+  }
+
+  // One-click cancel: cancels the trip (both legs of a round trip), voids active
+  // bookings on it, and notifies affected members.
+  async function cancelTrip(kind: 'flight' | 'excursion', id: string, name: string) {
+    if (!confirm(`Cancel "${name}"? It will be removed from Open Seats, all reservations on it cancelled, and those members notified.`)) return
+    setCancelling(id)
+    try {
+      const ids = kind === 'flight' && flights.some(f => f.id === `${id}R`) ? [id, `${id}R`] : [id]
+      const table = kind === 'flight' ? 'flights' : 'excursions'
+      const { error } = await supabase.from(table).update({ status: 'cancelled' }).in('id', ids)
+      if (error) throw error
+
+      const { data: bks } = await supabase
+        .from('bookings').select('*')
+        .eq('item_kind', kind).in('item_id', ids).in('status', ['pending', 'approved'])
+      const affected = (bks ?? []) as unknown as Booking[]
+      if (affected.length) {
+        await supabase.from('bookings')
+          .update({ status: 'cancelled', decided_at: new Date().toISOString() })
+          .in('id', affected.map(b => b.id))
+        for (const mid of [...new Set(affected.map(b => b.member_id))]) {
+          try {
+            await supabase.from('notifications').insert({
+              member_id: mid, kind: 'booking', title: 'Trip Cancelled',
+              body: `"${name}" has been cancelled by Ops. Any charges will be handled by the team.`,
+              ref: { item_kind: kind, item_id: id },
+            } as never)
+          } catch { /* notification is supplementary */ }
+        }
+      }
+
+      logActivity({
+        action: 'trip_cancelled', actor_kind: 'admin', item_kind: kind, item_id: id,
+        summary: `Cancelled ${kind} "${name}"${affected.length ? ` and ${affected.length} reservation(s)` : ''}`,
+        meta: { reservations_cancelled: affected.length },
+      })
+      showToast(affected.length ? `Trip cancelled — ${affected.length} reservation(s) voided` : 'Trip cancelled')
+      load()
+    } catch (e: unknown) {
+      showToast((e as Error).message ?? 'Cancel failed', 'error')
+    } finally { setCancelling(null) }
   }
 
   async function deleteTemplate(id: string, name: string) {
@@ -1015,8 +1059,16 @@ export default function TripsPage() {
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{it.date}</td>
                   <td style={{ fontWeight: 600 }}>{it.avail}/{it.total}</td>
                   <td><span className={`pill ${statusColor[it.status]}`}>{it.status}</span></td>
-                  <td onClick={e => e.stopPropagation()}>
+                  <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                     <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={it.onEdit}>Edit</button>
+                    <button
+                      className="btn-ghost"
+                      style={{ height: 28, padding: '0 10px', fontSize: 12, marginLeft: 6, color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.3)' }}
+                      disabled={cancelling === it.key}
+                      onClick={() => cancelTrip(it.kind, it.key, it.name)}
+                    >
+                      {cancelling === it.key ? '…' : 'Cancel'}
+                    </button>
                   </td>
                 </tr>
               ))}
