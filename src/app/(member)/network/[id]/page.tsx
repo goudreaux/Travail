@@ -209,34 +209,32 @@ export default function MemberProfilePage() {
             height: 100,
             position: 'relative',
           }} />
-          {/* Avatar + name row */}
+          {/* Avatar + name */}
           <div style={{
             padding: '0 28px 24px',
             marginTop: -40,
             position: 'relative',
           }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, marginBottom: 16 }}>
-              <Avatar member={member} size={80} />
-              <div style={{ paddingBottom: 4 }}>
-                <div className="display-i" style={{
-                  fontSize: 32,
-                  color: 'var(--ink)',
-                  lineHeight: 1.1,
-                  marginBottom: 6,
-                }}>
-                  {member.name}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <TierBadge />
-                  <span className="mono" style={{ fontSize: 9.5 }}>
-                    {memberCode(member)}
+            <Avatar member={member} size={80} />
+            <div style={{ marginTop: 14, marginBottom: 16 }}>
+              <div className="display-i" style={{
+                fontSize: 32,
+                color: 'var(--ink)',
+                lineHeight: 1.1,
+                marginBottom: 6,
+              }}>
+                {member.name}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <TierBadge />
+                <span className="mono" style={{ fontSize: 9.5 }}>
+                  {memberCode(member)}
+                </span>
+                {member.home_base_code && (
+                  <span className="mono" style={{ fontSize: 9.5, color: 'var(--ink-mid)' }}>
+                    · {fmtHomeBase(member.home_base_code)}
                   </span>
-                  {member.home_base_code && (
-                    <span className="mono" style={{ fontSize: 9.5, color: 'var(--ink-mid)' }}>
-                      · {fmtHomeBase(member.home_base_code)}
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
             </div>
 
