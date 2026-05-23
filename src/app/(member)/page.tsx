@@ -86,9 +86,26 @@ export default function FeedPage() {
         supabase.from('excursion_templates').select('*'),
       ])
 
-      const flightsData: Flight[] = (flightsRes.data ?? []) as unknown as Flight[]
-      const excursionsData: Excursion[] = (excursionsRes.data ?? []) as unknown as Excursion[]
       const myBookings: Booking[] = (bookingsRes.data ?? []) as unknown as Booking[]
+
+      // "My trips" must resolve every booked flight/excursion, even ones no longer
+      // on the open board (full, departed, past). Fetch them by id and merge.
+      const myFlightIds = [...new Set(myBookings.filter(b => b.item_kind === 'flight').map(b => b.item_id))]
+      const myExcIds = [...new Set(myBookings.filter(b => b.item_kind === 'excursion').map(b => b.item_id))]
+      const [bookedFlightsRes, bookedExcRes] = await Promise.all([
+        myFlightIds.length ? supabase.from('flights').select('*').in('id', myFlightIds) : Promise.resolve({ data: [] }),
+        myExcIds.length ? supabase.from('excursions').select('*').in('id', myExcIds) : Promise.resolve({ data: [] }),
+      ])
+
+      const flightMap = new Map<string, Flight>()
+      for (const f of (flightsRes.data ?? []) as unknown as Flight[]) flightMap.set(f.id, f)
+      for (const f of (bookedFlightsRes.data ?? []) as unknown as Flight[]) flightMap.set(f.id, f)
+      const flightsData: Flight[] = [...flightMap.values()]
+
+      const excMap = new Map<string, Excursion>()
+      for (const e of (excursionsRes.data ?? []) as unknown as Excursion[]) excMap.set(e.id, e)
+      for (const e of (bookedExcRes.data ?? []) as unknown as Excursion[]) excMap.set(e.id, e)
+      const excursionsData: Excursion[] = [...excMap.values()]
 
       // The viewer's own active seats per trip; cabin-wide totals come from the
       // trigger-maintained seats_taken / spots_taken columns.
