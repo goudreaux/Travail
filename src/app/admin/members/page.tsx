@@ -226,6 +226,7 @@ export default function MembersPage() {
       } else {
         const { data: inserted, error } = await supabase.from('members').insert({
           ...payload,
+          id: crypto.randomUUID(),
           user_id: uid || PLACEHOLDER_USER_ID,
         }).select().single()
         if (error) throw error
