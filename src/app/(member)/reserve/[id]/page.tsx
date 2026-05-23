@@ -168,6 +168,20 @@ export default function ReservePage() {
     load()
   }, [itemId, kind, returnId])
 
+  // Keep the roster live — a cancellation updates the trip row (via the booking
+  // trigger), so the "who's going" list stays current without a refresh.
+  useEffect(() => {
+    const table = kind === 'flight' ? 'flights' : 'excursions'
+    const ch = supabase
+      .channel(`reserve-roster-${itemId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table, filter: `id=eq.${itemId}` }, async () => {
+        const r = await fetchRosters(supabase, kind, [itemId])
+        setRoster(r[itemId] ?? [])
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [itemId, kind]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const isRoundTrip = !!(flight && returnFlight)
 
   // Keep one guest slot per seat beyond the member's own (seat 1).
