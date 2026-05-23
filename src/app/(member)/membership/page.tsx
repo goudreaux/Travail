@@ -40,6 +40,7 @@ export default function MembershipPage() {
   const supabase = createClient()
 
   const [sensitive, setSensitive] = useState<MemberSensitive | null>(null)
+  const [tripDates, setTripDates] = useState<Record<string, string>>({})
 
   // Editable fields
   const [name, setName] = useState('')
@@ -71,6 +72,19 @@ export default function MembershipPage() {
         setBookings((bookingData as Booking[] | null) ?? [])
         setSubmissions((submissionData as AnchorSubmission[] | null) ?? [])
         setSensitive(sensitiveData as MemberSensitive | null)
+
+        // Trip dates per booking (to tell taken vs upcoming)
+        const bks = (bookingData as Booking[] | null) ?? []
+        const flightIds = bks.filter(b => b.item_kind === 'flight').map(b => b.item_id)
+        const excIds = bks.filter(b => b.item_kind === 'excursion').map(b => b.item_id)
+        const [flRes, exRes] = await Promise.all([
+          flightIds.length ? supabase.from('flights').select('id, date').in('id', flightIds) : Promise.resolve({ data: [] }),
+          excIds.length ? supabase.from('excursions').select('id, date').in('id', excIds) : Promise.resolve({ data: [] }),
+        ])
+        const dates: Record<string, string> = {}
+        for (const f of (flRes.data ?? []) as { id: string; date: string }[]) dates[f.id] = f.date
+        for (const e of (exRes.data ?? []) as { id: string; date: string }[]) dates[e.id] = e.date
+        setTripDates(dates)
       } catch (e) {
         console.error('Membership load failed:', e)
       } finally {
@@ -166,11 +180,16 @@ export default function MembershipPage() {
     )
   }
 
-  const approvedTrips = bookings.filter(b => b.status === 'approved')
-  const pendingTrips = bookings.filter(b => b.status === 'pending')
-  const destinationsVisited = new Set(
-    bookings.filter(b => b.status === 'approved' && b.item_kind === 'flight').map(b => b.item_id)
-  ).size
+  const today = new Date().toISOString().slice(0, 10)
+  // Taken = confirmed and the trip date has passed.
+  const tripsTaken = bookings.filter(b => b.status === 'approved' && tripDates[b.item_id] && tripDates[b.item_id] < today)
+  // Pending = booked-but-not-yet-flown (confirmed, upcoming) + awaiting ops in the queue.
+  const tripsPending = bookings.filter(b =>
+    b.status === 'pending' ||
+    (b.status === 'approved' && (!tripDates[b.item_id] || tripDates[b.item_id] >= today))
+  )
+  const approvedCount = bookings.filter(b => b.status === 'approved').length
+  const queueCount = bookings.filter(b => b.status === 'pending').length
 
   const dp = member.joined_at ? fmtDate(member.joined_at.split('T')[0]) : null
 
@@ -370,8 +389,8 @@ export default function MembershipPage() {
               <div className="panel-head">
                 <h3>Trip history</h3>
                 <span className="mono" style={{ fontSize: 9.5 }}>
-                  {approvedTrips.length} confirmed
-                  {pendingTrips.length > 0 ? ` · ${pendingTrips.length} pending` : ''}
+                  {approvedCount} confirmed
+                  {queueCount > 0 ? ` · ${queueCount} in review` : ''}
                 </span>
               </div>
               {bookings.length === 0 ? (
@@ -480,8 +499,8 @@ export default function MembershipPage() {
               gap: 12,
             }}>
               {[
-                { label: 'Trips taken', val: approvedTrips.length },
-                { label: 'Trips pending', val: pendingTrips.length },
+                { label: 'Trips taken', val: tripsTaken.length },
+                { label: 'Trips pending', val: tripsPending.length },
                 { label: 'Anchors filed', val: submissions.length },
               ].map(({ label, val }) => (
                 <div key={label} className="stat">
