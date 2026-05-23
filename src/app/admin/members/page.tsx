@@ -343,21 +343,23 @@ export default function MembersPage() {
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-light)' }}>
                     {joinedDate(m)}
                   </td>
-                  <td onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 6, padding: '8px 12px' }}>
-                    <button
-                      className="btn-ghost"
-                      style={{ height: 28, padding: '0 10px', fontSize: 12 }}
-                      onClick={() => openEdit(m)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="btn-ghost"
-                      style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--signal)' }}
-                      onClick={() => deleteMember(m.id, m.name)}
-                    >
-                      Delete
-                    </button>
+                  <td onClick={e => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'inline-flex', gap: 6 }}>
+                      <button
+                        className="btn-ghost"
+                        style={{ height: 28, padding: '0 10px', fontSize: 12 }}
+                        onClick={() => openEdit(m)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="btn-ghost"
+                        style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--signal)' }}
+                        onClick={() => deleteMember(m.id, m.name)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
