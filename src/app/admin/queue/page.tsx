@@ -85,6 +85,10 @@ export default function QueuePage() {
   const [bookings, setBookings] = useState<BookingRow[]>([])
   const [anchors, setAnchors] = useState<AnchorRow[]>([])
   const [aircraft, setAircraft] = useState<Aircraft[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [cancellations, setCancellations] = useState<any[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [waitlistRows, setWaitlistRows] = useState<any[]>([])
   const [working, setWorking] = useState<string | null>(null)
   const [declineTarget, setDeclineTarget] = useState<{ id: string; kind: 'booking' | 'anchor' } | null>(null)
   const [declineReason, setDeclineReason] = useState('')
@@ -146,10 +150,106 @@ export default function QueuePage() {
     setAnchors((data ?? []) as unknown as AnchorRow[])
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const loadExtras = useCallback(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    const [{ data: creqs }, { data: wl }, { data: mem }, { data: fl }, { data: ex }] = await Promise.all([
+      db.from('cancellation_requests').select('*').eq('status', 'open').order('created_at'),
+      db.from('waitlist').select('*').order('created_at'),
+      db.from('members').select('id, name, initials'),
+      db.from('flights').select('id, name, origin_code, dest_code'),
+      db.from('excursions').select('id, name'),
+    ])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const memMap = new Map((mem ?? []).map((m: any) => [m.id, m.name]))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const flMap = new Map((fl ?? []).map((f: any) => [f.id, f]))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const exMap = new Map((ex ?? []).map((e: any) => [e.id, e]))
+    const tripLabel = (kind: string, id: string) => {
+      if (kind === 'flight') { const f = flMap.get(id) as { origin_code: string; dest_code: string } | undefined; return f ? `${f.origin_code} → ${f.dest_code}` : id }
+      const e = exMap.get(id) as { name: string } | undefined; return e ? e.name : id
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bIds = (creqs ?? []).map((c: any) => c.booking_id)
+    const { data: bks } = bIds.length ? await db.from('bookings').select('*').in('id', bIds) : { data: [] }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bMap = new Map((bks ?? []).map((b: any) => [b.id, b]))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setCancellations((creqs ?? []).map((c: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const b = bMap.get(c.booking_id) as any
+      return { ...c, booking: b, memberName: memMap.get(c.member_id) ?? 'Unknown', trip: b ? tripLabel(b.item_kind, b.item_id) : '—' }
+    }).filter((c: { booking?: { status?: string } }) => c.booking && c.booking.status !== 'cancelled' && c.booking.status !== 'declined'))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setWaitlistRows((wl ?? []).map((w: any) => ({ ...w, memberName: memMap.get(w.member_id) ?? 'Unknown', trip: tripLabel(w.item_kind, w.item_id) })))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function promoteWaitlist(itemKind: string, itemId: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    const table = itemKind === 'flight' ? 'flights' : 'excursions'
+    const { data: item } = await db.from(table).select('*').eq('id', itemId).single()
+    if (!item) return
+    const capacity = itemKind === 'flight' ? item.seats_total - item.seats_anchor : item.spots_total - item.spots_anchor
+    const { data: approvedRows } = await db.from('bookings').select('seats').eq('item_kind', itemKind).eq('item_id', itemId).eq('status', 'approved')
+    const taken = (approvedRows ?? []).reduce((s: number, r: { seats: number }) => s + r.seats, 0)
+    if (taken >= capacity) return
+    const { data: wl } = await db.from('waitlist').select('*').eq('item_kind', itemKind).eq('item_id', itemId).order('created_at').limit(1)
+    const first = (wl ?? [])[0]
+    if (!first) return
+    const price = itemKind === 'flight' ? item.price_per_seat : item.price_per_pax
+    const fee = Math.round(price * 0.03)
+    const id = 'B-' + Date.now().toString(36).toUpperCase()
+    await db.from('bookings').insert({ id, member_id: first.member_id, item_kind: itemKind, item_id: itemId, seats: 1, price_per_seat: price, fees: fee, total: price + fee, payment_method: 'card', status: 'pending' })
+    await db.from('waitlist').delete().eq('id', first.id)
+    try {
+      await supabase.from('notifications').insert({ member_id: first.member_id, kind: 'booking', title: 'A seat opened up', body: 'A seat opened on a trip you waitlisted — Ops is confirming it now.', ref: { item_kind: itemKind, item_id: itemId } } as never)
+    } catch { /* supplementary */ }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function cancelFromRequest(c: any) {
+    const b = c.booking
+    if (!b) return
+    setWorking(c.id)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      const table = b.item_kind === 'flight' ? 'flights' : 'excursions'
+      const { data: item } = await db.from(table).select('anchor_member_id').eq('id', b.item_id).single()
+      if (item?.anchor_member_id && item.anchor_member_id === b.member_id) {
+        const { data: others } = await db.from('bookings').select('id').eq('item_kind', b.item_kind).eq('item_id', b.item_id).neq('member_id', b.member_id).in('status', ['pending', 'approved'])
+        if ((others ?? []).length > 0) throw new Error('Anchor cannot cancel — other members are booked.')
+      }
+      const wasApproved = b.status === 'approved'
+      const { error } = await db.from('bookings').update({ status: 'cancelled', decided_at: new Date().toISOString() }).eq('id', b.id)
+      if (error) throw error
+      await db.from('cancellation_requests').update({ status: 'resolved' }).eq('id', c.id)
+      try {
+        await supabase.from('notifications').insert({ member_id: b.member_id, kind: 'booking', title: 'Booking Cancelled', body: 'Your reservation has been cancelled by Ops.', ref: { booking_id: b.id } } as never)
+      } catch { /* supplementary */ }
+      if (wasApproved) await promoteWaitlist(b.item_kind, b.item_id)
+      showToast('Booking cancelled')
+      loadBookings(); loadExtras()
+    } catch (e: unknown) {
+      showToast((e as Error).message ?? 'Cancel failed', 'error')
+    } finally { setWorking(null) }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function dismissRequest(c: any) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from('cancellation_requests').update({ status: 'resolved' }).eq('id', c.id)
+    showToast('Request dismissed')
+    loadExtras()
+  }
+
   useEffect(() => {
     Promise.all([
       loadBookings(),
       loadAnchors(),
+      loadExtras(),
       supabase.from('aircraft').select('*').then(({ data }) => setAircraft(data ?? [])),
     ]).then(() => setLoading(false))
 
@@ -165,10 +265,12 @@ export default function QueuePage() {
         loadAnchors()
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'anchor_submissions' }, () => loadAnchors())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cancellation_requests' }, () => loadExtras())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'waitlist' }, () => loadExtras())
       .subscribe()
 
     return () => { supabase.removeChannel(ch) }
-  }, [loadBookings, loadAnchors, showToast]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loadBookings, loadAnchors, loadExtras, showToast]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Booking actions ───────────────────────────────────────────────────────
 
@@ -417,7 +519,7 @@ export default function QueuePage() {
     )
   }
 
-  const totalPending = bookings.length + anchors.length
+  const totalPending = bookings.length + anchors.length + cancellations.length
 
   return (
     <div style={{ padding: 32, maxWidth: 980 }}>
@@ -655,6 +757,64 @@ export default function QueuePage() {
                 </div>
               )
             })}
+          </div>
+        )}
+      </section>
+
+      {/* ── Cancellation Requests ── */}
+      <section style={{ marginBottom: 52 }}>
+        <SectionHead label="Cancellation Requests" count={cancellations.length} sub="Member-initiated" />
+        {cancellations.length === 0 ? (
+          <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, padding: 32, textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>
+            No cancellation requests.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {cancellations.map(c => (
+              <div key={c.id} style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ flexShrink: 0, fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: waitColor(c.created_at), minWidth: 38 }}>{timeAgo(c.created_at)}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{c.memberName}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink-light)', fontFamily: 'var(--mono)' }}>
+                    <span className={`pill ${c.booking?.item_kind === 'flight' ? 'tropic' : 'sun'}`} style={{ fontSize: 9, marginRight: 6 }}>{c.booking?.item_kind}</span>
+                    {c.trip} · {c.booking?.seats} seat{c.booking?.seats !== 1 ? 's' : ''} · {c.booking?.status}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button className="btn-primary" style={{ height: 32, padding: '0 14px', fontSize: 12.5, background: 'var(--signal)' }} disabled={working === c.id} onClick={() => cancelFromRequest(c)}>
+                    {working === c.id ? '…' : 'Cancel booking'}
+                  </button>
+                  <button className="btn-ghost" style={{ height: 32, padding: '0 11px', fontSize: 12 }} disabled={working === c.id} onClick={() => dismissRequest(c)}>
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── Waitlist ── */}
+      <section style={{ marginBottom: 52 }}>
+        <SectionHead label="Waitlist" count={waitlistRows.length} sub="Auto-promotes on cancel" />
+        {waitlistRows.length === 0 ? (
+          <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, padding: 32, textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>
+            No one on a waitlist.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {waitlistRows.map(w => (
+              <div key={w.id} style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ flexShrink: 0, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-light)', minWidth: 38 }}>{timeAgo(w.created_at)}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{w.memberName}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink-light)', fontFamily: 'var(--mono)' }}>
+                    <span className={`pill ${w.item_kind === 'flight' ? 'tropic' : 'sun'}`} style={{ fontSize: 9, marginRight: 6 }}>{w.item_kind}</span>
+                    {w.trip}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>
