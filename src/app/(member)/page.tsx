@@ -337,7 +337,7 @@ export default function FeedPage() {
                           <button
                             className="btn-primary"
                             style={{ height: 30, padding: '0 12px', fontSize: 12 }}
-                            onClick={() => router.push(`/trip/${booking.id}`)}
+                            onClick={() => router.push(`/boarding-pass/${booking.id}`)}
                           >
                             Trip thread
                           </button>
@@ -396,7 +396,7 @@ export default function FeedPage() {
                           <button
                             className="btn-primary"
                             style={{ height: 30, padding: '0 12px', fontSize: 12 }}
-                            onClick={() => router.push(`/trip/${booking.id}`)}
+                            onClick={() => router.push(`/boarding-pass/${booking.id}`)}
                           >
                             Trip thread
                           </button>
