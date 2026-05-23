@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { fmtDate, fmtDur, fmtMoney, fmtTime, airportSub, fmtHomeBase } from '@/lib/data'
+import { fmtDate, fmtDur, fmtMoney, fmtTime, fmtHomeBase } from '@/lib/data'
 import type { Member, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 import { type Guest, type GuestSlot, NEW_GUEST, emptyGuestSlot } from '@/lib/guests'
 
@@ -32,26 +32,32 @@ function addMins(t: string | null, mins: number): string {
   return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`
 }
 
-function FlightLeg({ label, f }: { label?: string; f: Flight }) {
+function Endpoint({ code, names }: { code: string; names: Record<string, string> }) {
+  const name = names[code] ?? code
+  return (
+    <div style={{ textAlign: 'center', minWidth: 0, flex: 1 }}>
+      <div style={{ fontFamily: 'var(--display)', fontSize: 21, fontWeight: 500, color: '#fff', lineHeight: 1.15 }}>{name}</div>
+      {name !== code && (
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.12em', marginTop: 5 }}>({code})</div>
+      )}
+    </div>
+  )
+}
+
+function FlightLeg({ label, f, names }: { label?: string; f: Flight; names: Record<string, string> }) {
   const dp = fmtDate(f.date)
   return (
     <div>
       {label && (
         <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--tropic)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>{label}</div>
       )}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: 'var(--display)', fontSize: 36, fontWeight: 500, color: '#fff', lineHeight: 1, letterSpacing: '-0.02em' }}>{f.origin_code}</div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginTop: 6, textTransform: 'uppercase' }}>{airportSub(f.origin_code)}</div>
-        </div>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <Endpoint code={f.origin_code} names={names} />
+        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
           <div style={{ color: 'var(--tropic)', fontSize: 20 }}>→</div>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>{fmtDur(f.duration_mins)}</div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: 'var(--display)', fontSize: 36, fontWeight: 500, color: '#fff', lineHeight: 1, letterSpacing: '-0.02em' }}>{f.dest_code}</div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginTop: 6, textTransform: 'uppercase' }}>{airportSub(f.dest_code)}</div>
-        </div>
+        <Endpoint code={f.dest_code} names={names} />
       </div>
       <div style={{ display: 'flex', gap: 18, marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         {[
@@ -94,6 +100,7 @@ export default function ReservePage() {
   const [savedGuests, setSavedGuests] = useState<Guest[]>([])
   const [guestSlots, setGuestSlots] = useState<GuestSlot[]>([])
   const [savingGuest, setSavingGuest] = useState<number | null>(null)
+  const [airportNames, setAirportNames] = useState<Record<string, string>>({})
 
   // Submission state
   const [submitting, setSubmitting] = useState(false)
@@ -113,6 +120,12 @@ export default function ReservePage() {
 
       if (!memberData) { router.push('/login'); return }
       setMember(memberData as Member)
+
+      // Airport code → name (for readable itinerary labels)
+      const { data: airportData } = await supabase.from('airports').select('code, name')
+      const am: Record<string, string> = {}
+      for (const a of (airportData ?? [])) am[(a as { code: string }).code] = (a as { name: string }).name
+      setAirportNames(am)
 
       // Member's saved guest roster (empty/erroring if the migration hasn't run yet)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -512,12 +525,12 @@ export default function ReservePage() {
                 {kind === 'flight' && flight ? (
                   isRoundTrip && returnFlight ? (
                     <>
-                      <FlightLeg label="Outbound" f={flight} />
+                      <FlightLeg label="Outbound" f={flight} names={airportNames} />
                       <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '16px 0' }} />
-                      <FlightLeg label="Return" f={returnFlight} />
+                      <FlightLeg label="Return" f={returnFlight} names={airportNames} />
                     </>
                   ) : (
-                    <FlightLeg f={flight} />
+                    <FlightLeg f={flight} names={airportNames} />
                   )
                 ) : excursion ? (
                   <>
@@ -526,7 +539,7 @@ export default function ReservePage() {
                         {excursion.name}
                       </div>
                       <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                        {excursion.origin_code} · {excursion.stay_type.replace('_', ' ')}
+                        From {airportNames[excursion.origin_code] ?? excursion.origin_code} ({excursion.origin_code}) · {excursion.stay_type.replace('_', ' ')}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 20, marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
