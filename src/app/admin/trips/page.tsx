@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { returnLegIds } from '@/lib/data'
 import type { Flight, Excursion, Aircraft, Member, Airport, ExcursionTemplate } from '@/lib/supabase/types'
 
 type FlightRow = Flight
@@ -124,7 +125,7 @@ const sectionLabelStyle: React.CSSProperties = {
 
 export default function TripsPage() {
   const supabase = createClient()
-  const [tab, setTab] = useState<'flights' | 'excursions' | 'templates'>('flights')
+  const [tab, setTab] = useState<'active' | 'flights' | 'excursions' | 'templates'>('active')
   const [flights, setFlights] = useState<FlightRow[]>([])
   const [excursions, setExcursions] = useState<ExcursionRow[]>([])
   const [aircraft, setAircraft] = useState<Aircraft[]>([])
@@ -184,6 +185,34 @@ export default function TripsPage() {
   // ─── Derived flight values ──────────────────────────────────────────────
   const originAirports = airports.filter(a => a.role === 'origin' || a.role === 'both')
   const destAirports = airports.filter(a => a.role === 'destination' || a.role === 'both')
+
+  // "Active" = exactly what members see on Open Seats: open/full trips, with
+  // round trips collapsed to the outbound leg. Cancelled/draft/past are excluded.
+  type ActiveItem = { key: string; kind: 'flight' | 'excursion'; name: string; label: string; date: string; avail: number; total: number; status: string; onEdit: () => void }
+  const activeFlightList = flights.filter(f => f.status === 'open' || f.status === 'full')
+  const activeRetIds = returnLegIds(activeFlightList)
+  const flightItems: ActiveItem[] = activeFlightList
+    .filter(f => !activeRetIds.has(f.id))
+    .map(f => {
+      const ret = activeFlightList.find(x => x.id === `${f.id}R`)
+      const isRound = !!ret && activeRetIds.has(ret.id)
+      return {
+        key: f.id, kind: 'flight', name: f.name, date: f.date,
+        label: isRound ? `${f.origin_code} ⇄ ${f.dest_code} · round trip` : `${f.origin_code} → ${f.dest_code}`,
+        avail: Math.max(0, f.seats_total - f.seats_anchor - (f.seats_taken ?? 0)),
+        total: f.seats_total - f.seats_anchor, status: f.status,
+        onEdit: () => openEditFlight(f),
+      }
+    })
+  const excItems: ActiveItem[] = excursions
+    .filter(e => e.status === 'open' || e.status === 'full')
+    .map(e => ({
+      key: e.id, kind: 'excursion', name: e.name, date: e.date, label: e.origin_code,
+      avail: Math.max(0, e.spots_total - e.spots_anchor - (e.spots_taken ?? 0)),
+      total: e.spots_total - e.spots_anchor, status: e.status,
+      onEdit: () => openEditExc(e),
+    }))
+  const activeItems: ActiveItem[] = [...flightItems, ...excItems].sort((a, b) => a.date.localeCompare(b.date))
   const airportName = (code: string) => airports.find(a => a.code === code)?.name ?? code
 
   const effOrigin = FF.originSel === CUSTOM ? FF.originCustomCode.trim().toUpperCase() : FF.originSel
@@ -499,23 +528,27 @@ export default function TripsPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
         <div>
           <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Trips & Excursions</h1>
-          <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>Manage published flights and excursions.</p>
+          <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>
+            {tab === 'active' ? 'Live trips on the members’ Open Seats board. Cancelled trips drop off automatically.' : 'Manage all flights and excursions, including drafts and past trips.'}
+          </p>
         </div>
-        <button
-          className="btn-primary"
-          onClick={() => {
-            if (tab === 'flights') { setShowFlightForm(true); setEditFlightId(null); setFlightForm(defaultFlightForm) }
-            else if (tab === 'excursions') { setShowExcForm(true); setEditExcId(null); setExcForm(defaultExcForm) }
-            else { setShowTemplateForm(true); setEditTemplateId(null); setTemplateForm(defaultTemplateForm) }
-          }}
-        >
-          + Add {tab === 'flights' ? 'Flight' : tab === 'excursions' ? 'Excursion' : 'Template'}
-        </button>
+        {tab !== 'active' && (
+          <button
+            className="btn-primary"
+            onClick={() => {
+              if (tab === 'flights') { setShowFlightForm(true); setEditFlightId(null); setFlightForm(defaultFlightForm) }
+              else if (tab === 'excursions') { setShowExcForm(true); setEditExcId(null); setExcForm(defaultExcForm) }
+              else { setShowTemplateForm(true); setEditTemplateId(null); setTemplateForm(defaultTemplateForm) }
+            }}
+          >
+            + Add {tab === 'flights' ? 'Flight' : tab === 'excursions' ? 'Excursion' : 'Template'}
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--hair)', marginBottom: 24, gap: 0 }}>
-        {(['flights', 'excursions', 'templates'] as const).map(t => (
+        {(['active', 'flights', 'excursions', 'templates'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -527,7 +560,7 @@ export default function TripsPage() {
               marginBottom: -1,
             }}
           >
-            {t === 'flights' ? 'Flights' : t === 'excursions' ? 'Excursions' : 'Excursion Templates'}
+            {t === 'active' ? `Active Trips${activeItems.length ? ` · ${activeItems.length}` : ''}` : t === 'flights' ? 'Flights' : t === 'excursions' ? 'Excursions' : 'Excursion Templates'}
           </button>
         ))}
       </div>
@@ -958,6 +991,43 @@ export default function TripsPage() {
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 48, color: 'var(--ink-light)', fontSize: 14 }}>Loading…</div>
+      ) : tab === 'active' ? (
+        <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, overflow: 'hidden' }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Trip</th>
+                <th>Date</th>
+                <th>Open</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeItems.map(it => (
+                <tr key={`${it.kind}-${it.key}`} style={{ cursor: 'pointer' }} onClick={it.onEdit}>
+                  <td><span className={`pill ${it.kind === 'flight' ? 'tropic' : 'sun'}`}>{it.kind}</span></td>
+                  <td>
+                    <div style={{ fontWeight: 500, color: 'var(--ink)' }}>{it.name}</div>
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink-light)' }}>{it.label}</div>
+                  </td>
+                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{it.date}</td>
+                  <td style={{ fontWeight: 600 }}>{it.avail}/{it.total}</td>
+                  <td><span className={`pill ${statusColor[it.status]}`}>{it.status}</span></td>
+                  <td onClick={e => e.stopPropagation()}>
+                    <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={it.onEdit}>Edit</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {activeItems.length === 0 && (
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>
+              No active trips — nothing is showing on the members’ Open Seats board right now.
+            </div>
+          )}
+        </div>
       ) : tab === 'templates' ? (
         <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, overflow: 'hidden' }}>
           <table className="admin-table">
