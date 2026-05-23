@@ -181,24 +181,25 @@ export interface DisplayExcursion extends Excursion {
 
 // ─── Adapt functions ──────────────────────────────────────────────────────────
 
+// `myBookedSeats` is the current member's own active seats on this flight (all
+// RLS lets a member read). `f.seats_taken` is the trusted cabin-wide count of
+// non-anchor active seats, maintained by a DB trigger — so availability is
+// correct even though members can't read other members' bookings.
 export function adaptFlight(
   f: Flight,
-  bookedSeatsByMember: Record<string, number> = {},
+  myBookedSeats: number = 0,
   currentMemberId?: string
 ): DisplayFlight {
-  const totalBooked = Object.values(bookedSeatsByMember).reduce((a, b) => a + b, 0)
-  const seatsAvailable = f.seats_total - f.seats_anchor - totalBooked
+  const isAnchor = currentMemberId === f.anchor_member_id
+  const taken = f.seats_taken ?? 0
+  const mine = isAnchor ? 0 : Math.min(myBookedSeats, taken)
+  const seatsAvailable = f.seats_total - f.seats_anchor - taken
 
   const slots: SeatSlot[] = Array.from({ length: f.seats_total }, (_, idx) => {
-    if (idx < f.seats_anchor) return { idx, kind: 'anchor' }
+    if (idx < f.seats_anchor) return { idx, kind: isAnchor ? 'you' : 'anchor' }
     const bookedIdx = idx - f.seats_anchor
-    if (currentMemberId && bookedSeatsByMember[currentMemberId]) {
-      const myStart = totalBooked - (bookedSeatsByMember[currentMemberId] ?? 0)
-      if (bookedIdx >= myStart && bookedIdx < myStart + (bookedSeatsByMember[currentMemberId] ?? 0)) {
-        return { idx, kind: 'you' }
-      }
-    }
-    if (bookedIdx < totalBooked) return { idx, kind: 'taken' }
+    if (bookedIdx < mine) return { idx, kind: 'you' }
+    if (bookedIdx < taken) return { idx, kind: 'taken' }
     return { idx, kind: 'empty' }
   })
 
@@ -211,19 +212,20 @@ export function adaptFlight(
     departTimeStr: fmtTime(f.depart_time),
     seatsAvailable,
     seats: slots,
-    isAnchor: currentMemberId === f.anchor_member_id,
-    isBooked: currentMemberId ? (bookedSeatsByMember[currentMemberId] ?? 0) > 0 : false,
+    isAnchor,
+    isBooked: isAnchor || myBookedSeats > 0,
   }
 }
 
 export function adaptExcursion(
   e: Excursion,
   templates: ExcursionTemplate[],
-  bookedSpotsByMember: Record<string, number> = {},
+  myBookedSpots: number = 0,
   currentMemberId?: string
 ): DisplayExcursion {
-  const totalBooked = Object.values(bookedSpotsByMember).reduce((a, b) => a + b, 0)
-  const spotsAvailable = e.spots_total - e.spots_anchor - totalBooked
+  const isAnchor = currentMemberId === e.anchor_member_id
+  const taken = e.spots_taken ?? 0
+  const spotsAvailable = e.spots_total - e.spots_anchor - taken
   const tpl = templates.find(t => t.id === e.template_id)
 
   return {
@@ -236,8 +238,8 @@ export function adaptExcursion(
     returnTimeStr: fmtTime(e.return_time),
     spotsAvailable,
     templateMeta: tpl,
-    isAnchor: currentMemberId === e.anchor_member_id,
-    isBooked: currentMemberId ? (bookedSpotsByMember[currentMemberId] ?? 0) > 0 : false,
+    isAnchor,
+    isBooked: isAnchor || myBookedSpots > 0,
   }
 }
 
