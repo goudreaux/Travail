@@ -462,6 +462,37 @@ body::before {
   animation: fade 0.35s ease;
 }
 
+/* ─── Editorial page hero ────────────────────────────────── */
+
+.page-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  margin: 28px 28px 0;
+  background: linear-gradient(135deg, #052a35 0%, #0d3340 52%, #0a4a55 100%);
+  padding: clamp(24px, 3.5vw, 38px) clamp(20px, 3.5vw, 36px);
+  box-shadow: 0 16px 48px rgba(13, 51, 64, 0.18);
+}
+.page-hero__inner {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.page-hero__glow { position: absolute; border-radius: 50%; pointer-events: none; }
+.page-hero__glow--teal { top: -90px; right: -70px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(0,179,199,0.30), transparent 68%); }
+.page-hero__glow--sun { bottom: -110px; left: 38%; width: 260px; height: 260px; background: radial-gradient(circle, rgba(244,167,44,0.12), transparent 70%); }
+.page-hero__eyebrow { font-size: 10px; letter-spacing: 0.2em; color: var(--tropic); margin-bottom: 12px; }
+.page-hero__title { font-family: var(--display); font-style: italic; font-weight: 500; color: #fff; margin: 0; line-height: 1.04; letter-spacing: -0.01em; font-size: clamp(28px, 5vw, 42px); }
+.page-hero__sub { font-size: 14px; color: rgba(255,255,255,0.62); margin-top: 10px; }
+.page-hero__actions { position: relative; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+@media (max-width: 768px) {
+  .page-hero { margin: 16px 16px 0; border-radius: 16px; }
+}
+
 /* ─── Panel ──────────────────────────────────────────────── */
 
 .panel {

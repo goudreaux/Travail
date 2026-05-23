@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { fmtDate, fmtTime, fmtMoney, returnLegIds } from '@/lib/data'
+import PageHero from '@/components/PageHero'
 import { KIND_ICONS } from '@/lib/icons'
 import type {
   Booking,
@@ -378,18 +379,13 @@ export default function BookingsPage() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <p className="mono" style={{ marginBottom: 6 }}>YOUR ACTIVITY</p>
-          <h1>Bookings &amp; anchors.</h1>
-          <p className="sub">
-            {loading
-              ? 'Loading your activity…'
-              : `${bookings.length} booking${bookings.length !== 1 ? 's' : ''}${confirmedCount > 0 ? ` · ${confirmedCount} confirmed` : ''}${pendingCount > 0 ? ` · ${pendingCount} pending` : ''}${anchors.length > 0 ? ` · ${anchors.length} anchor submission${anchors.length !== 1 ? 's' : ''}` : ''}`
-            }
-          </p>
-        </div>
-      </div>
+      <PageHero
+        eyebrow="YOUR ACTIVITY"
+        title="Bookings & anchors."
+        sub={loading
+          ? 'Loading your activity…'
+          : `${visibleBookings.length} booking${visibleBookings.length !== 1 ? 's' : ''}${confirmedCount > 0 ? ` · ${confirmedCount} confirmed` : ''}${pendingCount > 0 ? ` · ${pendingCount} pending` : ''}${anchors.length > 0 ? ` · ${anchors.length} anchor submission${anchors.length !== 1 ? 's' : ''}` : ''}`}
+      />
 
       <div className="page-view">
         {loading ? (
