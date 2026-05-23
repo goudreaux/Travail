@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { logActivity } from '@/lib/activity'
 import type { Booking, AnchorSubmission, Member, Flight, Excursion, Aircraft } from '@/lib/supabase/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -100,6 +101,7 @@ export default function QueuePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [waitlistRows, setWaitlistRows] = useState<any[]>([])
   const [working, setWorking] = useState<string | null>(null)
+  const [meId, setMeId] = useState<string | null>(null)
   const [declineTarget, setDeclineTarget] = useState<{ id: string; kind: 'booking' | 'anchor' } | null>(null)
   const [declineReason, setDeclineReason] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -236,6 +238,11 @@ export default function QueuePage() {
     try {
       await supabase.from('notifications').insert({ member_id: first.member_id, kind: 'booking', title: 'A seat opened up', body: 'A seat opened on a trip you waitlisted — Ops is confirming it now.', ref: { item_kind: itemKind, item_id: itemId } } as never)
     } catch { /* supplementary */ }
+    logActivity({
+      action: 'waitlist_promoted', actor_kind: 'system', subject_member_id: first.member_id,
+      booking_id: id, item_kind: itemKind, item_id: itemId,
+      summary: `Waitlist promotion — a seat opened and was offered to the next member (pending ops confirm)`,
+    })
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -260,6 +267,12 @@ export default function QueuePage() {
         await supabase.from('notifications').insert({ member_id: b.member_id, kind: 'booking', title: 'Booking Cancelled', body: 'Your reservation has been cancelled by Ops.', ref: { booking_id: b.id } } as never)
       } catch { /* supplementary */ }
       if (wasApproved) await promoteWaitlist(b.item_kind, b.item_id)
+      logActivity({
+        action: 'booking_cancelled', actor_kind: 'admin', actor_member_id: meId,
+        subject_member_id: b.member_id, booking_id: b.id,
+        item_kind: b.item_kind, item_id: b.item_id,
+        summary: `Cancelled ${b.item_kind} for ${c.memberName ?? 'member'} (ops-confirmed cancellation request)`,
+      })
       showToast('Booking cancelled')
       loadBookings(); loadExtras()
     } catch (e: unknown) {
@@ -276,6 +289,15 @@ export default function QueuePage() {
   }
 
   useEffect(() => {
+    // Capture the acting admin's member id so their actions are attributed.
+    supabase.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id
+      if (!uid) return
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(supabase as any).from('members').select('id').eq('user_id', uid).single()
+        .then(({ data: m }: { data: { id: string } | null }) => setMeId(m?.id ?? null))
+    })
+
     Promise.all([
       loadBookings(),
       loadAnchors(),
@@ -348,6 +370,14 @@ export default function QueuePage() {
         } as never)
       } catch { /* notification is supplementary */ }
 
+      logActivity({
+        action: 'booking_confirmed', actor_kind: 'admin', actor_member_id: meId,
+        subject_member_id: qi.primary.member_id, booking_id: qi.primary.id,
+        item_kind: qi.primary.item_kind, item_id: qi.primary.item_id,
+        summary: `Confirmed ${qi.isRound ? 'round-trip ' : ''}${qi.primary.item_kind} for ${qi.primary.member?.name ?? 'member'} — ${code}`,
+        meta: { code, seats: qi.seats, total: qi.total, round_trip: qi.isRound },
+      })
+
       showToast(`Confirmed — ${code}`)
       loadBookings()
       loadExtras()
@@ -382,6 +412,14 @@ export default function QueuePage() {
           read: false,
         } as never)
       } catch { /* notification is supplementary */ }
+
+      logActivity({
+        action: 'booking_declined', actor_kind: 'admin', actor_member_id: meId,
+        subject_member_id: b.member_id, booking_id: id,
+        item_kind: b.item_kind, item_id: b.item_id,
+        summary: `Declined ${b.item_kind} for ${b.member?.name ?? 'member'}${reason ? ` — ${reason}` : ''}`,
+        meta: { reason: reason || null },
+      })
 
       showToast('Booking declined')
       loadBookings()
@@ -516,6 +554,13 @@ export default function QueuePage() {
         read: false,
       } as never)
 
+      logActivity({
+        action: 'anchor_published', actor_kind: 'admin', actor_member_id: meId,
+        subject_member_id: anchor.member_id, item_kind: anchor.kind, item_id: publishedItemId,
+        summary: `Published ${anchor.kind} "${name}" by ${anchor.member?.name ?? 'member'}`,
+        meta: { anchor_id: anchor.id, code },
+      })
+
       showToast(`Published — ${anchor.kind === 'flight' ? 'Flight' : 'Excursion'} is now live`)
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Publish failed', 'error')
@@ -544,6 +589,13 @@ export default function QueuePage() {
           read: false,
         } as never)
       } catch { /* notification is supplementary */ }
+
+      logActivity({
+        action: 'anchor_declined', actor_kind: 'admin', actor_member_id: meId,
+        subject_member_id: anchor.member_id, item_kind: anchor.kind,
+        summary: `Declined ${anchor.kind} submission by ${anchor.member?.name ?? 'member'}${reason ? ` — ${reason}` : ''}`,
+        meta: { anchor_id: id, reason: reason || null },
+      })
 
       showToast('Submission declined')
       loadAnchors()

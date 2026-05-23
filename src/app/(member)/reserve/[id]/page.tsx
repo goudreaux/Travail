@@ -4,6 +4,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { fmtDate, fmtDur, fmtMoney, fmtTime, fmtHomeBase, memberCode } from '@/lib/data'
+import { logActivity } from '@/lib/activity'
 import type { Member, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 import { type Guest, type GuestSlot, NEW_GUEST, emptyGuestSlot } from '@/lib/guests'
 
@@ -344,6 +345,14 @@ export default function ReservePage() {
       } catch (notifErr) {
         console.error('Booking notification not recorded:', notifErr)
       }
+
+      logActivity({
+        action: 'booking_submitted', actor_kind: 'member', actor_member_id: member.id,
+        subject_member_id: member.id, booking_id: primary.id,
+        item_kind: kind, item_id: itemId,
+        summary: `${member.name} requested ${isRoundTrip ? 'round-trip ' : ''}${kind} "${itemName}"${seats > 1 ? ` (${seats} seats)` : ''}`,
+        meta: { seats, round_trip: isRoundTrip, total },
+      })
 
       setSubmitted({ id: primary.id, confirmationCode: primary.confirmation_code })
     } catch (err: unknown) {

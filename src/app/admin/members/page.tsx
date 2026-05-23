@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { fmtHomeBase, memberCode } from '@/lib/data'
+import { logActivity } from '@/lib/activity'
 import type { Member, MemberSensitive } from '@/lib/supabase/types'
 
 const HOME_BASES = ['Tampa Bay', 'SFL']
@@ -259,6 +260,14 @@ export default function MembersPage() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any).from('guests').update({ member_id: inserted.id }).eq('id', convertGuestId)
           setConvertGuestId(null)
+        }
+        if (inserted) {
+          logActivity({
+            action: 'member_created', actor_kind: 'admin',
+            subject_member_id: inserted.id,
+            summary: `Created member ${payload.name}${convertGuestId ? ' (converted from guest)' : ''}`,
+            meta: { linked_login: !!uid },
+          })
         }
         showToast(uid ? 'Member created — login linked' : 'Member created — add a User ID to link a login')
       }
