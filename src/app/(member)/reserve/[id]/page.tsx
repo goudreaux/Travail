@@ -22,9 +22,11 @@ export default function ReservePage() {
 
   const itemId = params.id as string
   const kind = (searchParams.get('kind') ?? 'flight') as 'flight' | 'excursion'
+  const returnId = searchParams.get('return')
 
   const [member, setMember] = useState<Member | null>(null)
   const [flight, setFlight] = useState<Flight | null>(null)
+  const [returnFlight, setReturnFlight] = useState<Flight | null>(null)
   const [excursion, setExcursion] = useState<Excursion | null>(null)
   const [template, setTemplate] = useState<ExcursionTemplate | null>(null)
   const [loading, setLoading] = useState(true)
@@ -57,6 +59,10 @@ export default function ReservePage() {
         const { data } = await supabase.from('flights').select('*').eq('id', itemId).single()
         if (!data) { setNotFound(true); setLoading(false); return }
         setFlight(data as Flight)
+        if (returnId) {
+          const { data: retData } = await supabase.from('flights').select('*').eq('id', returnId).single()
+          if (retData) setReturnFlight(retData as Flight)
+        }
       } else {
         const [{ data: excData }, { data: templates }] = await Promise.all([
           supabase.from('excursions').select('*').eq('id', itemId).single(),
@@ -71,17 +77,21 @@ export default function ReservePage() {
       setLoading(false)
     }
     load()
-  }, [itemId, kind])
+  }, [itemId, kind, returnId])
+
+  const isRoundTrip = !!(flight && returnFlight)
 
   // Derived values
   const maxSeats = flight
-    ? Math.max(0, flight.seats_total - flight.seats_anchor)
+    ? (returnFlight
+        ? Math.max(0, Math.min(flight.seats_total - flight.seats_anchor, returnFlight.seats_total - returnFlight.seats_anchor))
+        : Math.max(0, flight.seats_total - flight.seats_anchor))
     : excursion
     ? Math.max(0, excursion.spots_total - excursion.spots_anchor)
     : 0
 
   const pricePerSeat = flight
-    ? flight.price_per_seat
+    ? (returnFlight ? flight.price_per_seat + returnFlight.price_per_seat : flight.price_per_seat)
     : excursion?.price_per_pax ?? template?.price_per_pax ?? 0
 
   const subtotal = pricePerSeat * seats
@@ -105,34 +115,69 @@ export default function ReservePage() {
     setSubmitting(true)
 
     try {
-      const { data: bookingRaw, error: insertError } = await supabase
-        .from('bookings')
-        .insert({
+      let booking: { id: string; confirmation_code: string | null }
+
+      if (isRoundTrip && flight && returnFlight) {
+        // One action, two legs → one booking row per flight.
+        const rows = [flight, returnFlight].map(leg => {
+          const sub = leg.price_per_seat * seats
+          const fee = Math.round(sub * SERVICE_FEE_RATE)
+          return {
+            member_id: member.id,
+            item_kind: 'flight',
+            item_id: leg.id,
+            seats,
+            price_per_seat: leg.price_per_seat,
+            fees: fee,
+            total: sub + fee,
+            payment_method: paymentMethod,
+            status: 'pending',
+          }
+        })
+        const { data: rowsData, error: insertError } = await supabase
+          .from('bookings')
+          .insert(rows as never)
+          .select()
+        if (insertError) throw insertError
+        booking = (rowsData as { id: string; confirmation_code: string | null }[])[0]
+
+        await supabase.from('notifications').insert({
           member_id: member.id,
-          item_kind: kind,
-          item_id: itemId,
-          seats,
-          price_per_seat: pricePerSeat,
-          fees: serviceFee,
-          total,
-          payment_method: paymentMethod,
-          status: 'pending',
+          kind: 'booking',
+          title: 'Round-trip booking submitted',
+          body: `Your round-trip reservation for "${itemName}" (both legs) has been submitted. Ops will confirm shortly.`,
+          ref: { kind, id: itemId, booking_id: booking.id },
+          read: false,
         } as never)
-        .select()
-        .single()
+      } else {
+        const { data: bookingRaw, error: insertError } = await supabase
+          .from('bookings')
+          .insert({
+            member_id: member.id,
+            item_kind: kind,
+            item_id: itemId,
+            seats,
+            price_per_seat: pricePerSeat,
+            fees: serviceFee,
+            total,
+            payment_method: paymentMethod,
+            status: 'pending',
+          } as never)
+          .select()
+          .single()
 
-      if (insertError) throw insertError
+        if (insertError) throw insertError
+        booking = bookingRaw as { id: string; confirmation_code: string | null }
 
-      const booking = bookingRaw as { id: string; confirmation_code: string | null }
-
-      await supabase.from('notifications').insert({
-        member_id: member.id,
-        kind: 'booking',
-        title: 'Booking submitted for review',
-        body: `Your ${kind} reservation for "${itemName}" has been submitted. Ops will confirm shortly.`,
-        ref: { kind, id: itemId, booking_id: booking.id },
-        read: false,
-      } as never)
+        await supabase.from('notifications').insert({
+          member_id: member.id,
+          kind: 'booking',
+          title: 'Booking submitted for review',
+          body: `Your ${kind} reservation for "${itemName}" has been submitted. Ops will confirm shortly.`,
+          ref: { kind, id: itemId, booking_id: booking.id },
+          read: false,
+        } as never)
+      }
 
       setSubmitted({ id: booking.id, confirmationCode: booking.confirmation_code })
     } catch (err: unknown) {
@@ -283,7 +328,7 @@ export default function ReservePage() {
               </h1>
               {kind === 'flight' && flight ? (
                 <p style={{ fontSize: 13, color: 'var(--ink-light)', margin: 0 }}>
-                  {flight.origin_code} → {flight.dest_code} · {dp.dow}, {dp.mo} {dp.day} · Hosted by{' '}
+                  {flight.origin_code} {isRoundTrip ? '⇄' : '→'} {flight.dest_code}{isRoundTrip ? ' · round trip' : ''} · {dp.dow}, {dp.mo} {dp.day} · Hosted by{' '}
                   <span style={{ color: 'var(--ink)' }}>Travail Ops</span>
                 </p>
               ) : excursion ? (
@@ -365,6 +410,19 @@ export default function ReservePage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Return leg */}
+                {isRoundTrip && returnFlight && (
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
+                      Return leg
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>
+                      <span style={{ fontWeight: 500 }}>{returnFlight.origin_code} → {returnFlight.dest_code}</span>
+                      <span>{(() => { const r = fmtDate(returnFlight.date); return `${r.dow} ${r.mo} ${r.day}` })()} · {fmtTime(returnFlight.depart_time)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
