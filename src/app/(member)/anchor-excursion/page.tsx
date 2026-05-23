@@ -4,13 +4,10 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ORIGINS, DESTINATIONS } from '@/lib/data'
 import PageHero from '@/components/PageHero'
+import TimeInput from '@/components/TimeInput'
 import type { AirportMeta } from '@/lib/data'
 
 const EXCURSION_DESTS: AirportMeta[] = DESTINATIONS
-
-const DEPART_TIMES = ['6:00 AM', '7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM']
-const RETURN_TIMES_DAY = ['2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM']
-const RETURN_TIMES_OVERNIGHT = ['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM']
 
 function AirportDropdown<T extends AirportMeta>({
   value,
@@ -271,7 +268,7 @@ export default function AnchorExcursionPage() {
               <label className="field-lab">Route <span className="req">*</span></label>
               <div className="select-row" style={{ alignItems: 'stretch' }}>
                 <AirportDropdown value={origin} options={ORIGINS} onChange={setOrigin} />
-                <div style={{ display: 'flex', alignItems: 'center', padding: '0 8px', color: 'var(--ink-faint)', fontSize: 13, flexShrink: 0, fontFamily: 'var(--mono)', letterSpacing: '0.06em' }}>IN</div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0 8px', color: 'var(--ink-faint)', fontSize: 18, flexShrink: 0 }}>→</div>
                 <AirportDropdown value={dest} options={EXCURSION_DESTS} onChange={setDest} />
               </div>
             </div>
@@ -381,50 +378,11 @@ export default function AnchorExcursionPage() {
             </div>
 
             {/* Times */}
-            <div className="field">
-              <label className="field-lab">Departure from {origin.code}</label>
-              <div className="chips">
-                {DEPART_TIMES.map(t => (
-                  <button
-                    key={t}
-                    className={`chip${departTime === t ? ' active' : ''}`}
-                    onClick={() => setDepartTime(t)}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
+            <div className="row-2">
+              <TimeInput label={`Departure from ${origin.code}`} value={departTime} onChange={setDepartTime} />
+              <TimeInput label={`Start at ${dest.code}`} value={startTime} onChange={setStartTime} />
             </div>
-
-            <div className="field">
-              <label className="field-lab">Experience start time at {dest.code}</label>
-              <div className="chips">
-                {['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM'].map(t => (
-                  <button
-                    key={t}
-                    className={`chip${startTime === t ? ' active' : ''}`}
-                    onClick={() => setStartTime(t)}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="field">
-              <label className="field-lab">Return wheels-up from {dest.code}</label>
-              <div className="chips">
-                {(tripType === 'day' ? RETURN_TIMES_DAY : RETURN_TIMES_OVERNIGHT).map(t => (
-                  <button
-                    key={t}
-                    className={`chip${returnTime === t ? ' active' : ''}`}
-                    onClick={() => setReturnTime(t)}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <TimeInput label={`Return wheels-up from ${dest.code}`} value={returnTime} onChange={setReturnTime} />
 
             {/* Trip name */}
             <div className="field">
@@ -529,52 +487,47 @@ export default function AnchorExcursionPage() {
               {/* Experience preview */}
               {(experienceName || operatorName) && (
                 <div style={{
-                  background: 'var(--night)',
+                  background: 'var(--warm)',
                   borderRadius: 10,
-                  padding: '14px 16px',
+                  padding: '12px 16px',
                 }}>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--tropic)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--tropic-d)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
                     {dest.sub}
                   </div>
                   {experienceName && (
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3, marginBottom: 2 }}>
                       {experienceName}
                     </div>
                   )}
                   {operatorName && (
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--ink-light)' }}>
                       {operatorName}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Route vis */}
+              {/* Route */}
               <div style={{
+                background: 'var(--night)',
+                borderRadius: 10,
+                padding: '16px 20px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                padding: '10px 14px',
-                background: 'var(--warm)',
-                borderRadius: 10,
+                justifyContent: 'space-between',
+                gap: 12,
               }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontFamily: 'var(--display)', fontSize: 24, fontWeight: 500, color: 'var(--ink)', lineHeight: 1 }}>{origin.code}</div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--ink-light)', letterSpacing: '0.08em', marginTop: 2, textTransform: 'uppercase' }}>{origin.sub}</div>
+                  <div style={{ fontFamily: 'var(--display)', fontSize: 32, fontWeight: 500, color: '#fff', lineHeight: 1 }}>{origin.code}</div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginTop: 4 }}>{origin.sub}</div>
                 </div>
-                <div style={{ flex: 1, textAlign: 'center', color: 'var(--tropic)', fontSize: 18 }}>→</div>
+                <div style={{ color: 'var(--tropic)', fontSize: 20, flex: 1, textAlign: 'center' }}>
+                  {tripType === 'overnight' ? '⇄' : '→'}
+                </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontFamily: 'var(--display)', fontSize: 24, fontWeight: 500, color: 'var(--ink)', lineHeight: 1 }}>{dest.code}</div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--ink-light)', letterSpacing: '0.08em', marginTop: 2, textTransform: 'uppercase' }}>{dest.sub}</div>
+                  <div style={{ fontFamily: 'var(--display)', fontSize: 32, fontWeight: 500, color: '#fff', lineHeight: 1 }}>{dest.code}</div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginTop: 4 }}>{dest.sub}</div>
                 </div>
-                {tripType === 'overnight' && (
-                  <>
-                    <div style={{ flex: 1, textAlign: 'center', color: 'var(--ink-faint)', fontSize: 18 }}>↩</div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--ink-light)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>overnight</div>
-                    </div>
-                  </>
-                )}
               </div>
 
               {/* Summary grid */}
