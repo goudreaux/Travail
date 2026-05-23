@@ -1230,6 +1230,17 @@ body::before {
   transform: translateY(-2px);
 }
 
+/* Status accent — left stripe + tinted header, by booking status */
+.my-trip-card.s-approved { border-left: 3px solid var(--moss); }
+.my-trip-card.s-pending { border-left: 3px solid var(--sun); }
+.my-trip-card.s-declined { border-left: 3px solid var(--signal); }
+.my-trip-card.s-cancelled,
+.my-trip-card.s-refunded { border-left: 3px solid var(--ink-faint); }
+
+.my-trip-card.s-approved .my-trip-card__header { background: rgba(62, 140, 109, 0.06); }
+.my-trip-card.s-pending .my-trip-card__header { background: rgba(244, 167, 44, 0.07); }
+.my-trip-card.s-declined .my-trip-card__header { background: rgba(217, 78, 42, 0.06); }
+
 .my-trip-card__header {
   padding: 16px 18px;
   display: flex;
