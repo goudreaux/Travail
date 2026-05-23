@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { fmtHomeBase } from '@/lib/data'
 import type { Member, MemberSensitive } from '@/lib/supabase/types'
@@ -70,7 +71,9 @@ export default function MembersPage() {
   const [form, setForm] = useState<EditForm>(defaultForm)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' | 'info' } | null>(null)
+  const [convertGuestId, setConvertGuestId] = useState<string | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
+  const searchParams = useSearchParams()
 
   const showToast = (msg: string, kind: 'success' | 'error' | 'info' = 'success') => {
     setToast({ msg, kind })
@@ -97,6 +100,18 @@ export default function MembersPage() {
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }, [editId, showAdd])
+
+  // Prefill the add form when arriving from "Convert to member" on the Guests page.
+  useEffect(() => {
+    const name = searchParams.get('name')
+    const guestId = searchParams.get('addGuest')
+    if (name) {
+      setShowAdd(true)
+      setEditId(null)
+      setForm({ ...defaultForm, name, initials: autoInitials(name) })
+      if (guestId) setConvertGuestId(guestId)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = members.filter(m =>
     !search ||
@@ -177,7 +192,12 @@ export default function MembersPage() {
             date_of_birth: form.date_of_birth,
           })
         }
-        showToast('Member created — link a user_id in Supabase Auth')
+        if (convertGuestId && inserted) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any).from('guests').update({ member_id: inserted.id }).eq('id', convertGuestId)
+          setConvertGuestId(null)
+        }
+        showToast(convertGuestId ? 'Member created from guest — link a user_id in Supabase Auth' : 'Member created — link a user_id in Supabase Auth')
       }
 
       setEditId(null)
