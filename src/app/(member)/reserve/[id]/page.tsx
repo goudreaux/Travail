@@ -265,19 +265,29 @@ export default function ReservePage() {
         console.error('Passenger manifest not recorded:', paxErr)
       }
 
-      // 4. Notify.
-      await supabase.from('notifications').insert({
-        member_id: member.id,
-        kind: 'booking',
-        title: isRoundTrip ? 'Round-trip booking submitted' : 'Booking submitted for review',
-        body: `Your reservation for "${itemName}"${seats > 1 ? ` (${seats} seats)` : ''} has been submitted. Ops will confirm shortly.`,
-        ref: { kind, id: itemId, booking_id: primary.id },
-        read: false,
-      } as never)
+      // 4. Notify (best-effort — booking already succeeded).
+      try {
+        const { error: notifErr } = await supabase.from('notifications').insert({
+          member_id: member.id,
+          kind: 'booking',
+          title: isRoundTrip ? 'Round-trip booking submitted' : 'Booking submitted for review',
+          body: `Your reservation for "${itemName}"${seats > 1 ? ` (${seats} seats)` : ''} has been submitted. Ops will confirm shortly.`,
+          ref: { kind, id: itemId, booking_id: primary.id },
+          read: false,
+        } as never)
+        if (notifErr) throw notifErr
+      } catch (notifErr) {
+        console.error('Booking notification not recorded:', notifErr)
+      }
 
       setSubmitted({ id: primary.id, confirmationCode: primary.confirmation_code })
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      const msg = err instanceof Error
+        ? err.message
+        : (err && typeof err === 'object' && 'message' in err)
+          ? String((err as { message: unknown }).message)
+          : 'Something went wrong. Please try again.'
+      setError(msg)
     } finally {
       setSubmitting(false)
     }
