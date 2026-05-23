@@ -99,14 +99,14 @@ export default function CalendarPage() {
         supabase
           .from('flights')
           .select('*')
-          .in('status', ['open', 'full'])
+          .in('status', ['open', 'full', 'departed'])
           .gte('date', dateStart)
           .lte('date', dateLimit)
           .order('date'),
         supabase
           .from('excursions')
           .select('*')
-          .in('status', ['open', 'full'])
+          .in('status', ['open', 'full', 'completed'])
           .gte('date', dateStart)
           .lte('date', dateLimit)
           .order('date'),
@@ -212,8 +212,8 @@ export default function CalendarPage() {
           </div>
         ) : (
           <>
-            {/* 3-col mini calendar grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+            {/* Responsive month grid (1-up on phones, 3-up on desktop) */}
+            <div className="cal-months">
               {months.map(({ year, month }) => {
                 const days = daysInMonth(year, month)
                 const startDow = firstDayOfWeek(year, month)
@@ -245,44 +245,37 @@ export default function CalendarPage() {
                           const isToday = dateStr === todayIso
                           const isSelected = dateStr === selectedDay
                           const hasTrips = tripsOnDay.length > 0
-
-                          // Collect unique dot colors
-                          const dotColors = [...new Set(tripsOnDay.map(t => t.color.dot))]
-
-                          // Background for selected vs has trips
-                          let cellBg = ''
-                          if (isSelected && hasTrips) {
-                            cellBg = tripsOnDay[0].color.bg
-                          } else if (isToday) {
-                            cellBg = 'var(--tropic-glow)'
-                          }
+                          const tripColor = tripsOnDay[0]?.color.dot ?? 'var(--tropic)'
+                          const anyBooked = tripsOnDay.some(t => t.isBooked)
 
                           return (
                             <div
                               key={dateStr}
-                              className={`cal-cell${isToday ? ' today' : ''}`}
+                              className={`cal-cell${isToday ? ' today' : ''}${hasTrips ? ' has-trips' : ''}`}
                               style={{
-                                background: isSelected ? (tripsOnDay[0]?.color.bg ?? 'var(--warm)') : undefined,
-                                outline: isSelected ? `2px solid ${tripsOnDay[0]?.color.dot ?? 'var(--tropic)'}` : undefined,
+                                outline: isSelected ? `2px solid ${tripColor}` : undefined,
+                                outlineOffset: isSelected ? -2 : undefined,
                                 cursor: hasTrips ? 'pointer' : 'default',
-                                fontWeight: isToday ? 700 : undefined,
-                                color: isToday ? 'var(--tropic-d)' : undefined,
                               }}
                               onClick={() => {
                                 if (hasTrips) setSelectedDay(isSelected ? null : dateStr)
                               }}
                             >
-                              <span style={{ fontSize: 12, lineHeight: 1 }}>{day}</span>
-                              {dotColors.length > 0 && (
-                                <div className="cal-dots">
-                                  {dotColors.slice(0, 3).map((color, i) => (
-                                    <div
-                                      key={i}
-                                      className="cal-dot"
-                                      style={{ background: color }}
-                                    />
-                                  ))}
-                                </div>
+                              {hasTrips ? (
+                                <span
+                                  className="cal-day-badge"
+                                  style={{
+                                    background: tripColor,
+                                    boxShadow: anyBooked ? `0 0 0 2px var(--card), 0 0 0 4px ${tripColor}` : undefined,
+                                  }}
+                                >
+                                  {day}
+                                  {tripsOnDay.length > 1 && (
+                                    <span className="cal-count">{tripsOnDay.length}</span>
+                                  )}
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: 12.5, lineHeight: 1, color: isToday ? 'var(--tropic-d)' : undefined, fontWeight: isToday ? 700 : undefined }}>{day}</span>
                               )}
                             </div>
                           )

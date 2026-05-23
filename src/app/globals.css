@@ -792,22 +792,56 @@ body::before {
   background: rgba(0, 179, 199, 0.22);
 }
 
-.cal-dots {
+.cal-months {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* Days with trips get a bold filled badge so they're impossible to miss. */
+.cal-cell.has-trips {
+  background: var(--warm);
+  font-weight: 600;
+}
+
+.cal-day-badge {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   display: flex;
-  gap: 2px;
   align-items: center;
   justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13.5px;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(6, 56, 71, 0.18);
 }
 
-.cal-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
+.cal-count {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  font-family: var(--mono);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--card);
 }
 
-.cal-dot.flight { background: var(--tropic); }
-.cal-dot.anchor { background: var(--sun); }
-.cal-dot.partial { background: var(--moss); }
+/* Legacy dot styles (kept for any other usages) */
+.cal-dots { display: flex; gap: 2px; align-items: center; justify-content: center; }
+.cal-dot { width: 5px; height: 5px; border-radius: 50%; }
 
 /* ─── Flight cards ───────────────────────────────────────── */
 
@@ -2445,6 +2479,9 @@ textarea.input {
   /* Declutter the top bar on phones */
   .topbar .search { display: none; }
   .signout-label { display: none; }
+
+  /* One month per row so day cells (and trip badges) are large and tappable */
+  .cal-months { grid-template-columns: 1fr; }
 
   /* Prevent iOS auto-zoom on input focus (needs >=16px) */
   input, textarea, select, .input, .select { font-size: 16px; }
