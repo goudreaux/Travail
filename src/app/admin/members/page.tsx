@@ -10,6 +10,13 @@ function autoInitials(name: string): string {
   return name.trim().split(/\s+/).filter(Boolean).slice(0, 3).map(w => w[0]).join('').toUpperCase()
 }
 
+function joinedDate(m: Member): string {
+  const raw = m.joined_at || m.created_at
+  if (!raw) return '—'
+  const d = new Date(raw)
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
+}
+
 type EditForm = {
   name: string
   initials: string
@@ -149,6 +156,7 @@ export default function MembersPage() {
       } else {
         const { data: inserted, error } = await supabase.from('members').insert({
           ...payload,
+          joined_at: new Date().toISOString().slice(0, 10),
           user_id: '00000000-0000-0000-0000-000000000000',
         }).select().single()
         if (error) throw error
@@ -313,7 +321,7 @@ export default function MembersPage() {
                     {m.is_admin && <span className="pill tropic">Admin</span>}
                   </td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-light)' }}>
-                    {new Date(m.joined_at).toLocaleDateString()}
+                    {joinedDate(m)}
                   </td>
                   <td onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 6, padding: '8px 12px' }}>
                     <button
