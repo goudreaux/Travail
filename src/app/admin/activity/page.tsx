@@ -21,6 +21,7 @@ const ACTION_META: Record<string, { label: string; pill: string }> = {
   booking_confirmed: { label: 'Confirmed', pill: 'moss' },
   booking_declined: { label: 'Declined', pill: 'signal' },
   booking_cancelled: { label: 'Cancelled', pill: 'ink' },
+  trip_cancelled: { label: 'Trip cancelled', pill: 'signal' },
   waitlist_joined: { label: 'Waitlisted', pill: 'tropic' },
   waitlist_promoted: { label: 'Promoted', pill: 'tropic' },
   anchor_published: { label: 'Published', pill: 'moss' },
