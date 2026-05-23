@@ -96,6 +96,38 @@ export default function Sidebar({ pathname, member, pendingCount = 0, unreadCoun
         ))}
       </div>
 
+      {/* Admin-only: switch into the ops dashboard. Hidden for regular members. */}
+      {member?.is_admin && (
+        <Link
+          href="/admin"
+          aria-label="Switch to admin dashboard"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            margin: '4px 8px 8px',
+            padding: '11px 12px',
+            borderRadius: 10,
+            background: 'var(--sun-glow)',
+            border: '1px solid rgba(244,167,44,0.35)',
+            color: 'var(--sun)',
+            fontFamily: 'var(--ui)',
+            fontSize: 13.5,
+            fontWeight: 600,
+            textDecoration: 'none',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <path d="M11 2.5l7 2.5v5c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9v-5z" />
+            <path d="M8 11l2 2 4-4.5" />
+          </svg>
+          <span style={{ flex: 1 }}>Admin Dashboard</span>
+          <svg width="12" height="12" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.7 }}>
+            <path d="M8 5l6 6-6 6" />
+          </svg>
+        </Link>
+      )}
+
       {/* Member identity footer */}
       {member ? (
         <Link href="/membership" className="side-footer" style={{ display: 'block', textDecoration: 'none' }}>
