@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Icons } from '@/lib/icons'
 import { createClient } from '@/lib/supabase/client'
 import type { Member, Notification } from '@/lib/supabase/types'
@@ -93,6 +94,12 @@ export default function TopBar({ member, notifications, onOpenBookings }: Props)
   const drawerRef = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLButtonElement>(null)
   const supabase = createClient()
+  const router = useRouter()
+
+  async function signOut() {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   // Sync when parent passes new notifications
   useEffect(() => {
@@ -324,6 +331,22 @@ export default function TopBar({ member, notifications, onOpenBookings }: Props)
         <Link href="/anchor-excursion" className="btn-sun" style={{ height: 36, padding: '0 14px', fontSize: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           + Exc.
         </Link>
+
+        {/* Sign out — visible in every member window (desktop + mobile top bar) */}
+        <button
+          onClick={signOut}
+          className="btn-ghost signout-btn"
+          aria-label="Sign out"
+          title="Sign out"
+          style={{ height: 36, padding: '0 12px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
+        >
+          <svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
+            <path d="M14 16l5-5-5-5" />
+            <path d="M19 11H8" />
+          </svg>
+          <span className="signout-label">Sign out</span>
+        </button>
       </div>
     </div>
   )

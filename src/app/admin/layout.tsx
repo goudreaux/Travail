@@ -44,6 +44,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => { supabase.removeChannel(ch) }
   }, [isAdmin, fetchPending]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function signOut() {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
   if (!isAdmin) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'var(--ui)', color: 'var(--ink-mid)' }}>
       Loading…
@@ -97,10 +102,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )}
           </Link>
         ))}
-        <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Link href="/" style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.4)', textDecoration: 'none', textTransform: 'uppercase' }}>
             ← Back to app
           </Link>
+          <button
+            onClick={signOut}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8,
+              padding: '8px 10px', cursor: 'pointer',
+              fontFamily: 'var(--ui)', fontSize: 12.5, fontWeight: 500,
+              color: 'rgba(255,255,255,0.7)',
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <path d="M8 3H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
+              <path d="M14 16l5-5-5-5" />
+              <path d="M19 11H8" />
+            </svg>
+            Sign out
+          </button>
         </div>
       </aside>
       <main style={{ padding: 0 }}>
