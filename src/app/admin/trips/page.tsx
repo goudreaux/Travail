@@ -50,7 +50,8 @@ type FlightForm = {
   visibility: 'members' | 'public'
   seats_total: number
   seats_anchor: number
-  price_per_seat: number
+  leg_cost: number
+  return_leg_cost: number
   status: Flight['status']
   anchor_member_id: string
 }
@@ -70,7 +71,7 @@ const defaultFlightForm: FlightForm = {
   destSel: '', destCustomCode: '', destCustomName: '', destCustomRegion: '',
   date: '', depart_time: '', return_date: '', return_time: '',
   duration_mins: 90, aircraft_id: '', pitch: '', visibility: 'members',
-  seats_total: 8, seats_anchor: 1, price_per_seat: 0, status: 'draft',
+  seats_total: 8, seats_anchor: 1, leg_cost: 0, return_leg_cost: 0, status: 'draft',
   anchor_member_id: '',
 }
 const defaultExcForm: ExcForm = {
@@ -151,6 +152,9 @@ export default function TripsPage() {
   const selectedAircraft = aircraft.find(a => a.id === FF.aircraft_id)
   const capacity = selectedAircraft?.capacity ?? null
 
+  const perSeatOut = FF.seats_total > 0 ? Math.round(FF.leg_cost / FF.seats_total) : 0
+  const perSeatRet = FF.seats_total > 0 ? Math.round(FF.return_leg_cost / FF.seats_total) : 0
+
   // Auto-fill the flight name from the route until an admin edits it by hand.
   useEffect(() => {
     if (FF.nameTouched) return
@@ -172,11 +176,12 @@ export default function TripsPage() {
     if (FF.seats_total < 1) return 'Seats total must be at least 1'
     if (capacity != null && FF.seats_total > capacity) return `Seats total exceeds ${selectedAircraft?.name} capacity (${capacity})`
     if (FF.seats_anchor < 0 || FF.seats_anchor > FF.seats_total) return 'Anchor seats must be between 0 and seats total'
-    if (FF.price_per_seat < 0) return 'Price cannot be negative'
+    if (FF.leg_cost < 0) return 'Leg cost cannot be negative'
     if (!editFlightId && FF.tripType === 'round_trip') {
       if (!FF.return_date) return 'Pick a return date'
       if (!FF.return_time) return 'Pick a return time'
       if (FF.return_date < FF.date) return 'Return date cannot be before the outbound date'
+      if (FF.return_leg_cost < 0) return 'Return leg cost cannot be negative'
     }
     return null
   }
@@ -191,7 +196,7 @@ export default function TripsPage() {
       date: f.date, depart_time: f.depart_time, duration_mins: f.duration_mins,
       aircraft_id: f.aircraft_id, pitch: f.pitch ?? '', visibility: f.visibility,
       seats_total: f.seats_total, seats_anchor: f.seats_anchor,
-      price_per_seat: f.price_per_seat, status: f.status,
+      leg_cost: f.price_per_seat * f.seats_total, return_leg_cost: 0, status: f.status,
       anchor_member_id: f.anchor_member_id ?? '',
     })
   }
@@ -235,13 +240,12 @@ export default function TripsPage() {
         duration_mins: FF.duration_mins, aircraft_id: FF.aircraft_id,
         pitch: FF.pitch || null, visibility: FF.visibility,
         seats_total: FF.seats_total, seats_anchor: FF.seats_anchor,
-        price_per_seat: FF.price_per_seat, status: FF.status,
-        anchor_member_id: FF.anchor_member_id || null,
+        status: FF.status, anchor_member_id: FF.anchor_member_id || null,
       }
 
       if (editFlightId) {
         const payload = {
-          ...base, name: FF.name.trim(),
+          ...base, name: FF.name.trim(), price_per_seat: perSeatOut,
           origin_code: effOrigin, dest_code: effDest,
           date: FF.date, depart_time: FF.depart_time,
         }
@@ -252,14 +256,14 @@ export default function TripsPage() {
       } else {
         const stamp = Date.now().toString(36).toUpperCase()
         const outbound = {
-          ...base, id: `F-${stamp}`, name: FF.name.trim(),
+          ...base, id: `F-${stamp}`, name: FF.name.trim(), price_per_seat: perSeatOut,
           origin_code: effOrigin, dest_code: effDest,
           date: FF.date, depart_time: FF.depart_time,
         }
         const rows = [outbound]
         if (FF.tripType === 'round_trip') {
           rows.push({
-            ...base, id: `F-${stamp}R`, name: `${destLabel} → ${originLabel}`,
+            ...base, id: `F-${stamp}R`, name: `${destLabel} → ${originLabel}`, price_per_seat: perSeatRet,
             origin_code: effDest, dest_code: effOrigin,
             date: FF.return_date, depart_time: FF.return_time,
           })
@@ -515,9 +519,21 @@ export default function TripsPage() {
             {/* ─── Pricing & visibility ─── */}
             <div style={sectionLabelStyle}>Pricing &amp; Listing</div>
             <div className="field">
-              <label className="field-lab">Price Per Seat ($)</label>
-              <input className="input" type="number" min={0} value={FF.price_per_seat} onChange={e => setFlightForm(f => ({ ...f, price_per_seat: Number(e.target.value) }))} />
+              <label className="field-lab">Total Leg Cost ($){!editFlightId && FF.tripType === 'round_trip' ? ' · outbound' : ''}</label>
+              <input className="input" type="number" min={0} value={FF.leg_cost} onChange={e => setFlightForm(f => ({ ...f, leg_cost: Number(e.target.value) }))} placeholder="Confirmed total with Tropic" />
+              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>
+                = ${perSeatOut.toLocaleString()} / seat{FF.seats_total > 0 ? ` (÷ ${FF.seats_total} seats)` : ''}
+              </div>
             </div>
+            {!editFlightId && FF.tripType === 'round_trip' && (
+              <div className="field">
+                <label className="field-lab">Total Leg Cost ($) · return</label>
+                <input className="input" type="number" min={0} value={FF.return_leg_cost} onChange={e => setFlightForm(f => ({ ...f, return_leg_cost: Number(e.target.value) }))} placeholder="Confirmed total with Tropic" />
+                <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>
+                  = ${perSeatRet.toLocaleString()} / seat{FF.seats_total > 0 ? ` (÷ ${FF.seats_total} seats)` : ''}
+                </div>
+              </div>
+            )}
             <div className="field">
               <label className="field-lab">Status</label>
               <select className="select" value={FF.status} onChange={e => setFlightForm(f => ({ ...f, status: e.target.value as Flight['status'] }))}>
