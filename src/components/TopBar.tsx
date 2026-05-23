@@ -172,18 +172,8 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
         Travail
       </div>
 
-      {/* Search input */}
-      <div className="search">
-        {Icons.search}
-        <input
-          type="search"
-          placeholder="Search flights, members, excursions…"
-          aria-label="Search"
-        />
-      </div>
-
       {/* Right-side actions */}
-      <div className="top-actions">
+      <div className="top-actions" style={{ marginLeft: 'auto' }}>
 
         {/* Bell button + notification drawer */}
         <div style={{ position: 'relative' }}>
