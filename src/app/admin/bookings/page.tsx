@@ -18,16 +18,19 @@ function Toast({ msg, kind }: { msg: string; kind: 'success' | 'error' | 'info' 
   return <div className={`toast ${kind}`}>{msg}</div>
 }
 
-// Bookings is the *active* board — declined/cancelled/refunded live in History.
-const STATUS_FILTERS = ['all', 'pending', 'approved'] as const
-type StatusFilter = typeof STATUS_FILTERS[number]
+// One Bookings record list: Active (pending/approved), Closed (declined/
+// cancelled/refunded), or All.
+const TABS = ['active', 'closed', 'all'] as const
+type Tab = typeof TABS[number]
 const ACTIVE_STATUSES: BookingStatus[] = ['pending', 'approved']
+const CLOSED_STATUSES: BookingStatus[] = ['declined', 'cancelled', 'refunded']
+const TAB_LABEL: Record<Tab, string> = { active: 'Active', closed: 'Closed', all: 'All' }
 
 export default function BookingsPage() {
   const supabase = createClient()
   const [bookings, setBookings] = useState<BookingRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [tab, setTab] = useState<Tab>('active')
   const [working, setWorking] = useState<string | null>(null)
   const [declineModal, setDeclineModal] = useState<string | null>(null)
   const [declineReason, setDeclineReason] = useState('')
@@ -45,7 +48,6 @@ export default function BookingsPage() {
     const { data: bk } = await supabase
       .from('bookings')
       .select('*')
-      .in('status', ACTIVE_STATUSES)
       .order('submitted_at', { ascending: false })
     const all = (bk ?? []) as unknown as BookingRow[]
 
@@ -75,33 +77,42 @@ export default function BookingsPage() {
 
   useEffect(() => { load() }, [load])
 
-  const filtered = bookings.filter(b => statusFilter === 'all' || b.status === statusFilter)
+  // Collapse round trips (outbound B-X + return B-XR) into one row, and the
+  // combined total. Return legs are folded into the outbound.
+  const ids = new Set(bookings.map(b => b.id))
+  const isReturnLeg = (b: BookingRow) => b.item_kind === 'flight' && b.id.endsWith('R') && ids.has(b.id.slice(0, -1))
+  const retOf = (b: BookingRow) => bookings.find(x => x.id === `${b.id}R`)
+  const inTab = (s: string, t: Tab) => t === 'all' ? true : t === 'active' ? ACTIVE_STATUSES.includes(s as BookingStatus) : CLOSED_STATUSES.includes(s as BookingStatus)
 
-  const counts: Record<string, number> = {}
-  STATUS_FILTERS.forEach(s => {
-    counts[s] = s === 'all' ? bookings.length : bookings.filter(b => b.status === s).length
-  })
+  const rows = bookings.filter(b => !isReturnLeg(b))
+  const filtered = rows.filter(b => inTab(b.status, tab))
+  const counts: Record<Tab, number> = {
+    active: rows.filter(b => inTab(b.status, 'active')).length,
+    closed: rows.filter(b => inTab(b.status, 'closed')).length,
+    all: rows.length,
+  }
+  const legIdsOf = (id: string) => ids.has(`${id}R`) ? [id, `${id}R`] : [id]
 
   async function approve(booking: BookingRow) {
     setWorking(booking.id)
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
-      const itemTable = booking.item_kind === 'flight' ? 'flights' : 'excursions'
-      const { data: item } = await db.from(itemTable).select('*').eq('id', booking.item_id).single()
-      if (!item) throw new Error('Trip not found')
-      const capacity = booking.item_kind === 'flight'
-        ? item.seats_total - item.seats_anchor
-        : item.spots_total - item.spots_anchor
-      const { data: approvedRows } = await db.from('bookings')
-        .select('seats').eq('item_kind', booking.item_kind).eq('item_id', booking.item_id).eq('status', 'approved')
-      const taken = (approvedRows ?? []).reduce((s: number, r: { seats: number }) => s + r.seats, 0)
-      if (taken + booking.seats > capacity) throw new Error(`Only ${Math.max(0, capacity - taken)} seat(s) left`)
-
+      // Approve both legs of a round trip under one shared code.
+      const legs = legIdsOf(booking.id).map(lid => bookings.find(b => b.id === lid)).filter(Boolean) as BookingRow[]
       const code = genConfCode()
+      for (const leg of legs) {
+        const itemTable = leg.item_kind === 'flight' ? 'flights' : 'excursions'
+        const { data: item } = await db.from(itemTable).select('*').eq('id', leg.item_id).single()
+        if (!item) throw new Error('Trip not found')
+        const capacity = leg.item_kind === 'flight' ? item.seats_total - item.seats_anchor : item.spots_total - item.spots_anchor
+        const { data: approvedRows } = await db.from('bookings').select('seats').eq('item_kind', leg.item_kind).eq('item_id', leg.item_id).eq('status', 'approved')
+        const taken = (approvedRows ?? []).reduce((s: number, r: { seats: number }) => s + r.seats, 0)
+        if (taken + leg.seats > capacity) throw new Error(`Only ${Math.max(0, capacity - taken)} seat(s) left`)
+      }
       const { error } = await db.from('bookings').update({
         status: 'approved', confirmation_code: code, decided_at: new Date().toISOString(),
-      }).eq('id', booking.id)
+      }).in('id', legs.map(l => l.id))
       if (error) throw error
 
       try {
@@ -131,7 +142,7 @@ export default function BookingsPage() {
         status: 'declined',
         decline_reason: reason,
         decided_at: new Date().toISOString(),
-      }).eq('id', id)
+      }).in('id', legIdsOf(id))
       if (error) throw error
 
       try {
@@ -202,9 +213,10 @@ export default function BookingsPage() {
       }
 
       const wasApproved = booking.status === 'approved'
+      const legs = legIdsOf(booking.id).map(lid => bookings.find(b => b.id === lid)).filter(Boolean) as BookingRow[]
       const { error } = await supabase.from('bookings').update({
         status: 'cancelled', decided_at: new Date().toISOString(),
-      }).eq('id', booking.id)
+      }).in('id', legs.map(l => l.id))
       if (error) throw error
 
       try {
@@ -215,8 +227,8 @@ export default function BookingsPage() {
         })
       } catch { /* supplementary */ }
 
-      // Freed a confirmed seat → promote the waitlist.
-      if (wasApproved) await promoteWaitlist(booking.item_kind, booking.item_id)
+      // Freed a confirmed seat on each leg → promote the waitlist.
+      if (wasApproved) for (const leg of legs) await promoteWaitlist(leg.item_kind, leg.item_id)
 
       showToast('Booking cancelled')
       load()
@@ -262,28 +274,28 @@ export default function BookingsPage() {
 
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Bookings</h1>
-        <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>Active flight and excursion bookings. Declined &amp; cancelled bookings live in <Link href="/admin/history" style={{ color: 'var(--tropic-d)' }}>History</Link>.</p>
+        <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>Every flight and excursion booking. Round trips show as one record.</p>
       </div>
 
-      {/* Filter tabs */}
+      {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
-        {STATUS_FILTERS.map(s => (
+        {TABS.map(t => (
           <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
+            key={t}
+            onClick={() => setTab(t)}
             style={{
               padding: '6px 14px', borderRadius: 20, fontSize: 12.5,
-              fontFamily: 'var(--ui)', fontWeight: statusFilter === s ? 600 : 400,
-              border: `1px solid ${statusFilter === s ? 'var(--tropic)' : 'var(--hair-2)'}`,
-              background: statusFilter === s ? 'var(--tropic-glow)' : 'transparent',
-              color: statusFilter === s ? 'var(--tropic-d)' : 'var(--ink-light)',
+              fontFamily: 'var(--ui)', fontWeight: tab === t ? 600 : 400,
+              border: `1px solid ${tab === t ? 'var(--tropic)' : 'var(--hair-2)'}`,
+              background: tab === t ? 'var(--tropic-glow)' : 'transparent',
+              color: tab === t ? 'var(--tropic-d)' : 'var(--ink-light)',
               cursor: 'pointer',
             }}
           >
-            {s.charAt(0).toUpperCase() + s.slice(1)}
-            {counts[s] > 0 && (
-              <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: statusFilter === s ? 'var(--tropic-d)' : 'var(--ink-light)' }}>
-                {counts[s]}
+            {TAB_LABEL[t]}
+            {counts[t] > 0 && (
+              <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: tab === t ? 'var(--tropic-d)' : 'var(--ink-light)' }}>
+                {counts[t]}
               </span>
             )}
           </button>
@@ -322,12 +334,12 @@ export default function BookingsPage() {
                   </td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>
                     {b.item_kind === 'flight' && b.flight
-                      ? `${b.flight.origin_code} → ${b.flight.dest_code}`
+                      ? `${b.flight.origin_code} ${retOf(b) ? '⇄' : '→'} ${b.flight.dest_code}`
                       : b.excursion?.name ?? b.item_id.slice(0, 8)}
                   </td>
-                  <td><span className={`pill ${b.item_kind === 'flight' ? 'tropic' : 'sun'}`}>{b.item_kind}</span></td>
+                  <td><span className={`pill ${b.item_kind === 'flight' ? 'tropic' : 'sun'}`}>{retOf(b) ? 'round trip' : b.item_kind}</span></td>
                   <td style={{ fontWeight: 600, color: 'var(--ink)' }}>{b.seats}</td>
-                  <td style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>${b.total.toLocaleString()}</td>
+                  <td style={{ fontWeight: 700, fontFamily: 'var(--mono)' }}>${(b.total + (retOf(b)?.total ?? 0)).toLocaleString()}</td>
                   <td><span className="pill ink">{b.payment_method}</span></td>
                   <td><span className={`pill ${statusColor[b.status]}`}>{b.status}</span></td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink-mid)', letterSpacing: '0.1em' }}>
@@ -384,7 +396,7 @@ export default function BookingsPage() {
           </table>
           {filtered.length === 0 && (
             <div style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>
-              No bookings with status: {statusFilter}
+              No {tab === 'all' ? '' : tab} bookings.
             </div>
           )}
         </div>

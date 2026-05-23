@@ -1,24 +1,19 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Guest } from '@/lib/guests'
 import type { Member } from '@/lib/supabase/types'
 
-function Toast({ msg, kind }: { msg: string; kind: 'success' | 'error' | 'info' }) {
-  return <div className={`toast ${kind}`}>{msg}</div>
-}
-
-export default function GuestsPage() {
+// Guests management, rendered as the "Guests" tab of the People page.
+export default function GuestsPanel({ onConvert }: { onConvert: (g: Guest) => void }) {
   const supabase = createClient()
-  const router = useRouter()
   const [guests, setGuests] = useState<Guest[]>([])
   const [members, setMembers] = useState<Pick<Member, 'id' | 'name'>[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' | 'info' } | null>(null)
+  const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' } | null>(null)
 
-  const showToast = (msg: string, kind: 'success' | 'error' | 'info' = 'success') => {
+  const showToast = (msg: string, kind: 'success' | 'error' = 'success') => {
     setToast({ msg, kind })
     setTimeout(() => setToast(null), 3500)
   }
@@ -50,10 +45,6 @@ export default function GuestsPage() {
     )
   })
 
-  function convert(g: Guest) {
-    router.push(`/admin/members?addGuest=${g.id}&name=${encodeURIComponent(`${g.first_name} ${g.last_name}`)}`)
-  }
-
   async function deleteGuest(g: Guest) {
     if (!confirm(`Delete ${g.first_name} ${g.last_name} from the guest list? Past bookings keep their passenger record.`)) return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,16 +58,12 @@ export default function GuestsPage() {
   const linkedCount = guests.filter(g => g.member_id).length
 
   return (
-    <div style={{ padding: 32 }}>
-      {toast && <Toast msg={toast.msg} kind={toast.kind} />}
-
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Guests</h1>
-        <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>
-          {guests.length} guest{guests.length !== 1 ? 's' : ''} registered by members · {linkedCount} already linked to a member.{' '}
-          <span style={{ fontStyle: 'italic' }}>Convert a guest to seed a member profile from their info.</span>
-        </p>
-      </div>
+    <div>
+      {toast && <div className={`toast ${toast.kind}`}>{toast.msg}</div>}
+      <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 0, marginBottom: 16 }}>
+        {guests.length} guest{guests.length !== 1 ? 's' : ''} registered by members · {linkedCount} linked to a member.{' '}
+        <span style={{ fontStyle: 'italic' }}>Convert a guest to seed a member profile from their info.</span>
+      </p>
 
       <div style={{ marginBottom: 16 }}>
         <input
@@ -111,17 +98,13 @@ export default function GuestsPage() {
                   <td style={{ fontSize: 13 }}>{g.email || '—'}</td>
                   <td style={{ fontSize: 13 }}>{g.phone || '—'}</td>
                   <td style={{ fontSize: 13 }}>{memberName(g.host_member_id) ?? '—'}</td>
-                  <td>
-                    {g.member_id
-                      ? <span className="pill tropic">Member</span>
-                      : <span className="pill ink">Guest</span>}
-                  </td>
+                  <td>{g.member_id ? <span className="pill tropic">Member</span> : <span className="pill ink">Guest</span>}</td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-light)' }}>
                     {new Date(g.created_at).toLocaleDateString()}
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     {!g.member_id && (
-                      <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={() => convert(g)}>
+                      <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={() => onConvert(g)}>
                         Convert to member
                       </button>
                     )}

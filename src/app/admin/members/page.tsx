@@ -4,7 +4,9 @@ import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { fmtHomeBase, memberCode } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
+import GuestsPanel from '@/components/GuestsPanel'
 import type { Member, MemberSensitive } from '@/lib/supabase/types'
+import type { Guest } from '@/lib/guests'
 
 const HOME_BASES = ['Tampa Bay', 'SFL']
 
@@ -94,6 +96,7 @@ export default function MembersPage() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' | 'info' } | null>(null)
   const [convertGuestId, setConvertGuestId] = useState<string | null>(null)
+  const [peopleTab, setPeopleTab] = useState<'members' | 'guests'>('members')
   const formRef = useRef<HTMLDivElement>(null)
   const searchParams = useSearchParams()
 
@@ -168,6 +171,16 @@ export default function MembersPage() {
     setEditId(null)
     setShowAdd(true)
     setForm(defaultForm)
+  }
+
+  // Convert a guest → prefill the Add Member form from their info.
+  function startConvert(g: Guest) {
+    const full = `${g.first_name} ${g.last_name}`.trim()
+    setPeopleTab('members')
+    setEditId(null)
+    setShowAdd(true)
+    setForm({ ...defaultForm, name: full, initials: autoInitials(full), email: g.email ?? '', phone: g.phone ? formatPhone(g.phone) : '' })
+    setConvertGuestId(g.id)
   }
 
   async function deleteMember(id: string, name: string) {
@@ -294,18 +307,43 @@ export default function MembersPage() {
     <div style={{ padding: 32 }}>
       {toast && <Toast msg={toast.msg} kind={toast.kind} />}
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Members</h1>
+          <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>People</h1>
           <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>
-            {members.length} members total.{' '}
-            <span style={{ fontStyle: 'italic' }}>User accounts (email/password) must be created separately in Supabase Auth — the user_id links to this profile.</span>
+            Members and the guests they bring. User logins are created in Supabase Auth and linked via the User ID field.
           </p>
         </div>
-        <button className="btn-primary" onClick={openAdd} style={{ flexShrink: 0 }}>
-          + Add Member
-        </button>
+        {peopleTab === 'members' && (
+          <button className="btn-primary" onClick={openAdd} style={{ flexShrink: 0 }}>
+            + Add Member
+          </button>
+        )}
       </div>
+
+      {/* People tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--hair)', marginBottom: 24 }}>
+        {(['members', 'guests'] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => setPeopleTab(t)}
+            style={{
+              padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--ui)', fontSize: 13.5, fontWeight: peopleTab === t ? 600 : 400,
+              color: peopleTab === t ? 'var(--tropic-d)' : 'var(--ink-light)',
+              borderBottom: peopleTab === t ? '2px solid var(--tropic)' : '2px solid transparent',
+              marginBottom: -1,
+            }}
+          >
+            {t === 'members' ? `Members${members.length ? ` · ${members.length}` : ''}` : 'Guests'}
+          </button>
+        ))}
+      </div>
+
+      {peopleTab === 'guests' ? (
+        <GuestsPanel onConvert={startConvert} />
+      ) : (
+      <>
 
       {/* Edit / Add form */}
       {isEditing && (
@@ -527,6 +565,8 @@ export default function MembersPage() {
             </div>
           )}
         </div>
+      )}
+      </>
       )}
     </div>
   )
