@@ -1,12 +1,13 @@
 'use client'
 export const dynamic = 'force-dynamic'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+  const [pendingCount, setPendingCount] = useState(0)
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
@@ -22,6 +23,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     check()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const fetchPending = useCallback(async () => {
+    const [{ count: b }, { count: a }] = await Promise.all([
+      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('anchor_submissions').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    ])
+    setPendingCount((b ?? 0) + (a ?? 0))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!isAdmin) return
+    fetchPending()
+
+    const ch = supabase
+      .channel('admin-pending-count')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, fetchPending)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'anchor_submissions' }, fetchPending)
+      .subscribe()
+
+    return () => { supabase.removeChannel(ch) }
+  }, [isAdmin, fetchPending]) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!isAdmin) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'var(--ui)', color: 'var(--ink-mid)' }}>
       Loading…
@@ -30,18 +52,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const nav = [
     { href: '/admin', label: 'Dashboard', exact: true },
+    { href: '/admin/queue', label: 'Action Queue', badge: pendingCount > 0 ? pendingCount : undefined },
     { href: '/admin/members', label: 'Members' },
     { href: '/admin/trips', label: 'Trips & Excursions' },
     { href: '/admin/bookings', label: 'Bookings' },
     { href: '/admin/posts', label: 'Feed Posts' },
-    { href: '/admin/anchors', label: 'Anchor Queue' },
+    { href: '/admin/anchors', label: 'Anchor Archive' },
   ]
 
   const isActive = (item: typeof nav[0]) => item.exact ? pathname === item.href : pathname.startsWith(item.href)
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', minHeight: '100vh', background: 'var(--bg)' }}>
-      {/* Admin sidebar - dark */}
       <aside style={{
         background: 'var(--night)', padding: '24px 16px',
         display: 'flex', flexDirection: 'column', gap: 4,
@@ -53,13 +75,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         {nav.map(item => (
           <Link key={item.href} href={item.href} style={{
-            display: 'block', padding: '10px 12px', borderRadius: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 12px', borderRadius: 8,
             fontFamily: 'var(--ui)', fontSize: 13.5, fontWeight: 500,
             color: isActive(item) ? '#fff' : 'rgba(255,255,255,0.6)',
             background: isActive(item) ? 'rgba(255,255,255,0.08)' : 'transparent',
             textDecoration: 'none',
           }}>
-            {item.label}
+            <span>{item.label}</span>
+            {item.badge !== undefined && (
+              <span style={{
+                background: 'var(--signal)', color: '#fff', borderRadius: 10,
+                padding: '1px 7px', fontSize: 10.5, fontWeight: 700, fontFamily: 'var(--mono)',
+                lineHeight: 1.6,
+              }}>
+                {item.badge}
+              </span>
+            )}
           </Link>
         ))}
         <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>

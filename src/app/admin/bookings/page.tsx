@@ -68,23 +68,21 @@ export default function BookingsPage() {
   async function approve(booking: BookingRow) {
     setWorking(booking.id)
     try {
-      const code = genConfCode()
-      const { error } = await supabase.from('bookings').update({
-        status: 'approved',
-        confirmation_code: code,
-        decided_at: new Date().toISOString(),
-      }).eq('id', booking.id)
+      // Atomic function — checks seat availability and approves in one transaction
+      const { data, error } = await supabase.rpc('confirm_booking' as never, { p_booking_id: booking.id } as never)
       if (error) throw error
+      const res = data as { ok: boolean; error?: string; confirmation_code?: string }
+      if (!res.ok) throw new Error(res.error ?? 'Seat unavailable')
 
       await supabase.from('notifications').insert({
         member_id: booking.member_id,
         kind: 'booking',
         title: 'Booking Confirmed',
-        body: `Your booking has been confirmed. Confirmation code: ${code}`,
-        ref: { booking_id: booking.id, confirmation_code: code },
+        body: `Your booking has been confirmed. Confirmation code: ${res.confirmation_code}`,
+        ref: { booking_id: booking.id, confirmation_code: res.confirmation_code },
       })
 
-      showToast('Booking approved — ' + code)
+      showToast('Booking approved — ' + res.confirmation_code)
       load()
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Approval failed', 'error')
