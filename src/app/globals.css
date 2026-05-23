@@ -1717,11 +1717,18 @@ textarea.input {
   color: var(--ink);
 }
 
-.msg.me .bub {
-  background: var(--night);
-  color: rgba(255, 255, 255, 0.92);
-  border: none;
-  border-radius: 14px 14px 4px 14px;
+.msg.me .bub { border-radius: 14px 14px 4px 14px; }
+
+/* Colored by author: Ops = brand teal, member = neutral card */
+.bub.ops {
+  background: var(--tropic);
+  color: #fff;
+  border-color: transparent;
+}
+.bub.member {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--hair-2);
 }
 
 .msg-ts {

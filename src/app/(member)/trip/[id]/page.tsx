@@ -163,8 +163,9 @@ export default function TripThreadPage() {
                   </div>
                   <div style={{
                     maxWidth: '78%', padding: '9px 13px', borderRadius: 12, fontSize: 13.5, lineHeight: 1.5,
-                    background: mine ? 'var(--tropic)' : 'var(--warm)',
-                    color: mine ? '#fff' : 'var(--ink)',
+                    background: msg.is_ops ? 'var(--tropic)' : 'var(--card)',
+                    color: msg.is_ops ? '#fff' : 'var(--ink)',
+                    border: msg.is_ops ? 'none' : '1px solid var(--hair-2)',
                     borderTopRightRadius: mine ? 3 : 12,
                     borderTopLeftRadius: mine ? 12 : 3,
                   }}>

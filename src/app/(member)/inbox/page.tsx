@@ -265,7 +265,7 @@ export default function InboxPage() {
                     </div>
                   )}
                   <div>
-                    <div className="bub">{msg.body}</div>
+                    <div className={`bub ${msg.is_ops ? 'ops' : 'member'}`}>{msg.body}</div>
                     <div className="msg-ts">{timeShort(msg.created_at)}</div>
                   </div>
                 </div>

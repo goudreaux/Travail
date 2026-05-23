@@ -229,7 +229,7 @@ export default function AdminInboxPage() {
                     </div>
                   )}
                   <div>
-                    <div className="bub">{msg.body}</div>
+                    <div className={`bub ${isOps ? 'ops' : 'member'}`}>{msg.body}</div>
                     <div className="msg-ts">{isOps ? 'Ops · ' : `${author?.name ?? 'Member'} · `}{timeShort(msg.created_at)}</div>
                   </div>
                 </div>
