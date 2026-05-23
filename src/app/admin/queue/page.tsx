@@ -175,22 +175,39 @@ export default function QueuePage() {
   async function approveBooking(b: BookingRow) {
     setWorking(b.id)
     try {
-      // Atomic Postgres function — checks seat availability and approves in one transaction
-      const { data, error } = await supabase.rpc('confirm_booking' as never, { p_booking_id: b.id } as never)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      // Seat-availability check (item_id is text, so the uuid RPC can't be used).
+      const itemTable = b.item_kind === 'flight' ? 'flights' : 'excursions'
+      const { data: item } = await db.from(itemTable).select('*').eq('id', b.item_id).single()
+      if (!item) throw new Error('Trip not found')
+      const capacity = b.item_kind === 'flight'
+        ? item.seats_total - item.seats_anchor
+        : item.spots_total - item.spots_anchor
+      const { data: approvedRows } = await db.from('bookings')
+        .select('seats').eq('item_kind', b.item_kind).eq('item_id', b.item_id).eq('status', 'approved')
+      const taken = (approvedRows ?? []).reduce((s: number, r: { seats: number }) => s + r.seats, 0)
+      if (taken + b.seats > capacity) throw new Error(`Only ${Math.max(0, capacity - taken)} seat(s) left`)
+
+      const code = genCode()
+      const { error } = await db.from('bookings').update({
+        status: 'approved', confirmation_code: code, decided_at: new Date().toISOString(),
+      }).eq('id', b.id)
       if (error) throw error
-      const res = data as { ok: boolean; error?: string; confirmation_code?: string }
-      if (!res.ok) throw new Error(res.error ?? 'Seat unavailable')
 
-      await supabase.from('notifications').insert({
-        member_id: b.member_id,
-        kind: 'booking',
-        title: 'Booking Confirmed',
-        body: `Your ${b.item_kind} reservation is confirmed. Confirmation code: ${res.confirmation_code}`,
-        ref: { booking_id: b.id, confirmation_code: res.confirmation_code },
-        read: false,
-      } as never)
+      try {
+        await supabase.from('notifications').insert({
+          member_id: b.member_id,
+          kind: 'booking',
+          title: 'Booking Confirmed',
+          body: `Your ${b.item_kind} reservation is confirmed. Confirmation code: ${code}`,
+          ref: { booking_id: b.id, confirmation_code: code },
+          read: false,
+        } as never)
+      } catch { /* notification is supplementary */ }
 
-      showToast(`Confirmed — ${res.confirmation_code}`)
+      showToast(`Confirmed — ${code}`)
+      loadBookings()
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Approval failed', 'error')
     } finally { setWorking(null) }

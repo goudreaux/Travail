@@ -82,21 +82,36 @@ export default function BookingsPage() {
   async function approve(booking: BookingRow) {
     setWorking(booking.id)
     try {
-      // Atomic function — checks seat availability and approves in one transaction
-      const { data, error } = await supabase.rpc('confirm_booking' as never, { p_booking_id: booking.id } as never)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      const itemTable = booking.item_kind === 'flight' ? 'flights' : 'excursions'
+      const { data: item } = await db.from(itemTable).select('*').eq('id', booking.item_id).single()
+      if (!item) throw new Error('Trip not found')
+      const capacity = booking.item_kind === 'flight'
+        ? item.seats_total - item.seats_anchor
+        : item.spots_total - item.spots_anchor
+      const { data: approvedRows } = await db.from('bookings')
+        .select('seats').eq('item_kind', booking.item_kind).eq('item_id', booking.item_id).eq('status', 'approved')
+      const taken = (approvedRows ?? []).reduce((s: number, r: { seats: number }) => s + r.seats, 0)
+      if (taken + booking.seats > capacity) throw new Error(`Only ${Math.max(0, capacity - taken)} seat(s) left`)
+
+      const code = genConfCode()
+      const { error } = await db.from('bookings').update({
+        status: 'approved', confirmation_code: code, decided_at: new Date().toISOString(),
+      }).eq('id', booking.id)
       if (error) throw error
-      const res = data as { ok: boolean; error?: string; confirmation_code?: string }
-      if (!res.ok) throw new Error(res.error ?? 'Seat unavailable')
 
-      await supabase.from('notifications').insert({
-        member_id: booking.member_id,
-        kind: 'booking',
-        title: 'Booking Confirmed',
-        body: `Your booking has been confirmed. Confirmation code: ${res.confirmation_code}`,
-        ref: { booking_id: booking.id, confirmation_code: res.confirmation_code },
-      })
+      try {
+        await supabase.from('notifications').insert({
+          member_id: booking.member_id,
+          kind: 'booking',
+          title: 'Booking Confirmed',
+          body: `Your booking has been confirmed. Confirmation code: ${code}`,
+          ref: { booking_id: booking.id, confirmation_code: code },
+        })
+      } catch { /* notification is supplementary */ }
 
-      showToast('Booking approved — ' + res.confirmation_code)
+      showToast('Booking approved — ' + code)
       load()
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Approval failed', 'error')
