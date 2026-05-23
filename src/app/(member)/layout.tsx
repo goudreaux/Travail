@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { returnLegIds } from '@/lib/data'
 import Sidebar from '@/components/Sidebar'
 import TopBar from '@/components/TopBar'
 import MobileNav from '@/components/MobileNav'
@@ -46,7 +47,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
     const [{ data: notifs }, { data: bookings }, { data: openFlights }, { data: openExcursions }] = await Promise.all([
       db.from('notifications').select('*').eq('member_id', memberData.id).order('created_at', { ascending: false }).limit(40),
       db.from('bookings').select('id').eq('member_id', memberData.id).eq('status', 'pending'),
-      db.from('flights').select('id').eq('status', 'open').gte('date', today),
+      db.from('flights').select('id, origin_code, dest_code').eq('status', 'open').gte('date', today),
       db.from('excursions').select('id').eq('status', 'open').gte('date', today),
     ])
 
@@ -55,7 +56,10 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
       setUnreadCount(notifs.filter((n: Notification) => !n.read).length)
     }
     if (bookings) setPendingCount(bookings.length)
-    const seats = (openFlights?.length ?? 0) + (openExcursions?.length ?? 0)
+    // Round trips (outbound + return) count as one.
+    const fl = openFlights ?? []
+    const rets = returnLegIds(fl)
+    const seats = (fl.length - rets.size) + (openExcursions?.length ?? 0)
     setOpenSeatsCount(seats)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -235,3 +235,25 @@ export function adaptExcursion(
   }
 }
 
+
+// ─── Round-trip pairing ─────────────────────────────────────────────────────
+// Round trips are stored as two flights: an outbound "F-x" and a return "F-xR"
+// with swapped origin/dest. This returns the set of return-leg ids that pair
+// with an outbound in the list, so callers can collapse a round trip to one.
+
+export function returnLegIds(
+  flights: { id: string; origin_code: string; dest_code: string }[]
+): Set<string> {
+  const byId = new Map(flights.map(f => [f.id, f]))
+  const rets = new Set<string>()
+  for (const f of flights) {
+    if (!f.id.endsWith('R')) continue
+    const ob = byId.get(f.id.slice(0, -1))
+    if (ob && ob.origin_code === f.dest_code && ob.dest_code === f.origin_code) rets.add(f.id)
+  }
+  return rets
+}
+
+export function returnIdOf(outboundId: string): string {
+  return `${outboundId}R`
+}

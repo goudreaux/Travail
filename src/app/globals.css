@@ -1296,6 +1296,7 @@ body::before {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .my-trip-card__conf {

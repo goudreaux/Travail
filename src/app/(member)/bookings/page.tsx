@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { fmtDate, fmtTime, fmtMoney } from '@/lib/data'
+import { fmtDate, fmtTime, fmtMoney, returnLegIds } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import type {
   Booking,
@@ -75,7 +75,7 @@ interface EnrichedSubmission extends AnchorSubmission {
 
 // ─── Booking card ──────────────────────────────────────────────────────────────
 
-function BookingCard({ booking, onNavigate }: { booking: EnrichedBooking; onNavigate: () => void }) {
+function BookingCard({ booking, onNavigate, roundReturn }: { booking: EnrichedBooking; onNavigate: () => void; roundReturn?: Flight }) {
   const isBoarding = booking.status === 'approved'
   const isFlight = booking.item_kind === 'flight'
   const f = booking.flight
@@ -89,8 +89,8 @@ function BookingCard({ booking, onNavigate }: { booking: EnrichedBooking; onNavi
   let routeMeta = ''
   if (isFlight && f) {
     const dp = fmtDate(f.date)
-    dateStr = dp.full
-    routeMeta = `${f.origin_code} → ${f.dest_code}`
+    dateStr = dp.full + (roundReturn ? ` · returns ${fmtDate(roundReturn.date).full}` : '')
+    routeMeta = `${f.origin_code} ${roundReturn ? '⇄' : '→'} ${f.dest_code}${roundReturn ? ' · round trip' : ''}`
   } else if (e) {
     const dp = fmtDate(e.date)
     dateStr = dp.full
@@ -369,6 +369,13 @@ export default function BookingsPage() {
   const confirmedCount = bookings.filter(b => b.status === 'approved').length
   const pendingCount = bookings.filter(b => b.status === 'pending').length
 
+  // Collapse round trips (outbound + return) into one entry.
+  const flightList = bookings.map(b => b.flight).filter(Boolean) as Flight[]
+  const retIds = returnLegIds(flightList)
+  const bookedFlightIds = new Set(bookings.filter(b => b.item_kind === 'flight').map(b => b.item_id))
+  const flightById = new Map(flightList.map(f => [f.id, f]))
+  const visibleBookings = bookings.filter(b => !(b.item_kind === 'flight' && retIds.has(b.item_id) && bookedFlightIds.has(b.item_id.slice(0, -1))))
+
   return (
     <div className="page">
       <div className="page-head">
@@ -410,11 +417,12 @@ export default function BookingsPage() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {bookings.map(b => (
+                  {visibleBookings.map(b => (
                     <BookingCard
                       key={b.id}
                       booking={b}
                       onNavigate={() => router.push(`/boarding-pass/${b.id}`)}
+                      roundReturn={b.item_kind === 'flight' ? flightById.get(`${b.item_id}R`) : undefined}
                     />
                   ))}
                 </div>

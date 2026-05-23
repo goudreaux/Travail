@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { adaptFlight, adaptExcursion, fmtDate, fmtTime, airportSub, DisplayFlight, DisplayExcursion } from '@/lib/data'
+import { adaptFlight, adaptExcursion, fmtDate, fmtTime, airportSub, returnLegIds, DisplayFlight, DisplayExcursion } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PostCard from '@/components/PostCard'
 import { useRouter } from 'next/navigation'
@@ -13,7 +13,7 @@ type PostWithDetails = Post & {
 }
 
 type TripItem =
-  | { kind: 'flight'; booking: Booking; flight: DisplayFlight }
+  | { kind: 'flight'; booking: Booking; flight: DisplayFlight; roundReturn?: DisplayFlight }
   | { kind: 'excursion'; booking: Booking; excursion: DisplayExcursion }
 
 const TYPE_FILTERS = ['all', 'fish', 'golf', 'hunt'] as const
@@ -151,13 +151,23 @@ export default function FeedPage() {
     return () => { supabase.removeChannel(channel) }
   }, [])
 
-  // Build trip items by matching bookings to flights/excursions
+  // Build trip items by matching bookings to flights/excursions.
+  // Round trips (outbound + return) collapse into one item.
+  const flightsById = new Map(flights.map(f => [f.id, f]))
+  const retIds = returnLegIds(flights)
+  const bookedFlightIds = new Set(bookings.filter(b => b.item_kind === 'flight').map(b => b.item_id))
   const tripItems: TripItem[] = []
   for (const booking of bookings) {
     if (booking.status !== 'approved' && booking.status !== 'pending') continue
     if (booking.item_kind === 'flight') {
-      const flight = flights.find(f => f.id === booking.item_id)
-      if (flight) tripItems.push({ kind: 'flight', booking, flight })
+      // Skip the return leg — it merges into the outbound's card.
+      if (retIds.has(booking.item_id) && bookedFlightIds.has(booking.item_id.slice(0, -1))) continue
+      const flight = flightsById.get(booking.item_id)
+      if (flight) {
+        const ret = flightsById.get(`${booking.item_id}R`)
+        const roundReturn = ret && bookedFlightIds.has(ret.id) ? ret : undefined
+        tripItems.push({ kind: 'flight', booking, flight, roundReturn })
+      }
     } else {
       const excursion = excursions.find(e => e.id === booking.item_id)
       if (excursion) tripItems.push({ kind: 'excursion', booking, excursion })
@@ -172,7 +182,8 @@ export default function FeedPage() {
 
   // All open, upcoming trips with availability (matches the Open seats board).
   const today = new Date().toISOString().slice(0, 10)
-  const openFlights = flights.filter(f => f.status === 'open' && f.date >= today && f.seatsAvailable > 0)
+  const openRetIds = returnLegIds(flights)
+  const openFlights = flights.filter(f => f.status === 'open' && f.date >= today && f.seatsAvailable > 0 && !openRetIds.has(f.id))
   const openExcursions = excursions.filter(e => e.status === 'open' && e.date >= today && e.spotsAvailable > 0)
 
   const filteredOpenItems = [
@@ -217,7 +228,7 @@ export default function FeedPage() {
             <span className="pill ink">{tripItems.length} UPCOMING</span>
           </div>
 
-          <div className="scroll-y" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 440 }}>
+          <div className="scroll-y" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 380 }}>
             {loading ? (
               <div style={{ padding: '32px 0', display: 'flex', justifyContent: 'center' }}>
                 <div className="pending-indicator" />
@@ -240,10 +251,10 @@ export default function FeedPage() {
                       <div className="my-trip-card__header">
                         <div>
                           <div className="my-trip-card__title">
-                            {flight.origin_code} → {flight.dest_code}
+                            {flight.origin_code} {trip.roundReturn ? '⇄' : '→'} {flight.dest_code}
                           </div>
                           <div className="my-trip-card__sub">
-                            {dp.dow}, {dp.mo} {dp.day} · {flight.departTimeStr} · {flight.durationStr}
+                            {trip.roundReturn ? 'Round trip · ' : ''}{dp.dow}, {dp.mo} {dp.day} · {flight.departTimeStr} · {flight.durationStr}
                           </div>
                         </div>
                         <span className={statusPillClass(booking.status)}>
@@ -259,6 +270,12 @@ export default function FeedPage() {
                           <span className="label">To</span>
                           <span>{flight.destMeta?.name ?? flight.dest_code} ({flight.dest_code})</span>
                         </div>
+                        {trip.roundReturn && (
+                          <div className="my-trip-card__row">
+                            <span className="label">Return</span>
+                            <span>{trip.roundReturn.dateParts.dow}, {trip.roundReturn.dateParts.mo} {trip.roundReturn.dateParts.day} · {trip.roundReturn.departTimeStr}</span>
+                          </div>
+                        )}
                         <div className="my-trip-card__row">
                           <span className="label">Seats</span>
                           <span>{booking.seats}</span>
