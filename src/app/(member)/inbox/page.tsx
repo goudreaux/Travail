@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Member, Booking, Flight, Excursion } from '@/lib/supabase/types'
+import type { Member, Booking } from '@/lib/supabase/types'
 
 interface Message {
   id: string

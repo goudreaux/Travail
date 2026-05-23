@@ -88,7 +88,7 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export default function TopBar({ member, notifications, onOpenBookings }: Props) {
+export default function TopBar({ notifications, onOpenBookings }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [localNotifs, setLocalNotifs] = useState<Notification[]>(notifications)
   const drawerRef = useRef<HTMLDivElement>(null)

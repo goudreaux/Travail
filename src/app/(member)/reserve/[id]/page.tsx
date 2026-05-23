@@ -249,8 +249,6 @@ export default function ReservePage() {
   const anchorMemberId = flight?.anchor_member_id ?? excursion?.anchor_member_id
 
   // Route display
-  const originCode = flight?.origin_code ?? excursion?.origin_code ?? ''
-  const destCode = flight?.dest_code ?? ''
   const itemDate = flight?.date ?? excursion?.date ?? ''
   const itemName = flight?.name ?? excursion?.name ?? ''
   const pitch = flight?.pitch ?? excursion?.pitch ?? ''

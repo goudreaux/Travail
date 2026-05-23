@@ -2,16 +2,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { genConfirmationCode } from '@/lib/data'
 import type { Booking, Member, Flight, Excursion, BookingStatus } from '@/lib/supabase/types'
 
 type BookingRow = Booking & {
   member: Pick<Member, 'name' | 'initials'> | null
   flight: Pick<Flight, 'name' | 'origin_code' | 'dest_code'> | null
   excursion: Pick<Excursion, 'name'> | null
-}
-
-function genConfCode(): string {
-  return 'TV' + Math.random().toString(36).toUpperCase().slice(2, 8)
 }
 
 function Toast({ msg, kind }: { msg: string; kind: 'success' | 'error' | 'info' }) {
@@ -100,7 +97,7 @@ export default function BookingsPage() {
       const db = supabase as any
       // Approve both legs of a round trip under one shared code.
       const legs = legIdsOf(booking.id).map(lid => bookings.find(b => b.id === lid)).filter(Boolean) as BookingRow[]
-      const code = genConfCode()
+      const code = genConfirmationCode()
       for (const leg of legs) {
         const itemTable = leg.item_kind === 'flight' ? 'flights' : 'excursions'
         const { data: item } = await db.from(itemTable).select('*').eq('id', leg.item_id).single()

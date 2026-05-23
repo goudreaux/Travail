@@ -6,6 +6,11 @@ export function memberCode(m: { member_no?: number | null; id: string }): string
   return m.member_no != null ? `#${m.member_no}` : m.id.slice(0, 8).toUpperCase()
 }
 
+// Ops confirmation code, e.g. "TVAB12CD".
+export function genConfirmationCode(): string {
+  return 'TV' + Math.random().toString(36).toUpperCase().slice(2, 8)
+}
+
 // ─── Date/time constants ──────────────────────────────────────────────────────
 
 export const MONTHS = [

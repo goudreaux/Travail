@@ -104,12 +104,11 @@ function TimeInput({ label, value, onChange }: { label: string; value: string; o
 }
 
 function AirportDropdown({
-  label,
   value,
   options,
   onChange,
 }: {
-  label: string
+  label?: string
   value: AirportMeta
   options: AirportMeta[]
   onChange: (a: AirportMeta) => void
