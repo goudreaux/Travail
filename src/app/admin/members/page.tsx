@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { fmtHomeBase } from '@/lib/data'
 import type { Member, MemberSensitive } from '@/lib/supabase/types'
@@ -68,6 +68,7 @@ export default function MembersPage() {
   const [form, setForm] = useState<EditForm>(defaultForm)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' | 'info' } | null>(null)
+  const formRef = useRef<HTMLDivElement>(null)
 
   const showToast = (msg: string, kind: 'success' | 'error' | 'info' = 'success') => {
     setToast({ msg, kind })
@@ -89,6 +90,12 @@ export default function MembersPage() {
 
   useEffect(() => { load() }, [load])
 
+  useEffect(() => {
+    if (editId !== null || showAdd) {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [editId, showAdd])
+
   const filtered = members.filter(m =>
     !search ||
     m.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -105,7 +112,7 @@ export default function MembersPage() {
       tier: 'founder',
       home_base_code: m.home_base_code ?? 'Tampa Bay',
       bio: m.bio ?? '',
-      interests: (m.interests ?? []).join(', '),
+      interests: Array.isArray(m.interests) ? m.interests.join(', ') : (m.interests ?? ''),
       date_of_birth: sensitiveData[m.id]?.date_of_birth ?? '',
       kyc_verified: m.kyc_verified,
       is_admin: m.is_admin,
@@ -142,8 +149,9 @@ export default function MembersPage() {
       }
 
       if (editId) {
-        const { error } = await supabase.from('members').update(payload).eq('id', editId)
+        const { data: updated, error } = await supabase.from('members').update(payload).eq('id', editId).select()
         if (error) throw error
+        if (!updated || updated.length === 0) throw new Error('Update blocked — verify the admin RLS update policy on members in Supabase')
         if (form.date_of_birth) {
           const { error: dobErr } = await supabase.from('member_sensitive').upsert({
             member_id: editId,
@@ -201,7 +209,7 @@ export default function MembersPage() {
 
       {/* Edit / Add form */}
       {isEditing && (
-        <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 14, padding: 24, marginBottom: 28 }}>
+        <div ref={formRef} style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 14, padding: 24, marginBottom: 28 }}>
           <h3 style={{ fontFamily: 'var(--display)', fontSize: 20, margin: '0 0 20px', color: 'var(--ink)' }}>
             {editId ? 'Edit Member' : 'Add Member'}
           </h3>
