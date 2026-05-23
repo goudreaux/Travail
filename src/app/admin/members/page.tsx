@@ -25,6 +25,7 @@ type EditForm = {
   bio: string
   interests: string
   date_of_birth: string
+  joined_at: string
   kyc_verified: boolean
   is_admin: boolean
 }
@@ -37,6 +38,7 @@ const defaultForm: EditForm = {
   bio: '',
   interests: '',
   date_of_birth: '',
+  joined_at: '',
   kyc_verified: false,
   is_admin: false,
 }
@@ -114,6 +116,7 @@ export default function MembersPage() {
       bio: m.bio ?? '',
       interests: Array.isArray(m.interests) ? m.interests.join(', ') : (m.interests ?? ''),
       date_of_birth: sensitiveData[m.id]?.date_of_birth ?? '',
+      joined_at: (m.joined_at || m.created_at || '').slice(0, 10),
       kyc_verified: m.kyc_verified,
       is_admin: m.is_admin,
     })
@@ -144,6 +147,7 @@ export default function MembersPage() {
         home_base_code: form.home_base_code || null,
         bio: form.bio.trim() || null,
         interests: form.interests ? form.interests.split(',').map(s => s.trim()).filter(Boolean) : null,
+        joined_at: form.joined_at || new Date().toISOString().slice(0, 10),
         kyc_verified: form.kyc_verified,
         is_admin: form.is_admin,
       }
@@ -164,7 +168,6 @@ export default function MembersPage() {
       } else {
         const { data: inserted, error } = await supabase.from('members').insert({
           ...payload,
-          joined_at: new Date().toISOString().slice(0, 10),
           user_id: '00000000-0000-0000-0000-000000000000',
         }).select().single()
         if (error) throw error
@@ -243,6 +246,15 @@ export default function MembersPage() {
                 type="date"
                 value={form.date_of_birth}
                 onChange={e => setForm(f => ({ ...f, date_of_birth: e.target.value }))}
+              />
+            </div>
+            <div className="field">
+              <label className="field-lab">Date Joined</label>
+              <input
+                className="input"
+                type="date"
+                value={form.joined_at}
+                onChange={e => setForm(f => ({ ...f, joined_at: e.target.value }))}
               />
             </div>
             <div className="field" style={{ gridColumn: '1 / -1' }}>
