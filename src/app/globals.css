@@ -545,6 +545,8 @@ body::before {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   margin-bottom: 24px;
+  height: 460px;
+  align-items: stretch;
 }
 
 .hero-card {
@@ -2448,6 +2450,7 @@ textarea.input {
 
   .hero {
     grid-template-columns: 1fr;
+    height: auto;
   }
 
   .two-col {

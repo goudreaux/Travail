@@ -220,7 +220,7 @@ export default function FeedPage() {
       {/* Hero strip */}
       <div className="hero">
         {/* LEFT: My Trips */}
-        <div className="panel" style={{ padding: 0 }}>
+        <div className="panel" style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
           <div className="panel-head">
             <div className="ttl" style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 500, color: 'var(--ink)' }}>
               My <em>trips</em>
@@ -228,7 +228,7 @@ export default function FeedPage() {
             <span className="pill ink">{tripItems.length} UPCOMING</span>
           </div>
 
-          <div className="scroll-y" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 380 }}>
+          <div className="scroll-y" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minHeight: 0 }}>
             {loading ? (
               <div style={{ padding: '32px 0', display: 'flex', justifyContent: 'center' }}>
                 <div className="pending-indicator" />
@@ -375,10 +375,8 @@ export default function FeedPage() {
           </div>
         </div>
 
-        {/* RIGHT column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {/* Open seats */}
-          <div className="panel" style={{ padding: 0 }}>
+        {/* RIGHT column: Open seats */}
+        <div className="panel" style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
             <div className="panel-head">
               <div className="ttl" style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 500, color: 'var(--ink)' }}>
                 Open <em>seats</em>
@@ -407,7 +405,7 @@ export default function FeedPage() {
             </div>
 
             {/* Seat items */}
-            <div className="seat-list" style={{ maxHeight: 340, overflowY: 'auto' }}>
+            <div className="seat-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {loading ? (
                 <div style={{ padding: '24px', display: 'flex', justifyContent: 'center' }}>
                   <div className="pending-indicator" />
@@ -474,25 +472,6 @@ export default function FeedPage() {
               )}
             </div>
           </div>
-
-          {/* CTA buttons */}
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              className="btn-primary"
-              style={{ flex: 1 }}
-              onClick={() => router.push('/anchor-flight')}
-            >
-              + Flight
-            </button>
-            <button
-              className="btn-sun"
-              style={{ flex: 1 }}
-              onClick={() => router.push('/anchor-excursion')}
-            >
-              + Exc.
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Feed */}
