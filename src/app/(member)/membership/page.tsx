@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { fmtDate, fmtHomeBase } from '@/lib/data'
+import { fmtDate, fmtHomeBase, memberCode } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import type { Member, Booking, AnchorSubmission, MemberSensitive } from '@/lib/supabase/types'
 
@@ -197,7 +197,7 @@ export default function MembershipPage() {
   return (
     <div className="page">
       <PageHero
-        eyebrow={`#${member.id.slice(0, 8).toUpperCase()} · ${TIER_LABEL[member.tier] ?? member.tier}`}
+        eyebrow={`${memberCode(member)} · ${TIER_LABEL[member.tier] ?? member.tier}`}
         title="Membership."
         sub="Your account, history, and settings."
       />
@@ -458,7 +458,7 @@ export default function MembershipPage() {
               <div style={{ padding: '6px 0 8px' }}>
                 {[
                   { label: 'Tier', value: <span className={`pill ${TIER_PILL[member.tier] ?? 'ink'}`}>{TIER_LABEL[member.tier] ?? member.tier}</span> },
-                  { label: 'Member ID', value: <span className="mono" style={{ fontSize: 10 }}>#{member.id.slice(0, 8).toUpperCase()}</span> },
+                  { label: 'Member ID', value: <span className="mono" style={{ fontSize: 10 }}>{memberCode(member)}</span> },
                   { label: 'Joined', value: dp ? `${dp.mo} ${dp.day}, ${new Date(member.joined_at).getFullYear()}` : '—' },
                   { label: 'KYC status', value: member.kyc_verified ? <span className="pill moss">Verified</span> : <span className="pill signal">Pending</span> },
                   { label: 'Card on file', value: member.card_last4 ? `••••  ••••  ••••  ${member.card_last4}` : <span style={{ color: 'var(--ink-faint)' }}>None on file</span> },

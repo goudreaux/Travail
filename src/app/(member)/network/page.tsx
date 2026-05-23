@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { fmtHomeBase } from '@/lib/data'
+import { fmtHomeBase, memberCode } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import type { Member } from '@/lib/supabase/types'
 
@@ -196,7 +196,7 @@ export default function NetworkPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         <TierBadge />
                         <span className="mono" style={{ fontSize: 9.5 }}>
-                          {member.id.slice(0, 8).toUpperCase()}
+                          {memberCode(member)}
                         </span>
                       </div>
                     </div>

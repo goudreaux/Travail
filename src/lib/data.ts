@@ -1,5 +1,11 @@
 import type { Flight, Excursion, ExcursionTemplate } from './supabase/types'
 
+// Human-facing member code: a sequential signup number (#7). Falls back to the
+// short UUID for any member that predates member_no being assigned.
+export function memberCode(m: { member_no?: number | null; id: string }): string {
+  return m.member_no != null ? `#${m.member_no}` : m.id.slice(0, 8).toUpperCase()
+}
+
 // ─── Date/time constants ──────────────────────────────────────────────────────
 
 export const MONTHS = [

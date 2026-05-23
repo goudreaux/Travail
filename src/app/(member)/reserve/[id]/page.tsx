@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { fmtDate, fmtDur, fmtMoney, fmtTime, fmtHomeBase } from '@/lib/data'
+import { fmtDate, fmtDur, fmtMoney, fmtTime, fmtHomeBase, memberCode } from '@/lib/data'
 import type { Member, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 import { type Guest, type GuestSlot, NEW_GUEST, emptyGuestSlot } from '@/lib/guests'
 
@@ -705,7 +705,7 @@ export default function ReservePage() {
                     </div>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       <span className="mono" style={{ fontSize: 9.5 }}>
-                        #{member.id.slice(0, 8).toUpperCase()}
+                        {memberCode(member)}
                       </span>
                       {member.kyc_verified && (
                         <span className="pill moss" style={{ fontSize: 9, height: 17 }}>Verified</span>

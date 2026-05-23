@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { fmtHomeBase } from '@/lib/data'
+import { fmtHomeBase, memberCode } from '@/lib/data'
 import type { Member, MemberSensitive } from '@/lib/supabase/types'
 
 const HOME_BASES = ['Tampa Bay', 'SFL']
@@ -444,7 +444,7 @@ export default function MembersPage() {
                       <span style={{ fontWeight: 500, color: 'var(--ink)' }}>{m.name}</span>
                     </div>
                   </td>
-                  <td style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-light)' }}>{m.id.slice(0, 8)}…</td>
+                  <td style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink-light)' }}>{memberCode(m)}</td>
                   <td style={{ fontSize: 13 }}>{fmtHomeBase(m.home_base_code) ?? '—'}</td>
                   <td>
                     <span className={`pill ${m.kyc_verified ? 'moss' : 'signal'}`}>{m.kyc_verified ? 'Verified' : 'Pending'}</span>
