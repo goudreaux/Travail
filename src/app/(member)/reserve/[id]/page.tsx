@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { fmtDate, fmtDur, fmtMoney, fmtTime, airportSub, fmtHomeBase } from '@/lib/data'
 import type { Member, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 
-const SERVICE_FEE_RATE = 0.08
+const SERVICE_FEE_RATE = 0.03
 
 function formatDateLong(dateStr: string) {
   const [year, month, day] = dateStr.split('-').map(Number)
@@ -630,7 +630,7 @@ export default function ReservePage() {
                   <span>{fmtMoney(subtotal)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-light)' }}>
-                  <span>Service fee (8%)</span>
+                  <span>Service fee (3%)</span>
                   <span>{fmtMoney(serviceFee)}</span>
                 </div>
                 <div style={{ height: 1, background: 'var(--hair)', margin: '2px 0' }} />
