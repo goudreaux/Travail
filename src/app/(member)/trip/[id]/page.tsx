@@ -96,26 +96,12 @@ export default function TripThreadPage() {
       const { error } = await db.from('booking_messages').insert({
         booking_id: booking.id,
         sender_member_id: member.id,
-        is_ops: member.is_admin,
+        is_ops: false, // member voice — this is the member's trip thread
         body: text,
       })
       if (error) throw error
       setBody('')
       await loadMessages(booking.id)
-
-      // Notify the booking owner when ops replies (best-effort).
-      if (member.is_admin && booking.member_id !== member.id) {
-        try {
-          await supabase.from('notifications').insert({
-            member_id: booking.member_id,
-            kind: 'message',
-            title: 'New message from Ops',
-            body: text.slice(0, 140),
-            ref: { booking_id: booking.id },
-            read: false,
-          } as never)
-        } catch { /* notification is supplementary */ }
-      }
     } catch {
       // surface minimal — keep the typed text so they can retry
     } finally {
