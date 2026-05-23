@@ -170,9 +170,10 @@ export default function FeedPage() {
     return da.localeCompare(db)
   })
 
-  // Open items (not already booked by this member)
-  const openFlights = flights.filter(f => !f.isBooked && !f.isAnchor && f.seatsAvailable > 0)
-  const openExcursions = excursions.filter(e => !e.isBooked && !e.isAnchor && e.spotsAvailable > 0)
+  // All open, upcoming trips with availability (matches the Open seats board).
+  const today = new Date().toISOString().slice(0, 10)
+  const openFlights = flights.filter(f => f.status === 'open' && f.date >= today && f.seatsAvailable > 0)
+  const openExcursions = excursions.filter(e => e.status === 'open' && e.date >= today && e.spotsAvailable > 0)
 
   const filteredOpenItems = [
     ...openFlights.map(f => ({ type: 'flight' as const, item: f, date: f.date })),
