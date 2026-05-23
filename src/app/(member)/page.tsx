@@ -236,7 +236,7 @@ export default function FeedPage() {
                   const { flight, booking } = trip
                   const dp = flight.dateParts
                   return (
-                    <div key={booking.id} className="my-trip-card">
+                    <div key={booking.id} className={`my-trip-card s-${booking.status}`}>
                       <div className="my-trip-card__header">
                         <div>
                           <div className="my-trip-card__title">
@@ -298,7 +298,7 @@ export default function FeedPage() {
                   const dp = excursion.dateParts
                   const icon = excursion.templateMeta?.icon ?? 'fish'
                   return (
-                    <div key={booking.id} className="my-trip-card">
+                    <div key={booking.id} className={`my-trip-card s-${booking.status}`}>
                       <div className="my-trip-card__header">
                         <div>
                           <div className="my-trip-card__title">{excursion.name}</div>

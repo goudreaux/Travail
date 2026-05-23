@@ -102,11 +102,9 @@ function BookingCard({ booking, onNavigate }: { booking: EnrichedBooking; onNavi
 
   return (
     <div
-      className="my-trip-card"
-      style={{ cursor: 'pointer', transition: 'border-color 0.15s' }}
+      className={`my-trip-card s-${booking.status}`}
+      style={{ cursor: 'pointer' }}
       onClick={onNavigate}
-      onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--tropic)')}
-      onMouseLeave={e => (e.currentTarget.style.borderColor = '')}
     >
       <div className="my-trip-card__header">
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1 }}>
