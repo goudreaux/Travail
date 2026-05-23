@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { adaptFlight, adaptExcursion, fmtDate, fmtTime, fmtMoney, MONTHS, MONTHS_SHORT, DOWS_SHORT } from '@/lib/data'
+import { adaptFlight, adaptExcursion, fmtDate, fmtTime, fmtMoney, returnLegIds, MONTHS, MONTHS_SHORT, DOWS_SHORT } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
@@ -155,14 +155,22 @@ export default function CalendarPage() {
   // Build a map: date -> CalTrip[]
   const tripsByDate: Record<string, CalTrip[]> = {}
 
+  // Round trips are one record, anchored to the outbound (first) leg.
+  const retIds = returnLegIds(flights)
+  const flightsById = new Map(flights.map(f => [f.id, f]))
   flights.forEach(f => {
+    if (retIds.has(f.id)) return // return leg folds into its outbound
+    const ret = flightsById.get(`${f.id}R`)
+    const isRound = !!ret && retIds.has(ret.id)
     const entry: CalTrip = {
       id: f.id,
       kind: 'flight',
       name: f.name,
       date: f.date,
       icon: 'flight',
-      meta: `${f.origin_code} → ${f.dest_code} · ${f.departTimeStr} · ${fmtMoney(f.price_per_seat)}/seat`,
+      meta: isRound
+        ? `${f.origin_code} ⇄ ${f.dest_code} · round trip · returns ${fmtDate(ret!.date).mo} ${fmtDate(ret!.date).day}`
+        : `${f.origin_code} → ${f.dest_code} · ${f.departTimeStr} · ${fmtMoney(f.price_per_seat)}/seat`,
       color: getTripColor('flight'),
       isBooked: f.isBooked,
       flight: f,
