@@ -513,6 +513,11 @@ export default function ReservePage() {
                   This {kind} is currently full.
                 </p>
               )}
+              {maxSeats > 1 && seats === 1 && (
+                <p style={{ fontSize: 12, color: 'var(--ink-light)', margin: '8px 0 0' }}>
+                  Bringing guests? You&rsquo;re seat 1 — add a seat for each guest and you&rsquo;ll register them below.
+                </p>
+              )}
             </div>
 
             {/* 2b. Guest registration */}
