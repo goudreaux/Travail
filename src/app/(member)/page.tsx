@@ -144,6 +144,10 @@ export default function FeedPage() {
           })
         }
       })
+      // Live seat counts — the booking trigger updates seats_taken/spots_taken on
+      // these rows, so refresh the open-seats panel when they change.
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flights' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'excursions' }, () => load())
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }

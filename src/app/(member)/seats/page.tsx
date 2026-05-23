@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { adaptFlight, adaptExcursion, fmtDate, fmtMoney, fmtTime } from '@/lib/data'
@@ -316,8 +316,8 @@ export default function SeatsPage() {
   const [memberId, setMemberId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function load() {
+  const load = useCallback(async (silent = false) => {
+      if (!silent) setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
@@ -387,10 +387,22 @@ export default function SeatsPage() {
       setFlights(adaptedFlights)
       setExcursions(adaptedExcursions)
       setLoading(false)
-    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
     load()
-  }, [])
+
+    // Live seat counts: the booking trigger writes seats_taken/spots_taken onto
+    // the flight/excursion rows (which members can read), so subscribing to those
+    // tables surfaces other members' bookings without exposing who booked.
+    const channel = supabase
+      .channel('seats-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flights' }, () => load(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'excursions' }, () => load(true))
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [load]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function joinWaitlist(itemKind: 'flight' | 'excursion', itemId: string) {
     if (!memberId) return
