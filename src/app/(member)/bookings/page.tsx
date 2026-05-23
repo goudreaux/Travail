@@ -416,7 +416,7 @@ export default function BookingsPage() {
                     <BookingCard
                       key={b.id}
                       booking={b}
-                      onNavigate={() => router.push(`/reserve/${b.item_id}?kind=${b.item_kind}`)}
+                      onNavigate={() => router.push(`/boarding-pass/${b.id}`)}
                     />
                   ))}
                 </div>
