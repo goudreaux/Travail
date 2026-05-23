@@ -2378,11 +2378,27 @@ textarea.input {
 
 /* ─── Mobile responsive ──────────────────────────────────── */
 
+/* Mobile bottom nav — rendered always, shown only on small screens below */
+.mobile-nav { display: none; }
+.mobile-nav .m-item svg { width: 21px; height: 21px; }
+
 @media (max-width: 768px) {
   .app {
     grid-template-columns: 1fr;
-    padding-bottom: 60px;
+    padding-bottom: calc(62px + env(safe-area-inset-bottom));
   }
+
+  .mobile-nav { padding-bottom: env(safe-area-inset-bottom); height: calc(60px + env(safe-area-inset-bottom)); }
+
+  /* Admin shell stacks; sidebar no longer full-height sticky */
+  .admin-shell { grid-template-columns: 1fr !important; }
+  .admin-aside { position: static !important; height: auto !important; }
+
+  /* Declutter the top bar on phones */
+  .topbar .search { display: none; }
+
+  /* Prevent iOS auto-zoom on input focus (needs >=16px) */
+  input, textarea, select, .input, .select { font-size: 16px; }
 
   .side {
     display: none;

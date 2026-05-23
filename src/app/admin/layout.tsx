@@ -65,8 +65,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isActive = (item: typeof nav[0]) => item.exact ? pathname === item.href : pathname.startsWith(item.href)
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', minHeight: '100vh', background: 'var(--bg)' }}>
-      <aside style={{
+    <div className="admin-shell" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', minHeight: '100vh', background: 'var(--bg)' }}>
+      <aside className="admin-aside" style={{
         background: 'var(--night)', padding: '24px 16px',
         display: 'flex', flexDirection: 'column', gap: 4,
         position: 'sticky', top: 0, height: '100vh',
