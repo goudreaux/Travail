@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { adaptFlight, adaptExcursion, fmtDate, fmtTime, fmtMoney, MONTHS, MONTHS_SHORT, DOWS_SHORT } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
+import PageHero from '@/components/PageHero'
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 import type { DisplayFlight, DisplayExcursion } from '@/lib/data'
 
@@ -198,17 +199,11 @@ export default function CalendarPage() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <p className="mono" style={{ marginBottom: 6 }}>FOUNDING SEASON · 6-MONTH HORIZON</p>
-          <h1>Calendar</h1>
-          <p className="sub">
-            {totalFlights + totalExcursions} departures over the next 6 months
-            {totalFlights > 0 && ` · ${totalFlights} flight${totalFlights !== 1 ? 's' : ''}`}
-            {totalExcursions > 0 && ` · ${totalExcursions} excursion${totalExcursions !== 1 ? 's' : ''}`}
-          </p>
-        </div>
-      </div>
+      <PageHero
+        eyebrow="FOUNDING SEASON · 6-MONTH HORIZON"
+        title="Calendar"
+        sub={`${totalFlights + totalExcursions} departures over the next 6 months${totalFlights > 0 ? ` · ${totalFlights} flight${totalFlights !== 1 ? 's' : ''}` : ''}${totalExcursions > 0 ? ` · ${totalExcursions} excursion${totalExcursions !== 1 ? 's' : ''}` : ''}`}
+      />
 
       <div className="page-view">
         {loading ? (

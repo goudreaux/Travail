@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { adaptFlight, adaptExcursion, fmtDate, fmtTime, airportSub, returnLegIds, DisplayFlight, DisplayExcursion } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PostCard from '@/components/PostCard'
+import PageHero from '@/components/PageHero'
 import { useRouter } from 'next/navigation'
 import type { Member, Booking, Post, ExcursionTemplate, Flight, Excursion } from '@/lib/supabase/types'
 
@@ -215,40 +216,24 @@ export default function FeedPage() {
   const nextDate = nextTrip ? (nextTrip.kind === 'flight' ? nextTrip.flight.dateParts : nextTrip.excursion.dateParts) : null
 
   return (
-    <div className="page page-view" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* Editorial hero */}
-      <div style={{
-        position: 'relative',
-        overflow: 'hidden',
-        borderRadius: 20,
-        background: 'linear-gradient(135deg, #052a35 0%, #0d3340 52%, #0a4a55 100%)',
-        padding: 'clamp(26px, 4vw, 40px) clamp(22px, 4vw, 38px)',
-        boxShadow: '0 16px 48px rgba(13,51,64,0.20)',
-      }}>
-        <div style={{ position: 'absolute', top: -90, right: -70, width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,179,199,0.30), transparent 68%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: -110, left: '38%', width: 260, height: 260, borderRadius: '50%', background: 'radial-gradient(circle, rgba(244,167,44,0.12), transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'relative' }}>
-          <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--tropic)', marginBottom: 12 }}>
-            FOUNDING SEASON · TRAVAIL × FIELD &amp; STREAM
+    <div className="page">
+      <PageHero
+        eyebrow="FOUNDING SEASON · TRAVAIL × FIELD & STREAM"
+        title={`${greeting}${member ? `, ${member.name.split(' ')[0]}.` : '.'}`}
+        sub="Your trips, what's open, and the latest from the network."
+      >
+        {nextTrip && nextDate && (
+          <div style={{ marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 999, padding: '7px 8px 7px 14px', flexWrap: 'wrap' }}>
+            <span className="mono" style={{ fontSize: 9, letterSpacing: '0.16em', color: 'var(--tropic)' }}>NEXT UP</span>
+            <span style={{ color: '#fff', fontSize: 13, fontWeight: 500 }}>{nextLabel}</span>
+            <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, fontFamily: 'var(--mono)', background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: '3px 10px' }}>
+              {nextDate.dow}, {nextDate.mo} {nextDate.day}
+            </span>
           </div>
-          <h1 style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontWeight: 500, color: '#fff', margin: 0, lineHeight: 1.04, letterSpacing: '-0.01em', fontSize: 'clamp(30px, 5.2vw, 44px)' }}>
-            {greeting}{member ? `, ${member.name.split(' ')[0]}.` : '.'}
-          </h1>
-          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginTop: 10 }}>
-            Your trips, what&rsquo;s open, and the latest from the network.
-          </div>
-          {nextTrip && nextDate && (
-            <div style={{ marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 999, padding: '7px 8px 7px 14px', flexWrap: 'wrap' }}>
-              <span className="mono" style={{ fontSize: 9, letterSpacing: '0.16em', color: 'var(--tropic)' }}>NEXT UP</span>
-              <span style={{ color: '#fff', fontSize: 13, fontWeight: 500 }}>{nextLabel}</span>
-              <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, fontFamily: 'var(--mono)', background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: '3px 10px' }}>
-                {nextDate.dow}, {nextDate.mo} {nextDate.day}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+        )}
+      </PageHero>
 
+      <div className="page-view" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Hero strip */}
       <div className="hero">
         {/* LEFT: My Trips */}
@@ -532,6 +517,7 @@ export default function FeedPage() {
             ))
           )}
         </div>
+      </div>
       </div>
     </div>
   )

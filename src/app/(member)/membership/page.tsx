@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { fmtDate, fmtHomeBase } from '@/lib/data'
+import PageHero from '@/components/PageHero'
 import type { Member, Booking, AnchorSubmission, MemberSensitive } from '@/lib/supabase/types'
 
 const TIER_LABEL: Record<string, string> = {
@@ -195,21 +196,11 @@ export default function MembershipPage() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <h1>Membership.</h1>
-          <p className="sub">
-            <span
-              className="mono"
-              style={{ fontSize: 10, letterSpacing: '0.12em', color: 'var(--ink-mid)' }}
-            >
-              #{member.id.slice(0, 8).toUpperCase()}
-            </span>
-            {' · '}
-            {TIER_LABEL[member.tier] ?? member.tier}
-          </p>
-        </div>
-      </div>
+      <PageHero
+        eyebrow={`#${member.id.slice(0, 8).toUpperCase()} · ${TIER_LABEL[member.tier] ?? member.tier}`}
+        title="Membership."
+        sub="Your account, history, and settings."
+      />
 
       <div className="page-view">
         <div className="two-col" style={{ gridTemplateColumns: '1fr 320px', gap: 24 }}>

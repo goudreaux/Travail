@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { fmtDur } from '@/lib/data'
+import PageHero from '@/components/PageHero'
 import type { AirportMeta } from '@/lib/data'
 
 const ANCHOR_ORIGINS: AirportMeta[] = [
@@ -214,11 +215,7 @@ export default function AnchorFlightPage() {
 
   if (!isAdmin) return (
     <div className="page">
-      <div className="page-head">
-        <p className="mono" style={{ marginBottom: 6 }}>ANCHOR A FLIGHT</p>
-        <h1>Coming soon.</h1>
-        <p className="sub">This feature is under development. Check back soon.</p>
-      </div>
+      <PageHero eyebrow="ANCHOR A FLIGHT" title="Coming soon." sub="This feature is under development. Check back soon." />
     </div>
   )
 
@@ -343,12 +340,11 @@ export default function AnchorFlightPage() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <h1>Anchor a Flight</h1>
-          <p className="sub">Set your route, lock your seats, and invite the network to fill the rest.</p>
-        </div>
-      </div>
+      <PageHero
+        eyebrow="ANCHOR A FLIGHT"
+        title="Anchor a Flight"
+        sub="Set your route, lock your seats, and invite the network to fill the rest."
+      />
 
       <div className="page-view">
         <div className="builder">

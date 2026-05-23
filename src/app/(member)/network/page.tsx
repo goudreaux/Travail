@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { fmtHomeBase } from '@/lib/data'
+import PageHero from '@/components/PageHero'
 import type { Member } from '@/lib/supabase/types'
 
 function Avatar({ member, size = 52 }: { member: Member; size?: number }) {
@@ -96,15 +97,11 @@ export default function NetworkPage() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <div className="mono" style={{ marginBottom: 6 }}>The Network</div>
-          <h1>Members.</h1>
-          <p className="sub">
-            {loading ? 'Loading...' : `The ${members.length} founding members.`}
-          </p>
-        </div>
-        <div className="page-actions">
+      <PageHero
+        eyebrow="The Network"
+        title="Members."
+        sub={loading ? 'Loading…' : `The ${members.length} founding members.`}
+        actions={
           <div className="search" style={{ maxWidth: 240 }}>
             <svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
               <circle cx="9" cy="9" r="6" /><line x1="13.5" y1="13.5" x2="18" y2="18" />
@@ -116,8 +113,8 @@ export default function NetworkPage() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-        </div>
-      </div>
+        }
+      />
 
       <div className="page-view">
         {loading ? (

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { adaptFlight, adaptExcursion, fmtDate, fmtMoney, fmtTime } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
+import PageHero from '@/components/PageHero'
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 import type { DisplayFlight, DisplayExcursion } from '@/lib/data'
 
@@ -420,17 +421,11 @@ export default function SeatsPage() {
   return (
     <div className="page">
       {toast && <div className="toast success">{toast}</div>}
-      <div className="page-head">
-        <div>
-          <p className="mono" style={{ marginBottom: 6 }}>DEPARTURES BOARD</p>
-          <h1>Open seats &amp; spots.</h1>
-          <p className="sub">
-            {loading
-              ? 'Loading available departures…'
-              : `${totalOpen} departure${totalOpen !== 1 ? 's' : ''} with open availability`}
-          </p>
-        </div>
-      </div>
+      <PageHero
+        eyebrow="DEPARTURES BOARD"
+        title="Open seats & spots."
+        sub={loading ? 'Loading available departures…' : `${totalOpen} departure${totalOpen !== 1 ? 's' : ''} with open availability`}
+      />
 
       <div className="page-view">
         {/* Filter bar */}

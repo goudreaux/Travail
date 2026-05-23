@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ORIGINS, DESTINATIONS } from '@/lib/data'
+import PageHero from '@/components/PageHero'
 import type { AirportMeta } from '@/lib/data'
 
 const EXCURSION_DESTS: AirportMeta[] = DESTINATIONS
@@ -128,11 +129,7 @@ export default function AnchorExcursionPage() {
 
   if (!isAdmin) return (
     <div className="page">
-      <div className="page-head">
-        <p className="mono" style={{ marginBottom: 6 }}>ANCHOR AN EXCURSION</p>
-        <h1>Coming soon.</h1>
-        <p className="sub">This feature is under development. Check back soon.</p>
-      </div>
+      <PageHero eyebrow="ANCHOR AN EXCURSION" title="Coming soon." sub="This feature is under development. Check back soon." />
     </div>
   )
 
@@ -258,12 +255,11 @@ export default function AnchorExcursionPage() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <h1>Anchor an Excursion</h1>
-          <p className="sub">Set up a destination experience and invite the network to join.</p>
-        </div>
-      </div>
+      <PageHero
+        eyebrow="ANCHOR AN EXCURSION"
+        title="Anchor an Excursion"
+        sub="Set up a destination experience and invite the network to join."
+      />
 
       <div className="page-view">
         <div className="builder">
