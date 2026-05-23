@@ -15,6 +15,13 @@ function formatDateLong(dateStr: string) {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 }
 
+function formatPhone(v: string): string {
+  const d = v.replace(/\D/g, '').slice(0, 10)
+  if (d.length <= 3) return d
+  if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`
+  return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`
+}
+
 export default function ReservePage() {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -38,6 +45,7 @@ export default function ReservePage() {
   const [paymentMethod] = useState<'card'>('card')
   const [savedGuests, setSavedGuests] = useState<Guest[]>([])
   const [guestSlots, setGuestSlots] = useState<GuestSlot[]>([])
+  const [savingGuest, setSavingGuest] = useState<number | null>(null)
 
   // Submission state
   const [submitting, setSubmitting] = useState(false)
@@ -106,12 +114,37 @@ export default function ReservePage() {
   const updateSlot = (i: number, patch: Partial<GuestSlot>) =>
     setGuestSlots(prev => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)))
 
+  // Every guest slot must resolve to a saved guest (existing pick or one just saved).
   const guestsComplete =
     seats <= 1 ||
     (guestSlots.length === seats - 1 &&
-      guestSlots.every(s =>
-        s.savedGuestId !== '' &&
-        (s.savedGuestId !== NEW_GUEST || (s.first_name.trim() !== '' && s.last_name.trim() !== ''))))
+      guestSlots.every(s => s.savedGuestId !== '' && s.savedGuestId !== NEW_GUEST))
+
+  async function saveGuestSlot(i: number) {
+    if (!member) return
+    const s = guestSlots[i]
+    if (!s.first_name.trim() || !s.last_name.trim()) { setError('Enter a first and last name for the guest.'); return }
+    if (s.phone.replace(/\D/g, '').length !== 10) { setError('Enter a 10-digit phone number for the guest.'); return }
+    setError('')
+    setSavingGuest(i)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).from('guests').insert({
+        host_member_id: member.id,
+        first_name: s.first_name.trim(),
+        last_name: s.last_name.trim(),
+        email: s.email.trim() || null,
+        phone: s.phone.trim(),
+      }).select().single()
+      if (error) throw error
+      setSavedGuests(prev => [...prev, data as Guest])
+      updateSlot(i, { savedGuestId: (data as Guest).id })
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Could not save guest.')
+    } finally {
+      setSavingGuest(null)
+    }
+  }
 
   // Derived values
   const maxSeats = flight
@@ -527,36 +560,61 @@ export default function ReservePage() {
                   Guests · {seats - 1}
                 </div>
                 <p style={{ fontSize: 12.5, color: 'var(--ink-light)', margin: '0 0 12px', lineHeight: 1.5 }}>
-                  You hold seat 1. Register {seats - 1} guest{seats - 1 !== 1 ? 's' : ''} — pick from your saved guests or add new. New guests are saved for next time.
+                  You hold seat 1. Register {seats - 1} guest{seats - 1 !== 1 ? 's' : ''} — pick from your saved guests, or add a new one and tap <strong>Save guest</strong>. New guests are saved for next time.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {guestSlots.map((slot, i) => (
-                    <div key={i} style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: slot.savedGuestId === NEW_GUEST ? 12 : 0 }}>
-                        <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-mid)', letterSpacing: '0.1em' }}>GUEST {i + 1}</span>
-                        <select
-                          className="select"
-                          style={{ maxWidth: 240 }}
-                          value={slot.savedGuestId}
-                          onChange={e => updateSlot(i, { savedGuestId: e.target.value })}
-                        >
-                          <option value="">Select a guest…</option>
-                          {savedGuests.map(g => (
-                            <option key={g.id} value={g.id}>{g.first_name} {g.last_name}</option>
-                          ))}
-                          <option value={NEW_GUEST}>+ Add new guest</option>
-                        </select>
-                      </div>
-                      {slot.savedGuestId === NEW_GUEST && (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                          <input className="input" placeholder="First name *" value={slot.first_name} onChange={e => updateSlot(i, { first_name: e.target.value })} />
-                          <input className="input" placeholder="Last name *" value={slot.last_name} onChange={e => updateSlot(i, { last_name: e.target.value })} />
-                          <input className="input" type="email" placeholder="Email" value={slot.email} onChange={e => updateSlot(i, { email: e.target.value })} />
-                          <input className="input" placeholder="Phone" value={slot.phone} onChange={e => updateSlot(i, { phone: e.target.value })} />
+                  {guestSlots.map((slot, i) => {
+                    const selected = slot.savedGuestId && slot.savedGuestId !== NEW_GUEST
+                      ? savedGuests.find(g => g.id === slot.savedGuestId)
+                      : undefined
+                    return (
+                      <div key={i} style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: slot.savedGuestId ? 12 : 0 }}>
+                          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-mid)', letterSpacing: '0.1em' }}>GUEST {i + 1}</span>
+                          <select
+                            className="select"
+                            style={{ maxWidth: 240 }}
+                            value={slot.savedGuestId}
+                            onChange={e => updateSlot(i, { savedGuestId: e.target.value })}
+                          >
+                            <option value="">Select a guest…</option>
+                            {savedGuests.map(g => (
+                              <option key={g.id} value={g.id}>{g.first_name} {g.last_name}</option>
+                            ))}
+                            <option value={NEW_GUEST}>+ Add new guest</option>
+                          </select>
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {slot.savedGuestId === NEW_GUEST && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                              <input className="input" placeholder="First name *" value={slot.first_name} onChange={e => updateSlot(i, { first_name: e.target.value })} />
+                              <input className="input" placeholder="Last name *" value={slot.last_name} onChange={e => updateSlot(i, { last_name: e.target.value })} />
+                              <input className="input" type="email" placeholder="Email" value={slot.email} onChange={e => updateSlot(i, { email: e.target.value })} />
+                              <input className="input" inputMode="numeric" maxLength={12} placeholder="Phone * (xxx-xxx-xxxx)" value={slot.phone} onChange={e => updateSlot(i, { phone: formatPhone(e.target.value) })} />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                              <button
+                                className="btn-primary"
+                                style={{ height: 32, padding: '0 16px', fontSize: 12.5 }}
+                                onClick={() => saveGuestSlot(i)}
+                                disabled={savingGuest === i}
+                              >
+                                {savingGuest === i ? 'Saving…' : 'Save guest'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {selected && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink-mid)' }}>
+                            <span style={{ color: 'var(--moss)' }}>✓</span>
+                            <span>{selected.first_name} {selected.last_name}{selected.phone ? ` · ${selected.phone}` : ''}{selected.email ? ` · ${selected.email}` : ''}</span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
