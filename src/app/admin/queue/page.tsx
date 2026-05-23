@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { logActivity } from '@/lib/activity'
 import { genConfirmationCode } from '@/lib/data'
@@ -855,11 +854,6 @@ export default function QueuePage() {
                           ))}
                         </div>
                       )}
-                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--hair)' }}>
-                        <Link href={`/admin/inbox?b=${b.id}`} className="mono" style={{ fontSize: 10, color: 'var(--tropic-d)', letterSpacing: '0.1em' }}>
-                          OPEN TRIP THREAD →
-                        </Link>
-                      </div>
                     </div>
                   )}
                 </div>

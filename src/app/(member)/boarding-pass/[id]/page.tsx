@@ -52,16 +52,9 @@ export default function BoardingPassPage() {
     if (!member || !booking) return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
-    // Surface it in the Ops Queue…
+    // Surface it in the Ops Queue; ops follows up by text/phone.
     const { error } = await db.from('cancellation_requests').insert({ booking_id: booking.id, member_id: member.id })
     if (error && error.code !== '23505') return
-    // …and drop a note in the Ops thread for context.
-    await db.from('booking_messages').insert({
-      booking_id: booking.id,
-      sender_member_id: member.id,
-      is_ops: false,
-      body: 'Requesting to cancel this reservation — please confirm.',
-    })
     setCancelRequested(true)
   }
 
