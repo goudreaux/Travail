@@ -20,6 +20,7 @@ function joinedDate(m: Member): string {
 
 type EditForm = {
   name: string
+  member_no: string
   initials: string
   tier: 'founder'
   home_base_code: string
@@ -48,6 +49,7 @@ function formatPhone(v: string): string {
 
 const defaultForm: EditForm = {
   name: '',
+  member_no: '',
   initials: '',
   tier: 'founder',
   home_base_code: 'Tampa Bay',
@@ -144,6 +146,7 @@ export default function MembersPage() {
     setShowAdd(false)
     setForm({
       name: m.name,
+      member_no: m.member_no != null ? String(m.member_no) : '',
       initials: m.initials,
       tier: 'founder',
       home_base_code: m.home_base_code ?? 'Tampa Bay',
@@ -191,6 +194,16 @@ export default function MembersPage() {
       showToast('Enter a 10-digit phone number (xxx-xxx-xxxx)', 'error')
       return
     }
+    const memberNoStr = form.member_no.trim()
+    if (memberNoStr && !/^\d+$/.test(memberNoStr)) {
+      showToast('Member number must be a whole number', 'error')
+      return
+    }
+    const memberNoVal = memberNoStr ? parseInt(memberNoStr, 10) : null
+    if (memberNoVal !== null && memberNoVal < 1) {
+      showToast('Member number must be 1 or higher', 'error')
+      return
+    }
     const dobVal = form.date_of_birth || null
     const emailVal = email || null
     const phoneVal = phoneDigits || null
@@ -210,8 +223,10 @@ export default function MembersPage() {
       }
 
       if (editId) {
-        const updatePayload = uid ? { ...payload, user_id: uid } : payload
-        const { data: updated, error } = await supabase.from('members').update(updatePayload).eq('id', editId).select()
+        const updatePayload: Record<string, unknown> = { ...payload }
+        if (uid) updatePayload.user_id = uid
+        if (memberNoVal !== null) updatePayload.member_no = memberNoVal
+        const { data: updated, error } = await supabase.from('members').update(updatePayload as never).eq('id', editId).select()
         if (error) throw error
         if (!updated || updated.length === 0) throw new Error('Update blocked — verify the admin RLS update policy on members in Supabase')
         const { error: sErr } = await supabase.from('member_sensitive').upsert({
@@ -224,11 +239,13 @@ export default function MembersPage() {
         if (sErr) throw sErr
         showToast(uid ? 'Member updated — login linked' : 'Member updated')
       } else {
-        const { data: inserted, error } = await supabase.from('members').insert({
+        const insertPayload: Record<string, unknown> = {
           ...payload,
           id: crypto.randomUUID(),
           user_id: uid || PLACEHOLDER_USER_ID,
-        }).select().single()
+        }
+        if (memberNoVal !== null) insertPayload.member_no = memberNoVal
+        const { data: inserted, error } = await supabase.from('members').insert(insertPayload as never).select().single()
         if (error) throw error
         if ((dobVal || emailVal || phoneVal) && inserted) {
           await supabase.from('member_sensitive').insert({
@@ -250,7 +267,12 @@ export default function MembersPage() {
       setShowAdd(false)
       load()
     } catch (e: unknown) {
-      showToast((e as Error).message ?? 'Save failed', 'error')
+      const err = e as { code?: string; message?: string }
+      if (err.code === '23505' && (err.message ?? '').includes('member_no')) {
+        showToast(`Member #${memberNoVal} is already taken — choose another number`, 'error')
+      } else {
+        showToast(err.message ?? 'Save failed', 'error')
+      }
     } finally {
       setSaving(false)
     }
@@ -355,6 +377,19 @@ export default function MembersPage() {
                 placeholder="e.g. 4242"
               />
               <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>Marks a card on file. Full card details are stored with the payment processor, not here.</div>
+            </div>
+            <div className="field">
+              <label className="field-lab">Member No.</label>
+              <input
+                className="input"
+                inputMode="numeric"
+                value={form.member_no}
+                onChange={e => setForm(f => ({ ...f, member_no: e.target.value.replace(/\D/g, '') }))}
+                placeholder={editId ? '' : 'Auto (next in line)'}
+              />
+              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>
+                Shown as “#{form.member_no || 'N'}”. Leave blank to {editId ? 'keep the current number' : 'auto-assign the next number'}. Must be unique.
+              </div>
             </div>
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label className="field-lab">User ID (Supabase Auth UID)</label>
