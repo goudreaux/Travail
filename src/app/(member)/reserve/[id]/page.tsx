@@ -22,6 +22,54 @@ function formatPhone(v: string): string {
   return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`
 }
 
+function addMins(t: string | null, mins: number): string {
+  if (!t) return '—'
+  const [h, m] = t.split(':').map(Number)
+  if (Number.isNaN(h) || Number.isNaN(m)) return '—'
+  const total = ((h * 60 + m + mins) % 1440 + 1440) % 1440
+  const hh = Math.floor(total / 60); const mm = total % 60
+  const ampm = hh >= 12 ? 'PM' : 'AM'; const h12 = hh % 12 || 12
+  return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`
+}
+
+function FlightLeg({ label, f }: { label?: string; f: Flight }) {
+  const dp = fmtDate(f.date)
+  return (
+    <div>
+      {label && (
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--tropic)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>{label}</div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontFamily: 'var(--display)', fontSize: 36, fontWeight: 500, color: '#fff', lineHeight: 1, letterSpacing: '-0.02em' }}>{f.origin_code}</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginTop: 6, textTransform: 'uppercase' }}>{airportSub(f.origin_code)}</div>
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <div style={{ color: 'var(--tropic)', fontSize: 20 }}>→</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>{fmtDur(f.duration_mins)}</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontFamily: 'var(--display)', fontSize: 36, fontWeight: 500, color: '#fff', lineHeight: 1, letterSpacing: '-0.02em' }}>{f.dest_code}</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginTop: 6, textTransform: 'uppercase' }}>{airportSub(f.dest_code)}</div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 18, marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        {[
+          { label: 'Date', value: `${dp.dow} ${dp.mo} ${dp.day}` },
+          { label: 'Departs', value: fmtTime(f.depart_time) },
+          { label: 'Block', value: fmtDur(f.duration_mins) },
+          { label: 'Arrives', value: addMins(f.depart_time, f.duration_mins) },
+        ].map(({ label, value }) => (
+          <div key={label}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>{value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function ReservePage() {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -462,77 +510,43 @@ export default function ReservePage() {
                 padding: '20px 24px',
               }}>
                 {kind === 'flight' && flight ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontFamily: 'var(--display)', fontSize: 42, fontWeight: 500, color: '#fff', lineHeight: 1, letterSpacing: '-0.02em' }}>
-                        {flight.origin_code}
-                      </div>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginTop: 6, textTransform: 'uppercase' }}>
-                        {airportSub(flight.origin_code)}
-                      </div>
-                    </div>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <div style={{ color: 'var(--tropic)', fontSize: 22 }}>→</div>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>
-                        {fmtDur(flight.duration_mins)}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontFamily: 'var(--display)', fontSize: 42, fontWeight: 500, color: '#fff', lineHeight: 1, letterSpacing: '-0.02em' }}>
-                        {flight.dest_code}
-                      </div>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginTop: 6, textTransform: 'uppercase' }}>
-                        {airportSub(flight.dest_code)}
-                      </div>
-                    </div>
-                  </div>
+                  isRoundTrip && returnFlight ? (
+                    <>
+                      <FlightLeg label="Outbound" f={flight} />
+                      <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '16px 0' }} />
+                      <FlightLeg label="Return" f={returnFlight} />
+                    </>
+                  ) : (
+                    <FlightLeg f={flight} />
+                  )
                 ) : excursion ? (
-                  <div style={{ textAlign: 'center' }}>
-                    <div className="display-i" style={{ fontSize: 28, color: '#fff', lineHeight: 1.2, marginBottom: 6 }}>
-                      {excursion.name}
+                  <>
+                    <div style={{ textAlign: 'center' }}>
+                      <div className="display-i" style={{ fontSize: 28, color: '#fff', lineHeight: 1.2, marginBottom: 6 }}>
+                        {excursion.name}
+                      </div>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                        {excursion.origin_code} · {excursion.stay_type.replace('_', ' ')}
+                      </div>
                     </div>
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      {excursion.origin_code} · {excursion.stay_type.replace('_', ' ')}
+                    <div style={{ display: 'flex', gap: 20, marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                      {[
+                        { label: 'Date', value: `${dp.dow} ${dp.mo} ${dp.day}` },
+                        { label: 'Departs', value: departTime },
+                        { label: 'Duration', value: durationStr },
+                      ].map(({ label, value }) => (
+                        <div key={label}>
+                          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3 }}>
+                            {label}
+                          </div>
+                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>
+                            {value}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
+                  </>
                 ) : null}
-
-                {/* Time row */}
-                <div style={{
-                  display: 'flex',
-                  gap: 20,
-                  marginTop: 16,
-                  paddingTop: 14,
-                  borderTop: '1px solid rgba(255,255,255,0.08)',
-                }}>
-                  {[
-                    { label: 'Date', value: `${dp.dow} ${dp.mo} ${dp.day}` },
-                    { label: 'Departs', value: departTime },
-                    { label: kind === 'flight' ? 'Block time' : 'Duration', value: durationStr },
-                  ].map(({ label, value }) => (
-                    <div key={label}>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3 }}>
-                        {label}
-                      </div>
-                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>
-                        {value}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Return leg */}
-                {isRoundTrip && returnFlight && (
-                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
-                      Return leg
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>
-                      <span style={{ fontWeight: 500 }}>{returnFlight.origin_code} → {returnFlight.dest_code}</span>
-                      <span>{(() => { const r = fmtDate(returnFlight.date); return `${r.dow} ${r.mo} ${r.day}` })()} · {fmtTime(returnFlight.depart_time)}</span>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
