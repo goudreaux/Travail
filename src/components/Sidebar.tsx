@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { Icons } from '@/lib/icons'
+import { memberCode } from '@/lib/data'
 import type { Member } from '@/lib/supabase/types'
 
 interface Props {
@@ -144,7 +145,7 @@ export default function Sidebar({ pathname, member, pendingCount = 0, unreadCoun
                 {member.name}
               </div>
               <div className="side-member-tier" style={{ color: TIER_COLOR[member.tier] ?? 'var(--tropic)' }}>
-                {member.tier.toUpperCase()} · {member.id.slice(0, 8).toUpperCase()}
+                {member.tier.toUpperCase()} · {memberCode(member)}
               </div>
             </div>
             {/* Subtle chevron hint */}

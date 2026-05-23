@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { fmtHomeBase } from '@/lib/data'
+import { fmtHomeBase, memberCode } from '@/lib/data'
 import type { Member, Booking, Post } from '@/lib/supabase/types'
 
 function Avatar({ member, size = 80 }: { member: Member; size?: number }) {
@@ -229,7 +229,7 @@ export default function MemberProfilePage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <TierBadge />
                   <span className="mono" style={{ fontSize: 9.5 }}>
-                    {member.id.slice(0, 8).toUpperCase()}
+                    {memberCode(member)}
                   </span>
                   {member.home_base_code && (
                     <span className="mono" style={{ fontSize: 9.5, color: 'var(--ink-mid)' }}>
