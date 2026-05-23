@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { Booking, AnchorSubmission, Member, Flight, Excursion, Aircraft } from '@/lib/supabase/types'
@@ -26,6 +26,16 @@ type BookingRow = Booking & {
 
 type AnchorRow = AnchorSubmission & {
   member: Pick<Member, 'name' | 'initials'> | null
+}
+
+// A round trip is two flight bookings — outbound "B-X" and return "B-XR" — that
+// must be handled as ONE item: one card, one confirm, one shared code.
+type QueueItem = {
+  primary: BookingRow
+  legs: BookingRow[]
+  isRound: boolean
+  seats: number
+  total: number
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -100,6 +110,26 @@ export default function QueuePage() {
     setToast({ msg, kind })
     setTimeout(() => setToast(null), 4000)
   }, [])
+
+  // Collapse round-trip leg pairs (B-X + B-XR) into a single queue item.
+  const queueItems = useMemo<QueueItem[]>(() => {
+    const ids = new Set(bookings.map(b => b.id))
+    const items: QueueItem[] = []
+    for (const b of bookings) {
+      // Skip a return leg whose outbound is present — it's folded into that item.
+      if (b.item_kind === 'flight' && b.id.endsWith('R') && ids.has(b.id.slice(0, -1))) continue
+      const ret = b.item_kind === 'flight' ? bookings.find(x => x.id === `${b.id}R`) : undefined
+      const legs = ret ? [b, ret] : [b]
+      items.push({
+        primary: b,
+        legs,
+        isRound: legs.length > 1,
+        seats: b.seats,
+        total: legs.reduce((s, l) => s + l.total, 0),
+      })
+    }
+    return items
+  }, [bookings])
 
   const loadBookings = useCallback(async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -274,42 +304,53 @@ export default function QueuePage() {
 
   // ── Booking actions ───────────────────────────────────────────────────────
 
-  async function approveBooking(b: BookingRow) {
-    setWorking(b.id)
+  // Confirm a whole item — both legs of a round trip share ONE confirmation code.
+  async function approveItem(qi: QueueItem) {
+    setWorking(qi.primary.id)
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
-      // Seat-availability check (item_id is text, so the uuid RPC can't be used).
-      const itemTable = b.item_kind === 'flight' ? 'flights' : 'excursions'
-      const { data: item } = await db.from(itemTable).select('*').eq('id', b.item_id).single()
-      if (!item) throw new Error('Trip not found')
-      const capacity = b.item_kind === 'flight'
-        ? item.seats_total - item.seats_anchor
-        : item.spots_total - item.spots_anchor
-      const { data: approvedRows } = await db.from('bookings')
-        .select('seats').eq('item_kind', b.item_kind).eq('item_id', b.item_id).eq('status', 'approved')
-      const taken = (approvedRows ?? []).reduce((s: number, r: { seats: number }) => s + r.seats, 0)
-      if (taken + b.seats > capacity) throw new Error(`Only ${Math.max(0, capacity - taken)} seat(s) left`)
-
       const code = genCode()
-      const { error } = await db.from('bookings').update({
-        status: 'approved', confirmation_code: code, decided_at: new Date().toISOString(),
-      }).eq('id', b.id)
-      if (error) throw error
+
+      for (const leg of qi.legs) {
+        // Seat-availability check (item_id is text, so the uuid RPC can't be used).
+        const itemTable = leg.item_kind === 'flight' ? 'flights' : 'excursions'
+        const { data: item } = await db.from(itemTable).select('*').eq('id', leg.item_id).single()
+        if (!item) throw new Error('Trip not found')
+        const capacity = leg.item_kind === 'flight'
+          ? item.seats_total - item.seats_anchor
+          : item.spots_total - item.spots_anchor
+        const { data: approvedRows } = await db.from('bookings')
+          .select('seats').eq('item_kind', leg.item_kind).eq('item_id', leg.item_id).eq('status', 'approved')
+        const taken = (approvedRows ?? []).reduce((s: number, r: { seats: number }) => s + r.seats, 0)
+        if (taken + leg.seats > capacity) {
+          const where = leg.flight ? `${leg.flight.origin_code} → ${leg.flight.dest_code}` : 'this leg'
+          throw new Error(`Only ${Math.max(0, capacity - taken)} seat(s) left on ${where}`)
+        }
+      }
+
+      // All legs have room — confirm them together under the shared code.
+      for (const leg of qi.legs) {
+        const { error } = await db.from('bookings').update({
+          status: 'approved', confirmation_code: code, decided_at: new Date().toISOString(),
+        }).eq('id', leg.id)
+        if (error) throw error
+      }
 
       try {
         await supabase.from('notifications').insert({
-          member_id: b.member_id,
+          member_id: qi.primary.member_id,
           kind: 'booking',
           title: 'Booking Confirmed',
-          body: `Your ${b.item_kind} reservation is confirmed. Confirmation code: ${code}`,
-          ref: { booking_id: b.id, confirmation_code: code },
+          body: `Your ${qi.isRound ? 'round-trip ' : ''}${qi.primary.item_kind} reservation is confirmed. Confirmation code: ${code}`,
+          ref: { booking_id: qi.primary.id, confirmation_code: code },
           read: false,
         } as never)
       } catch { /* notification is supplementary */ }
 
       showToast(`Confirmed — ${code}`)
       loadBookings()
+      loadExtras()
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Approval failed', 'error')
     } finally { setWorking(null) }
@@ -320,11 +361,15 @@ export default function QueuePage() {
     if (!b) return
     setWorking(id)
     try {
+      // Decline both legs of a round trip together.
+      const legIds = [id]
+      const ret = bookings.find(x => x.id === `${id}R`)
+      if (ret) legIds.push(ret.id)
       const { error } = await supabase.from('bookings').update({
         status: 'declined',
         decline_reason: reason,
         decided_at: new Date().toISOString(),
-      }).eq('id', id)
+      }).in('id', legIds)
       if (error) throw error
 
       try {
@@ -526,7 +571,7 @@ export default function QueuePage() {
     )
   }
 
-  const totalPending = bookings.length + anchors.length + cancellations.length
+  const totalPending = queueItems.length + anchors.length + cancellations.length
 
   return (
     <div style={{ padding: 32, maxWidth: 980 }}>
@@ -598,9 +643,9 @@ export default function QueuePage() {
 
       {/* ── Booking Requests ── */}
       <section style={{ marginBottom: 52 }}>
-        <SectionHead label="Booking Requests" count={bookings.length} sub="First come, first served" />
+        <SectionHead label="Booking Requests" count={queueItems.length} sub="First come, first served" />
 
-        {bookings.length === 0 ? (
+        {queueItems.length === 0 ? (
           <div style={{
             background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12,
             padding: 32, textAlign: 'center', color: 'var(--ink-light)', fontSize: 13,
@@ -609,11 +654,14 @@ export default function QueuePage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {bookings.map((b, idx) => {
-              const tripLabel = b.item_kind === 'flight' && b.flight
-                ? `${b.flight.origin_code} → ${b.flight.dest_code}`
+            {queueItems.map((qi, idx) => {
+              const b = qi.primary
+              const out = qi.legs[0]?.flight
+              const ret = qi.legs[1]?.flight
+              const tripLabel = b.item_kind === 'flight' && out
+                ? (qi.isRound ? `${out.origin_code} ⇄ ${out.dest_code}` : `${out.origin_code} → ${out.dest_code}`)
                 : b.excursion?.name ?? 'Excursion'
-              const tripDate = b.item_kind === 'flight' ? b.flight?.date : b.excursion?.date
+              const tripDate = b.item_kind === 'flight' ? out?.date : b.excursion?.date
               const wColor = waitColor(b.submitted_at)
               const isFirst = idx === 0
 
@@ -673,7 +721,7 @@ export default function QueuePage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
                       <span className={`pill ${b.item_kind === 'flight' ? 'tropic' : 'sun'}`} style={{ fontSize: 9 }}>
-                        {b.item_kind}
+                        {qi.isRound ? 'round trip' : b.item_kind}
                       </span>
                       <span style={{
                         fontSize: 13.5, fontWeight: 600, color: 'var(--ink)',
@@ -683,7 +731,11 @@ export default function QueuePage() {
                         {tripLabel}
                       </span>
                     </div>
-                    {tripDate && (
+                    {qi.isRound ? (
+                      <div style={{ fontSize: 11, color: 'var(--ink-light)', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
+                        Out {out?.date}{ret?.date ? `  ·  Return ${ret.date}` : ''}
+                      </div>
+                    ) : tripDate && (
                       <div style={{ fontSize: 11, color: 'var(--ink-light)', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
                         {tripDate}
                       </div>
@@ -703,7 +755,7 @@ export default function QueuePage() {
                   {/* Amount */}
                   <div style={{ flexShrink: 0, textAlign: 'right', minWidth: 72 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>
-                      ${b.total.toLocaleString()}
+                      ${qi.total.toLocaleString()}
                     </div>
                     <div style={{ fontSize: 9.5, fontFamily: 'var(--mono)', color: 'var(--ink-faint)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                       {b.payment_method}
@@ -716,7 +768,7 @@ export default function QueuePage() {
                       className="btn-primary"
                       style={{ height: 32, padding: '0 16px', fontSize: 12.5 }}
                       disabled={working === b.id}
-                      onClick={() => approveBooking(b)}
+                      onClick={() => approveItem(qi)}
                     >
                       {working === b.id ? '…' : 'Confirm'}
                     </button>
