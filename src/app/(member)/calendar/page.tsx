@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { adaptFlight, adaptExcursion, fmtDate, fmtTime, fmtMoney, returnLegIds, MONTHS, MONTHS_SHORT, DOWS_SHORT } from '@/lib/data'
+import { adaptFlight, adaptExcursion, fmtDate, fmtMoney, returnLegIds, MONTHS, DOWS_SHORT } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
@@ -120,14 +120,6 @@ export default function CalendarPage() {
 
       const templates: ExcursionTemplate[] = rawTemplates ?? []
       const bookings: Booking[] = rawBookings ?? []
-
-      // Build booked item ids for the member
-      const bookedFlightIds = new Set(
-        bookings.filter(b => b.item_kind === 'flight').map(b => b.item_id)
-      )
-      const bookedExcursionIds = new Set(
-        bookings.filter(b => b.item_kind === 'excursion').map(b => b.item_id)
-      )
 
       const myFlightSeats: Record<string, number> = {}
       const myExcSpots: Record<string, number> = {}

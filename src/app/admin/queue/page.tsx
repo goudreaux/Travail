@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { logActivity } from '@/lib/activity'
+import { genConfirmationCode } from '@/lib/data'
 import type { Booking, AnchorSubmission, Member, Flight, Excursion, Aircraft } from '@/lib/supabase/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -55,10 +56,6 @@ function waitColor(iso: string): string {
   if (m > 60) return 'var(--signal)'
   if (m > 20) return 'var(--sun-d)'
   return 'var(--tropic-d)'
-}
-
-function genCode(): string {
-  return 'TV' + Math.random().toString(36).toUpperCase().slice(2, 8)
 }
 
 function Toast({ msg, kind }: { msg: string; kind: 'success' | 'error' | 'info' }) {
@@ -332,7 +329,7 @@ export default function QueuePage() {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = supabase as any
-      const code = genCode()
+      const code = genConfirmationCode()
 
       for (const leg of qi.legs) {
         // Seat-availability check (item_id is text, so the uuid RPC can't be used).
@@ -444,7 +441,7 @@ export default function QueuePage() {
     setWorking(anchor.id)
     try {
       const p = anchor.payload as Record<string, unknown>
-      const code = genCode()
+      const code = genConfirmationCode()
       let publishedItemId: string | null = null
 
       // Handle both camelCase (new forms) and snake_case (legacy) payload keys

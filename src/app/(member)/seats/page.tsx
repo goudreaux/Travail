@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { adaptFlight, adaptExcursion, fmtDate, fmtMoney, fmtTime } from '@/lib/data'
+import { adaptFlight, adaptExcursion, fmtDate, fmtMoney } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
 import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'

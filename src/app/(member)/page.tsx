@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { adaptFlight, adaptExcursion, fmtDate, fmtTime, airportSub, returnLegIds, DisplayFlight, DisplayExcursion } from '@/lib/data'
+import { adaptFlight, adaptExcursion, airportSub, returnLegIds, DisplayFlight, DisplayExcursion } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PostCard from '@/components/PostCard'
 import PageHero from '@/components/PageHero'

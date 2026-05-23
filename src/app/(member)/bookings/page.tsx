@@ -203,7 +203,7 @@ function AnchorCard({ submission }: { submission: EnrichedSubmission }) {
 
   const icon = isFlight ? 'flight' : (tpl?.icon ?? (payload.icon as string | undefined) ?? 'fish')
 
-  let name = isFlight ? (f?.name ?? (payload.name as string | undefined) ?? 'Flight submission') : (e?.name ?? (payload.name as string | undefined) ?? 'Excursion submission')
+  const name = isFlight ? (f?.name ?? (payload.name as string | undefined) ?? 'Flight submission') : (e?.name ?? (payload.name as string | undefined) ?? 'Excursion submission')
   let routeOrDate = ''
 
   if (isFlight && f) {
