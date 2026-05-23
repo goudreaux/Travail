@@ -59,17 +59,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   )
 
   const nav = [
-    { href: '/admin', label: 'Dashboard', exact: true },
-    { href: '/admin/queue', label: 'Action Queue', badge: pendingCount > 0 ? pendingCount : undefined },
-    { href: '/admin/activity', label: 'Activity' },
-    { href: '/admin/inbox', label: 'Inbox' },
-    { href: '/admin/members', label: 'Members' },
-    { href: '/admin/guests', label: 'Guests' },
+    { href: '/admin', label: 'Overview', exact: true },
+    { href: '/admin/queue', label: 'Queue', badge: pendingCount > 0 ? pendingCount : undefined },
     { href: '/admin/trips', label: 'Trips & Excursions' },
     { href: '/admin/bookings', label: 'Bookings' },
-    { href: '/admin/anchors', label: 'Anchors' },
-    { href: '/admin/history', label: 'History' },
-    { href: '/admin/posts', label: 'Feed Posts' },
+    { href: '/admin/members', label: 'People' },
+    { href: '/admin/inbox', label: 'Inbox' },
+    { href: '/admin/activity', label: 'Activity' },
+    { href: '/admin/posts', label: 'Feed' },
   ]
 
   const isActive = (item: typeof nav[0]) => item.exact ? pathname === item.href : pathname.startsWith(item.href)
