@@ -98,24 +98,38 @@ export default function QueuePage() {
   }, [])
 
   const loadBookings = useCallback(async () => {
-    const [{ data: fb }, { data: eb }] = await Promise.all([
-      supabase.from('bookings').select(`
-        *, member:members!member_id(name, initials),
-        flight:flights!inner(name, origin_code, dest_code, date)
-      `).eq('item_kind', 'flight').eq('status', 'pending').order('submitted_at', { ascending: true }),
-      supabase.from('bookings').select(`
-        *, member:members!member_id(name, initials),
-        excursion:excursions!inner(name, date)
-      `).eq('item_kind', 'excursion').eq('status', 'pending').order('submitted_at', { ascending: true }),
-    ])
-    const all = [...(fb ?? []), ...(eb ?? [])] as unknown as BookingRow[]
-    all.sort((a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime())
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    const { data: bk } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('status', 'pending')
+      .order('submitted_at', { ascending: true })
+    const all = (bk ?? []) as unknown as BookingRow[]
+
+    // No FK embeds in this DB — resolve members and polymorphic trips separately.
+    const memberIds = [...new Set(all.map(b => b.member_id))]
+    const flightIds = all.filter(b => b.item_kind === 'flight').map(b => b.item_id)
+    const excIds = all.filter(b => b.item_kind === 'excursion').map(b => b.item_id)
+    const { data: mem } = memberIds.length ? await db.from('members').select('id, name, initials').in('id', memberIds) : { data: [] }
+    const { data: fl } = flightIds.length ? await db.from('flights').select('id, name, origin_code, dest_code, date').in('id', flightIds) : { data: [] }
+    const { data: ex } = excIds.length ? await db.from('excursions').select('id, name, date').in('id', excIds) : { data: [] }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const memMap = new Map((mem ?? []).map((m: any) => [m.id, m]))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const flMap = new Map((fl ?? []).map((f: any) => [f.id, f]))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const exMap = new Map((ex ?? []).map((e: any) => [e.id, e]))
+    for (const b of all) {
+      b.member = (memMap.get(b.member_id) ?? null) as BookingRow['member']
+      if (b.item_kind === 'flight') b.flight = (flMap.get(b.item_id) ?? null) as BookingRow['flight']
+      else b.excursion = (exMap.get(b.item_id) ?? null) as BookingRow['excursion']
+    }
 
     // Attach the passenger manifest (member + registered guests) for each booking.
     const ids = all.map(b => b.id)
     if (ids.length) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: pax } = await (supabase as any).from('booking_passengers').select('*').in('booking_id', ids)
+      const { data: pax } = await db.from('booking_passengers').select('*').in('booking_id', ids)
       const byBooking: Record<string, Passenger[]> = {}
       for (const p of (pax ?? []) as Passenger[]) (byBooking[p.booking_id] ??= []).push(p)
       for (const b of all) b.passengers = byBooking[b.id] ?? []

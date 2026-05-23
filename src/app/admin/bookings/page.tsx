@@ -38,20 +38,33 @@ export default function BookingsPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: flightBookings }, { data: excBookings }] = await Promise.all([
-      supabase.from('bookings').select(`
-        *,
-        member:members!member_id(name, initials),
-        flight:flights!inner(name, origin_code, dest_code)
-      `).eq('item_kind', 'flight').order('submitted_at', { ascending: false }),
-      supabase.from('bookings').select(`
-        *,
-        member:members!member_id(name, initials),
-        excursion:excursions!inner(name)
-      `).eq('item_kind', 'excursion').order('submitted_at', { ascending: false }),
-    ])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any
+    const { data: bk } = await supabase
+      .from('bookings')
+      .select('*')
+      .order('submitted_at', { ascending: false })
+    const all = (bk ?? []) as unknown as BookingRow[]
 
-    const all = [...(flightBookings ?? []), ...(excBookings ?? [])] as unknown as BookingRow[]
+    // No FK embeds in this DB — resolve members and polymorphic trips separately.
+    const memberIds = [...new Set(all.map(b => b.member_id))]
+    const flightIds = all.filter(b => b.item_kind === 'flight').map(b => b.item_id)
+    const excIds = all.filter(b => b.item_kind === 'excursion').map(b => b.item_id)
+    const { data: mem } = memberIds.length ? await db.from('members').select('id, name, initials').in('id', memberIds) : { data: [] }
+    const { data: fl } = flightIds.length ? await db.from('flights').select('id, name, origin_code, dest_code').in('id', flightIds) : { data: [] }
+    const { data: ex } = excIds.length ? await db.from('excursions').select('id, name').in('id', excIds) : { data: [] }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const memMap = new Map((mem ?? []).map((m: any) => [m.id, m]))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const flMap = new Map((fl ?? []).map((f: any) => [f.id, f]))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const exMap = new Map((ex ?? []).map((e: any) => [e.id, e]))
+    for (const b of all) {
+      b.member = (memMap.get(b.member_id) ?? null) as BookingRow['member']
+      if (b.item_kind === 'flight') b.flight = (flMap.get(b.item_id) ?? null) as BookingRow['flight']
+      else b.excursion = (exMap.get(b.item_id) ?? null) as BookingRow['excursion']
+    }
+
     all.sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())
     setBookings(all)
     setLoading(false)
