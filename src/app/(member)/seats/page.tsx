@@ -38,6 +38,65 @@ const FILTERS: { key: ActivityFilter; label: string; icon?: string }[] = [
   { key: 'hunt',   label: 'Hunt',        icon: 'quail' },
 ]
 
+// ─── Seat-remaining meter ────────────────────────────────────────────────────
+
+function SeatMeter({ total, available, accent, unit }: { total: number; available: number; accent: string; unit: string }) {
+  const open = Math.max(0, available)
+  const occupied = Math.max(0, total - open)
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+      <div style={{ display: 'flex', gap: 3 }}>
+        {Array.from({ length: total }).map((_, i) => (
+          <span
+            key={i}
+            title={i < occupied ? 'Taken' : 'Open'}
+            style={{
+              width: 12, height: 12, borderRadius: 3, boxSizing: 'border-box',
+              background: i < occupied ? 'var(--hair)' : accent,
+              border: i < occupied ? '1px solid var(--ink-faint)' : `1px solid ${accent}`,
+              opacity: i < occupied ? 0.7 : 1,
+            }}
+          />
+        ))}
+      </div>
+      <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-light)', letterSpacing: '0.04em' }}>
+        {open}/{total} {unit}
+      </span>
+    </div>
+  )
+}
+
+// ─── Round-trip grouping ─────────────────────────────────────────────────────
+// Round-trips are stored as two flights: outbound "F-x" and return "F-xR" with
+// swapped origin/dest. Pair them so the board shows one entry per round-trip.
+
+type FlightEntry =
+  | { kind: 'oneway'; flight: DisplayFlight }
+  | { kind: 'round'; outbound: DisplayFlight; ret: DisplayFlight }
+
+function buildFlightEntries(flights: DisplayFlight[]): FlightEntry[] {
+  const byId = new Map(flights.map(f => [f.id, f]))
+  const consumed = new Set<string>()
+  const entries: FlightEntry[] = []
+  for (const f of flights) {
+    if (consumed.has(f.id)) continue
+    const ret = byId.get(`${f.id}R`)
+    if (ret && !consumed.has(ret.id) && ret.origin_code === f.dest_code && ret.dest_code === f.origin_code) {
+      consumed.add(f.id); consumed.add(ret.id)
+      entries.push({ kind: 'round', outbound: f, ret })
+      continue
+    }
+    // A return leg whose outbound is present will be paired when we reach the outbound.
+    if (f.id.endsWith('R')) {
+      const ob = byId.get(f.id.slice(0, -1))
+      if (ob && ob.dest_code === f.origin_code && ob.origin_code === f.dest_code) continue
+    }
+    consumed.add(f.id)
+    entries.push({ kind: 'oneway', flight: f })
+  }
+  return entries
+}
+
 // ─── Trip card ─────────────────────────────────────────────────────────────────
 
 function FlightCard({
@@ -78,10 +137,8 @@ function FlightCard({
           <div className="trip-card__meta">
             {flight.departTimeStr}
             {flight.durationStr ? ` · ${flight.durationStr}` : ''}
-            {flight.seatsAvailable > 0
-              ? ` · ${flight.seatsAvailable} seat${flight.seatsAvailable !== 1 ? 's' : ''} open`
-              : ' · Full'}
           </div>
+          <SeatMeter total={flight.seats_total} available={flight.seatsAvailable} accent={colors.dot} unit="seats" />
         </div>
       </div>
       <div className="trip-card__cta">
@@ -90,6 +147,66 @@ function FlightCard({
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="trip-card__price">{fmtMoney(flight.price_per_seat)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/seat</span></span>
+          <button
+            className="btn-primary"
+            style={{ height: 30, padding: '0 14px', fontSize: 12, background: colors.dot }}
+            onClick={e => { e.stopPropagation(); onCTA() }}
+          >
+            Take seat →
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RoundTripCard({
+  outbound,
+  ret,
+  onCTA,
+}: {
+  outbound: DisplayFlight
+  ret: DisplayFlight
+  onCTA: () => void
+}) {
+  const dpOut = fmtDate(outbound.date)
+  const dpRet = fmtDate(ret.date)
+  const colors = getFlightColors()
+  const seatsLeft = Math.min(outbound.seatsAvailable, ret.seatsAvailable)
+  const combined = outbound.price_per_seat + ret.price_per_seat
+
+  return (
+    <div className="trip-card" style={{ marginBottom: 12 }} onClick={onCTA}>
+      <div className="trip-card__main">
+        <div className="trip-card__date">
+          <div className="trip-card__date-mo">{dpOut.mo}</div>
+          <div className="trip-card__date-day">{dpOut.day}</div>
+          <div className="trip-card__date-dow">{dpOut.dow}</div>
+        </div>
+        <div className="trip-card__icon" style={{ background: colors.bg, borderRight: '1px solid var(--hair)' }}>
+          <span style={{ color: colors.dot }}>{KIND_ICONS['flight']}</span>
+        </div>
+        <div className="trip-card__content">
+          <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · ROUND TRIP</div>
+          <div className="trip-card__name">
+            {outbound.origin_code}
+            <span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>⇄</span>
+            {outbound.dest_code}
+          </div>
+          <div className="trip-card__meta">
+            Out {dpOut.mo} {dpOut.day} · {outbound.departTimeStr}
+            <span style={{ color: 'var(--ink-faint)', margin: '0 6px' }}>|</span>
+            Return {dpRet.mo} {dpRet.day} · {ret.departTimeStr}
+          </div>
+          <SeatMeter total={outbound.seats_total} available={seatsLeft} accent={colors.dot} unit="seats" />
+        </div>
+      </div>
+      <div className="trip-card__cta">
+        <span style={{ color: 'var(--ink-light)', fontSize: 12 }}>
+          {outbound.name || `${outbound.origin_code}–${outbound.dest_code}`} · round trip
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span className="trip-card__price">{fmtMoney(combined)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/seat round trip</span></span>
           <button
             className="btn-primary"
             style={{ height: 30, padding: '0 14px', fontSize: 12, background: colors.dot }}
@@ -139,10 +256,8 @@ function ExcursionCard({
           <div className="trip-card__meta">
             {excursion.startTimeStr !== '—' ? excursion.startTimeStr : ''}
             {excursion.templateMeta?.operator ? ` · ${excursion.templateMeta.operator}` : ''}
-            {excursion.spotsAvailable > 0
-              ? ` · ${excursion.spotsAvailable} spot${excursion.spotsAvailable !== 1 ? 's' : ''} open`
-              : ' · Full'}
           </div>
+          <SeatMeter total={excursion.spots_total} available={excursion.spotsAvailable} accent={colors.dot} unit="spots" />
         </div>
       </div>
       <div className="trip-card__cta">
@@ -245,7 +360,8 @@ export default function SeatsPage() {
   }, [])
 
   // Apply filter
-  const visibleFlights = (filter === 'all' || filter === 'flight') ? flights : []
+  const flightEntries = buildFlightEntries(flights)
+  const visibleFlightEntries = (filter === 'all' || filter === 'flight') ? flightEntries : []
   const visibleExcursions = excursions.filter(e => {
     if (filter === 'all') return true
     if (filter === 'flight') return false
@@ -253,7 +369,7 @@ export default function SeatsPage() {
     return excursionFilter(icon) === filter
   })
 
-  const totalOpen = visibleFlights.length + visibleExcursions.length
+  const totalOpen = visibleFlightEntries.length + visibleExcursions.length
 
   return (
     <div className="page">
@@ -314,18 +430,25 @@ export default function SeatsPage() {
         ) : (
           <>
             {/* Open Flights */}
-            {visibleFlights.length > 0 && (
+            {visibleFlightEntries.length > 0 && (
               <section style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span style={{ color: 'var(--tropic)', display: 'flex', alignItems: 'center' }}>{KIND_ICONS['flight']}</span>
-                  <p className="mono" style={{ margin: 0 }}>OPEN FLIGHTS · {visibleFlights.length}</p>
+                  <p className="mono" style={{ margin: 0 }}>OPEN FLIGHTS · {visibleFlightEntries.length}</p>
                 </div>
                 <div className="panel" style={{ overflow: 'visible', background: 'transparent', border: 'none', padding: 0 }}>
-                  {visibleFlights.map(flight => (
+                  {visibleFlightEntries.map(entry => entry.kind === 'round' ? (
+                    <RoundTripCard
+                      key={entry.outbound.id}
+                      outbound={entry.outbound}
+                      ret={entry.ret}
+                      onCTA={() => router.push(`/reserve/${entry.outbound.id}?kind=flight&return=${entry.ret.id}`)}
+                    />
+                  ) : (
                     <FlightCard
-                      key={flight.id}
-                      flight={flight}
-                      onCTA={() => router.push(`/reserve/${flight.id}?kind=flight`)}
+                      key={entry.flight.id}
+                      flight={entry.flight}
+                      onCTA={() => router.push(`/reserve/${entry.flight.id}?kind=flight`)}
                     />
                   ))}
                 </div>
