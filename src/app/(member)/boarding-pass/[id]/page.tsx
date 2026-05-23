@@ -44,6 +44,19 @@ export default function BoardingPassPage() {
   const [passengers, setPassengers] = useState<Passenger[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [cancelRequested, setCancelRequested] = useState(false)
+
+  async function requestCancel() {
+    if (!member || !booking) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).from('booking_messages').insert({
+      booking_id: booking.id,
+      sender_member_id: member.id,
+      is_ops: false,
+      body: 'Requesting to cancel this reservation — please confirm.',
+    })
+    if (!error) setCancelRequested(true)
+  }
 
   useEffect(() => {
     async function load() {
@@ -101,6 +114,7 @@ export default function BoardingPassPage() {
 
   const isFlight = booking.item_kind === 'flight'
   const confirmed = booking.status === 'approved'
+  const isAnchor = !!member && (flight?.anchor_member_id ?? excursion?.anchor_member_id) === member.id
   const code = booking.confirmation_code || booking.id
   const title = isFlight ? (flight?.name || `${flight?.origin_code} → ${flight?.dest_code}`) : (excursion?.name ?? 'Excursion')
   const dateStr = isFlight ? (flight ? fmtDate(flight.date).full : '') : (excursion ? fmtDate(excursion.date).full : '')
@@ -203,11 +217,26 @@ export default function BoardingPassPage() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href={`/trip/${booking.id}`} className="btn-ghost" style={{ height: 34, padding: '0 16px', fontSize: 12.5, display: 'inline-flex', alignItems: 'center' }}>
             Open trip thread
           </Link>
+          {(booking.status === 'pending' || booking.status === 'approved') && (
+            cancelRequested ? (
+              <span className="pill sun" style={{ height: 34, padding: '0 14px' }}>Cancellation requested</span>
+            ) : (
+              <button className="btn-ghost" style={{ height: 34, padding: '0 16px', fontSize: 12.5, color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.3)' }} onClick={requestCancel}>
+                Request cancellation
+              </button>
+            )
+          )}
         </div>
+
+        {isAnchor && (booking.status === 'pending' || booking.status === 'approved') && (
+          <div style={{ marginTop: 10, background: 'var(--warm)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--ink-mid)', textAlign: 'center' }}>
+            You anchored this trip. Ops can&rsquo;t cancel it if other members are booked.
+          </div>
+        )}
       </div>
     </div>
   )
