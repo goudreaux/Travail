@@ -70,7 +70,6 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
         <TopBar
           member={member}
           notifications={notifications}
-          onNewTrip={() => router.push('/anchor-flight')}
           onOpenBookings={() => router.push('/bookings')}
         />
         {children}
