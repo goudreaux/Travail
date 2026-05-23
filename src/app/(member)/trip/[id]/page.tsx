@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 
-// Per-trip message threads were replaced; the boarding pass is the trip detail.
+// The boarding pass is the member's trip detail. Redirect old links here.
 export default async function TripRedirect({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   redirect(`/boarding-pass/${id}`)

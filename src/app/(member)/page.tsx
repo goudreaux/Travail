@@ -328,18 +328,11 @@ export default function FeedPage() {
                         </span>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button
-                            className="btn-ghost"
-                            style={{ height: 30, padding: '0 12px', fontSize: 12 }}
-                            onClick={() => router.push(`/boarding-pass/${booking.id}`)}
-                          >
-                            Boarding pass
-                          </button>
-                          <button
                             className="btn-primary"
                             style={{ height: 30, padding: '0 12px', fontSize: 12 }}
                             onClick={() => router.push(`/boarding-pass/${booking.id}`)}
                           >
-                            Trip thread
+                            Boarding pass
                           </button>
                         </div>
                       </div>
@@ -387,18 +380,11 @@ export default function FeedPage() {
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button
-                            className="btn-ghost"
-                            style={{ height: 30, padding: '0 12px', fontSize: 12 }}
-                            onClick={() => router.push(`/boarding-pass/${booking.id}`)}
-                          >
-                            Boarding pass
-                          </button>
-                          <button
                             className="btn-primary"
                             style={{ height: 30, padding: '0 12px', fontSize: 12 }}
                             onClick={() => router.push(`/boarding-pass/${booking.id}`)}
                           >
-                            Trip thread
+                            Boarding pass
                           </button>
                         </div>
                       </div>

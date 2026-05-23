@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { genConfirmationCode } from '@/lib/data'
 import type { Booking, Member, Flight, Excursion, BookingStatus } from '@/lib/supabase/types'
@@ -383,9 +382,6 @@ export default function BookingsPage() {
                           </button>
                         </>
                       )}
-                      <Link href={`/admin/inbox?b=${b.id}`} className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center' }}>
-                        Thread
-                      </Link>
                       {(b.status === 'approved' || b.status === 'pending') && (
                         <button
                           className="btn-ghost"
