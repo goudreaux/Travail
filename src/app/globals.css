@@ -35,16 +35,26 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: var(--bg);
+  background:
+    radial-gradient(1100px 520px at 100% -8%, rgba(0, 179, 199, 0.06), transparent 60%),
+    radial-gradient(900px 480px at -8% 108%, rgba(244, 167, 44, 0.05), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--ui);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+::selection {
+  background: rgba(0, 179, 199, 0.22);
+  color: var(--ink);
 }
 
 /* ─── Noise texture ──────────────────────────────────────── */
@@ -342,80 +352,75 @@ body::before {
 .btn-primary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   height: 36px;
   padding: 0 16px;
-  border-radius: 8px;
+  border-radius: 9px;
   border: none;
-  background: var(--tropic);
+  background: linear-gradient(180deg, #00c2d7, var(--tropic));
   color: #fff;
   font-size: 13px;
   font-weight: 600;
   font-family: var(--ui);
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: filter 0.15s, transform 0.08s, box-shadow 0.15s;
   letter-spacing: 0.01em;
   white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 122, 140, 0.25), 0 6px 16px rgba(0, 179, 199, 0.22);
 }
 
-.btn-primary:hover {
-  background: var(--tropic-d);
-}
-
-.btn-primary:active {
-  transform: scale(0.98);
-}
+.btn-primary:hover { filter: brightness(1.05); box-shadow: 0 2px 4px rgba(0, 122, 140, 0.28), 0 10px 24px rgba(0, 179, 199, 0.28); }
+.btn-primary:active { transform: translateY(1px) scale(0.99); box-shadow: 0 1px 2px rgba(0, 122, 140, 0.25); }
 
 .btn-ghost {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   height: 36px;
   padding: 0 16px;
-  border-radius: 8px;
+  border-radius: 9px;
   border: 1px solid var(--hair-2);
-  background: transparent;
+  background: var(--card);
   color: var(--ink-mid);
   font-size: 13px;
   font-weight: 500;
   font-family: var(--ui);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
   white-space: nowrap;
 }
 
 .btn-ghost:hover {
-  background: var(--warm);
+  background: var(--card);
   color: var(--ink);
-  border-color: var(--hair-2);
+  border-color: var(--ink-faint);
+  box-shadow: 0 2px 8px rgba(13, 51, 64, 0.07);
 }
 
 .btn-sun {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   height: 36px;
   padding: 0 16px;
-  border-radius: 8px;
+  border-radius: 9px;
   border: none;
-  background: var(--sun);
-  color: var(--ink);
+  background: linear-gradient(180deg, #f7b343, var(--sun));
+  color: #3a2a08;
   font-size: 13px;
   font-weight: 600;
   font-family: var(--ui);
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: filter 0.15s, transform 0.08s, box-shadow 0.15s;
   white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(201, 126, 14, 0.25), 0 6px 16px rgba(244, 167, 44, 0.22);
 }
 
-.btn-sun:hover {
-  background: var(--sun-d);
-  color: #fff;
-}
-
-.btn-sun:active {
-  transform: scale(0.98);
-}
+.btn-sun:hover { filter: brightness(1.04); box-shadow: 0 2px 4px rgba(201, 126, 14, 0.28), 0 10px 24px rgba(244, 167, 44, 0.28); }
+.btn-sun:active { transform: translateY(1px) scale(0.99); box-shadow: 0 1px 2px rgba(201, 126, 14, 0.25); }
 
 /* ─── Page ───────────────────────────────────────────────── */
 
@@ -471,7 +476,14 @@ body::before {
   margin: 28px 28px 0;
   background: linear-gradient(135deg, #052a35 0%, #0d3340 52%, #0a4a55 100%);
   padding: clamp(24px, 3.5vw, 38px) clamp(20px, 3.5vw, 36px);
-  box-shadow: 0 16px 48px rgba(13, 51, 64, 0.18);
+  box-shadow: 0 16px 48px rgba(13, 51, 64, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.page-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 16px);
 }
 .page-hero__inner {
   position: relative;
@@ -1417,6 +1429,7 @@ body::before {
 .input:focus {
   border-color: var(--tropic);
   background: var(--card);
+  box-shadow: 0 0 0 3px var(--tropic-glow);
 }
 
 .input::placeholder {
@@ -1457,6 +1470,7 @@ textarea.input {
 .select:focus, .select.focus {
   border-color: var(--tropic);
   background-color: var(--card);
+  box-shadow: 0 0 0 3px var(--tropic-glow);
 }
 
 .toggle-row {
