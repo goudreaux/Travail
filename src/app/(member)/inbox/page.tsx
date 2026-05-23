@@ -137,7 +137,7 @@ export default function InboxPage() {
       const { error } = await db.from('booking_messages').insert({
         booking_id: selectedThread.bookingId,
         sender_member_id: member.id,
-        is_ops: member.is_admin,
+        is_ops: false, // member voice — even admins post as the member from their own inbox
         body: text,
       })
       if (error) throw error

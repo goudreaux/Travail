@@ -281,7 +281,7 @@ export default function BookingsPage() {
                           </button>
                         </>
                       )}
-                      <Link href={`/trip/${b.id}`} className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center' }}>
+                      <Link href={`/admin/inbox?b=${b.id}`} className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center' }}>
                         Thread
                       </Link>
                     </div>

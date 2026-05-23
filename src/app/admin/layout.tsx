@@ -53,6 +53,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const nav = [
     { href: '/admin', label: 'Dashboard', exact: true },
     { href: '/admin/queue', label: 'Action Queue', badge: pendingCount > 0 ? pendingCount : undefined },
+    { href: '/admin/inbox', label: 'Inbox' },
     { href: '/admin/members', label: 'Members' },
     { href: '/admin/guests', label: 'Guests' },
     { href: '/admin/trips', label: 'Trips & Excursions' },
