@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { fmtDate, fmtTime, fmtDur, fmtMoney, airportSub } from '@/lib/data'
+import { fetchRosters, RosterList, type RosterEntry } from '@/components/Roster'
 import type { Member, Booking, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 
 type Passenger = {
@@ -42,6 +43,7 @@ export default function BoardingPassPage() {
   const [excursion, setExcursion] = useState<Excursion | null>(null)
   const [template, setTemplate] = useState<ExcursionTemplate | null>(null)
   const [passengers, setPassengers] = useState<Passenger[]>([])
+  const [roster, setRoster] = useState<RosterEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [cancelRequested, setCancelRequested] = useState(false)
@@ -96,6 +98,25 @@ export default function BoardingPassPage() {
     }
     load()
   }, [bookingId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Live roster of fellow travelers (opted-in members, excluding yourself).
+  // Re-fetches when the trip row changes (the booking trigger updates it on any
+  // book/cancel), so a cancellation drops off without a refresh.
+  useEffect(() => {
+    if (!booking) return
+    let active = true
+    const table = booking.item_kind === 'flight' ? 'flights' : 'excursions'
+    const loadRoster = async () => {
+      const r = await fetchRosters(supabase, booking.item_kind, [booking.item_id])
+      if (active) setRoster((r[booking.item_id] ?? []).filter(e => e.member_id !== member?.id))
+    }
+    loadRoster()
+    const ch = supabase
+      .channel(`bp-roster-${booking.item_id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table, filter: `id=eq.${booking.item_id}` }, () => loadRoster())
+      .subscribe()
+    return () => { active = false; supabase.removeChannel(ch) }
+  }, [booking, member?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -195,6 +216,16 @@ export default function BoardingPassPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Who else is going */}
+          {roster.length > 0 && (
+            <div style={{ padding: '0 26px 18px' }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', color: 'var(--ink-faint)', textTransform: 'uppercase', marginBottom: 10 }}>
+                Also going · {roster.reduce((s, e) => s + e.seats, 0)}
+              </div>
+              <RosterList entries={roster} />
             </div>
           )}
 
