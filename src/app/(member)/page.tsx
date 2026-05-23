@@ -217,7 +217,7 @@ export default function FeedPage() {
             <span className="pill ink">{tripItems.length} UPCOMING</span>
           </div>
 
-          <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="scroll-y" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 440 }}>
             {loading ? (
               <div style={{ padding: '32px 0', display: 'flex', justifyContent: 'center' }}>
                 <div className="pending-indicator" />
@@ -488,7 +488,7 @@ export default function FeedPage() {
             <span className="pill tropic">{newPostCount} NEW</span>
           )}
         </div>
-        <div className="feed" style={{ padding: '16px 20px' }}>
+        <div className="feed scroll-y" style={{ padding: '16px 20px', maxHeight: 620 }}>
           {loading ? (
             <div style={{ padding: '32px 0', display: 'flex', justifyContent: 'center' }}>
               <div className="pending-indicator" />
