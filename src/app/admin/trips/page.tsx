@@ -73,6 +73,7 @@ type ExcForm = {
   return_time: string
   stay_type: Excursion['stay_type']
   pitch: string
+  icon: string
   visibility: 'members' | 'public'
   spots_total: number
   spots_anchor: number
@@ -95,12 +96,12 @@ const defaultExcForm: ExcForm = {
   originSel: '', originCustomCode: '', originCustomName: '', originCustomRegion: '',
   date: '', aircraft_id: '',
   start_time: '', depart_time: '', arrive_time: '', return_time: '',
-  stay_type: 'day_trip', pitch: '', visibility: 'members',
+  stay_type: 'day_trip', pitch: '', icon: 'fish', visibility: 'members',
   spots_total: 8, spots_anchor: 1, total_cost: 0, status: 'draft',
   anchor_member_id: '',
 }
 
-const TEMPLATE_ICONS = ['fish', 'sail', 'wave', 'snorkel', 'golf', 'quail', 'hog', 'compass', 'flight'] as const
+const TEMPLATE_ICONS = ['fish', 'sail', 'wave', 'snorkel', 'golf', 'quail', 'hog', 'sun', 'compass', 'flight'] as const
 
 type TemplateForm = {
   name: string
@@ -109,14 +110,13 @@ type TemplateForm = {
   destCustomName: string
   destCustomRegion: string
   operator: string
-  capacity: number
   price_per_pax: number
   icon: string
   description: string
 }
 const defaultTemplateForm: TemplateForm = {
   name: '', destSel: '', destCustomCode: '', destCustomName: '', destCustomRegion: '',
-  operator: '', capacity: 8, price_per_pax: 0, icon: 'fish', description: '',
+  operator: '', price_per_pax: 0, icon: 'fish', description: '',
 }
 
 const sectionLabelStyle: React.CSSProperties = {
@@ -304,6 +304,7 @@ export default function TripsPage() {
       start_time: e.start_time ?? '', depart_time: e.depart_time ?? '',
       arrive_time: e.arrive_time ?? '', return_time: e.return_time ?? '',
       stay_type: e.stay_type, pitch: e.pitch ?? '', visibility: e.visibility,
+      icon: e.icon ?? templates.find(t => t.id === e.template_id)?.icon ?? 'fish',
       spots_total: e.spots_total, spots_anchor: e.spots_anchor,
       total_cost: e.price_per_pax * e.spots_total, status: e.status,
       anchor_member_id: e.anchor_member_id ?? '',
@@ -407,7 +408,7 @@ export default function TripsPage() {
         aircraft_id: EF.aircraft_id || null,
         start_time: EF.start_time || null, depart_time: EF.depart_time || null,
         arrive_time: EF.arrive_time || null, return_time: EF.return_time || null,
-        stay_type: EF.stay_type, pitch: EF.pitch || null,
+        stay_type: EF.stay_type, pitch: EF.pitch || null, icon: EF.icon || null,
         visibility: EF.visibility, spots_total: EF.spots_total,
         spots_anchor: EF.spots_anchor, price_per_pax: perPax,
         status: EF.status, anchor_member_id: EF.anchor_member_id || null,
@@ -437,8 +438,8 @@ export default function TripsPage() {
       template_id: id,
       nameTouched: false,
       pitch: f.pitch || (t?.description ?? ''),
-      spots_total: t?.capacity ?? f.spots_total,
-      total_cost: t ? t.price_per_pax * t.capacity : f.total_cost,
+      icon: t?.icon ?? f.icon,
+      total_cost: t ? t.price_per_pax * f.spots_total : f.total_cost,
     }))
   }
 
@@ -448,7 +449,7 @@ export default function TripsPage() {
     setTemplateForm({
       ...defaultTemplateForm,
       name: t.name, destSel: t.dest_code,
-      operator: t.operator ?? '', capacity: t.capacity,
+      operator: t.operator ?? '',
       price_per_pax: t.price_per_pax, icon: t.icon ?? 'fish',
       description: t.description ?? '',
     })
@@ -458,7 +459,6 @@ export default function TripsPage() {
     if (!TF.name.trim()) return 'Template name is required'
     if (!effTplDest) return 'Select or enter a destination'
     if (TF.destSel === CUSTOM && !TF.destCustomName.trim()) return 'Name the custom destination airport'
-    if (TF.capacity < 1) return 'Capacity must be at least 1'
     if (TF.price_per_pax < 0) return 'Price cannot be negative'
     return null
   }
@@ -477,7 +477,7 @@ export default function TripsPage() {
       }
       const payload = {
         name: TF.name.trim(), dest_code: effTplDest,
-        operator: TF.operator.trim() || '', capacity: TF.capacity,
+        operator: TF.operator.trim() || '',
         price_per_pax: TF.price_per_pax, icon: TF.icon,
         description: TF.description.trim() || null,
       }
@@ -850,7 +850,7 @@ export default function TripsPage() {
                 <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 6 }}>
                   Destination: <strong>{excDestLabel}</strong>
                   {selectedTemplate.operator ? ` · ${selectedTemplate.operator}` : ''}
-                  {' · '}catalog ${selectedTemplate.price_per_pax.toLocaleString()}/pax · up to {selectedTemplate.capacity} pax
+                  {' · '}catalog ${selectedTemplate.price_per_pax.toLocaleString()}/pax
                 </div>
               )}
             </div>
@@ -908,6 +908,12 @@ export default function TripsPage() {
                 {aircraft.map(a => <option key={a.id} value={a.id}>{a.name} ({a.capacity} seats)</option>)}
               </select>
             </div>
+            <div className="field">
+              <label className="field-lab">Type (icon)</label>
+              <select className="select" value={EF.icon} onChange={e => setExcForm(f => ({ ...f, icon: e.target.value }))}>
+                {TEMPLATE_ICONS.map(i => <option key={i} value={i}>{i}</option>)}
+              </select>
+            </div>
 
             {/* ─── Day schedule ─── */}
             <div style={sectionLabelStyle}>Day Schedule</div>
@@ -935,7 +941,6 @@ export default function TripsPage() {
             <div className="field">
               <label className="field-lab">Spots Total <span className="req">*</span></label>
               <input className="input" type="number" min={1} value={EF.spots_total} onChange={e => setExcForm(f => ({ ...f, spots_total: Number(e.target.value) }))} />
-              {selectedTemplate && <div style={{ fontSize: 11, color: EF.spots_total > selectedTemplate.capacity ? 'var(--signal)' : 'var(--ink-light)', marginTop: 4 }}>Catalog capacity {selectedTemplate.capacity}</div>}
             </div>
             <div className="field">
               <label className="field-lab">Anchor Spots</label>
@@ -1026,10 +1031,6 @@ export default function TripsPage() {
             )}
 
             <div className="field">
-              <label className="field-lab">Capacity (max pax) <span className="req">*</span></label>
-              <input className="input" type="number" min={1} value={TF.capacity} onChange={e => setTemplateForm(f => ({ ...f, capacity: Number(e.target.value) }))} />
-            </div>
-            <div className="field">
               <label className="field-lab">Base Price Per Pax ($)</label>
               <input className="input" type="number" min={0} value={TF.price_per_pax} onChange={e => setTemplateForm(f => ({ ...f, price_per_pax: Number(e.target.value) }))} />
               <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>Default cost when scheduling — adjustable per trip.</div>
@@ -1104,7 +1105,6 @@ export default function TripsPage() {
                 <th>Name</th>
                 <th>Destination</th>
                 <th>Operator</th>
-                <th>Capacity</th>
                 <th>Base Price</th>
                 <th>Icon</th>
                 <th></th>
@@ -1116,7 +1116,6 @@ export default function TripsPage() {
                   <td style={{ fontWeight: 500, color: 'var(--ink)' }}>{t.name}</td>
                   <td style={{ fontSize: 13 }}>{airportName(t.dest_code)}</td>
                   <td style={{ fontSize: 12, color: 'var(--ink-light)' }}>{t.operator || '—'}</td>
-                  <td style={{ fontWeight: 600 }}>{t.capacity}</td>
                   <td style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}>${t.price_per_pax.toLocaleString()}</td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink-light)' }}>{t.icon}</td>
                   <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>

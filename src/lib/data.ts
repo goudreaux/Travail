@@ -302,7 +302,8 @@ export function adaptExcursion(
     arriveTimeStr: fmtTime(e.arrive_time),
     returnTimeStr: fmtTime(e.return_time),
     spotsAvailable,
-    templateMeta: tpl,
+    // The excursion's own icon (chosen when scheduling) overrides the template's.
+    templateMeta: tpl ? { ...tpl, icon: e.icon ?? tpl.icon } : tpl,
     isAnchor,
     isBooked: isAnchor || myBookedSpots > 0,
   }
