@@ -30,11 +30,17 @@ export default function OnboardingPage() {
         const code = url.searchParams.get('code')
         const tokenHash = url.searchParams.get('token_hash')
         const type = url.searchParams.get('type')
-        if (code) {
-          await supabase.auth.exchangeCodeForSession(code)
-        } else if (tokenHash && type) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as any })
+        if (code || (tokenHash && type)) {
+          // Clear any existing session first (e.g. an admin already signed in on
+          // this browser) so the invite establishes the INVITED user's session,
+          // never silently drops into the account that was already open.
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+          if (code) {
+            await supabase.auth.exchangeCodeForSession(code)
+          } else if (tokenHash && type) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as any })
+          }
         }
         // (implicit hash tokens are picked up automatically by detectSessionInUrl)
       } catch { /* fall through to the session check */ }
