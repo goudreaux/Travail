@@ -109,14 +109,13 @@ type TemplateForm = {
   destCustomName: string
   destCustomRegion: string
   operator: string
-  capacity: number
   price_per_pax: number
   icon: string
   description: string
 }
 const defaultTemplateForm: TemplateForm = {
   name: '', destSel: '', destCustomCode: '', destCustomName: '', destCustomRegion: '',
-  operator: '', capacity: 8, price_per_pax: 0, icon: 'fish', description: '',
+  operator: '', price_per_pax: 0, icon: 'fish', description: '',
 }
 
 const sectionLabelStyle: React.CSSProperties = {
@@ -437,8 +436,7 @@ export default function TripsPage() {
       template_id: id,
       nameTouched: false,
       pitch: f.pitch || (t?.description ?? ''),
-      spots_total: t?.capacity ?? f.spots_total,
-      total_cost: t ? t.price_per_pax * t.capacity : f.total_cost,
+      total_cost: t ? t.price_per_pax * f.spots_total : f.total_cost,
     }))
   }
 
@@ -448,7 +446,7 @@ export default function TripsPage() {
     setTemplateForm({
       ...defaultTemplateForm,
       name: t.name, destSel: t.dest_code,
-      operator: t.operator ?? '', capacity: t.capacity,
+      operator: t.operator ?? '',
       price_per_pax: t.price_per_pax, icon: t.icon ?? 'fish',
       description: t.description ?? '',
     })
@@ -458,7 +456,6 @@ export default function TripsPage() {
     if (!TF.name.trim()) return 'Template name is required'
     if (!effTplDest) return 'Select or enter a destination'
     if (TF.destSel === CUSTOM && !TF.destCustomName.trim()) return 'Name the custom destination airport'
-    if (TF.capacity < 1) return 'Capacity must be at least 1'
     if (TF.price_per_pax < 0) return 'Price cannot be negative'
     return null
   }
@@ -477,7 +474,7 @@ export default function TripsPage() {
       }
       const payload = {
         name: TF.name.trim(), dest_code: effTplDest,
-        operator: TF.operator.trim() || '', capacity: TF.capacity,
+        operator: TF.operator.trim() || '',
         price_per_pax: TF.price_per_pax, icon: TF.icon,
         description: TF.description.trim() || null,
       }
@@ -850,7 +847,7 @@ export default function TripsPage() {
                 <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 6 }}>
                   Destination: <strong>{excDestLabel}</strong>
                   {selectedTemplate.operator ? ` · ${selectedTemplate.operator}` : ''}
-                  {' · '}catalog ${selectedTemplate.price_per_pax.toLocaleString()}/pax · up to {selectedTemplate.capacity} pax
+                  {' · '}catalog ${selectedTemplate.price_per_pax.toLocaleString()}/pax
                 </div>
               )}
             </div>
@@ -935,7 +932,6 @@ export default function TripsPage() {
             <div className="field">
               <label className="field-lab">Spots Total <span className="req">*</span></label>
               <input className="input" type="number" min={1} value={EF.spots_total} onChange={e => setExcForm(f => ({ ...f, spots_total: Number(e.target.value) }))} />
-              {selectedTemplate && <div style={{ fontSize: 11, color: EF.spots_total > selectedTemplate.capacity ? 'var(--signal)' : 'var(--ink-light)', marginTop: 4 }}>Catalog capacity {selectedTemplate.capacity}</div>}
             </div>
             <div className="field">
               <label className="field-lab">Anchor Spots</label>
@@ -1026,10 +1022,6 @@ export default function TripsPage() {
             )}
 
             <div className="field">
-              <label className="field-lab">Capacity (max pax) <span className="req">*</span></label>
-              <input className="input" type="number" min={1} value={TF.capacity} onChange={e => setTemplateForm(f => ({ ...f, capacity: Number(e.target.value) }))} />
-            </div>
-            <div className="field">
               <label className="field-lab">Base Price Per Pax ($)</label>
               <input className="input" type="number" min={0} value={TF.price_per_pax} onChange={e => setTemplateForm(f => ({ ...f, price_per_pax: Number(e.target.value) }))} />
               <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>Default cost when scheduling — adjustable per trip.</div>
@@ -1104,7 +1096,6 @@ export default function TripsPage() {
                 <th>Name</th>
                 <th>Destination</th>
                 <th>Operator</th>
-                <th>Capacity</th>
                 <th>Base Price</th>
                 <th>Icon</th>
                 <th></th>
@@ -1116,7 +1107,6 @@ export default function TripsPage() {
                   <td style={{ fontWeight: 500, color: 'var(--ink)' }}>{t.name}</td>
                   <td style={{ fontSize: 13 }}>{airportName(t.dest_code)}</td>
                   <td style={{ fontSize: 12, color: 'var(--ink-light)' }}>{t.operator || '—'}</td>
-                  <td style={{ fontWeight: 600 }}>{t.capacity}</td>
                   <td style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}>${t.price_per_pax.toLocaleString()}</td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink-light)' }}>{t.icon}</td>
                   <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>

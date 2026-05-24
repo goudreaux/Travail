@@ -138,7 +138,7 @@ export interface Database {
           dest_code: string
           name: string
           operator: string | null
-          capacity: number
+          capacity: number | null
           price_per_pax: number
           icon: string | null
           description: string | null
@@ -148,7 +148,7 @@ export interface Database {
           dest_code: string
           name: string
           operator?: string | null
-          capacity: number
+          capacity?: number | null
           price_per_pax: number
           icon?: string | null
           description?: string | null
@@ -158,7 +158,7 @@ export interface Database {
           dest_code?: string
           name?: string
           operator?: string | null
-          capacity?: number
+          capacity?: number | null
           price_per_pax?: number
           icon?: string | null
           description?: string | null
