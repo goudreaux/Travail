@@ -60,6 +60,16 @@ function submissionStatusClass(status: SubmissionStatus): string {
   }
 }
 
+// A published anchor whose trip Ops has since cancelled (or deleted) is no longer
+// live — treat it as cancelled so it leaves the member's active anchors.
+function effectiveAnchorStatus(a: EnrichedSubmission): SubmissionStatus {
+  if (a.status === 'published') {
+    const item = a.kind === 'flight' ? a.flight : a.excursion
+    if (!item || item.status === 'cancelled') return 'cancelled'
+  }
+  return a.status
+}
+
 // ─── Enriched types ────────────────────────────────────────────────────────────
 
 interface EnrichedBooking extends Booking {
@@ -218,8 +228,9 @@ function AnchorCard({ submission }: { submission: EnrichedSubmission }) {
     routeOrDate = [payload.origin_code, payload.date].filter(Boolean).join(' · ')
   }
 
-  const statusCls = submissionStatusClass(submission.status)
-  const statusLabel = submissionStatusLabel(submission.status)
+  const effStatus = effectiveAnchorStatus(submission)
+  const statusCls = submissionStatusClass(effStatus)
+  const statusLabel = submissionStatusLabel(effStatus)
 
   return (
     <div className="my-trip-card">
@@ -268,7 +279,9 @@ function AnchorCard({ submission }: { submission: EnrichedSubmission }) {
         {submission.status === 'published' && submission.published_item_id && (
           <div className="my-trip-card__row">
             <span className="label">Status</span>
-            <span style={{ color: 'var(--moss)', fontWeight: 600 }}>Live and accepting bookings</span>
+            {effStatus === 'cancelled'
+              ? <span style={{ color: 'var(--signal)', fontWeight: 600 }}>Cancelled by Ops</span>
+              : <span style={{ color: 'var(--moss)', fontWeight: 600 }}>Live and accepting bookings</span>}
           </div>
         )}
       </div>
@@ -380,8 +393,8 @@ export default function BookingsPage() {
   const ACTIVE_ANCHOR: SubmissionStatus[] = ['pending', 'approved', 'published']
   const activeBookings = visibleBookings.filter(b => ACTIVE_BOOKING.includes(b.status))
   const closedBookings = visibleBookings.filter(b => !ACTIVE_BOOKING.includes(b.status))
-  const activeAnchors = anchors.filter(a => ACTIVE_ANCHOR.includes(a.status))
-  const closedAnchors = anchors.filter(a => !ACTIVE_ANCHOR.includes(a.status))
+  const activeAnchors = anchors.filter(a => ACTIVE_ANCHOR.includes(effectiveAnchorStatus(a)))
+  const closedAnchors = anchors.filter(a => !ACTIVE_ANCHOR.includes(effectiveAnchorStatus(a)))
   const historyCount = closedBookings.length + closedAnchors.length
   const confirmedCount = activeBookings.filter(b => b.status === 'approved').length
   const pendingCount = activeBookings.filter(b => b.status === 'pending').length
