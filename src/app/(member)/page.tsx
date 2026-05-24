@@ -259,7 +259,7 @@ export default function FeedPage() {
             <span className="pill ink">{tripItems.length} UPCOMING</span>
           </div>
 
-          <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="scroll-y" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minHeight: 0, overflowY: 'auto' }}>
             {loading ? (
               <div style={{ padding: '32px 0', display: 'flex', justifyContent: 'center' }}>
                 <div className="pending-indicator" />
@@ -424,7 +424,7 @@ export default function FeedPage() {
             </div>
 
             {/* Cards */}
-            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="scroll-y" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {loading ? (
                 <div style={{ padding: '24px', display: 'flex', justifyContent: 'center' }}>
                   <div className="pending-indicator" />
@@ -434,7 +434,7 @@ export default function FeedPage() {
                   <p>No open {typeFilter === 'all' ? 'seats' : typeFilter} trips right now.</p>
                 </div>
               ) : (
-                filteredOpenItems.slice(0, 5).map(({ type, item }) => {
+                filteredOpenItems.map(({ type, item }) => {
                   if (type === 'flight') {
                     const f = item as DisplayFlight
                     const dp = f.dateParts
