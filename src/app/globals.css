@@ -1289,6 +1289,8 @@ body::before {
   display: flex;
   align-items: stretch;
   gap: 0;
+  position: relative;
+  height: 124px;
 }
 
 .trip-card__date {
@@ -1342,16 +1344,25 @@ body::before {
 .trip-card__content {
   flex: 1;
   min-width: 0;
-  padding: 14px 16px;
+  padding: 12px 16px;
+  position: relative;
+  z-index: 2;
 }
 
+/* Hero image: cropped to the card's fixed height, fading into the card on the
+   left so it blends in rather than sitting as a hard block. */
 .trip-card__img {
-  align-self: stretch;
-  flex-shrink: 0;
-  width: 40%;
-  max-width: 460px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 58%;
+  height: 100%;
   object-fit: cover;
-  display: block;
+  pointer-events: none;
+  z-index: 1;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 55%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 55%);
 }
 
 .trip-card__title {
