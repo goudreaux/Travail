@@ -30,4 +30,14 @@ export const KIND_ICONS: Record<string, React.ReactElement> = {
   golf: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><line x1="7" y1="17" x2="7" y2="3"/><path d="M7 3l8 3-8 3" fill="currentColor"/><path d="M3 19q3-1 7-1t9 1"/></svg>),
   quail: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 14q1-7 8-7 5 0 7 4 1 3-2 5l-3 1H6q-3 0-3-3z"/><path d="M15 7q1-2 0-3"/><circle cx="14" cy="10" r="0.8" fill="currentColor"/><path d="M5 17l-1 2 M9 17l-1 2"/></svg>),
   hog: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11q1-4 6-4h6q3 0 4 3v2q0 3-3 3h-1q-1 2-3 2H7q-3 0-4-2z"/><circle cx="16" cy="10" r="0.8" fill="currentColor"/><path d="M18 13l2 1"/><path d="M6 16l-1 2 M10 16l-1 2"/></svg>),
+  sun: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="4"/><path d="M11 2v2.5M11 17.5V20M2 11h2.5M17.5 11H20M4.4 4.4l1.8 1.8M15.8 15.8l1.8 1.8M17.6 4.4l-1.8 1.8M6.2 15.8l-1.8 1.8"/></svg>),
+}
+
+// Canonical trip-type → icon, used for member interests across the app.
+export const TRIP_TYPE_ICONS: Record<string, React.ReactElement> = {
+  Fishing: KIND_ICONS.fish,
+  Hunting: KIND_ICONS.quail,
+  Golf: KIND_ICONS.golf,
+  Leisure: KIND_ICONS.sun,
+  Surfing: KIND_ICONS.wave,
 }
