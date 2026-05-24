@@ -785,11 +785,11 @@ body::before {
 .cal-cells {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 38px;
   gap: 3px;
 }
 
 .cal-cell {
-  min-height: 34px;
   border-radius: 10px;
   display: flex;
   flex-direction: column;
