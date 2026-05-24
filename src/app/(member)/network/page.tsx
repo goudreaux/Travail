@@ -253,57 +253,59 @@ export default function NetworkPage() {
                     </p>
                   )}
 
-                  {/* Interests — shared trip types to connect over */}
-                  {(() => {
-                    const ints = canonicalInterests(member.interests)
-                    if (ints.length === 0) return null
-                    return (
-                      <div style={{ display: 'flex', gap: 6, marginBottom: 12, overflow: 'hidden' }}>
-                        {ints.map(t => (
-                          <span
-                            key={t}
-                            title={t}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: 26,
-                              height: 26,
-                              borderRadius: '50%',
-                              background: 'var(--warm)',
-                              color: 'var(--tropic-d)',
-                              flexShrink: 0,
-                            }}
-                          >
-                            <span style={{ display: 'flex', width: 14, height: 14 }}>{TRIP_TYPE_ICONS[t]}</span>
-                          </span>
-                        ))}
-                      </div>
-                    )
-                  })()}
+                  {/* Bottom group — interests sit just above the trip data / CTA */}
+                  <div style={{ marginTop: 'auto' }}>
+                    {/* Interests — shared trip types to connect over */}
+                    {(() => {
+                      const ints = canonicalInterests(member.interests)
+                      if (ints.length === 0) return null
+                      return (
+                        <div style={{ display: 'flex', gap: 6, marginBottom: 12, overflow: 'hidden' }}>
+                          {ints.map(t => (
+                            <span
+                              key={t}
+                              title={t}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 26,
+                                height: 26,
+                                borderRadius: '50%',
+                                background: 'var(--warm)',
+                                color: 'var(--tropic-d)',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <span style={{ display: 'flex', width: 14, height: 14 }}>{TRIP_TYPE_ICONS[t]}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )
+                    })()}
 
-                  {/* Footer */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginTop: 'auto',
-                    paddingTop: 12,
-                    borderTop: '1px solid var(--hair)',
-                  }}>
-                    <span style={{ fontSize: 12, color: 'var(--ink-light)' }}>
-                      {(member as MemberWithCount).tripCount
-                        ? `${(member as MemberWithCount).tripCount} trip${(member as MemberWithCount).tripCount === 1 ? '' : 's'}`
-                        : 'No trips yet'}
-                    </span>
-                    <span style={{
-                      fontSize: 11.5,
-                      color: 'var(--tropic-d)',
-                      fontWeight: 500,
-                      letterSpacing: '0.02em',
+                    {/* Footer */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingTop: 12,
+                      borderTop: '1px solid var(--hair)',
                     }}>
-                      View profile →
-                    </span>
+                      <span style={{ fontSize: 12, color: 'var(--ink-light)' }}>
+                        {(member as MemberWithCount).tripCount
+                          ? `${(member as MemberWithCount).tripCount} trip${(member as MemberWithCount).tripCount === 1 ? '' : 's'}`
+                          : 'No trips yet'}
+                      </span>
+                      <span style={{
+                        fontSize: 11.5,
+                        color: 'var(--tropic-d)',
+                        fontWeight: 500,
+                        letterSpacing: '0.02em',
+                      }}>
+                        View profile →
+                      </span>
+                    </div>
                   </div>
                 </div>
               </Link>
