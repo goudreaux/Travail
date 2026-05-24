@@ -96,14 +96,19 @@ export default function BookingsPage() {
       const db = supabase as any
       // Approve both legs of a round trip under one shared code.
       const legs = legIdsOf(booking.id).map(lid => bookings.find(b => b.id === lid)).filter(Boolean) as BookingRow[]
+      const legSet = new Set(legs.map(l => l.id))
       const code = genConfirmationCode()
       for (const leg of legs) {
         const itemTable = leg.item_kind === 'flight' ? 'flights' : 'excursions'
         const { data: item } = await db.from(itemTable).select('*').eq('id', leg.item_id).single()
         if (!item) throw new Error('Trip not found')
         const capacity = leg.item_kind === 'flight' ? item.seats_total - item.seats_anchor : item.spots_total - item.spots_anchor
-        const { data: approvedRows } = await db.from('bookings').select('seats').eq('item_kind', leg.item_kind).eq('item_id', leg.item_id).eq('status', 'approved')
-        const taken = (approvedRows ?? []).reduce((s: number, r: { seats: number }) => s + r.seats, 0)
+        // Other members' approved seats only — anchor seats are reserved via
+        // seats_anchor; exclude the booking being confirmed.
+        const { data: approvedRows } = await db.from('bookings').select('id, seats, member_id').eq('item_kind', leg.item_kind).eq('item_id', leg.item_id).eq('status', 'approved')
+        const taken = (approvedRows ?? [])
+          .filter((r: { id: string; member_id: string }) => r.member_id !== item.anchor_member_id && !legSet.has(r.id))
+          .reduce((s: number, r: { seats: number }) => s + r.seats, 0)
         if (taken + leg.seats > capacity) throw new Error(`Only ${Math.max(0, capacity - taken)} seat(s) left`)
       }
       const { error } = await db.from('bookings').update({

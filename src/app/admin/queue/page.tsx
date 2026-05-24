@@ -331,6 +331,7 @@ export default function QueuePage() {
       const db = supabase as any
       const code = genConfirmationCode()
 
+      const legIds = new Set(qi.legs.map(l => l.id))
       for (const leg of qi.legs) {
         // Seat-availability check (item_id is text, so the uuid RPC can't be used).
         const itemTable = leg.item_kind === 'flight' ? 'flights' : 'excursions'
@@ -339,9 +340,13 @@ export default function QueuePage() {
         const capacity = leg.item_kind === 'flight'
           ? item.seats_total - item.seats_anchor
           : item.spots_total - item.spots_anchor
+        // Count other members' approved seats only — the anchor's seats are already
+        // reserved via seats_anchor, and exclude the booking we're confirming.
         const { data: approvedRows } = await db.from('bookings')
-          .select('seats').eq('item_kind', leg.item_kind).eq('item_id', leg.item_id).eq('status', 'approved')
-        const taken = (approvedRows ?? []).reduce((s: number, r: { seats: number }) => s + r.seats, 0)
+          .select('id, seats, member_id').eq('item_kind', leg.item_kind).eq('item_id', leg.item_id).eq('status', 'approved')
+        const taken = (approvedRows ?? [])
+          .filter((r: { id: string; member_id: string }) => r.member_id !== item.anchor_member_id && !legIds.has(r.id))
+          .reduce((s: number, r: { seats: number }) => s + r.seats, 0)
         if (taken + leg.seats > capacity) {
           const where = leg.flight ? `${leg.flight.origin_code} → ${leg.flight.dest_code}` : 'this leg'
           throw new Error(`Only ${Math.max(0, capacity - taken)} seat(s) left on ${where}`)
@@ -350,10 +355,11 @@ export default function QueuePage() {
 
       // All legs have room — confirm them together under the shared code.
       for (const leg of qi.legs) {
-        const { error } = await db.from('bookings').update({
+        const { data: upd, error } = await db.from('bookings').update({
           status: 'approved', confirmation_code: code, decided_at: new Date().toISOString(),
-        }).eq('id', leg.id)
+        }).eq('id', leg.id).select()
         if (error) throw error
+        if (!upd || upd.length === 0) throw new Error('Update blocked — verify the admin RLS update policy on bookings in Supabase')
       }
 
       try {
