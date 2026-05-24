@@ -120,7 +120,7 @@ export default function NetworkPage() {
         {loading ? (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
             gap: 16,
           }}>
             {[...Array(6)].map((_, i) => (
@@ -149,7 +149,7 @@ export default function NetworkPage() {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
             gap: 16,
           }}>
             {filtered.map(member => (

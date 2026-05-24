@@ -203,7 +203,7 @@ export default function MembershipPage() {
       />
 
       <div className="page-view">
-        <div className="two-col" style={{ gridTemplateColumns: '1fr 320px', gap: 24 }}>
+        <div className="two-col" style={{ gap: 24 }}>
           {/* ── Left column ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 

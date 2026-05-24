@@ -268,7 +268,7 @@ export default function MemberProfilePage() {
           </div>
         </div>
 
-        <div className="two-col" style={{ gridTemplateColumns: '1fr 320px' }}>
+        <div className="two-col">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Bio */}
             {member.bio && (
