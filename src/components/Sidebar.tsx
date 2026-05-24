@@ -144,7 +144,7 @@ export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsC
                 {member.name}
               </div>
               <div className="side-member-tier" style={{ color: TIER_COLOR[member.tier] ?? 'var(--tropic)' }}>
-                {tierLabel(member.tier).toUpperCase()} · {memberCode(member)}
+                {tierLabel(member.tier).toUpperCase()}{member.tier === 'administrator' ? '' : ` · ${memberCode(member)}`}
               </div>
             </div>
             {/* Subtle chevron hint */}
