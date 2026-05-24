@@ -759,15 +759,15 @@ body::before {
 }
 
 .cal-grid {
-  padding: 12px 12px 14px;
+  padding: 8px 12px 12px;
 }
 
 .cal-dow {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 3px;
-  margin-bottom: 6px;
-  padding-bottom: 6px;
+  margin-bottom: 2px;
+  padding-bottom: 5px;
   border-bottom: 1px solid var(--hair);
 }
 
@@ -789,7 +789,7 @@ body::before {
 }
 
 .cal-cell {
-  min-height: 40px;
+  min-height: 34px;
   border-radius: 10px;
   display: flex;
   flex-direction: column;
