@@ -101,6 +101,7 @@ export default function QueuePage() {
   const [declineTarget, setDeclineTarget] = useState<{ id: string; kind: 'booking' | 'anchor' } | null>(null)
   const [declineReason, setDeclineReason] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [draft, setDraft] = useState<Record<string, string>>({})
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' | 'info' } | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -436,28 +437,63 @@ export default function QueuePage() {
     return aircraft.find(a => a.capacity === capacity)?.id ?? null
   }
 
+  // Expand an anchor for review and seed the editable draft from its submission.
+  function openAnchor(anchor: AnchorRow) {
+    if (expanded === anchor.id) { setExpanded(null); return }
+    const p = anchor.payload as Record<string, unknown>
+    const s = (v: unknown) => (v === null || v === undefined ? '' : String(v))
+    setDraft({
+      name: s(p.name),
+      date: s(p.date),
+      departTime: s(p.departTime ?? p.depart_time),
+      destCode: s(p.destCode ?? p.dest_code),
+      startTime: s(p.startTime ?? p.start_time),
+      returnTime: s(p.returnTime ?? p.return_time),
+      seatsTotal: s(p.seatsTotal ?? p.seats_total ?? 8),
+      seatsAnchor: s(p.seatsAnchor ?? p.seats_anchor ?? 1),
+      spotsTotal: s(p.spotsTotal ?? p.spots_total ?? 8),
+      spotsAnchor: s(p.spotsAnchor ?? p.spots_anchor ?? 1),
+      price: s(p.pricePerSeat ?? p.price_per_seat ?? p.pricePerPax ?? p.price_per_pax ?? ''),
+      pitch: s(p.pitch),
+    })
+    setExpanded(anchor.id)
+  }
+
   async function publishAnchor(anchor: AnchorRow) {
+    const p = anchor.payload as Record<string, unknown>
+    // Edited values from the expanded review form; fall back to the submission.
+    const d = expanded === anchor.id ? draft : {}
+    const val = (key: string, fb: unknown) => (d[key] !== undefined && d[key] !== '' ? d[key] : (fb ?? '')) as string
+    const num = (key: string, fb: unknown) => { const n = Number(val(key, fb)); return Number.isFinite(n) ? n : 0 }
+
+    const price = num('price', p.pricePerSeat ?? p.price_per_seat ?? p.pricePerPax ?? p.price_per_pax ?? 0)
+    if (price <= 0) {
+      showToast('Set a price per seat/person before publishing', 'error')
+      setExpanded(anchor.id)
+      if (expanded !== anchor.id) openAnchor(anchor)
+      return
+    }
+
     setWorking(anchor.id)
     try {
-      const p = anchor.payload as Record<string, unknown>
       const code = genConfirmationCode()
+      const stamp = Date.now().toString(36).toUpperCase()
       let publishedItemId: string | null = null
 
-      // Handle both camelCase (new forms) and snake_case (legacy) payload keys
       const originCode = String(p.originCode ?? p.origin_code ?? '')
-      const destCode = String(p.destCode ?? p.dest_code ?? '')
-      const date = String(p.date ?? '')
-      const departTime = (p.departTime ?? p.depart_time ?? null) as string | null
+      const destCode = val('destCode', p.destCode ?? p.dest_code)
+      const date = val('date', p.date)
+      const departTime = val('departTime', p.departTime ?? p.depart_time) || null
       const aircraftId = resolveAircraftId((p.aircraftId ?? p.aircraft_id ?? null) as string | null)
-      const name = String(p.name ?? '')
-      const pitch = (p.pitch ?? null) as string | null
+      const name = val('name', p.name)
+      const pitch = val('pitch', p.pitch) || null
 
       if (anchor.kind === 'flight') {
-        const seatsTotal = (p.seatsTotal ?? p.seats_total ?? 8) as number
-        const seatsAnchor = (p.seatsAnchor ?? p.seats_anchor ?? 1) as number
-        const pricePerSeat = (p.pricePerSeat ?? p.price_per_seat ?? 0) as number
+        const seatsTotal = num('seatsTotal', p.seatsTotal ?? p.seats_total ?? 8)
+        const seatsAnchor = num('seatsAnchor', p.seatsAnchor ?? p.seats_anchor ?? 1)
 
         const { data: flight, error } = await supabase.from('flights').insert({
+          id: `F-${stamp}`,
           anchor_member_id: anchor.member_id,
           origin_code: originCode,
           dest_code: destCode,
@@ -470,7 +506,7 @@ export default function QueuePage() {
           visibility: 'members',
           seats_total: seatsTotal,
           seats_anchor: seatsAnchor,
-          price_per_seat: pricePerSeat,
+          price_per_seat: price,
           status: 'open',
         } as never).select().single()
         if (error) throw error
@@ -478,61 +514,63 @@ export default function QueuePage() {
 
         // Auto-approve anchor member's own seats
         await supabase.from('bookings').insert({
+          id: `B-${stamp}`,
           member_id: anchor.member_id,
           item_kind: 'flight',
           item_id: flight.id,
           seats: seatsAnchor,
-          price_per_seat: pricePerSeat,
+          price_per_seat: price,
           fees: 0,
-          total: pricePerSeat * seatsAnchor,
+          total: price * seatsAnchor,
           payment_method: 'credits',
           status: 'approved',
           confirmation_code: code,
           decided_at: new Date().toISOString(),
-        })
+        } as never)
       } else {
         // Excursion
-        const spotsTotal = (p.spotsTotal ?? p.spots_total ?? 8) as number
-        const spotsAnchor = (p.spotsAnchor ?? p.spots_anchor ?? 1) as number
-        const pricePerPax = (p.pricePerPax ?? p.price_per_pax ?? 0) as number
+        const spotsTotal = num('spotsTotal', p.spotsTotal ?? p.spots_total ?? 8)
+        const spotsAnchor = num('spotsAnchor', p.spotsAnchor ?? p.spots_anchor ?? 1)
         const tripType = p.tripType as string | undefined
         const stayType = tripType === 'overnight' ? 'overnight' : 'day_trip'
 
         const { data: exc, error } = await supabase.from('excursions').insert({
+          id: `E-${stamp}`,
           anchor_member_id: anchor.member_id,
           template_id: null,
           origin_code: originCode,
           aircraft_id: aircraftId,
           date,
-          start_time: (p.startTime ?? p.start_time ?? null) as string | null,
+          start_time: val('startTime', p.startTime ?? p.start_time) || null,
           depart_time: departTime,
           arrive_time: (p.arriveTime ?? p.arrive_time ?? null) as string | null,
-          return_time: (p.returnTime ?? p.return_time ?? null) as string | null,
+          return_time: val('returnTime', p.returnTime ?? p.return_time) || null,
           stay_type: stayType as 'day_trip' | 'overnight' | 'multi_night',
           name,
           pitch,
           visibility: 'members',
           spots_total: spotsTotal,
           spots_anchor: spotsAnchor,
-          price_per_pax: pricePerPax,
+          price_per_pax: price,
           status: 'open',
-        }).select().single()
+        } as never).select().single()
         if (error) throw error
         publishedItemId = exc.id
 
         await supabase.from('bookings').insert({
+          id: `B-${stamp}`,
           member_id: anchor.member_id,
           item_kind: 'excursion',
           item_id: exc.id,
           seats: spotsAnchor,
-          price_per_seat: pricePerPax,
+          price_per_seat: price,
           fees: 0,
-          total: pricePerPax * spotsAnchor,
+          total: price * spotsAnchor,
           payment_method: 'credits',
           status: 'approved',
           confirmation_code: code,
           decided_at: new Date().toISOString(),
-        })
+        } as never)
       }
 
       await supabase.from('anchor_submissions').update({
@@ -956,7 +994,7 @@ export default function QueuePage() {
                   {/* Row */}
                   <div
                     style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}
-                    onClick={() => setExpanded(isOpen ? null : a.id)}
+                    onClick={() => openAnchor(a)}
                   >
                     <div style={{ color: 'var(--ink-faint)', fontSize: 10, flexShrink: 0, width: 12 }}>
                       {isOpen ? '▲' : '▶'}
@@ -1037,36 +1075,57 @@ export default function QueuePage() {
                     </div>
                   </div>
 
-                  {/* Expanded payload */}
-                  {isOpen && (
-                    <div style={{ borderTop: '1px solid var(--hair)', padding: '16px 20px 20px', background: 'rgba(0,179,199,0.02)' }}>
-                      <div style={{ fontSize: 10, fontFamily: 'var(--mono)', letterSpacing: '0.14em', color: 'var(--tropic-d)', marginBottom: 14, textTransform: 'uppercase' }}>
-                        Full Payload · {a.id.slice(0, 8)}
+                  {/* Expanded — review & edit before publishing */}
+                  {isOpen && (() => {
+                    const set = (k: string, v: string) => setDraft(prev => ({ ...prev, [k]: v }))
+                    const F = ({ label, k, type = 'text', placeholder }: { label: string; k: string; type?: string; placeholder?: string }) => (
+                      <div className="field" style={{ marginBottom: 0 }}>
+                        <label className="field-lab">{label}</label>
+                        <input className="input" type={type} value={draft[k] ?? ''} placeholder={placeholder}
+                          onChange={e => set(k, e.target.value)} />
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '10px 20px' }}>
-                        {Object.entries(p).map(([k, v]) => (
-                          <div key={k}>
-                            <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-faint)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>
-                              {k}
-                            </div>
-                            <div style={{
-                              fontSize: 12.5,
-                              color: (v === null || v === '') ? 'var(--ink-faint)' : 'var(--ink-soft)',
-                              fontStyle: (v === null || v === '') ? 'italic' : 'normal',
-                              fontWeight: (v !== null && v !== '') ? 500 : 400,
-                            }}>
-                              {(v === null || v === '') ? 'null' : typeof v === 'object' ? JSON.stringify(v) : String(v)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      {a.submitted_at && (
-                        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--hair)', fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-faint)', letterSpacing: '0.06em' }}>
-                          Submitted {new Date(a.submitted_at).toLocaleString()}
+                    )
+                    return (
+                      <div style={{ borderTop: '1px solid var(--hair)', padding: '16px 20px 20px', background: 'rgba(0,179,199,0.02)' }}>
+                        <div style={{ fontSize: 10, fontFamily: 'var(--mono)', letterSpacing: '0.14em', color: 'var(--tropic-d)', marginBottom: 14, textTransform: 'uppercase' }}>
+                          Review &amp; edit before publishing
                         </div>
-                      )}
-                    </div>
-                  )}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
+                          {F({ label: 'Trip name', k: 'name' })}
+                          {F({ label: 'Date', k: 'date', type: 'date' })}
+                          {F({ label: 'Departure time', k: 'departTime', placeholder: '9:00 AM' })}
+                          {a.kind === 'flight' ? (
+                            <>
+                              {F({ label: 'Destination code', k: 'destCode' })}
+                              {F({ label: 'Seats total', k: 'seatsTotal', type: 'number' })}
+                              {F({ label: 'Anchor seats', k: 'seatsAnchor', type: 'number' })}
+                              {F({ label: 'Price / seat (USD)', k: 'price', type: 'number', placeholder: 'e.g. 850' })}
+                            </>
+                          ) : (
+                            <>
+                              {F({ label: 'Start time', k: 'startTime', placeholder: '9:00 AM' })}
+                              {F({ label: 'Return time', k: 'returnTime', placeholder: '4:00 PM' })}
+                              {F({ label: 'Spots total', k: 'spotsTotal', type: 'number' })}
+                              {F({ label: 'Anchor spots', k: 'spotsAnchor', type: 'number' })}
+                              {F({ label: 'Price / person (USD)', k: 'price', type: 'number', placeholder: 'e.g. 450' })}
+                            </>
+                          )}
+                        </div>
+                        <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
+                          <label className="field-lab">Pitch</label>
+                          <textarea className="input" rows={2} value={draft.pitch ?? ''} onChange={e => set('pitch', e.target.value)} />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16 }}>
+                          <button className="btn-sun" style={{ height: 36, padding: '0 18px', fontSize: 13 }} disabled={working === a.id} onClick={() => publishAnchor(a)}>
+                            {working === a.id ? 'Publishing…' : 'Publish to network →'}
+                          </button>
+                          <span style={{ fontSize: 11.5, color: 'var(--ink-light)' }}>
+                            {a.member?.name ? `Submitted by ${a.member.name}` : ''}{a.submitted_at ? ` · ${new Date(a.submitted_at).toLocaleDateString()}` : ''}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })}
