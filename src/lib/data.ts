@@ -6,6 +6,28 @@ export function memberCode(m: { member_no?: number | null; id: string }): string
   return m.member_no != null ? `#${m.member_no}` : m.id.slice(0, 8).toUpperCase()
 }
 
+// Membership tiers. 'administrator' is the ops role — hidden from the member
+// network. 'founder' carries admin access; 'founding_member' is the base tier.
+export const TIER_LABEL: Record<string, string> = {
+  founder: 'Founder',
+  founding_member: 'Founding Member',
+  administrator: 'Administrator',
+}
+
+export const TIER_PILL: Record<string, string> = {
+  founder: 'sun',
+  founding_member: 'tropic',
+  administrator: 'ink',
+}
+
+export function tierLabel(tier: string | null | undefined): string {
+  return TIER_LABEL[tier ?? ''] ?? 'Founding Member'
+}
+
+export function tierPill(tier: string | null | undefined): string {
+  return TIER_PILL[tier ?? ''] ?? 'tropic'
+}
+
 // Ops confirmation code, e.g. "TVAB12CD".
 export function genConfirmationCode(): string {
   return 'TV' + Math.random().toString(36).toUpperCase().slice(2, 8)

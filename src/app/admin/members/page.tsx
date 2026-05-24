@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { fmtHomeBase, memberCode } from '@/lib/data'
+import { fmtHomeBase, memberCode, tierLabel, tierPill } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
 import GuestsPanel from '@/components/GuestsPanel'
 import type { Member, MemberSensitive } from '@/lib/supabase/types'
@@ -25,7 +25,7 @@ type EditForm = {
   name: string
   member_no: string
   initials: string
-  tier: 'founder'
+  tier: 'founder' | 'founding_member' | 'administrator'
   home_base_code: string
   bio: string
   interests: string
@@ -54,7 +54,7 @@ const defaultForm: EditForm = {
   name: '',
   member_no: '',
   initials: '',
-  tier: 'founder',
+  tier: 'founding_member',
   home_base_code: 'Tampa Bay',
   bio: '',
   interests: '',
@@ -152,7 +152,7 @@ export default function MembersPage() {
       name: m.name,
       member_no: m.member_no != null ? String(m.member_no) : '',
       initials: m.initials,
-      tier: 'founder',
+      tier: m.tier,
       home_base_code: m.home_base_code ?? 'Tampa Bay',
       bio: m.bio ?? '',
       interests: Array.isArray(m.interests) ? m.interests.join(', ') : (m.interests ?? ''),
@@ -425,6 +425,17 @@ export default function MembersPage() {
               </select>
             </div>
             <div className="field">
+              <label className="field-lab">Membership Tier</label>
+              <select className="select" value={form.tier} onChange={e => setForm(f => ({ ...f, tier: e.target.value as EditForm['tier'] }))}>
+                <option value="founding_member">Founding Member</option>
+                <option value="founder">Founder</option>
+                <option value="administrator">Administrator</option>
+              </select>
+              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>
+                Administrators are hidden from the member network. Grant Founders admin access with the toggle below.
+              </div>
+            </div>
+            <div className="field">
               <label className="field-lab">Date of Birth</label>
               <input
                 className="input"
@@ -537,6 +548,7 @@ export default function MembersPage() {
               <tr>
                 <th>Name</th>
                 <th>ID</th>
+                <th>Tier</th>
                 <th>Home Base</th>
                 <th>KYC</th>
                 <th>Admin</th>
@@ -556,6 +568,7 @@ export default function MembersPage() {
                     </div>
                   </td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink-light)' }}>{memberCode(m)}</td>
+                  <td><span className={`pill ${tierPill(m.tier)}`}>{tierLabel(m.tier)}</span></td>
                   <td style={{ fontSize: 13 }}>{fmtHomeBase(m.home_base_code) ?? '—'}</td>
                   <td>
                     <span className={`pill ${m.kyc_verified ? 'moss' : 'signal'}`}>{m.kyc_verified ? 'Verified' : 'Pending'}</span>

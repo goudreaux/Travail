@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { Icons } from '@/lib/icons'
-import { memberCode } from '@/lib/data'
+import { memberCode, tierLabel } from '@/lib/data'
 import type { Member } from '@/lib/supabase/types'
 
 interface Props {
@@ -12,9 +12,9 @@ interface Props {
 }
 
 const TIER_COLOR: Record<string, string> = {
-  explorer: 'var(--tropic)',
-  anchor: 'var(--sun)',
   founder: '#c9a84c',
+  founding_member: 'var(--tropic)',
+  administrator: 'var(--sun)',
 }
 
 export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsCount = 0 }: Props) {
@@ -144,7 +144,7 @@ export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsC
                 {member.name}
               </div>
               <div className="side-member-tier" style={{ color: TIER_COLOR[member.tier] ?? 'var(--tropic)' }}>
-                {member.tier.toUpperCase()} · {memberCode(member)}
+                {tierLabel(member.tier).toUpperCase()} · {memberCode(member)}
               </div>
             </div>
             {/* Subtle chevron hint */}

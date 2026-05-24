@@ -16,7 +16,7 @@ export interface Database {
           user_id: string
           name: string
           initials: string
-          tier: 'explorer' | 'anchor' | 'founder'
+          tier: 'founder' | 'founding_member' | 'administrator'
           home_base_code: string | null
           kyc_verified: boolean
           seat_credits: number
@@ -34,7 +34,7 @@ export interface Database {
           user_id: string
           name: string
           initials: string
-          tier?: 'explorer' | 'anchor' | 'founder'
+          tier?: 'founder' | 'founding_member' | 'administrator'
           home_base_code?: string | null
           kyc_verified?: boolean
           seat_credits?: number
@@ -52,7 +52,7 @@ export interface Database {
           user_id?: string
           name?: string
           initials?: string
-          tier?: 'explorer' | 'anchor' | 'founder'
+          tier?: 'founder' | 'founding_member' | 'administrator'
           home_base_code?: string | null
           kyc_verified?: boolean
           seat_credits?: number

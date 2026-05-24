@@ -1,21 +1,9 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { fmtDate, fmtHomeBase, memberCode } from '@/lib/data'
+import { fmtDate, fmtHomeBase, memberCode, tierLabel, tierPill } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import type { Member, Booking, AnchorSubmission, MemberSensitive } from '@/lib/supabase/types'
-
-const TIER_LABEL: Record<string, string> = {
-  founder: 'Founding Member',
-  anchor: 'Founding Member',
-  explorer: 'Founding Member',
-}
-
-const TIER_PILL: Record<string, string> = {
-  founder: 'sun',
-  anchor: 'sun',
-  explorer: 'sun',
-}
 
 function timeAgo(dateStr: string) {
   const ms = Date.now() - new Date(dateStr).getTime()
@@ -197,7 +185,7 @@ export default function MembershipPage() {
   return (
     <div className="page">
       <PageHero
-        eyebrow={`${memberCode(member)} · ${TIER_LABEL[member.tier] ?? member.tier}`}
+        eyebrow={`${memberCode(member)} · ${tierLabel(member.tier)}`}
         title="Membership."
         sub="Your account, history, and settings."
       />
@@ -294,8 +282,8 @@ export default function MembershipPage() {
                       Upload a profile photo (JPG or PNG)
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <span className={`pill ${TIER_PILL[member.tier] ?? 'ink'}`}>
-                        {TIER_LABEL[member.tier] ?? member.tier}
+                      <span className={`pill ${tierPill(member.tier)}`}>
+                        {tierLabel(member.tier)}
                       </span>
                       {member.kyc_verified && (
                         <span className="pill moss">Verified</span>
@@ -457,7 +445,7 @@ export default function MembershipPage() {
               </div>
               <div style={{ padding: '6px 0 8px' }}>
                 {[
-                  { label: 'Tier', value: <span className={`pill ${TIER_PILL[member.tier] ?? 'ink'}`}>{TIER_LABEL[member.tier] ?? member.tier}</span> },
+                  { label: 'Tier', value: <span className={`pill ${tierPill(member.tier)}`}>{tierLabel(member.tier)}</span> },
                   { label: 'Member ID', value: <span className="mono" style={{ fontSize: 10 }}>{memberCode(member)}</span> },
                   { label: 'Joined', value: dp ? `${dp.mo} ${dp.day}, ${new Date(member.joined_at).getFullYear()}` : '—' },
                   { label: 'KYC status', value: member.kyc_verified ? <span className="pill moss">Verified</span> : <span className="pill signal">Pending</span> },

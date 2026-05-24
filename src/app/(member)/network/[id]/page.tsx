@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { fmtHomeBase, memberCode } from '@/lib/data'
+import { fmtHomeBase, memberCode, tierLabel, tierPill } from '@/lib/data'
 import type { Member, Booking, Post } from '@/lib/supabase/types'
 
 function Avatar({ member, size = 80 }: { member: Member; size?: number }) {
@@ -48,8 +48,8 @@ function Avatar({ member, size = 80 }: { member: Member; size?: number }) {
   )
 }
 
-function TierBadge() {
-  return <span className="pill sun">Founder</span>
+function TierBadge({ tier }: { tier: string }) {
+  return <span className={`pill ${tierPill(tier)}`}>{tierLabel(tier)}</span>
 }
 
 function formatDate(dateStr: string) {
@@ -226,7 +226,7 @@ export default function MemberProfilePage() {
                 {member.name}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <TierBadge />
+                <TierBadge tier={member.tier} />
                 <span className="mono" style={{ fontSize: 9.5 }}>
                   {memberCode(member)}
                 </span>
