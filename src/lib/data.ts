@@ -28,6 +28,11 @@ export function tierPill(tier: string | null | undefined): string {
   return TIER_PILL[tier ?? ''] ?? 'tropic'
 }
 
+// Trip types — the canonical activity categories members pick interests from
+// and that trips are organized around.
+export const TRIP_TYPES = ['Fishing', 'Hunting', 'Golf', 'Leisure', 'Surfing'] as const
+export type TripType = typeof TRIP_TYPES[number]
+
 // Ops confirmation code, e.g. "TVAB12CD".
 export function genConfirmationCode(): string {
   return 'TV' + Math.random().toString(36).toUpperCase().slice(2, 8)

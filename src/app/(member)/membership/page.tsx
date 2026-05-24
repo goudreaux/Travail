@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { fmtDate, fmtHomeBase, memberCode, tierLabel, tierPill } from '@/lib/data'
+import { fmtDate, fmtHomeBase, memberCode, tierLabel, tierPill, TRIP_TYPES } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import type { Member, Booking, AnchorSubmission, MemberSensitive } from '@/lib/supabase/types'
 
@@ -34,7 +34,10 @@ export default function MembershipPage() {
   // Editable fields
   const [name, setName] = useState('')
   const [bio, setBio] = useState('')
-  const [interests, setInterests] = useState('')
+  const [interests, setInterests] = useState<string[]>([])
+
+  const toggleInterest = (t: string) =>
+    setInterests(prev => (prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]))
 
   useEffect(() => {
     async function load() {
@@ -50,7 +53,11 @@ export default function MembershipPage() {
         setMember(m)
         setName(m.name)
         setBio(m.bio ?? '')
-        setInterests(Array.isArray(m.interests) ? m.interests.join(', ') : (m.interests ?? ''))
+        // Pre-select canonical trip types from whatever's stored (older free-text
+        // interests like "deep sea fishing" still light up the matching type).
+        const existing = Array.isArray(m.interests) ? m.interests : (m.interests ? [String(m.interests)] : [])
+        const existingLc = existing.map(s => String(s).toLowerCase())
+        setInterests(TRIP_TYPES.filter(t => existingLc.some(e => e.includes(t.toLowerCase()))))
 
         const [{ data: bookingData }, { data: submissionData }, { data: sensitiveData }] = await Promise.all([
           supabase.from('bookings').select('*').eq('member_id', m.id).order('submitted_at', { ascending: false }),
@@ -89,9 +96,6 @@ export default function MembershipPage() {
     setError('')
 
     const interestArr = interests
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean)
 
     const { error: updateError } = await supabase
       .from('members')
@@ -323,14 +327,19 @@ export default function MembershipPage() {
                   </div>
 
                   <div className="field">
-                    <label className="field-lab">Interests <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>— comma-separated</span></label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={interests}
-                      onChange={e => setInterests(e.target.value)}
-                      placeholder="e.g. deep sea fishing, golf, sailing"
-                    />
+                    <label className="field-lab">Interests <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>— pick the trip types you&rsquo;re into</span></label>
+                    <div className="chips" style={{ flexWrap: 'wrap' }}>
+                      {TRIP_TYPES.map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          className={`chip${interests.includes(t) ? ' active' : ''}`}
+                          onClick={() => toggleInterest(t)}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {error && (
