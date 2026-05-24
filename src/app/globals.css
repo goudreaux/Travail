@@ -1302,6 +1302,8 @@ body::before {
   align-items: center;
   justify-content: center;
   padding: 16px 8px;
+  position: relative;
+  z-index: 2;
 }
 
 .trip-card__date-mo {
@@ -1339,6 +1341,8 @@ body::before {
   align-items: center;
   justify-content: center;
   color: var(--ink-mid);
+  position: relative;
+  z-index: 2;
 }
 
 .trip-card__content {
@@ -2669,9 +2673,20 @@ textarea.input {
     gap: 16px;
   }
 
-  /* Trip-card image becomes a top banner on phones */
+  /* On phones the hero image becomes a faint full-card backdrop the content
+     reads over, instead of a side band. Height goes auto so nothing clips. */
+  .trip-card__main {
+    height: auto;
+    min-height: 116px;
+  }
+
   .trip-card__img {
-    display: none;
+    display: block;
+    left: 0;
+    width: 100%;
+    opacity: 0.28;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .preview {
