@@ -167,6 +167,9 @@ export default function NetworkPage() {
                   style={{
                     padding: 22,
                     cursor: 'pointer',
+                    height: 272,
+                    display: 'flex',
+                    flexDirection: 'column',
                     transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
                   }}
                   onMouseEnter={e => {
@@ -255,7 +258,7 @@ export default function NetworkPage() {
                     const ints = canonicalInterests(member.interests)
                     if (ints.length === 0) return null
                     return (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 12, overflow: 'hidden' }}>
                         {ints.map(t => (
                           <span
                             key={t}
@@ -263,17 +266,16 @@ export default function NetworkPage() {
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 5,
-                              padding: '3px 9px 3px 7px',
-                              borderRadius: 999,
+                              justifyContent: 'center',
+                              width: 26,
+                              height: 26,
+                              borderRadius: '50%',
                               background: 'var(--warm)',
                               color: 'var(--tropic-d)',
-                              fontSize: 11,
-                              fontWeight: 500,
+                              flexShrink: 0,
                             }}
                           >
-                            <span style={{ display: 'flex', width: 13, height: 13 }}>{TRIP_TYPE_ICONS[t]}</span>
-                            {t}
+                            <span style={{ display: 'flex', width: 14, height: 14 }}>{TRIP_TYPE_ICONS[t]}</span>
                           </span>
                         ))}
                       </div>
@@ -285,6 +287,7 @@ export default function NetworkPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    marginTop: 'auto',
                     paddingTop: 12,
                     borderTop: '1px solid var(--hair)',
                   }}>
