@@ -283,7 +283,7 @@ export default function MembersPage() {
         const insertPayload: Record<string, unknown> = {
           ...payload,
           id: crypto.randomUUID(),
-          user_id: uid || PLACEHOLDER_USER_ID,
+          user_id: uid || null,
         }
         if (memberNoVal !== null) insertPayload.member_no = memberNoVal
         const { data: inserted, error } = await supabase.from('members').insert(insertPayload as never).select().single()
@@ -612,7 +612,7 @@ export default function MembersPage() {
                   </td>
                   <td onClick={e => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'inline-flex', gap: 6 }}>
-                      {m.user_id === PLACEHOLDER_USER_ID && sensitiveData[m.id]?.email && (
+                      {(!m.user_id || m.user_id === PLACEHOLDER_USER_ID) && sensitiveData[m.id]?.email && (
                         <button
                           className="btn-ghost"
                           style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--tropic-d)', borderColor: 'rgba(0,179,199,0.3)' }}
