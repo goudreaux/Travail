@@ -1,9 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { adaptFlight, adaptExcursion, returnLegIds, DisplayFlight, DisplayExcursion } from '@/lib/data'
+import { adaptFlight, adaptExcursion, returnLegIds, fmtMoney, DisplayFlight, DisplayExcursion } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
+import { SeatMeter } from '@/components/SeatMeter'
 import { useRouter } from 'next/navigation'
 import type { Member, Booking, ExcursionTemplate, Flight, Excursion } from '@/lib/supabase/types'
 
@@ -11,6 +12,16 @@ import type { Member, Booking, ExcursionTemplate, Flight, Excursion } from '@/li
 function placeName(code: string, names: Record<string, string>): string {
   return names[code] ?? code
 }
+
+function flightColors() {
+  return { accent: 'var(--tropic-d)', bg: 'var(--tropic-glow)', dot: 'var(--tropic)' }
+}
+function excColors(icon: string) {
+  if (icon === 'golf') return { accent: 'var(--moss)', bg: 'rgba(62,140,109,0.10)', dot: 'var(--moss)' }
+  if (icon === 'quail' || icon === 'hog') return { accent: 'var(--signal)', bg: 'rgba(217,78,42,0.10)', dot: 'var(--signal)' }
+  return { accent: 'var(--sun-d)', bg: 'var(--sun-glow)', dot: 'var(--sun)' }
+}
+const excKindLabel = (icon: string) => icon === 'golf' ? 'GOLF' : (icon === 'quail' || icon === 'hog') ? 'HUNT' : 'EXCURSION'
 
 type TripItem =
   | { kind: 'flight'; booking: Booking; flight: DisplayFlight; roundReturn?: DisplayFlight }
@@ -237,10 +248,10 @@ export default function FeedPage() {
       </PageHero>
 
       <div className="page-view" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* Hero strip */}
-      <div className="hero">
-        {/* LEFT: My Trips */}
-        <div className="panel" style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
+      {/* Stacked: open seats lead, then my trips */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* My Trips (rendered after open seats via order) */}
+        <div className="panel" style={{ padding: 0, display: 'flex', flexDirection: 'column', order: 2 }}>
           <div className="panel-head">
             <div className="ttl" style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 500, color: 'var(--ink)' }}>
               My <em>trips</em>
@@ -248,7 +259,7 @@ export default function FeedPage() {
             <span className="pill ink">{tripItems.length} UPCOMING</span>
           </div>
 
-          <div className="scroll-y" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minHeight: 0 }}>
+          <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {loading ? (
               <div style={{ padding: '32px 0', display: 'flex', justifyContent: 'center' }}>
                 <div className="pending-indicator" />
@@ -268,6 +279,7 @@ export default function FeedPage() {
                   const dp = flight.dateParts
                   return (
                     <div key={booking.id} className={`my-trip-card s-${booking.status}`} style={{ cursor: 'pointer' }} onClick={() => router.push(`/reserve/${booking.item_id}?kind=flight${trip.roundReturn ? `&return=${trip.roundReturn.id}` : ''}`)}>
+                      <img className="my-trip-card__img" src={flight.image_url || '/trip-default.jpeg'} alt="" />
                       <div className="my-trip-card__header">
                         <div>
                           <div className="my-trip-card__title">
@@ -329,6 +341,7 @@ export default function FeedPage() {
                   const icon = excursion.templateMeta?.icon ?? 'fish'
                   return (
                     <div key={booking.id} className={`my-trip-card s-${booking.status}`} style={{ cursor: 'pointer' }} onClick={() => router.push(`/reserve/${booking.item_id}?kind=excursion`)}>
+                      <img className="my-trip-card__img" src={excursion.image_url || '/trip-default.jpeg'} alt="" />
                       <div className="my-trip-card__header">
                         <div>
                           <div className="my-trip-card__title">{excursion.name}</div>
@@ -381,8 +394,8 @@ export default function FeedPage() {
           </div>
         </div>
 
-        {/* RIGHT column: Open seats */}
-        <div className="panel" style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
+        {/* Open seats — the striking lead */}
+        <div className="panel" style={{ padding: 0, display: 'flex', flexDirection: 'column', order: 1 }}>
             <div className="panel-head">
               <div className="ttl" style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 500, color: 'var(--ink)' }}>
                 Open <em>seats</em>
@@ -397,7 +410,7 @@ export default function FeedPage() {
             </div>
 
             {/* Filter chips */}
-            <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--hair)', display: 'flex', gap: 6 }}>
+            <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--hair)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {TYPE_FILTERS.map(f => (
                 <button
                   key={f}
@@ -410,8 +423,8 @@ export default function FeedPage() {
               ))}
             </div>
 
-            {/* Seat items */}
-            <div className="seat-list" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            {/* Cards */}
+            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
               {loading ? (
                 <div style={{ padding: '24px', display: 'flex', justifyContent: 'center' }}>
                   <div className="pending-indicator" />
@@ -421,59 +434,69 @@ export default function FeedPage() {
                   <p>No open {typeFilter === 'all' ? 'seats' : typeFilter} trips right now.</p>
                 </div>
               ) : (
-                filteredOpenItems.map(({ type, item }) => {
+                filteredOpenItems.slice(0, 5).map(({ type, item }) => {
                   if (type === 'flight') {
                     const f = item as DisplayFlight
                     const dp = f.dateParts
-                    const available = f.seatsAvailable
+                    const colors = flightColors()
                     return (
-                      <div
-                        key={f.id}
-                        className="seat-item"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => router.push(`/seats/${f.id}?kind=flight`)}
-                      >
-                        <div className="s-av" style={{ background: 'var(--tropic-glow)', color: 'var(--tropic-d)' }}>
-                          {KIND_ICONS['flight']}
+                      <div key={f.id} className="trip-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/reserve/${f.id}?kind=flight`)}>
+                        <div className="trip-card__main">
+                          <div className="trip-card__date">
+                            <div className="trip-card__date-mo">{dp.mo}</div>
+                            <div className="trip-card__date-day">{dp.day}</div>
+                            <div className="trip-card__date-dow">{dp.dow}</div>
+                          </div>
+                          <div className="trip-card__icon" style={{ background: colors.bg }}><span style={{ color: colors.dot }}>{KIND_ICONS['flight']}</span></div>
+                          <div className="trip-card__content">
+                            <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · PRIVATE AVIATION</div>
+                            <div className="trip-card__name">{placeName(f.origin_code, airportName)}<span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span>{placeName(f.dest_code, airportName)}</div>
+                            <div className="trip-card__meta">{f.departTimeStr}{f.durationStr ? ` · ${f.durationStr}` : ''}</div>
+                            <SeatMeter total={f.seats_total} available={f.seatsAvailable} accent={colors.dot} unit="seats" />
+                          </div>
+                          <img className="trip-card__img" src={f.image_url || '/trip-default.jpeg'} alt="" />
                         </div>
-                        <div className="s-name">
-                          {placeName(f.origin_code, airportName)} → {placeName(f.dest_code, airportName)}
-                          <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 1 }}>
-                            {dp.mo} {dp.day} · {f.departTimeStr}
+                        <div className="trip-card__cta">
+                          <span style={{ color: 'var(--ink-light)', fontSize: 12 }}>{f.name || `${f.origin_code}–${f.dest_code}`}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <span className="trip-card__price">{fmtMoney(f.price_per_seat)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/seat</span></span>
+                            <span className="btn-primary" style={{ height: 30, padding: '0 14px', fontSize: 12, background: colors.dot }}>Take seat →</span>
                           </div>
                         </div>
-                        <span className="s-meta">
-                          {available} OPEN
-                        </span>
-                      </div>
-                    )
-                  } else {
-                    const e = item as DisplayExcursion
-                    const dp = e.dateParts
-                    const available = e.spotsAvailable
-                    const icon = e.templateMeta?.icon ?? 'fish'
-                    return (
-                      <div
-                        key={e.id}
-                        className="seat-item"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => router.push(`/seats/${e.id}?kind=excursion`)}
-                      >
-                        <div className="s-av" style={{ background: 'var(--sun-glow)', color: 'var(--sun-d)' }}>
-                          {KIND_ICONS[icon] ?? KIND_ICONS['fish']}
-                        </div>
-                        <div className="s-name">
-                          {e.name}
-                          <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 1 }}>
-                            {dp.mo} {dp.day} · {placeName(e.origin_code, airportName)}
-                          </div>
-                        </div>
-                        <span className="s-meta">
-                          {available} OPEN
-                        </span>
                       </div>
                     )
                   }
+                  const e = item as DisplayExcursion
+                  const dp = e.dateParts
+                  const icon = e.templateMeta?.icon ?? 'fish'
+                  const colors = excColors(icon)
+                  const price = e.price_per_pax || e.templateMeta?.price_per_pax || 0
+                  return (
+                    <div key={e.id} className="trip-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/reserve/${e.id}?kind=excursion`)}>
+                      <div className="trip-card__main">
+                        <div className="trip-card__date">
+                          <div className="trip-card__date-mo">{dp.mo}</div>
+                          <div className="trip-card__date-day">{dp.day}</div>
+                          <div className="trip-card__date-dow">{dp.dow}</div>
+                        </div>
+                        <div className="trip-card__icon" style={{ background: colors.bg }}><span style={{ color: colors.dot }}>{KIND_ICONS[icon] ?? KIND_ICONS['fish']}</span></div>
+                        <div className="trip-card__content">
+                          <div className="trip-card__title" style={{ color: colors.accent }}>{excKindLabel(icon)} · FROM {placeName(e.origin_code, airportName).toUpperCase()}</div>
+                          <div className="trip-card__name">{e.name}</div>
+                          <div className="trip-card__meta">{e.startTimeStr !== '—' ? e.startTimeStr : ''}{e.templateMeta?.operator ? ` · ${e.templateMeta.operator}` : ''}</div>
+                          <SeatMeter total={e.spots_total} available={e.spotsAvailable} accent={colors.dot} unit="spots" />
+                        </div>
+                        <img className="trip-card__img" src={e.image_url || '/trip-default.jpeg'} alt="" />
+                      </div>
+                      <div className="trip-card__cta">
+                        <span style={{ color: 'var(--ink-light)', fontSize: 12 }}>{e.stay_type === 'day_trip' ? 'Day trip' : e.stay_type === 'overnight' ? 'Overnight' : 'Multi-night'}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          {price ? <span className="trip-card__price">{fmtMoney(price)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/person</span></span> : null}
+                          <span className="btn-primary" style={{ height: 30, padding: '0 14px', fontSize: 12, background: colors.dot }}>Reserve spot →</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
                 })
               )}
             </div>
