@@ -9,6 +9,7 @@ interface Props {
   member: Member | null
   pendingCount?: number
   openSeatsCount?: number
+  unreadCount?: number
 }
 
 const TIER_COLOR: Record<string, string> = {
@@ -17,9 +18,10 @@ const TIER_COLOR: Record<string, string> = {
   administrator: 'var(--sun)',
 }
 
-export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsCount = 0 }: Props) {
+export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsCount = 0, unreadCount = 0 }: Props) {
   const nav = [
     { href: '/',                   label: 'Feed',                icon: Icons.feed },
+    { href: '/notifications',      label: 'Notifications',       icon: Icons.bell,   badge: unreadCount > 0 ? String(unreadCount) : undefined },
     { href: '/calendar',           label: 'Calendar',            icon: Icons.cal },
     { href: '/seats',              label: 'Open seats',          icon: Icons.seat,   badge: openSeatsCount > 0 ? `${openSeatsCount} LIVE` : undefined, badgeColor: 'var(--tropic)' },
     { href: '/bookings',           label: 'Bookings',            icon: Icons.member, badge: pendingCount > 0 ? `${pendingCount} PENDING` : undefined, badgeColor: 'var(--signal)' },

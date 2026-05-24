@@ -13,6 +13,7 @@ import type { Member, Notification } from '@/lib/supabase/types'
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
   const [member, setMember] = useState<Member | null>(null)
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const [pendingCount, setPendingCount] = useState(0)
   const [openSeatsCount, setOpenSeatsCount] = useState(0)
   const [notSetUp, setNotSetUp] = useState(false)
@@ -64,6 +65,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
 
     if (notifs) {
       setNotifications(notifs)
+      setUnreadCount(notifs.filter((n: Notification) => !n.read).length)
     }
     if (bookings) setPendingCount(bookings.length)
     // Round trips (outbound + return) count as one.
@@ -99,7 +101,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="app">
-      <Sidebar pathname={pathname} member={member} pendingCount={pendingCount} openSeatsCount={openSeatsCount} />
+      <Sidebar pathname={pathname} member={member} pendingCount={pendingCount} openSeatsCount={openSeatsCount} unreadCount={unreadCount} />
       <main className="main">
         <TopBar
           member={member}
