@@ -765,6 +765,7 @@ body::before {
 .cal-dow {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
   margin-bottom: 6px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--hair);
@@ -847,18 +848,18 @@ body::before {
 
 .cal-day-badge {
   position: relative;
-  width: 33px;
-  height: 33px;
+  width: 100%;
+  max-width: 32px;
+  aspect-ratio: 1;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   font-weight: 700;
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 1;
   box-shadow: 0 3px 10px rgba(6, 56, 71, 0.26);
-  transition: transform 0.14s ease;
 }
 
 /* Glossy top sheen so the badges read as crafted, not flat. */
@@ -869,10 +870,6 @@ body::before {
   border-radius: 50%;
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 55%);
   pointer-events: none;
-}
-
-.cal-cell:hover .cal-day-badge {
-  transform: scale(1.08);
 }
 
 .cal-count {
