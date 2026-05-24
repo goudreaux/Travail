@@ -592,12 +592,14 @@ body::before {
   align-items: stretch;
 }
 
-/* Dashboard two-column: My Trips (left) + Open Seats (right); stacks on mobile. */
+/* Dashboard two-column: My Trips (left) + Open Seats (right); stacks on mobile.
+   Fixed height so both columns align and each scrolls internally. */
 .dash-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  align-items: start;
+  height: 600px;
+  align-items: stretch;
 }
 
 .hero-card {
@@ -1441,16 +1443,20 @@ body::before {
   transition: box-shadow 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
 }
 
-/* Faint trip image behind the card content. */
+/* Trip image fading in from the right of the card (content rows are left-aligned). */
 .my-trip-card__img {
   position: absolute;
-  inset: 0;
-  width: 100%;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 56%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.12;
+  opacity: 0.85;
   z-index: 0;
   pointer-events: none;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 62%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 62%);
 }
 
 .my-trip-card__header,
@@ -2705,6 +2711,7 @@ textarea.input {
 
   .dash-cols {
     grid-template-columns: 1fr;
+    height: auto;
   }
 
   .builder {
