@@ -33,6 +33,14 @@ export function tierPill(tier: string | null | undefined): string {
 export const TRIP_TYPES = ['Fishing', 'Hunting', 'Golf', 'Leisure', 'Surfing'] as const
 export type TripType = typeof TRIP_TYPES[number]
 
+// Map whatever's stored on a member (canonical types or older free-text like
+// "deep sea fishing") to the canonical trip types.
+export function canonicalInterests(interests: string[] | string | null | undefined): TripType[] {
+  const arr = Array.isArray(interests) ? interests : interests ? [String(interests)] : []
+  const lc = arr.map(s => String(s).toLowerCase())
+  return TRIP_TYPES.filter(t => lc.some(e => e.includes(t.toLowerCase())))
+}
+
 // Ops confirmation code, e.g. "TVAB12CD".
 export function genConfirmationCode(): string {
   return 'TV' + Math.random().toString(36).toUpperCase().slice(2, 8)

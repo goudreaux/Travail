@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { fmtHomeBase, memberCode, tierLabel, tierPill } from '@/lib/data'
+import { fmtHomeBase, memberCode, tierLabel, tierPill, canonicalInterests } from '@/lib/data'
+import { TRIP_TYPE_ICONS } from '@/lib/icons'
 import type { Member, Booking, Post } from '@/lib/supabase/types'
 
 function Avatar({ member, size = 80 }: { member: Member; size?: number }) {
@@ -290,15 +291,16 @@ export default function MemberProfilePage() {
             )}
 
             {/* Interests */}
-            {member.interests && member.interests.length > 0 && (
+            {canonicalInterests(member.interests).length > 0 && (
               <div className="panel">
                 <div className="panel-head">
                   <h3>Interests</h3>
                 </div>
                 <div style={{ padding: '16px 20px' }}>
                   <div className="chips">
-                    {member.interests.map(interest => (
-                      <span key={interest} className="chip active" style={{ cursor: 'default' }}>
+                    {canonicalInterests(member.interests).map(interest => (
+                      <span key={interest} className="chip active" style={{ cursor: 'default', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ display: 'flex', width: 14, height: 14 }}>{TRIP_TYPE_ICONS[interest]}</span>
                         {interest}
                       </span>
                     ))}

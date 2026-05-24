@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { fmtHomeBase, memberCode, tierLabel, tierPill } from '@/lib/data'
+import { fmtHomeBase, memberCode, tierLabel, tierPill, canonicalInterests } from '@/lib/data'
+import { TRIP_TYPE_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
 import type { Member } from '@/lib/supabase/types'
 
@@ -248,6 +249,36 @@ export default function NetworkPage() {
                       No bio yet.
                     </p>
                   )}
+
+                  {/* Interests — shared trip types to connect over */}
+                  {(() => {
+                    const ints = canonicalInterests(member.interests)
+                    if (ints.length === 0) return null
+                    return (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                        {ints.map(t => (
+                          <span
+                            key={t}
+                            title={t}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5,
+                              padding: '3px 9px 3px 7px',
+                              borderRadius: 999,
+                              background: 'var(--warm)',
+                              color: 'var(--tropic-d)',
+                              fontSize: 11,
+                              fontWeight: 500,
+                            }}
+                          >
+                            <span style={{ display: 'flex', width: 13, height: 13 }}>{TRIP_TYPE_ICONS[t]}</span>
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )
+                  })()}
 
                   {/* Footer */}
                   <div style={{

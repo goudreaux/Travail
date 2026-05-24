@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { fmtDate, fmtHomeBase, memberCode, tierLabel, tierPill, TRIP_TYPES } from '@/lib/data'
+import { fmtDate, fmtHomeBase, memberCode, tierLabel, tierPill, TRIP_TYPES, canonicalInterests } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import type { Member, Booking, AnchorSubmission, MemberSensitive } from '@/lib/supabase/types'
 
@@ -55,9 +55,7 @@ export default function MembershipPage() {
         setBio(m.bio ?? '')
         // Pre-select canonical trip types from whatever's stored (older free-text
         // interests like "deep sea fishing" still light up the matching type).
-        const existing = Array.isArray(m.interests) ? m.interests : (m.interests ? [String(m.interests)] : [])
-        const existingLc = existing.map(s => String(s).toLowerCase())
-        setInterests(TRIP_TYPES.filter(t => existingLc.some(e => e.includes(t.toLowerCase()))))
+        setInterests(canonicalInterests(m.interests))
 
         const [{ data: bookingData }, { data: submissionData }, { data: sensitiveData }] = await Promise.all([
           supabase.from('bookings').select('*').eq('member_id', m.id).order('submitted_at', { ascending: false }),
