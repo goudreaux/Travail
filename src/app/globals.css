@@ -1341,7 +1341,17 @@ body::before {
 
 .trip-card__content {
   flex: 1;
+  min-width: 0;
   padding: 14px 16px;
+}
+
+.trip-card__img {
+  align-self: stretch;
+  flex-shrink: 0;
+  width: 40%;
+  max-width: 460px;
+  object-fit: cover;
+  display: block;
 }
 
 .trip-card__title {
@@ -2646,6 +2656,11 @@ textarea.input {
   .builder {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+
+  /* Trip-card image becomes a top banner on phones */
+  .trip-card__img {
+    display: none;
   }
 
   .preview {
