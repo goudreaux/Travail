@@ -226,6 +226,10 @@ export default function MembersPage() {
       showToast('Enter a valid email address', 'error')
       return
     }
+    if (!editId && !email) {
+      showToast('Email is required — it’s where notifications are sent and where the login invite goes', 'error')
+      return
+    }
     const phoneDigits = form.phone.replace(/\D/g, '')
     if (phoneDigits && phoneDigits.length !== 10) {
       showToast('Enter a 10-digit phone number (xxx-xxx-xxxx)', 'error')
@@ -291,6 +295,22 @@ export default function MembersPage() {
             email: emailVal,
             phone: phoneVal,
           })
+        }
+        // Welcome the new member in-app; when they have an email on file this
+        // also auto-sends the welcome via the notify-email webhook. Best-effort —
+        // never block member creation on it.
+        if (inserted) {
+          try {
+            await supabase.from('notifications').insert({
+              member_id: inserted.id,
+              kind: 'system',
+              title: 'Welcome to Travail',
+              body: 'Your membership is active. Watch for your invite to set up your login, then browse open seats or anchor your first trip.',
+              read: false,
+            } as never)
+          } catch (welcomeErr) {
+            console.error('Welcome notification not recorded:', welcomeErr)
+          }
         }
         if (convertGuestId && inserted) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -567,6 +587,15 @@ export default function MembersPage() {
                         {m.initials}
                       </div>
                       <span style={{ fontWeight: 500, color: 'var(--ink)' }}>{m.name}</span>
+                      {!sensitiveData[m.id]?.email && (
+                        <span
+                          className="pill signal"
+                          title="No email on file — this member won't receive notification emails or an invite"
+                          style={{ fontSize: 10 }}
+                        >
+                          No email
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink-light)' }}>{m.tier === 'administrator' ? '—' : memberCode(m)}</td>
