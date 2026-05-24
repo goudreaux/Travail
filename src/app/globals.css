@@ -2593,6 +2593,12 @@ textarea.input {
 .mobile-nav .m-item svg { width: 21px; height: 21px; }
 
 @media (max-width: 768px) {
+  /* Darken the muted greys one palette step on phones for readability. */
+  :root {
+    --ink-light: #3e6675;
+    --ink-faint: #7c9aa6;
+  }
+
   .app {
     grid-template-columns: 1fr;
     padding-bottom: calc(62px + env(safe-area-inset-bottom));
