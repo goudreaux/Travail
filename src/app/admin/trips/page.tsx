@@ -8,6 +8,33 @@ import type { Flight, Excursion, Aircraft, Member, Airport, ExcursionTemplate, B
 type FlightRow = Flight
 type ExcursionRow = Excursion
 
+// Read an image File, scale it down to maxW, and return a JPEG data URL. Keeps
+// stored images small enough to live inline on the trip row.
+function downscaleToDataUrl(file: File, maxW: number, quality: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('Could not read the file'))
+    reader.onload = () => {
+      const img = new window.Image()
+      img.onerror = () => reject(new Error('That file is not a valid image'))
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width)
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { reject(new Error('Canvas not available')); return }
+        ctx.drawImage(img, 0, 0, w, h)
+        resolve(canvas.toDataURL('image/jpeg', quality))
+      }
+      img.src = reader.result as string
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
 const CUSTOM = '__custom__'
 
 function Toast({ msg, kind }: { msg: string; kind: 'success' | 'error' | 'info' }) {
@@ -156,20 +183,17 @@ export default function TripsPage() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  // Upload a trip hero image to storage and store its public URL on the form.
+  // Read a desktop image, downscale it, and store it inline on the form as a
+  // data URL — no storage bucket / RLS involved, so it just works from desktop.
   async function uploadTripImage(kind: 'flight' | 'excursion', file: File) {
     setUploadingImg(kind)
     try {
-      const ext = file.name.split('.').pop() ?? 'jpg'
-      const path = `trips/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-      const { error } = await supabase.storage.from('member-assets').upload(path, file, { upsert: true, contentType: file.type })
-      if (error) throw error
-      const { data: { publicUrl } } = supabase.storage.from('member-assets').getPublicUrl(path)
-      if (kind === 'flight') setFlightForm(f => ({ ...f, image_url: publicUrl }))
-      else setExcForm(f => ({ ...f, image_url: publicUrl }))
-      showToast('Image uploaded')
+      const dataUrl = await downscaleToDataUrl(file, 1000, 0.78)
+      if (kind === 'flight') setFlightForm(f => ({ ...f, image_url: dataUrl }))
+      else setExcForm(f => ({ ...f, image_url: dataUrl }))
+      showToast('Image added')
     } catch (e: unknown) {
-      showToast((e as Error).message ?? 'Image upload failed', 'error')
+      showToast((e as Error).message ?? 'Could not read image', 'error')
     } finally { setUploadingImg(null) }
   }
 
