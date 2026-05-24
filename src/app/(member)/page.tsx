@@ -1,11 +1,16 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { adaptFlight, adaptExcursion, airportSub, returnLegIds, DisplayFlight, DisplayExcursion } from '@/lib/data'
+import { adaptFlight, adaptExcursion, returnLegIds, DisplayFlight, DisplayExcursion } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
 import { useRouter } from 'next/navigation'
 import type { Member, Booking, ExcursionTemplate, Flight, Excursion } from '@/lib/supabase/types'
+
+// Full airport name for a code — members don't know codes by heart.
+function placeName(code: string, names: Record<string, string>): string {
+  return names[code] ?? code
+}
 
 type TripItem =
   | { kind: 'flight'; booking: Booking; flight: DisplayFlight; roundReturn?: DisplayFlight }
@@ -46,6 +51,7 @@ export default function FeedPage() {
   const [flights, setFlights] = useState<DisplayFlight[]>([])
   const [excursions, setExcursions] = useState<DisplayExcursion[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [airportName, setAirportName] = useState<Record<string, string>>({})
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -67,12 +73,17 @@ export default function FeedPage() {
 
       const myId = memberData.id
 
-      const [flightsRes, excursionsRes, bookingsRes, templatesRes] = await Promise.all([
+      const [flightsRes, excursionsRes, bookingsRes, templatesRes, airportsRes] = await Promise.all([
         supabase.from('flights').select('*').in('status', ['open', 'full']),
         supabase.from('excursions').select('*').in('status', ['open', 'full']),
         supabase.from('bookings').select('*').eq('member_id', myId),
         supabase.from('excursion_templates').select('*'),
+        supabase.from('airports').select('code, name'),
       ])
+
+      const am: Record<string, string> = {}
+      for (const a of (airportsRes.data ?? []) as { code: string; name: string }[]) am[a.code] = a.name
+      setAirportName(am)
 
       const myBookings: Booking[] = (bookingsRes.data ?? []) as unknown as Booking[]
 
@@ -202,7 +213,7 @@ export default function FeedPage() {
   const nextTrip = tripItems[0]
   const nextLabel = nextTrip
     ? (nextTrip.kind === 'flight'
-        ? `${nextTrip.flight.origin_code} ${nextTrip.roundReturn ? '⇄' : '→'} ${nextTrip.flight.dest_code}`
+        ? `${placeName(nextTrip.flight.origin_code, airportName)} ${nextTrip.roundReturn ? '⇄' : '→'} ${placeName(nextTrip.flight.dest_code, airportName)}`
         : nextTrip.excursion.name)
     : null
   const nextDate = nextTrip ? (nextTrip.kind === 'flight' ? nextTrip.flight.dateParts : nextTrip.excursion.dateParts) : null
@@ -260,7 +271,7 @@ export default function FeedPage() {
                       <div className="my-trip-card__header">
                         <div>
                           <div className="my-trip-card__title">
-                            {flight.origin_code} {trip.roundReturn ? '⇄' : '→'} {flight.dest_code}
+                            {placeName(flight.origin_code, airportName)} {trip.roundReturn ? '⇄' : '→'} {placeName(flight.dest_code, airportName)}
                           </div>
                           <div className="my-trip-card__sub">
                             {trip.roundReturn ? 'Round trip · ' : ''}{dp.dow}, {dp.mo} {dp.day} · {flight.departTimeStr} · {flight.durationStr}
@@ -273,11 +284,11 @@ export default function FeedPage() {
                       <div className="my-trip-card__body">
                         <div className="my-trip-card__row">
                           <span className="label">From</span>
-                          <span>{flight.originMeta?.name ?? flight.origin_code} ({flight.origin_code})</span>
+                          <span>{placeName(flight.origin_code, airportName)} ({flight.origin_code})</span>
                         </div>
                         <div className="my-trip-card__row">
                           <span className="label">To</span>
-                          <span>{flight.destMeta?.name ?? flight.dest_code} ({flight.dest_code})</span>
+                          <span>{placeName(flight.dest_code, airportName)} ({flight.dest_code})</span>
                         </div>
                         {trip.roundReturn && (
                           <div className="my-trip-card__row">
@@ -334,7 +345,7 @@ export default function FeedPage() {
                       <div className="my-trip-card__body">
                         <div className="my-trip-card__row">
                           <span className="label">Origin</span>
-                          <span>{excursion.originMeta?.name ?? excursion.origin_code} ({excursion.origin_code})</span>
+                          <span>{placeName(excursion.origin_code, airportName)} ({excursion.origin_code})</span>
                         </div>
                         {excursion.templateMeta?.operator && (
                           <div className="my-trip-card__row">
@@ -426,7 +437,7 @@ export default function FeedPage() {
                           {KIND_ICONS['flight']}
                         </div>
                         <div className="s-name">
-                          {f.origin_code} → {f.dest_code}
+                          {placeName(f.origin_code, airportName)} → {placeName(f.dest_code, airportName)}
                           <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 1 }}>
                             {dp.mo} {dp.day} · {f.departTimeStr}
                           </div>
@@ -454,7 +465,7 @@ export default function FeedPage() {
                         <div className="s-name">
                           {e.name}
                           <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 1 }}>
-                            {dp.mo} {dp.day} · {airportSub(e.origin_code) || e.origin_code}
+                            {dp.mo} {dp.day} · {placeName(e.origin_code, airportName)}
                           </div>
                         </div>
                         <span className="s-meta">

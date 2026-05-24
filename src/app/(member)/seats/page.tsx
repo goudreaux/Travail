@@ -9,6 +9,12 @@ import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 import type { DisplayFlight, DisplayExcursion } from '@/lib/data'
 
+// Full airport name for a code (members don't know codes by heart). Codes are
+// FK-bound to the airports table, so a lookup essentially always resolves.
+function placeName(code: string, names: Record<string, string>): string {
+  return names[code] ?? code
+}
+
 // ─── Color helpers ─────────────────────────────────────────────────────────────
 
 type ActivityFilter = 'all' | 'fish' | 'golf' | 'hunt' | 'flight'
@@ -133,12 +139,14 @@ function FlightCard({
   waitlisted,
   onWaitlist,
   roster,
+  names,
 }: {
   flight: DisplayFlight
   onCTA: () => void
   waitlisted: boolean
   onWaitlist: () => void
   roster?: RosterEntry[]
+  names: Record<string, string>
 }) {
   const dp = fmtDate(flight.date)
   const colors = getFlightColors()
@@ -164,9 +172,9 @@ function FlightCard({
         <div className="trip-card__content">
           <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · PRIVATE AVIATION</div>
           <div className="trip-card__name">
-            {flight.origin_code}
+            {placeName(flight.origin_code, names)}
             <span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span>
-            {flight.dest_code}
+            {placeName(flight.dest_code, names)}
           </div>
           <div className="trip-card__meta">
             {flight.departTimeStr}
@@ -198,6 +206,7 @@ function RoundTripCard({
   waitlisted,
   onWaitlist,
   roster,
+  names,
 }: {
   outbound: DisplayFlight
   ret: DisplayFlight
@@ -205,6 +214,7 @@ function RoundTripCard({
   waitlisted: boolean
   onWaitlist: () => void
   roster?: RosterEntry[]
+  names: Record<string, string>
 }) {
   const dpOut = fmtDate(outbound.date)
   const dpRet = fmtDate(ret.date)
@@ -226,9 +236,9 @@ function RoundTripCard({
         <div className="trip-card__content">
           <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · ROUND TRIP</div>
           <div className="trip-card__name">
-            {outbound.origin_code}
+            {placeName(outbound.origin_code, names)}
             <span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>⇄</span>
-            {outbound.dest_code}
+            {placeName(outbound.dest_code, names)}
           </div>
           <div className="trip-card__meta">
             Out {dpOut.mo} {dpOut.day} · {outbound.departTimeStr}
@@ -260,12 +270,14 @@ function ExcursionCard({
   waitlisted,
   onWaitlist,
   roster,
+  names,
 }: {
   excursion: DisplayExcursion
   onCTA: () => void
   waitlisted: boolean
   onWaitlist: () => void
   roster?: RosterEntry[]
+  names: Record<string, string>
 }) {
   const dp = fmtDate(excursion.date)
   const icon = excursion.templateMeta?.icon ?? 'fish'
@@ -291,7 +303,7 @@ function ExcursionCard({
           <span style={{ color: colors.dot }}>{KIND_ICONS[icon] ?? KIND_ICONS['fish']}</span>
         </div>
         <div className="trip-card__content">
-          <div className="trip-card__title" style={{ color: colors.accent }}>{kindLabel} · {excursion.origin_code}</div>
+          <div className="trip-card__title" style={{ color: colors.accent }}>{kindLabel} · FROM {placeName(excursion.origin_code, names).toUpperCase()}</div>
           <div className="trip-card__name">{excursion.name}</div>
           <div className="trip-card__meta">
             {excursion.startTimeStr !== '—' ? excursion.startTimeStr : ''}
@@ -333,6 +345,7 @@ export default function SeatsPage() {
   const [toast, setToast] = useState<string | null>(null)
   const [flightRosters, setFlightRosters] = useState<Record<string, RosterEntry[]>>({})
   const [excRosters, setExcRosters] = useState<Record<string, RosterEntry[]>>({})
+  const [airportName, setAirportName] = useState<Record<string, string>>({})
 
   const load = useCallback(async (silent = false) => {
       if (!silent) setLoading(true)
@@ -353,6 +366,7 @@ export default function SeatsPage() {
         { data: rawExcursions },
         { data: rawTemplates },
         { data: rawBookings },
+        { data: rawAirports },
       ] = await Promise.all([
         supabase
           .from('flights')
@@ -374,7 +388,12 @@ export default function SeatsPage() {
               .eq('member_id', memberId)
               .in('status', ['pending', 'approved'])
           : Promise.resolve({ data: [] }),
+        supabase.from('airports').select('code, name'),
       ])
+
+      const am: Record<string, string> = {}
+      for (const a of (rawAirports ?? []) as { code: string; name: string }[]) am[a.code] = a.name
+      setAirportName(am)
 
       const templates: ExcursionTemplate[] = rawTemplates ?? []
       const bookings: Booking[] = (rawBookings as Booking[] | null) ?? []
@@ -526,6 +545,7 @@ export default function SeatsPage() {
                       waitlisted={waitlisted.has(entry.outbound.id)}
                       onWaitlist={() => joinWaitlist('flight', entry.outbound.id)}
                       roster={flightRosters[entry.outbound.id]}
+                      names={airportName}
                     />
                   ) : (
                     <FlightCard
@@ -535,6 +555,7 @@ export default function SeatsPage() {
                       waitlisted={waitlisted.has(entry.flight.id)}
                       onWaitlist={() => joinWaitlist('flight', entry.flight.id)}
                       roster={flightRosters[entry.flight.id]}
+                      names={airportName}
                     />
                   ))}
                 </div>
@@ -557,6 +578,7 @@ export default function SeatsPage() {
                       waitlisted={waitlisted.has(excursion.id)}
                       onWaitlist={() => joinWaitlist('excursion', excursion.id)}
                       roster={excRosters[excursion.id]}
+                      names={airportName}
                     />
                   ))}
                 </div>
