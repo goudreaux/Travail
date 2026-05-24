@@ -285,6 +285,7 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<EnrichedBooking[]>([])
   const [anchors, setAnchors] = useState<EnrichedSubmission[]>([])
   const [loading, setLoading] = useState(true)
+  const [showHistory, setShowHistory] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -367,15 +368,23 @@ export default function BookingsPage() {
     load()
   }, [])
 
-  const confirmedCount = bookings.filter(b => b.status === 'approved').length
-  const pendingCount = bookings.filter(b => b.status === 'pending').length
-
   // Collapse round trips (outbound + return) into one entry.
   const flightList = bookings.map(b => b.flight).filter(Boolean) as Flight[]
   const retIds = returnLegIds(flightList)
   const bookedFlightIds = new Set(bookings.filter(b => b.item_kind === 'flight').map(b => b.item_id))
   const flightById = new Map(flightList.map(f => [f.id, f]))
   const visibleBookings = bookings.filter(b => !(b.item_kind === 'flight' && retIds.has(b.item_id) && bookedFlightIds.has(b.item_id.slice(0, -1))))
+
+  // Active vs closed — matches the ops dashboard split.
+  const ACTIVE_BOOKING: BookingStatus[] = ['pending', 'approved']
+  const ACTIVE_ANCHOR: SubmissionStatus[] = ['pending', 'approved', 'published']
+  const activeBookings = visibleBookings.filter(b => ACTIVE_BOOKING.includes(b.status))
+  const closedBookings = visibleBookings.filter(b => !ACTIVE_BOOKING.includes(b.status))
+  const activeAnchors = anchors.filter(a => ACTIVE_ANCHOR.includes(a.status))
+  const closedAnchors = anchors.filter(a => !ACTIVE_ANCHOR.includes(a.status))
+  const historyCount = closedBookings.length + closedAnchors.length
+  const confirmedCount = activeBookings.filter(b => b.status === 'approved').length
+  const pendingCount = activeBookings.filter(b => b.status === 'pending').length
 
   return (
     <div className="page">
@@ -384,7 +393,7 @@ export default function BookingsPage() {
         title="Bookings & anchors."
         sub={loading
           ? 'Loading your activity…'
-          : `${visibleBookings.length} booking${visibleBookings.length !== 1 ? 's' : ''}${confirmedCount > 0 ? ` · ${confirmedCount} confirmed` : ''}${pendingCount > 0 ? ` · ${pendingCount} pending` : ''}${anchors.length > 0 ? ` · ${anchors.length} anchor submission${anchors.length !== 1 ? 's' : ''}` : ''}`}
+          : `${activeBookings.length} active booking${activeBookings.length !== 1 ? 's' : ''}${confirmedCount > 0 ? ` · ${confirmedCount} confirmed` : ''}${pendingCount > 0 ? ` · ${pendingCount} pending` : ''}${activeAnchors.length > 0 ? ` · ${activeAnchors.length} active anchor${activeAnchors.length !== 1 ? 's' : ''}` : ''}`}
       />
 
       <div className="page-view">
@@ -395,25 +404,25 @@ export default function BookingsPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-            {/* Bookings section */}
+            {/* Your Active Bookings */}
             <section>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <p className="mono" style={{ margin: 0 }}>YOUR BOOKINGS · {bookings.length}</p>
+                <p className="mono" style={{ margin: 0 }}>YOUR ACTIVE BOOKINGS · {activeBookings.length}</p>
               </div>
 
-              {bookings.length === 0 ? (
+              {activeBookings.length === 0 ? (
                 <div className="panel">
                   <div className="empty" style={{ padding: '32px 20px' }}>
                     <svg width="36" height="36" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
                       <path d="M5 11h12M5 11a3 3 0 0 1 0-6h12a3 3 0 0 1 0 6M5 11v6h12v-6M9 17v3M13 17v3"/>
                     </svg>
-                    <h3>No bookings yet</h3>
+                    <h3>No active bookings</h3>
                     <p>Reserve a seat on an upcoming flight or excursion to get started.</p>
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {visibleBookings.map(b => (
+                  {activeBookings.map(b => (
                     <BookingCard
                       key={b.id}
                       booking={b}
@@ -425,10 +434,10 @@ export default function BookingsPage() {
               )}
             </section>
 
-            {/* Anchor submissions section */}
+            {/* Your Active Anchors */}
             <section>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <p className="mono" style={{ margin: 0 }}>YOUR ANCHORS · {anchors.length}</p>
+                <p className="mono" style={{ margin: 0 }}>YOUR ACTIVE ANCHORS · {activeAnchors.length}</p>
                 <button
                   className="btn-ghost"
                   style={{ height: 30, padding: '0 12px', fontSize: 12 }}
@@ -438,24 +447,57 @@ export default function BookingsPage() {
                 </button>
               </div>
 
-              {anchors.length === 0 ? (
+              {activeAnchors.length === 0 ? (
                 <div className="panel">
                   <div className="empty" style={{ padding: '32px 20px' }}>
                     <svg width="36" height="36" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M11 3v16M3 11h16"/>
                     </svg>
-                    <h3>No anchors submitted</h3>
+                    <h3>No active anchors</h3>
                     <p>Anchor a flight or excursion to bring the group to your destination of choice.</p>
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {anchors.map(a => (
+                  {activeAnchors.map(a => (
                     <AnchorCard key={a.id} submission={a} />
                   ))}
                 </div>
               )}
             </section>
+
+            {/* Booking history (collapsible) */}
+            {historyCount > 0 && (
+              <section>
+                <button
+                  onClick={() => setShowHistory(v => !v)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12,
+                    padding: '14px 18px', cursor: 'pointer',
+                  }}
+                >
+                  <span className="mono" style={{ color: 'var(--ink-mid)' }}>BOOKING HISTORY · {historyCount}</span>
+                  <span style={{ color: 'var(--ink-light)', fontSize: 12 }}>{showHistory ? '▲ Hide' : '▼ Show'}</span>
+                </button>
+
+                {showHistory && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+                    {closedBookings.map(b => (
+                      <BookingCard
+                        key={b.id}
+                        booking={b}
+                        onNavigate={() => router.push(`/boarding-pass/${b.id}`)}
+                        roundReturn={b.item_kind === 'flight' ? flightById.get(`${b.item_id}R`) : undefined}
+                      />
+                    ))}
+                    {closedAnchors.map(a => (
+                      <AnchorCard key={a.id} submission={a} />
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
           </div>
         )}
       </div>
