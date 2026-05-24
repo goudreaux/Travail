@@ -240,6 +240,7 @@ export interface Database {
           stay_type: 'day_trip' | 'overnight' | 'multi_night'
           name: string
           pitch: string | null
+          icon: string | null
           visibility: 'members' | 'public'
           spots_total: number
           spots_anchor: number
@@ -262,6 +263,7 @@ export interface Database {
           stay_type?: 'day_trip' | 'overnight' | 'multi_night'
           name: string
           pitch?: string | null
+          icon?: string | null
           visibility?: 'members' | 'public'
           spots_total: number
           spots_anchor?: number
@@ -284,6 +286,7 @@ export interface Database {
           stay_type?: 'day_trip' | 'overnight' | 'multi_night'
           name?: string
           pitch?: string | null
+          icon?: string | null
           visibility?: 'members' | 'public'
           spots_total?: number
           spots_anchor?: number
