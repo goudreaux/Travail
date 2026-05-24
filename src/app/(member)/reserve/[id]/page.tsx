@@ -110,6 +110,15 @@ export default function ReservePage() {
   const [error, setError] = useState('')
   const [rosterPublic, setRosterPublic] = useState(true)
   const [roster, setRoster] = useState<RosterEntry[]>([])
+  const [wlJoined, setWlJoined] = useState(false)
+
+  async function joinWaitlist() {
+    if (!member) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: wlErr } = await (supabase as any).from('waitlist').insert({ member_id: member.id, item_kind: kind, item_id: itemId })
+    if (!wlErr || wlErr.code === '23505') setWlJoined(true)
+    else setError(wlErr.message ?? 'Could not join the waitlist.')
+  }
 
   useEffect(() => {
     async function load() {
@@ -229,14 +238,16 @@ export default function ReservePage() {
     }
   }
 
-  // Derived values
+  // Derived values — true availability accounts for seats already taken.
+  const flightAvail = (f: Flight) => Math.max(0, f.seats_total - f.seats_anchor - (f.seats_taken ?? 0))
   const maxSeats = flight
     ? (returnFlight
-        ? Math.max(0, Math.min(flight.seats_total - flight.seats_anchor, returnFlight.seats_total - returnFlight.seats_anchor))
-        : Math.max(0, flight.seats_total - flight.seats_anchor))
+        ? Math.min(flightAvail(flight), flightAvail(returnFlight))
+        : flightAvail(flight))
     : excursion
-    ? Math.max(0, excursion.spots_total - excursion.spots_anchor)
+    ? Math.max(0, excursion.spots_total - excursion.spots_anchor - (excursion.spots_taken ?? 0))
     : 0
+  const isFull = !loading && maxSeats <= 0
 
   const pricePerSeat = flight
     ? (returnFlight ? flight.price_per_seat + returnFlight.price_per_seat : flight.price_per_seat)
@@ -488,6 +499,36 @@ export default function ReservePage() {
   }
 
   const dp = fmtDate(itemDate)
+
+  // ── Full trip → waitlist ────────────────────────────────────────────────────
+  if (isFull) {
+    return (
+      <div className="page">
+        <div className="page-view" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 460 }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 18, padding: '44px 48px', maxWidth: 460, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(13,51,64,0.08)' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--sun-d)', marginBottom: 10 }}>Fully booked</div>
+            <h2 className="display-i" style={{ fontSize: 28, color: 'var(--ink)', margin: '0 0 8px' }}>{itemName || 'This trip'} is full.</h2>
+            <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 24px' }}>
+              {kind === 'flight' && flight ? `${flight.origin_code} → ${flight.dest_code} · ` : ''}{dp ? `${dp.mo} ${dp.day}` : ''}. Join the waitlist and Ops will offer you the next seat that opens up.
+            </p>
+            {error && (
+              <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--signal)', marginBottom: 14 }}>{error}</div>
+            )}
+            {wlJoined ? (
+              <div style={{ background: 'var(--tropic-glow)', borderRadius: 10, padding: '12px 16px', fontSize: 13.5, color: 'var(--tropic-d)', marginBottom: 16 }}>
+                You&rsquo;re on the waitlist — we&rsquo;ll be in touch.
+              </div>
+            ) : (
+              <button className="btn-primary" style={{ width: '100%', height: 44, justifyContent: 'center', marginBottom: 10 }} onClick={joinWaitlist}>
+                Join the waitlist
+              </button>
+            )}
+            <button className="btn-ghost" style={{ width: '100%' }} onClick={() => router.push('/seats')}>Back to open seats</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // ── Main reservation builder ────────────────────────────────────────────────
 
