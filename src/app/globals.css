@@ -593,12 +593,14 @@ body::before {
 }
 
 /* Dashboard two-column: My Trips (left) + Open Seats (right); stacks on mobile.
-   Fixed height so both columns align and each scrolls internally. */
+   Adaptive height (was a hard 600px) so the columns fit the viewport instead of
+   a fixed box; each panel still scrolls internally. Bounded so it never gets
+   too short or taller than its content needs on big screens. */
 .dash-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  height: 600px;
+  height: clamp(480px, calc(100vh - 260px), 760px);
   align-items: stretch;
 }
 
