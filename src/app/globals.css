@@ -2673,8 +2673,9 @@ textarea.input {
     gap: 16px;
   }
 
-  /* On phones the hero image becomes a faint full-card backdrop the content
-     reads over, instead of a side band. Height goes auto so nothing clips. */
+  /* On phones, show the image with the same right-side fade as desktop (text
+     keeps the solid card background for contrast). Height goes auto so the
+     content never clips. */
   .trip-card__main {
     height: auto;
     min-height: 116px;
@@ -2682,11 +2683,7 @@ textarea.input {
 
   .trip-card__img {
     display: block;
-    left: 0;
-    width: 100%;
-    opacity: 0.28;
-    -webkit-mask-image: none;
-    mask-image: none;
+    width: 52%;
   }
 
   .preview {
