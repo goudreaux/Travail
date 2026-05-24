@@ -282,7 +282,7 @@ export default function FeedPage() {
                   const { flight, booking } = trip
                   const dp = flight.dateParts
                   return (
-                    <div key={booking.id} className={`my-trip-card s-${booking.status}`}>
+                    <div key={booking.id} className={`my-trip-card s-${booking.status}`} style={{ cursor: 'pointer' }} onClick={() => router.push(`/boarding-pass/${booking.id}`)}>
                       <div className="my-trip-card__header">
                         <div>
                           <div className="my-trip-card__title">
@@ -330,9 +330,9 @@ export default function FeedPage() {
                           <button
                             className="btn-primary"
                             style={{ height: 30, padding: '0 12px', fontSize: 12 }}
-                            onClick={() => router.push(`/boarding-pass/${booking.id}`)}
+                            onClick={e => { e.stopPropagation(); router.push(`/boarding-pass/${booking.id}`) }}
                           >
-                            Boarding pass
+                            View itinerary
                           </button>
                         </div>
                       </div>
@@ -343,7 +343,7 @@ export default function FeedPage() {
                   const dp = excursion.dateParts
                   const icon = excursion.templateMeta?.icon ?? 'fish'
                   return (
-                    <div key={booking.id} className={`my-trip-card s-${booking.status}`}>
+                    <div key={booking.id} className={`my-trip-card s-${booking.status}`} style={{ cursor: 'pointer' }} onClick={() => router.push(`/boarding-pass/${booking.id}`)}>
                       <div className="my-trip-card__header">
                         <div>
                           <div className="my-trip-card__title">{excursion.name}</div>
@@ -382,9 +382,9 @@ export default function FeedPage() {
                           <button
                             className="btn-primary"
                             style={{ height: 30, padding: '0 12px', fontSize: 12 }}
-                            onClick={() => router.push(`/boarding-pass/${booking.id}`)}
+                            onClick={e => { e.stopPropagation(); router.push(`/boarding-pass/${booking.id}`) }}
                           >
-                            Boarding pass
+                            View itinerary
                           </button>
                         </div>
                       </div>
