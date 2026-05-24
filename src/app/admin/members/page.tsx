@@ -465,19 +465,21 @@ export default function MembersPage() {
               />
               <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>Marks a card on file. Full card details are stored with the payment processor, not here.</div>
             </div>
-            <div className="field">
-              <label className="field-lab">Member No.</label>
-              <input
-                className="input"
-                inputMode="numeric"
-                value={form.member_no}
-                onChange={e => setForm(f => ({ ...f, member_no: e.target.value.replace(/\D/g, '') }))}
-                placeholder={editId ? '' : 'Auto (next in line)'}
-              />
-              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>
-                Shown as “#{form.member_no || 'N'}”. Leave blank to {editId ? 'keep the current number' : 'auto-assign the next number'}. Must be unique.
+            {form.tier !== 'administrator' && (
+              <div className="field">
+                <label className="field-lab">Member No.</label>
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  value={form.member_no}
+                  onChange={e => setForm(f => ({ ...f, member_no: e.target.value.replace(/\D/g, '') }))}
+                  placeholder={editId ? '' : 'Auto (next in line)'}
+                />
+                <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>
+                  Shown as “#{form.member_no || 'N'}”. Leave blank to {editId ? 'keep the current number' : 'auto-assign the next number'}. Must be unique.
+                </div>
               </div>
-            </div>
+            )}
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label className="field-lab">User ID (Supabase Auth UID)</label>
               <input
@@ -567,7 +569,7 @@ export default function MembersPage() {
                       <span style={{ fontWeight: 500, color: 'var(--ink)' }}>{m.name}</span>
                     </div>
                   </td>
-                  <td style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink-light)' }}>{memberCode(m)}</td>
+                  <td style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink-light)' }}>{m.tier === 'administrator' ? '—' : memberCode(m)}</td>
                   <td><span className={`pill ${tierPill(m.tier)}`}>{tierLabel(m.tier)}</span></td>
                   <td style={{ fontSize: 13 }}>{fmtHomeBase(m.home_base_code) ?? '—'}</td>
                   <td>

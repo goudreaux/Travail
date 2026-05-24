@@ -185,7 +185,7 @@ export default function MembershipPage() {
   return (
     <div className="page">
       <PageHero
-        eyebrow={`${memberCode(member)} · ${tierLabel(member.tier)}`}
+        eyebrow={member.tier === 'administrator' ? tierLabel(member.tier) : `${memberCode(member)} · ${tierLabel(member.tier)}`}
         title="Membership."
         sub="Your account, history, and settings."
       />
