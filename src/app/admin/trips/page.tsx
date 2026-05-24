@@ -88,7 +88,7 @@ const defaultFlightForm: FlightForm = {
   destSel: '', destCustomCode: '', destCustomName: '', destCustomRegion: '',
   date: '', depart_time: '', return_date: '', return_time: '',
   duration_mins: 90, aircraft_id: '', pitch: '', visibility: 'members',
-  seats_total: 8, seats_anchor: 1, leg_cost: 0, return_leg_cost: 0, status: 'draft',
+  seats_total: 8, seats_anchor: 0, leg_cost: 0, return_leg_cost: 0, status: 'draft',
   anchor_member_id: '',
 }
 const defaultExcForm: ExcForm = {
@@ -97,7 +97,7 @@ const defaultExcForm: ExcForm = {
   date: '', aircraft_id: '',
   start_time: '', depart_time: '', arrive_time: '', return_time: '',
   stay_type: 'day_trip', pitch: '', icon: 'fish', visibility: 'members',
-  spots_total: 8, spots_anchor: 1, total_cost: 0, status: 'draft',
+  spots_total: 8, spots_anchor: 0, total_cost: 0, status: 'draft',
   anchor_member_id: '',
 }
 
