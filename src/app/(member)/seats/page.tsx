@@ -63,13 +63,13 @@ function SeatMeter({ total, available, accent, unit }: { total: number; availabl
               style={{
                 width: 12, height: 12, borderRadius: '50%', boxSizing: 'border-box',
                 background: taken ? accent : 'transparent',
-                border: taken ? `1px solid ${accent}` : '1px solid var(--ink-faint)',
+                border: taken ? `1px solid ${accent}` : '1px solid var(--ink-mid)',
               }}
             />
           )
         })}
       </div>
-      <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-light)', letterSpacing: '0.04em' }}>
+      <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-soft)', letterSpacing: '0.04em' }}>
         {open}/{total} {unit}
       </span>
     </div>
