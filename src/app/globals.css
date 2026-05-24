@@ -1428,8 +1428,28 @@ body::before {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
   box-shadow: 0 1px 2px rgba(13, 51, 64, 0.04), 0 6px 20px rgba(13, 51, 64, 0.05);
   transition: box-shadow 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
+}
+
+/* Faint trip image behind the card content. */
+.my-trip-card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.12;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.my-trip-card__header,
+.my-trip-card__body,
+.my-trip-card__footer {
+  position: relative;
+  z-index: 1;
 }
 
 .my-trip-card:hover {
