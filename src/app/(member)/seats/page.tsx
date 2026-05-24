@@ -147,7 +147,7 @@ function FlightCard({
     <div
       className="trip-card"
       style={{ marginBottom: 12 }}
-      onClick={flight.seatsAvailable > 0 ? onCTA : undefined}
+      onClick={onCTA}
     >
       <div className="trip-card__main">
         <div className="trip-card__date">
@@ -213,7 +213,7 @@ function RoundTripCard({
   const combined = outbound.price_per_seat + ret.price_per_seat
 
   return (
-    <div className="trip-card" style={{ marginBottom: 12 }} onClick={seatsLeft > 0 ? onCTA : undefined}>
+    <div className="trip-card" style={{ marginBottom: 12 }} onClick={onCTA}>
       <div className="trip-card__main">
         <div className="trip-card__date">
           <div className="trip-card__date-mo">{dpOut.mo}</div>
@@ -276,7 +276,7 @@ function ExcursionCard({
     <div
       className="trip-card"
       style={{ marginBottom: 12 }}
-      onClick={excursion.spotsAvailable > 0 ? onCTA : undefined}
+      onClick={onCTA}
     >
       <div className="trip-card__main">
         <div className="trip-card__date">
