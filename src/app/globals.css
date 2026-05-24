@@ -1365,9 +1365,9 @@ body::before {
   object-fit: cover;
   pointer-events: none;
   z-index: 1;
-  opacity: 0.72;
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 78%);
-  mask-image: linear-gradient(to right, transparent 0%, #000 78%);
+  opacity: 0.9;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 50%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 50%);
 }
 
 .trip-card__title {
@@ -2691,6 +2691,9 @@ textarea.input {
   .trip-card__img {
     display: block;
     width: 52%;
+    opacity: 0.72;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 78%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 78%);
   }
 
   .preview {
