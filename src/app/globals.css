@@ -1365,9 +1365,9 @@ body::before {
   object-fit: cover;
   pointer-events: none;
   z-index: 1;
-  opacity: 0.9;
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 50%);
-  mask-image: linear-gradient(to right, transparent 0%, #000 50%);
+  opacity: 1;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 30%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 30%);
 }
 
 .trip-card__title {
