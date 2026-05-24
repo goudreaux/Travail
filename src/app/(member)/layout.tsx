@@ -15,6 +15,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [pendingCount, setPendingCount] = useState(0)
   const [openSeatsCount, setOpenSeatsCount] = useState(0)
+  const [notSetUp, setNotSetUp] = useState(false)
   const supabase = createClient()
   const pathname = usePathname()
   const router = useRouter()
@@ -28,14 +29,25 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as any
-    const { data: memberData } = await db
+    let { data: memberData } = await db
       .from('members')
       .select('*')
       .eq('user_id', user.id)
       .single() as { data: Member | null }
 
+    // Self-heal: link a pre-created member that shares this login's email.
     if (!memberData) {
-      router.push('/login')
+      try {
+        const { data: linked } = await db.rpc('link_my_member')
+        if (linked) {
+          const retry = await db.from('members').select('*').eq('user_id', user.id).single()
+          memberData = retry.data as Member | null
+        }
+      } catch { /* fall through to the not-set-up screen */ }
+    }
+
+    if (!memberData) {
+      setNotSetUp(true)
       return
     }
 
@@ -64,6 +76,26 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  if (notSetUp) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--bg)' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 18, padding: '40px 44px', maxWidth: 440, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(13,51,64,0.08)' }}>
+          <h2 className="display-i" style={{ fontSize: 26, color: 'var(--ink)', margin: '0 0 10px' }}>Almost there.</h2>
+          <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 22px' }}>
+            Your login isn&rsquo;t linked to a member profile yet. Text or email Ops with the address you signed in with and we&rsquo;ll finish your setup.
+          </p>
+          <button
+            className="btn-ghost"
+            style={{ width: '100%' }}
+            onClick={async () => { await supabase.auth.signOut(); router.push('/login') }}
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="app">
