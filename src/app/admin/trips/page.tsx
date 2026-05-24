@@ -56,6 +56,7 @@ type FlightForm = {
   return_leg_cost: number
   status: Flight['status']
   anchor_member_id: string
+  image_url: string
 }
 type ExcForm = {
   template_id: string
@@ -80,6 +81,7 @@ type ExcForm = {
   total_cost: number
   status: Excursion['status']
   anchor_member_id: string
+  image_url: string
 }
 
 const defaultFlightForm: FlightForm = {
@@ -89,7 +91,7 @@ const defaultFlightForm: FlightForm = {
   date: '', depart_time: '', return_date: '', return_time: '',
   duration_mins: 90, aircraft_id: '', pitch: '', visibility: 'members',
   seats_total: 8, seats_anchor: 0, leg_cost: 0, return_leg_cost: 0, status: 'draft',
-  anchor_member_id: '',
+  anchor_member_id: '', image_url: '',
 }
 const defaultExcForm: ExcForm = {
   template_id: '', name: '', nameTouched: false,
@@ -98,7 +100,7 @@ const defaultExcForm: ExcForm = {
   start_time: '', depart_time: '', arrive_time: '', return_time: '',
   stay_type: 'day_trip', pitch: '', icon: 'fish', visibility: 'members',
   spots_total: 8, spots_anchor: 0, total_cost: 0, status: 'draft',
-  anchor_member_id: '',
+  anchor_member_id: '', image_url: '',
 }
 
 const TEMPLATE_ICONS = ['fish', 'sail', 'wave', 'snorkel', 'golf', 'quail', 'hog', 'sun', 'compass', 'flight'] as const
@@ -146,11 +148,29 @@ export default function TripsPage() {
   const [templateForm, setTemplateForm] = useState<TemplateForm>(defaultTemplateForm)
   const [saving, setSaving] = useState(false)
   const [cancelling, setCancelling] = useState<string | null>(null)
+  const [uploadingImg, setUploadingImg] = useState<'flight' | 'excursion' | null>(null)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' | 'info' } | null>(null)
 
   const showToast = (msg: string, kind: 'success' | 'error' | 'info' = 'success') => {
     setToast({ msg, kind })
     setTimeout(() => setToast(null), 3500)
+  }
+
+  // Upload a trip hero image to storage and store its public URL on the form.
+  async function uploadTripImage(kind: 'flight' | 'excursion', file: File) {
+    setUploadingImg(kind)
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const path = `trips/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+      const { error } = await supabase.storage.from('member-assets').upload(path, file, { upsert: true, contentType: file.type })
+      if (error) throw error
+      const { data: { publicUrl } } = supabase.storage.from('member-assets').getPublicUrl(path)
+      if (kind === 'flight') setFlightForm(f => ({ ...f, image_url: publicUrl }))
+      else setExcForm(f => ({ ...f, image_url: publicUrl }))
+      showToast('Image uploaded')
+    } catch (e: unknown) {
+      showToast((e as Error).message ?? 'Image upload failed', 'error')
+    } finally { setUploadingImg(null) }
   }
 
   const load = useCallback(async () => {
@@ -288,6 +308,7 @@ export default function TripsPage() {
       seats_total: f.seats_total, seats_anchor: f.seats_anchor,
       leg_cost: f.price_per_seat * f.seats_total, return_leg_cost: 0, status: f.status,
       anchor_member_id: f.anchor_member_id ?? '',
+      image_url: f.image_url ?? '',
     })
     setShowExcForm(false)
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -308,6 +329,7 @@ export default function TripsPage() {
       spots_total: e.spots_total, spots_anchor: e.spots_anchor,
       total_cost: e.price_per_pax * e.spots_total, status: e.status,
       anchor_member_id: e.anchor_member_id ?? '',
+      image_url: e.image_url ?? '',
     })
     setShowFlightForm(false)
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -351,6 +373,7 @@ export default function TripsPage() {
         pitch: FF.pitch || null, visibility: FF.visibility,
         seats_total: FF.seats_total, seats_anchor: FF.seats_anchor,
         status: FF.status, anchor_member_id: FF.anchor_member_id || null,
+        image_url: FF.image_url || null,
       }
 
       if (editFlightId) {
@@ -412,6 +435,7 @@ export default function TripsPage() {
         visibility: EF.visibility, spots_total: EF.spots_total,
         spots_anchor: EF.spots_anchor, price_per_pax: perPax,
         status: EF.status, anchor_member_id: EF.anchor_member_id || null,
+        image_url: EF.image_url || null,
       }
       if (editExcId) {
         const { data, error } = await supabase.from('excursions').update(payload).eq('id', editExcId).select()
@@ -835,6 +859,21 @@ export default function TripsPage() {
               <label className="field-lab">Pitch (tagline)</label>
               <input className="input" value={FF.pitch} onChange={e => setFlightForm(f => ({ ...f, pitch: e.target.value }))} placeholder="A quick escape to the Caribbean…" />
             </div>
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label className="field-lab">Trip image <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>— shown on the member card (defaults to the house image)</span></label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <img src={FF.image_url || '/trip-default.jpeg'} alt="" style={{ width: 120, height: 72, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--hair)' }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <label className="btn-ghost" style={{ height: 32, padding: '0 14px', fontSize: 12.5, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                    {uploadingImg === 'flight' ? 'Uploading…' : 'Upload image'}
+                    <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingImg === 'flight'} onChange={e => { const f = e.target.files?.[0]; if (f) uploadTripImage('flight', f) }} />
+                  </label>
+                  {FF.image_url && (
+                    <button className="btn-ghost" style={{ height: 32, padding: '0 14px', fontSize: 12.5, color: 'var(--signal)' }} onClick={() => setFlightForm(f => ({ ...f, image_url: '' }))}>Use default</button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
             <button className="btn-primary" onClick={saveFlight} disabled={saving}>
@@ -1000,6 +1039,21 @@ export default function TripsPage() {
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label className="field-lab">Pitch (tagline)</label>
               <input className="input" value={EF.pitch} onChange={e => setExcForm(f => ({ ...f, pitch: e.target.value }))} placeholder="An unforgettable escape…" />
+            </div>
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label className="field-lab">Trip image <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>— shown on the member card (defaults to the house image)</span></label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <img src={EF.image_url || '/trip-default.jpeg'} alt="" style={{ width: 120, height: 72, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--hair)' }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <label className="btn-ghost" style={{ height: 32, padding: '0 14px', fontSize: 12.5, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                    {uploadingImg === 'excursion' ? 'Uploading…' : 'Upload image'}
+                    <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingImg === 'excursion'} onChange={e => { const f = e.target.files?.[0]; if (f) uploadTripImage('excursion', f) }} />
+                  </label>
+                  {EF.image_url && (
+                    <button className="btn-ghost" style={{ height: 32, padding: '0 14px', fontSize: 12.5, color: 'var(--signal)' }} onClick={() => setExcForm(f => ({ ...f, image_url: '' }))}>Use default</button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
