@@ -529,6 +529,26 @@ export default function TripsPage() {
         }
       }
 
+      // Retire the originating anchor submission so it leaves the host's
+      // "active anchors" list, and let them know.
+      const { data: subs } = await supabase
+        .from('anchor_submissions').select('id, member_id')
+        .in('published_item_id', ids).neq('status', 'cancelled')
+      const anchors = (subs ?? []) as { id: string; member_id: string }[]
+      if (anchors.length) {
+        await supabase.from('anchor_submissions')
+          .update({ status: 'cancelled' }).in('id', anchors.map(a => a.id))
+        for (const mid of [...new Set(anchors.map(a => a.member_id))]) {
+          try {
+            await supabase.from('notifications').insert({
+              member_id: mid, kind: 'anchor', title: 'Anchor cancelled',
+              body: `Your anchored trip "${name}" has been cancelled by Ops.`,
+              ref: { item_kind: kind, item_id: id },
+            } as never)
+          } catch { /* notification is supplementary */ }
+        }
+      }
+
       logActivity({
         action: 'trip_cancelled', actor_kind: 'admin', item_kind: kind, item_id: id,
         summary: `Cancelled ${kind} "${name}"${affected.length ? ` and ${affected.length} reservation(s)` : ''}`,

@@ -357,7 +357,7 @@ export interface Database {
           kind: 'flight' | 'excursion'
           member_id: string
           payload: Json
-          status: 'pending' | 'approved' | 'declined' | 'published'
+          status: 'pending' | 'approved' | 'declined' | 'published' | 'pending_ops_review' | 'cancelled'
           submitted_at: string
           decided_at: string | null
           published_item_id: string | null
@@ -368,7 +368,7 @@ export interface Database {
           kind: 'flight' | 'excursion'
           member_id: string
           payload: Json
-          status?: 'pending' | 'approved' | 'declined' | 'published'
+          status?: 'pending' | 'approved' | 'declined' | 'published' | 'pending_ops_review' | 'cancelled'
           submitted_at?: string
           decided_at?: string | null
           published_item_id?: string | null
@@ -379,7 +379,7 @@ export interface Database {
           kind?: 'flight' | 'excursion'
           member_id?: string
           payload?: Json
-          status?: 'pending' | 'approved' | 'declined' | 'published'
+          status?: 'pending' | 'approved' | 'declined' | 'published' | 'pending_ops_review' | 'cancelled'
           submitted_at?: string
           decided_at?: string | null
           published_item_id?: string | null
