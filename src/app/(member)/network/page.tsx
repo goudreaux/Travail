@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { fmtHomeBase, memberCode } from '@/lib/data'
+import { fmtHomeBase, memberCode, tierLabel, tierPill } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import type { Member } from '@/lib/supabase/types'
 
@@ -45,8 +45,8 @@ function Avatar({ member, size = 52 }: { member: Member; size?: number }) {
   )
 }
 
-function TierBadge() {
-  return <span className="pill sun">Founder</span>
+function TierBadge({ tier }: { tier: string }) {
+  return <span className={`pill ${tierPill(tier)}`}>{tierLabel(tier)}</span>
 }
 
 interface MemberWithCount extends Member {
@@ -69,6 +69,9 @@ export default function NetworkPage() {
 
       if (!membersData) { setLoading(false); return }
 
+      // Administrators are ops accounts — never listed in the member network.
+      const visible = membersData.filter(m => m.tier !== 'administrator')
+
       // Load booking counts per member
       const { data: bookingsData } = await supabase
         .from('bookings')
@@ -82,7 +85,7 @@ export default function NetworkPage() {
         }
       }
 
-      setMembers(membersData.map(m => ({ ...m, tripCount: countMap[m.id] || 0 })))
+      setMembers(visible.map(m => ({ ...m, tripCount: countMap[m.id] || 0 })))
       setLoading(false)
     }
     load()
@@ -120,7 +123,7 @@ export default function NetworkPage() {
         {loading ? (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
             gap: 16,
           }}>
             {[...Array(6)].map((_, i) => (
@@ -149,7 +152,7 @@ export default function NetworkPage() {
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
             gap: 16,
           }}>
             {filtered.map(member => (
@@ -194,7 +197,7 @@ export default function NetworkPage() {
                         {member.name}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <TierBadge />
+                        <TierBadge tier={member.tier} />
                         <span className="mono" style={{ fontSize: 9.5 }}>
                           {memberCode(member)}
                         </span>
