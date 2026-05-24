@@ -1365,6 +1365,7 @@ body::before {
   object-fit: cover;
   pointer-events: none;
   z-index: 1;
+  opacity: 0.8;
   -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 55%);
   mask-image: linear-gradient(to right, transparent 0%, #000 55%);
 }
