@@ -3,15 +3,9 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { adaptFlight, adaptExcursion, airportSub, returnLegIds, DisplayFlight, DisplayExcursion } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
-import PostCard from '@/components/PostCard'
 import PageHero from '@/components/PageHero'
 import { useRouter } from 'next/navigation'
-import type { Member, Booking, Post, ExcursionTemplate, Flight, Excursion } from '@/lib/supabase/types'
-
-type PostWithDetails = Post & {
-  author?: { name: string; initials: string } | null
-  comments?: { id: string; body: string; created_at: string; author?: { name: string; initials: string } | null }[]
-}
+import type { Member, Booking, ExcursionTemplate, Flight, Excursion } from '@/lib/supabase/types'
 
 type TripItem =
   | { kind: 'flight'; booking: Booking; flight: DisplayFlight; roundReturn?: DisplayFlight }
@@ -52,7 +46,6 @@ export default function FeedPage() {
   const [flights, setFlights] = useState<DisplayFlight[]>([])
   const [excursions, setExcursions] = useState<DisplayExcursion[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [posts, setPosts] = useState<PostWithDetails[]>([])
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -74,15 +67,10 @@ export default function FeedPage() {
 
       const myId = memberData.id
 
-      const [flightsRes, excursionsRes, bookingsRes, postsRes, templatesRes] = await Promise.all([
+      const [flightsRes, excursionsRes, bookingsRes, templatesRes] = await Promise.all([
         supabase.from('flights').select('*').in('status', ['open', 'full']),
         supabase.from('excursions').select('*').in('status', ['open', 'full']),
         supabase.from('bookings').select('*').eq('member_id', myId),
-        supabase
-          .from('posts')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(20),
         supabase.from('excursion_templates').select('*'),
       ])
 
@@ -130,7 +118,6 @@ export default function FeedPage() {
         )
       )
       setBookings(myBookings)
-      if (postsRes.data) setPosts((postsRes.data as unknown as PostWithDetails[]))
       setLoading(false)
     }
 
@@ -139,14 +126,6 @@ export default function FeedPage() {
     // Real-time subscriptions
     const channel = supabase
       .channel('feed-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-        supabase
-          .from('posts')
-          .select('*, author:members!author_id(name, initials), comments(id, body, created_at, author:members!author_id(name, initials))')
-          .order('created_at', { ascending: false })
-          .limit(20)
-          .then(({ data }) => { if (data) setPosts(data as unknown as PostWithDetails[]) })
-      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, payload => {
         const changed = payload.new as Booking
         if (changed?.member_id) {
@@ -212,11 +191,6 @@ export default function FeedPage() {
       : openExcursions.filter(e => excursionMatchesFilter(e, typeFilter))
     ).map(e => ({ type: 'excursion' as const, item: e, date: e.date })),
   ].sort((a, b) => a.date.localeCompare(b.date))
-
-  const newPostCount = posts.filter(p => {
-    const diff = Date.now() - new Date(p.created_at).getTime()
-    return diff < 1000 * 60 * 60 * 24 // within last 24h
-  }).length
 
   const greeting = (() => {
     const h = new Date().getHours()
@@ -495,31 +469,22 @@ export default function FeedPage() {
           </div>
       </div>
 
-      {/* Feed */}
+      {/* Feed — coming soon */}
       <div className="panel" style={{ padding: 0 }}>
         <div className="panel-head">
           <div className="ttl" style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 500, color: 'var(--ink)' }}>
             The <em>feed</em>
           </div>
-          {newPostCount > 0 && (
-            <span className="pill tropic">{newPostCount} NEW</span>
-          )}
+          <span className="pill">Coming soon</span>
         </div>
-        <div className="feed scroll-y" style={{ padding: '16px 20px', maxHeight: 620 }}>
-          {loading ? (
-            <div style={{ padding: '32px 0', display: 'flex', justifyContent: 'center' }}>
-              <div className="pending-indicator" />
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="empty">
-              <h3>Nothing in the feed yet</h3>
-              <p>Posts from ops and members will appear here.</p>
-            </div>
-          ) : (
-            posts.map(p => (
-              <PostCard key={p.id} post={p} member={member} />
-            ))
-          )}
+        <div className="feed" style={{ padding: '16px 20px' }}>
+          <div className="empty">
+            <svg width="40" height="40" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 11a7 7 0 0 1 7 7" /><path d="M4 5a13 13 0 0 1 13 13" /><circle cx="4.5" cy="17.5" r="1.2" fill="currentColor" stroke="none" />
+            </svg>
+            <h3>The feed is coming soon</h3>
+            <p>Member stories, ops updates, and trip recaps will land here. Stay tuned.</p>
+          </div>
         </div>
       </div>
       </div>
