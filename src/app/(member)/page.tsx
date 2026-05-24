@@ -282,7 +282,7 @@ export default function FeedPage() {
                   const { flight, booking } = trip
                   const dp = flight.dateParts
                   return (
-                    <div key={booking.id} className={`my-trip-card s-${booking.status}`} style={{ cursor: 'pointer' }} onClick={() => router.push(`/boarding-pass/${booking.id}`)}>
+                    <div key={booking.id} className={`my-trip-card s-${booking.status}`} style={{ cursor: 'pointer' }} onClick={() => router.push(`/reserve/${booking.item_id}?kind=flight${trip.roundReturn ? `&return=${trip.roundReturn.id}` : ''}`)}>
                       <div className="my-trip-card__header">
                         <div>
                           <div className="my-trip-card__title">
@@ -332,7 +332,7 @@ export default function FeedPage() {
                             style={{ height: 30, padding: '0 12px', fontSize: 12 }}
                             onClick={e => { e.stopPropagation(); router.push(`/boarding-pass/${booking.id}`) }}
                           >
-                            View itinerary
+                            Boarding pass
                           </button>
                         </div>
                       </div>
@@ -343,7 +343,7 @@ export default function FeedPage() {
                   const dp = excursion.dateParts
                   const icon = excursion.templateMeta?.icon ?? 'fish'
                   return (
-                    <div key={booking.id} className={`my-trip-card s-${booking.status}`} style={{ cursor: 'pointer' }} onClick={() => router.push(`/boarding-pass/${booking.id}`)}>
+                    <div key={booking.id} className={`my-trip-card s-${booking.status}`} style={{ cursor: 'pointer' }} onClick={() => router.push(`/reserve/${booking.item_id}?kind=excursion`)}>
                       <div className="my-trip-card__header">
                         <div>
                           <div className="my-trip-card__title">{excursion.name}</div>
@@ -384,7 +384,7 @@ export default function FeedPage() {
                             style={{ height: 30, padding: '0 12px', fontSize: 12 }}
                             onClick={e => { e.stopPropagation(); router.push(`/boarding-pass/${booking.id}`) }}
                           >
-                            View itinerary
+                            Boarding pass
                           </button>
                         </div>
                       </div>
