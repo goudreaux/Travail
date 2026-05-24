@@ -789,7 +789,7 @@ body::before {
 }
 
 .cal-cell {
-  aspect-ratio: 1;
+  min-height: 40px;
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -833,6 +833,7 @@ body::before {
 .cal-months {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  align-items: start;
   gap: 18px;
   margin-bottom: 28px;
 }
