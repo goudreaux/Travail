@@ -141,6 +141,7 @@ export interface Database {
           capacity: number
           price_per_pax: number
           icon: string | null
+          description: string | null
         }
         Insert: {
           id?: string
@@ -150,6 +151,7 @@ export interface Database {
           capacity: number
           price_per_pax: number
           icon?: string | null
+          description?: string | null
         }
         Update: {
           id?: string
@@ -159,6 +161,7 @@ export interface Database {
           capacity?: number
           price_per_pax?: number
           icon?: string | null
+          description?: string | null
         }
         Relationships: []
       }

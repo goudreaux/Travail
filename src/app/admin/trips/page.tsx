@@ -112,10 +112,11 @@ type TemplateForm = {
   capacity: number
   price_per_pax: number
   icon: string
+  description: string
 }
 const defaultTemplateForm: TemplateForm = {
   name: '', destSel: '', destCustomCode: '', destCustomName: '', destCustomRegion: '',
-  operator: '', capacity: 8, price_per_pax: 0, icon: 'fish',
+  operator: '', capacity: 8, price_per_pax: 0, icon: 'fish', description: '',
 }
 
 const sectionLabelStyle: React.CSSProperties = {
@@ -435,6 +436,7 @@ export default function TripsPage() {
       ...f,
       template_id: id,
       nameTouched: false,
+      pitch: f.pitch || (t?.description ?? ''),
       spots_total: t?.capacity ?? f.spots_total,
       total_cost: t ? t.price_per_pax * t.capacity : f.total_cost,
     }))
@@ -448,6 +450,7 @@ export default function TripsPage() {
       name: t.name, destSel: t.dest_code,
       operator: t.operator ?? '', capacity: t.capacity,
       price_per_pax: t.price_per_pax, icon: t.icon ?? 'fish',
+      description: t.description ?? '',
     })
   }
 
@@ -476,6 +479,7 @@ export default function TripsPage() {
         name: TF.name.trim(), dest_code: effTplDest,
         operator: TF.operator.trim() || '', capacity: TF.capacity,
         price_per_pax: TF.price_per_pax, icon: TF.icon,
+        description: TF.description.trim() || null,
       }
       if (editTemplateId) {
         const { data, error } = await supabase.from('excursion_templates').update(payload).eq('id', editTemplateId).select()
@@ -1030,7 +1034,11 @@ export default function TripsPage() {
               <input className="input" type="number" min={0} value={TF.price_per_pax} onChange={e => setTemplateForm(f => ({ ...f, price_per_pax: Number(e.target.value) }))} />
               <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>Default cost when scheduling — adjustable per trip.</div>
             </div>
-            <div className="field" />
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label className="field-lab">Description <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>— the trip &amp; conservation story</span></label>
+              <textarea className="input" rows={3} value={TF.description} onChange={e => setTemplateForm(f => ({ ...f, description: e.target.value }))} placeholder="What the fishing's like and the conservation angle…" />
+              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>Prefills the trip pitch when scheduling this excursion.</div>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
             <button className="btn-primary" onClick={saveTemplate} disabled={saving}>
