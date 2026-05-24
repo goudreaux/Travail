@@ -5,7 +5,19 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { fmtDate, fmtDur, fmtMoney, fmtTime, fmtHomeBase, memberCode } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
-import { fetchRosters, RosterList, type RosterEntry } from '@/components/Roster'
+import { fetchRosters, type RosterEntry } from '@/components/Roster'
+
+// Roster avatar (image or initials) for the FOMO "who's going" block.
+function rosterAvatar(e: RosterEntry, size: number) {
+  if (e.avatar_url) {
+    return <img src={e.avatar_url} alt={e.name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block', border: '2px solid var(--paper)' }} />
+  }
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', background: 'var(--night)', color: 'var(--tropic)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--mono)', fontSize: size * 0.34, fontWeight: 700, border: '2px solid var(--paper)', flexShrink: 0 }}>
+      {e.initials}
+    </div>
+  )
+}
 import type { Member, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 import { type Guest, type GuestSlot, NEW_GUEST, emptyGuestSlot } from '@/lib/guests'
 
@@ -579,6 +591,68 @@ export default function ReservePage() {
               ) : null}
             </div>
 
+            {/* Anchor pitch — up top to draw the eye */}
+            {pitch && (
+              <div style={{
+                background: 'linear-gradient(135deg, #0c3a48, var(--night))',
+                borderRadius: 14,
+                padding: '22px 26px',
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
+                <div style={{ position: 'absolute', top: -22, right: 16, fontFamily: 'var(--display)', fontSize: 120, lineHeight: 1, color: 'rgba(0,179,199,0.12)', pointerEvents: 'none' }}>”</div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tropic)', marginBottom: 10 }}>
+                  {anchorMemberId ? 'Why you should come' : 'The pitch'}
+                </div>
+                <p style={{ margin: 0, fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 21, lineHeight: 1.45, color: '#fff', position: 'relative' }}>
+                  {pitch}
+                </p>
+              </div>
+            )}
+
+            {/* Who's going — FOMO */}
+            {roster.length > 0 && (() => {
+              const totalGoing = roster.reduce((s, e) => s + e.seats, 0)
+              const names = roster.map(e => e.name.split(' ')[0])
+              const headline = names.length === 1
+                ? `${names[0]} is going`
+                : names.length === 2
+                ? `${names[0]} & ${names[1]} are going`
+                : `${names[0]}, ${names[1]} & ${names.length - 2} other${names.length - 2 > 1 ? 's' : ''} are going`
+              return (
+                <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 14, padding: '18px 20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ display: 'flex' }}>
+                      {roster.slice(0, 5).map((e, i) => (
+                        <div key={e.member_id} style={{ marginLeft: i === 0 ? 0 : -12, zIndex: 10 - i }}>
+                          {rosterAvatar(e, 42)}
+                        </div>
+                      ))}
+                      {roster.length > 5 && (
+                        <div style={{ marginLeft: -12, width: 42, height: 42, borderRadius: '50%', background: 'var(--warm)', border: '2px solid var(--paper)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: 'var(--ink-mid)' }}>
+                          +{roster.length - 5}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="display-i" style={{ fontSize: 18, color: 'var(--ink)', lineHeight: 1.2 }}>{headline}</div>
+                      <div style={{ fontSize: 11, color: 'var(--tropic-d)', fontFamily: 'var(--mono)', letterSpacing: '0.06em', marginTop: 3 }}>
+                        {totalGoing} ON THE MANIFEST · JOIN THEM
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+                    {roster.map(e => (
+                      <Link key={e.member_id} href={`/network/${e.member_id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'var(--warm)', borderRadius: 20, padding: '3px 12px 3px 3px', textDecoration: 'none' }}>
+                        {rosterAvatar(e, 22)}
+                        <span style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 500 }}>{e.name}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* 1. Itinerary display */}
             <div>
               <div className="field-lab" style={{ marginBottom: 10 }}>
@@ -839,42 +913,6 @@ export default function ReservePage() {
                 </div>
               </div>
             </div>
-
-            {/* Who's going */}
-            {roster.length > 0 && (
-              <div>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 10 }}>
-                  Who’s going · {roster.reduce((s, e) => s + e.seats, 0)}
-                </div>
-                <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: 16 }}>
-                  <RosterList entries={roster} />
-                </div>
-              </div>
-            )}
-
-            {/* 6. Trip pitch */}
-            {pitch && (
-              <div style={{
-                background: 'var(--warm)',
-                borderLeft: '3px solid var(--tropic)',
-                borderRadius: '0 8px 8px 0',
-                padding: '12px 16px',
-              }}>
-                <div className="mono" style={{ fontSize: 9, marginBottom: 6, color: 'var(--ink-mid)' }}>
-                  {anchorMemberId ? 'ANCHOR SAYS' : 'TRIP PITCH'}
-                </div>
-                <p style={{
-                  margin: 0,
-                  fontSize: 14,
-                  color: 'var(--ink-mid)',
-                  fontStyle: 'italic',
-                  fontFamily: 'var(--display)',
-                  lineHeight: 1.55,
-                }}>
-                  "{pitch}"
-                </p>
-              </div>
-            )}
 
             {error && (
               <div style={{
