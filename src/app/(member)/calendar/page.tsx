@@ -212,6 +212,15 @@ export default function CalendarPage() {
           </div>
         ) : (
           <>
+            {/* Color legend */}
+            <div className="cal-legend">
+              <span className="cal-legend-item"><span className="cal-legend-dot" style={{ background: 'var(--tropic)' }} />Flights</span>
+              <span className="cal-legend-item"><span className="cal-legend-dot" style={{ background: 'var(--sun)' }} />Fishing &amp; water</span>
+              <span className="cal-legend-item"><span className="cal-legend-dot" style={{ background: 'var(--moss)' }} />Golf</span>
+              <span className="cal-legend-item"><span className="cal-legend-dot" style={{ background: 'var(--signal)' }} />Hunt</span>
+              <span className="cal-legend-note"><span className="cal-legend-ring" />Today</span>
+            </div>
+
             {/* Responsive month grid (1-up on phones, 3-up on desktop) */}
             <div className="cal-months">
               {months.map(({ year, month }) => {
@@ -225,8 +234,8 @@ export default function CalendarPage() {
                 return (
                   <div key={`${year}-${month}`} className="cal" style={{ background: 'var(--card)' }}>
                     <div className="cal-head">
-                      <h3 style={{ fontFamily: 'var(--display)', fontWeight: 500, fontSize: 15 }}>
-                        {MONTHS[month]} <span style={{ color: 'var(--ink-light)', fontSize: 13 }}>{year}</span>
+                      <h3>
+                        {MONTHS[month]} <span className="cal-yr">{year}</span>
                       </h3>
                     </div>
                     <div className="cal-grid">
