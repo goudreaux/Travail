@@ -126,7 +126,7 @@ const sectionLabelStyle: React.CSSProperties = {
 
 export default function TripsPage() {
   const supabase = createClient()
-  const [tab, setTab] = useState<'active' | 'flights' | 'excursions' | 'templates'>('active')
+  const [tab, setTab] = useState<'active' | 'templates'>('active')
   const [flights, setFlights] = useState<FlightRow[]>([])
   const [excursions, setExcursions] = useState<ExcursionRow[]>([])
   const [aircraft, setAircraft] = useState<Aircraft[]>([])
@@ -288,6 +288,8 @@ export default function TripsPage() {
       leg_cost: f.price_per_seat * f.seats_total, return_leg_cost: 0, status: f.status,
       anchor_member_id: f.anchor_member_id ?? '',
     })
+    setShowExcForm(false)
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function openEditExc(e: ExcursionRow) {
@@ -305,6 +307,8 @@ export default function TripsPage() {
       total_cost: e.price_per_pax * e.spots_total, status: e.status,
       anchor_member_id: e.anchor_member_id ?? '',
     })
+    setShowFlightForm(false)
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function excError(): string | null {
@@ -576,23 +580,27 @@ export default function TripsPage() {
             {tab === 'active' ? 'Live trips on the members’ Open Seats board. Cancelled trips drop off automatically.' : 'Manage all flights and excursions, including drafts and past trips.'}
           </p>
         </div>
-        {tab !== 'active' && (
-          <button
-            className="btn-primary"
-            onClick={() => {
-              if (tab === 'flights') { setShowFlightForm(true); setEditFlightId(null); setFlightForm(defaultFlightForm) }
-              else if (tab === 'excursions') { setShowExcForm(true); setEditExcId(null); setExcForm(defaultExcForm) }
-              else { setShowTemplateForm(true); setEditTemplateId(null); setTemplateForm(defaultTemplateForm) }
-            }}
-          >
-            + Add {tab === 'flights' ? 'Flight' : tab === 'excursions' ? 'Excursion' : 'Template'}
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          {tab === 'active' ? (
+            <>
+              <button className="btn-ghost" onClick={() => { setShowExcForm(true); setEditExcId(null); setExcForm(defaultExcForm); setShowFlightForm(false) }}>
+                + Excursion
+              </button>
+              <button className="btn-primary" onClick={() => { setShowFlightForm(true); setEditFlightId(null); setFlightForm(defaultFlightForm); setShowExcForm(false) }}>
+                + Flight
+              </button>
+            </>
+          ) : (
+            <button className="btn-primary" onClick={() => { setShowTemplateForm(true); setEditTemplateId(null); setTemplateForm(defaultTemplateForm) }}>
+              + Add Template
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--hair)', marginBottom: 24, gap: 0 }}>
-        {(['active', 'flights', 'excursions', 'templates'] as const).map(t => (
+        {(['active', 'templates'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -604,13 +612,13 @@ export default function TripsPage() {
               marginBottom: -1,
             }}
           >
-            {t === 'active' ? `Active Trips${activeItems.length ? ` · ${activeItems.length}` : ''}` : t === 'flights' ? 'Flights' : t === 'excursions' ? 'Excursions' : 'Excursion Templates'}
+            {t === 'active' ? `Active Trips${activeItems.length ? ` · ${activeItems.length}` : ''}` : 'Excursion Templates'}
           </button>
         ))}
       </div>
 
-      {/* Flight form */}
-      {tab === 'flights' && showFlightForm && (
+      {/* Flight form (add / edit) */}
+      {showFlightForm && (
         <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 14, padding: 24, marginBottom: 24 }}>
           <h3 style={{ fontFamily: 'var(--display)', fontSize: 20, margin: '0 0 20px', color: 'var(--ink)' }}>
             {editFlightId ? 'Edit Flight' : 'Add Flight'}
@@ -813,8 +821,8 @@ export default function TripsPage() {
         </div>
       )}
 
-      {/* Excursion form */}
-      {tab === 'excursions' && showExcForm && (
+      {/* Excursion form (add / edit) */}
+      {showExcForm && (
         <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 14, padding: 24, marginBottom: 24 }}>
           <h3 style={{ fontFamily: 'var(--display)', fontSize: 20, margin: '0 0 20px', color: 'var(--ink)' }}>
             {editExcId ? 'Edit Excursion' : 'Add Excursion'}
@@ -1080,7 +1088,7 @@ export default function TripsPage() {
             </div>
           )}
         </div>
-      ) : tab === 'templates' ? (
+      ) : (
         <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, overflow: 'hidden' }}>
           <table className="admin-table">
             <thead>
@@ -1113,82 +1121,6 @@ export default function TripsPage() {
           </table>
           {templates.length === 0 && (
             <div style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>No templates yet — create one to start building excursions.</div>
-          )}
-        </div>
-      ) : tab === 'flights' ? (
-        <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, overflow: 'hidden' }}>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Route</th>
-                <th>Date</th>
-                <th>Aircraft</th>
-                <th>Seats</th>
-                <th>Price</th>
-                <th>Status</th>
-                <th>Anchor</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {flights.map(f => (
-                <tr key={f.id} style={{ cursor: 'pointer' }} onClick={() => openEditFlight(f)}>
-                  <td style={{ fontWeight: 500, color: 'var(--ink)' }}>{f.name}</td>
-                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{f.origin_code} → {f.dest_code}</td>
-                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{f.date}</td>
-                  <td style={{ fontSize: 12, color: 'var(--ink-light)' }}>{aircraft.find(a => a.id === f.aircraft_id)?.name ?? f.aircraft_id}</td>
-                  <td style={{ fontWeight: 600 }}>{f.seats_anchor}/{f.seats_total}</td>
-                  <td style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}>${f.price_per_seat.toLocaleString()}</td>
-                  <td><span className={`pill ${statusColor[f.status]}`}>{f.status}</span></td>
-                  <td style={{ fontSize: 12 }}>{members.find(m => m.id === f.anchor_member_id)?.name ?? '—'}</td>
-                  <td onClick={e => e.stopPropagation()}>
-                    <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={() => openEditFlight(f)}>Edit</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {flights.length === 0 && (
-            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>No flights yet.</div>
-          )}
-        </div>
-      ) : (
-        <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, overflow: 'hidden' }}>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Destination</th>
-                <th>Date</th>
-                <th>Stay Type</th>
-                <th>Spots</th>
-                <th>Price/Pax</th>
-                <th>Status</th>
-                <th>Anchor</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {excursions.map(e => (
-                <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => openEditExc(e)}>
-                  <td style={{ fontWeight: 500, color: 'var(--ink)' }}>{e.name}</td>
-                  <td style={{ fontSize: 12 }}>{(() => { const t = templates.find(tt => tt.id === e.template_id); return t ? airportName(t.dest_code) : e.origin_code })()}</td>
-                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{e.date}</td>
-                  <td><span className="pill ink">{e.stay_type.replace('_', ' ')}</span></td>
-                  <td style={{ fontWeight: 600 }}>{e.spots_anchor}/{e.spots_total}</td>
-                  <td style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}>${e.price_per_pax.toLocaleString()}</td>
-                  <td><span className={`pill ${statusColor[e.status]}`}>{e.status}</span></td>
-                  <td style={{ fontSize: 12 }}>{members.find(m => m.id === e.anchor_member_id)?.name ?? '—'}</td>
-                  <td onClick={ev => ev.stopPropagation()}>
-                    <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={() => openEditExc(e)}>Edit</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {excursions.length === 0 && (
-            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>No excursions yet.</div>
           )}
         </div>
       )}
