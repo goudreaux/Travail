@@ -136,12 +136,37 @@ export function fmtDate(isoDate: string): { mo: string; day: string; dow: string
   }
 }
 
+// Normalize a time to 24-hour "HH:MM" for storage (DB times + <input type=time>).
+// Accepts "9:00 AM" / "9:00am" / "09:00" / "9:00".
+export function to24h(t: string | null | undefined): string {
+  if (!t) return ''
+  const s = t.trim()
+  const m = s.match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/)
+  if (m) {
+    let h = parseInt(m[1], 10) % 12
+    if (m[3].toUpperCase() === 'PM') h += 12
+    return `${String(h).padStart(2, '0')}:${m[2]}`
+  }
+  const h24 = s.match(/^(\d{1,2}):(\d{2})$/)
+  if (h24) return `${h24[1].padStart(2, '0')}:${h24[2]}`
+  return s
+}
+
 export function fmtTime(timeStr: string | null): string {
   if (!timeStr) return '—'
-  const [h, m] = timeStr.split(':').map(Number)
-  const ampm = h >= 12 ? 'PM' : 'AM'
+  const s = timeStr.trim()
+  // Already 12-hour ("9:00 AM") — normalize casing/spacing and pass through.
+  const ampm = s.match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/)
+  if (ampm) {
+    return `${parseInt(ampm[1], 10)}:${ampm[2]} ${ampm[3].toUpperCase()}`
+  }
+  // 24-hour ("09:00" / "9:00") → 12-hour.
+  const [h, m] = s.split(':').map(Number)
+  if (Number.isNaN(h)) return s
+  const mm = Number.isNaN(m) ? 0 : m
+  const meridiem = h >= 12 ? 'PM' : 'AM'
   const hour = h % 12 || 12
-  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`
+  return `${hour}:${String(mm).padStart(2, '0')} ${meridiem}`
 }
 
 export function fmtMoney(cents: number): string {
@@ -213,7 +238,7 @@ export function adaptFlight(
     originMeta: airportFull(f.origin_code),
     destMeta: airportFull(f.dest_code),
     dateParts: fmtDate(f.date),
-    durationStr: fmtDur(f.duration_mins),
+    durationStr: f.duration_mins > 0 ? fmtDur(f.duration_mins) : '',
     departTimeStr: fmtTime(f.depart_time),
     seatsAvailable,
     seats: slots,

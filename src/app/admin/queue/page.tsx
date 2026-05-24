@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { logActivity } from '@/lib/activity'
-import { genConfirmationCode } from '@/lib/data'
+import { genConfirmationCode, to24h } from '@/lib/data'
 import type { Booking, AnchorSubmission, Member, Flight, Excursion, Aircraft } from '@/lib/supabase/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -489,7 +489,7 @@ export default function QueuePage() {
       const originCode = String(p.originCode ?? p.origin_code ?? '')
       const destCode = val('destCode', p.destCode ?? p.dest_code)
       const date = val('date', p.date)
-      const departTime = val('departTime', p.departTime ?? p.depart_time) || null
+      const departTime = to24h(val('departTime', p.departTime ?? p.depart_time)) || null
       const aircraftId = resolveAircraftId((p.aircraftId ?? p.aircraft_id ?? null) as string | null)
       const name = val('name', p.name)
       const pitch = val('pitch', p.pitch) || null
@@ -547,10 +547,10 @@ export default function QueuePage() {
           origin_code: originCode,
           aircraft_id: aircraftId,
           date,
-          start_time: val('startTime', p.startTime ?? p.start_time) || null,
+          start_time: to24h(val('startTime', p.startTime ?? p.start_time)) || null,
           depart_time: departTime,
-          arrive_time: (p.arriveTime ?? p.arrive_time ?? null) as string | null,
-          return_time: val('returnTime', p.returnTime ?? p.return_time) || null,
+          arrive_time: to24h((p.arriveTime ?? p.arrive_time ?? '') as string) || null,
+          return_time: to24h(val('returnTime', p.returnTime ?? p.return_time)) || null,
           stay_type: stayType as 'day_trip' | 'overnight' | 'multi_night',
           name,
           pitch,
