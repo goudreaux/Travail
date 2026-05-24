@@ -163,6 +163,7 @@ export default function AnchorFlightPage() {
       const { data, error: insertError } = await supabase
         .from('anchor_submissions')
         .insert({
+          id: crypto.randomUUID(),
           kind: 'flight',
           member_id: member.id,
           payload: {
@@ -183,25 +184,29 @@ export default function AnchorFlightPage() {
             seatsAnchor: anchorSeats,
           },
           status: 'pending',
-        })
+        } as never)
         .select()
         .single()
 
       if (insertError) throw insertError
 
       if (data) {
-        await supabase.from('notifications').insert({
-          member_id: member.id,
-          kind: 'system',
-          title: 'Anchor submitted for review',
-          body: 'The Travail team will get a Tropic quote and confirm pricing with you.',
-          ref: { kind: 'anchor', id: data.id },
-          read: false,
-        })
+        try {
+          await supabase.from('notifications').insert({
+            id: crypto.randomUUID(),
+            member_id: member.id,
+            kind: 'system',
+            title: 'Anchor submitted for review',
+            body: 'The Travail team will get a Tropic quote and confirm pricing with you.',
+            ref: { kind: 'anchor', id: (data as { id: string }).id },
+            read: false,
+          } as never)
+        } catch { /* notification is supplementary */ }
         setSubmitted(data)
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      const e = err as { message?: string }
+      setError(e?.message || 'Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)
     }

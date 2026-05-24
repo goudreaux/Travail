@@ -192,6 +192,29 @@ export default function MembersPage() {
     load()
   }
 
+  // POST to the server route that emails the Supabase invite + links the account.
+  async function sendInvite(memberId: string, email: string): Promise<string | null> {
+    try {
+      const res = await fetch('/api/admin/invite-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId, email }),
+      })
+      const json = await res.json().catch(() => ({}))
+      return res.ok ? null : (json.error ?? 'Invite failed')
+    } catch (e) {
+      return (e as Error).message ?? 'Invite failed'
+    }
+  }
+
+  async function inviteRow(m: Member) {
+    const email = sensitiveData[m.id]?.email
+    if (!email) { showToast('Add an email for this member first', 'error'); return }
+    const err = await sendInvite(m.id, email)
+    showToast(err ? `Invite failed: ${err}` : `Invite emailed to ${email}`, err ? 'error' : 'success')
+    if (!err) load()
+  }
+
   async function save() {
     const uid = form.user_id.trim()
     if (uid && !UUID_RE.test(uid)) {
@@ -282,7 +305,13 @@ export default function MembersPage() {
             meta: { linked_login: !!uid },
           })
         }
-        showToast(uid ? 'Member created — login linked' : 'Member created — add a User ID to link a login')
+        // Email a set-password invite when no login was linked manually.
+        if (inserted && emailVal && !uid) {
+          const inviteErr = await sendInvite(inserted.id, emailVal)
+          showToast(inviteErr ? `Member created — invite failed: ${inviteErr}` : `Member created — invite emailed to ${emailVal}`, inviteErr ? 'error' : 'success')
+        } else {
+          showToast(uid ? 'Member created — login linked' : 'Member created — add an email to send an invite, or a User ID to link manually')
+        }
       }
 
       setEditId(null)
@@ -539,6 +568,15 @@ export default function MembersPage() {
                   </td>
                   <td onClick={e => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'inline-flex', gap: 6 }}>
+                      {m.user_id === PLACEHOLDER_USER_ID && sensitiveData[m.id]?.email && (
+                        <button
+                          className="btn-ghost"
+                          style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--tropic-d)', borderColor: 'rgba(0,179,199,0.3)' }}
+                          onClick={() => inviteRow(m)}
+                        >
+                          Invite
+                        </button>
+                      )}
                       <button
                         className="btn-ghost"
                         style={{ height: 28, padding: '0 10px', fontSize: 12 }}
