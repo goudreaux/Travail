@@ -610,49 +610,6 @@ export default function ReservePage() {
               </div>
             )}
 
-            {/* Who's going — FOMO */}
-            {roster.length > 0 && (() => {
-              const totalGoing = roster.reduce((s, e) => s + e.seats, 0)
-              const names = roster.map(e => e.name.split(' ')[0])
-              const headline = names.length === 1
-                ? `${names[0]} is going`
-                : names.length === 2
-                ? `${names[0]} & ${names[1]} are going`
-                : `${names[0]}, ${names[1]} & ${names.length - 2} other${names.length - 2 > 1 ? 's' : ''} are going`
-              return (
-                <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 14, padding: '18px 20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{ display: 'flex' }}>
-                      {roster.slice(0, 5).map((e, i) => (
-                        <div key={e.member_id} style={{ marginLeft: i === 0 ? 0 : -12, zIndex: 10 - i }}>
-                          {rosterAvatar(e, 42)}
-                        </div>
-                      ))}
-                      {roster.length > 5 && (
-                        <div style={{ marginLeft: -12, width: 42, height: 42, borderRadius: '50%', background: 'var(--warm)', border: '2px solid var(--paper)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: 'var(--ink-mid)' }}>
-                          +{roster.length - 5}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="display-i" style={{ fontSize: 18, color: 'var(--ink)', lineHeight: 1.2 }}>{headline}</div>
-                      <div style={{ fontSize: 11, color: 'var(--tropic-d)', fontFamily: 'var(--mono)', letterSpacing: '0.06em', marginTop: 3 }}>
-                        {totalGoing} ON THE MANIFEST · JOIN THEM
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-                    {roster.map(e => (
-                      <Link key={e.member_id} href={`/network/${e.member_id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'var(--warm)', borderRadius: 20, padding: '3px 12px 3px 3px', textDecoration: 'none' }}>
-                        {rosterAvatar(e, 22)}
-                        <span style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 500 }}>{e.name}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )
-            })()}
-
             {/* 1. Itinerary display */}
             <div>
               <div className="field-lab" style={{ marginBottom: 10 }}>
@@ -705,6 +662,49 @@ export default function ReservePage() {
                 ) : null}
               </div>
             </div>
+
+            {/* Who's going — FOMO */}
+            {roster.length > 0 && (() => {
+              const totalGoing = roster.reduce((s, e) => s + e.seats, 0)
+              const names = roster.map(e => e.name.split(' ')[0])
+              const headline = names.length === 1
+                ? `${names[0]} is going`
+                : names.length === 2
+                ? `${names[0]} & ${names[1]} are going`
+                : `${names[0]}, ${names[1]} & ${names.length - 2} other${names.length - 2 > 1 ? 's' : ''} are going`
+              return (
+                <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 14, padding: '18px 20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ display: 'flex' }}>
+                      {roster.slice(0, 5).map((e, i) => (
+                        <div key={e.member_id} style={{ marginLeft: i === 0 ? 0 : -12, zIndex: 10 - i }}>
+                          {rosterAvatar(e, 42)}
+                        </div>
+                      ))}
+                      {roster.length > 5 && (
+                        <div style={{ marginLeft: -12, width: 42, height: 42, borderRadius: '50%', background: 'var(--warm)', border: '2px solid var(--paper)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: 'var(--ink-mid)' }}>
+                          +{roster.length - 5}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="display-i" style={{ fontSize: 18, color: 'var(--ink)', lineHeight: 1.2 }}>{headline}</div>
+                      <div style={{ fontSize: 11, color: 'var(--tropic-d)', fontFamily: 'var(--mono)', letterSpacing: '0.06em', marginTop: 3 }}>
+                        {totalGoing} ON THE MANIFEST · JOIN THEM
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+                    {roster.map(e => (
+                      <Link key={e.member_id} href={`/network/${e.member_id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'var(--warm)', borderRadius: 20, padding: '3px 12px 3px 3px', textDecoration: 'none' }}>
+                        {rosterAvatar(e, 22)}
+                        <span style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 500 }}>{e.name}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* 2. Seats picker */}
             <div className="field">
