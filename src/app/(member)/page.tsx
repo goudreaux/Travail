@@ -248,10 +248,10 @@ export default function FeedPage() {
       </PageHero>
 
       <div className="page-view" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* Stacked: open seats lead, then my trips */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {/* My Trips (rendered after open seats via order) */}
-        <div className="panel" style={{ padding: 0, display: 'flex', flexDirection: 'column', order: 2 }}>
+      {/* My trips (left/top) + open seats (right/bottom) */}
+      <div className="dash-cols">
+        {/* My Trips */}
+        <div className="panel" style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
           <div className="panel-head">
             <div className="ttl" style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 500, color: 'var(--ink)' }}>
               My <em>trips</em>
@@ -394,8 +394,8 @@ export default function FeedPage() {
           </div>
         </div>
 
-        {/* Open seats — the striking lead */}
-        <div className="panel" style={{ padding: 0, display: 'flex', flexDirection: 'column', order: 1 }}>
+        {/* Open seats */}
+        <div className="panel" style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
             <div className="panel-head">
               <div className="ttl" style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 500, color: 'var(--ink)' }}>
                 Open <em>seats</em>

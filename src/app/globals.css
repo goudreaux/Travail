@@ -592,6 +592,14 @@ body::before {
   align-items: stretch;
 }
 
+/* Dashboard two-column: My Trips (left) + Open Seats (right); stacks on mobile. */
+.dash-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
 .hero-card {
   background: var(--card);
   border: 1px solid var(--hair);
@@ -2692,6 +2700,10 @@ textarea.input {
   }
 
   .two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-cols {
     grid-template-columns: 1fr;
   }
 
