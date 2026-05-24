@@ -42,10 +42,11 @@ end $$;
 
 alter table public.member_sensitive enable row level security;
 
--- Reset to the canonical policy set. This table holds PII, so we clear whatever
--- policies exist and recreate exactly the access the app needs: admins manage
--- every row; members may read only their own contact info. (The notify-email
--- function uses the service role and bypasses RLS.)
+-- Pin down the policy set. This table holds PII, so we clear whatever policies
+-- exist and recreate exactly the access the app uses: admins manage every row;
+-- members may read and upsert their own contact row. (The notify-email function
+-- uses the service role and bypasses RLS.) This reproduces the live policies, so
+-- applying it does not change behavior — it just captures them in version control.
 do $$
 declare p record;
 begin
@@ -57,16 +58,15 @@ begin
   end loop;
 end $$;
 
-create policy "Members read own contact info" on public.member_sensitive
-  for select using (member_id = public.current_member_id() or public.is_admin());
+create policy "Admins can manage sensitive data" on public.member_sensitive
+  for all using (public.is_admin()) with check (public.is_admin());
 
-create policy "Admins insert contact info" on public.member_sensitive
-  for insert with check (public.is_admin());
+create policy "Members can upsert own sensitive data" on public.member_sensitive
+  for all
+  using (member_id = public.current_member_id())
+  with check (member_id = public.current_member_id());
 
-create policy "Admins update contact info" on public.member_sensitive
-  for update using (public.is_admin()) with check (public.is_admin());
-
-create policy "Admins delete contact info" on public.member_sensitive
-  for delete using (public.is_admin());
+create policy "Members can view own sensitive data" on public.member_sensitive
+  for select using (member_id = public.current_member_id());
 
 grant select, insert, update, delete on public.member_sensitive to authenticated;
