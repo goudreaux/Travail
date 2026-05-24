@@ -193,19 +193,19 @@ export default function NetworkPage() {
                         fontSize: 18,
                         lineHeight: 1.15,
                         color: 'var(--ink)',
-                        marginBottom: 4,
+                        marginBottom: 6,
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                       }}>
                         {member.name}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <div style={{ marginBottom: 5 }}>
                         <TierBadge tier={member.tier} />
-                        <span className="mono" style={{ fontSize: 9.5 }}>
-                          {memberCode(member)}
-                        </span>
                       </div>
+                      <span className="mono" style={{ fontSize: 9.5, color: 'var(--ink-light)' }}>
+                        {memberCode(member)}
+                      </span>
                     </div>
                   </div>
 
