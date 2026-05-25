@@ -2641,7 +2641,7 @@ textarea.input {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #123a37;
+  background: #123a37 url('/launch-poster.jpg') center / cover no-repeat;
   transition: opacity 0.6s ease;
   will-change: opacity;
 }
@@ -2649,6 +2649,10 @@ textarea.input {
 .splash.leaving {
   opacity: 0;
   pointer-events: none;
+}
+
+.splash.no-video .splash-video {
+  display: none;
 }
 
 .splash-video {
