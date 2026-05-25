@@ -3036,20 +3036,24 @@ textarea.input {
   top: 47%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 58px;
-  height: 58px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   z-index: 5;
-  background: radial-gradient(circle at 36% 30%, #1ac6d9, var(--tropic-d) 80%);
-  box-shadow: 0 4px 14px rgba(0, 122, 140, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.3), inset 0 -3px 6px rgba(0, 0, 0, 0.22);
+  background: linear-gradient(150deg, #15b9cd, #00788b);
+  box-shadow:
+    0 3px 10px rgba(0, 122, 140, 0.26),
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.22),
+    inset 0 0 0 5px rgba(0, 92, 105, 0.30);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--display);
   font-style: italic;
   font-weight: 600;
-  font-size: 30px;
-  color: #eafcff;
+  font-size: 25px;
+  color: #f0fdff;
+  text-shadow: 0 1px 1px rgba(0, 60, 70, 0.4);
   transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.5, 0.04, 0.2, 1);
 }
 .envelope.is-open .env-seal {
@@ -3107,6 +3111,34 @@ textarea.input {
   text-transform: uppercase;
   color: var(--ink-faint);
   line-height: 1.8;
+}
+
+/* Elevate the onboarding form to match the premium header: clean white fields,
+   refined mono labels, roomier touch targets. */
+.invite-card .field {
+  margin-bottom: 16px;
+}
+.invite-card .field-lab {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+}
+.invite-card .input,
+.invite-card .select {
+  background: #fff;
+  border: 1px solid var(--hair-2);
+  height: 46px;
+  font-size: 15px;
+  border-radius: 10px;
+}
+.invite-card textarea.input {
+  height: auto;
+  min-height: 78px;
+  padding-top: 11px;
+  padding-bottom: 11px;
 }
 @media (prefers-reduced-motion: reduce) {
   .envelope,
