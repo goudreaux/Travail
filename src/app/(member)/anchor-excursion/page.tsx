@@ -2,11 +2,16 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ORIGINS } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import TimeInput from '@/components/TimeInput'
 import type { AirportMeta } from '@/lib/data'
 import type { ExcursionTemplate } from '@/lib/supabase/types'
+
+// Seaplane departure bases for excursions.
+const EXCURSION_ORIGINS: AirportMeta[] = [
+  { code: 'KTPF', name: 'Davis Island', sub: 'Tampa, FL', role: 'origin' },
+  { code: 'KFXE', name: 'Fort Lauderdale Exec', sub: 'Fort Lauderdale, FL', role: 'origin' },
+]
 
 type GuestEntry = { first_name: string; last_name: string; date_of_birth: string }
 
@@ -63,7 +68,7 @@ function AirportDropdown({
 
 export default function AnchorExcursionPage() {
   const [step, setStep] = useState(1)
-  const [origin, setOrigin] = useState<AirportMeta>(ORIGINS[0])
+  const [origin, setOrigin] = useState<AirportMeta>(EXCURSION_ORIGINS[0])
   const [templates, setTemplates] = useState<ExcursionTemplate[]>([])
   const [templateId, setTemplateId] = useState('')
   const [airportName, setAirportName] = useState<Record<string, string>>({})
@@ -318,7 +323,7 @@ export default function AnchorExcursionPage() {
               <div className="wiz-step-eyebrow">Step 2 of {STEPS.length} · Route</div>
               <h2 className="wiz-step-title">Where are you leaving from?</h2>
               <p className="wiz-step-sub">Your departure airport. The destination comes from the experience.</p>
-              <div className="field"><label className="field-lab">From</label><AirportDropdown value={origin} options={ORIGINS} onChange={setOrigin} /></div>
+              <div className="field"><label className="field-lab">From</label><AirportDropdown value={origin} options={EXCURSION_ORIGINS} onChange={setOrigin} /></div>
               <div className="field">
                 <label className="field-lab">To</label>
                 <div className="input" style={{ display: 'flex', alignItems: 'center', height: 38, color: 'var(--ink)', background: 'var(--warm)' }}>
