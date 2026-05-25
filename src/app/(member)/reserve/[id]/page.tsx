@@ -228,6 +228,7 @@ export default function ReservePage() {
     if (!member) return
     const s = guestSlots[i]
     if (!s.first_name.trim() || !s.last_name.trim()) { setError('Enter a first and last name for the guest.'); return }
+    if (!s.date_of_birth) { setError('Enter the guest’s date of birth.'); return }
     if (s.phone.replace(/\D/g, '').length !== 10) { setError('Enter a 10-digit phone number for the guest.'); return }
     setError('')
     setSavingGuest(i)
@@ -239,6 +240,7 @@ export default function ReservePage() {
         last_name: s.last_name.trim(),
         email: s.email.trim() || null,
         phone: s.phone.trim(),
+        date_of_birth: s.date_of_birth,
       }).select().single()
       if (error) throw error
       setSavedGuests(prev => [...prev, data as Guest])
@@ -285,8 +287,8 @@ export default function ReservePage() {
     if (seats > 1) {
       for (const s of guestSlots) {
         if (!s.savedGuestId) { setError('Select or add a guest for every additional seat.'); return }
-        if (s.savedGuestId === NEW_GUEST && (!s.first_name.trim() || !s.last_name.trim())) {
-          setError('Enter a first and last name for each new guest.'); return
+        if (s.savedGuestId === NEW_GUEST && (!s.first_name.trim() || !s.last_name.trim() || !s.date_of_birth)) {
+          setError('Enter a first name, last name, and date of birth for each new guest.'); return
         }
       }
     }
@@ -298,7 +300,7 @@ export default function ReservePage() {
       const db = supabase as any
 
       // 1. Resolve guests — insert new ones into the member's roster so they're reusable.
-      type Pax = { guest_id: string; first_name: string; last_name: string; email: string | null; phone: string | null }
+      type Pax = { guest_id: string; first_name: string; last_name: string; email: string | null; phone: string | null; date_of_birth: string | null }
       const guestPax: Pax[] = []
       for (const s of guestSlots) {
         if (s.savedGuestId === NEW_GUEST) {
@@ -308,12 +310,13 @@ export default function ReservePage() {
             last_name: s.last_name.trim(),
             email: s.email.trim() || null,
             phone: s.phone.trim() || null,
+            date_of_birth: s.date_of_birth || null,
           }).select().single()
           if (gErr) throw gErr
-          guestPax.push({ guest_id: g.id, first_name: g.first_name, last_name: g.last_name, email: g.email, phone: g.phone })
+          guestPax.push({ guest_id: g.id, first_name: g.first_name, last_name: g.last_name, email: g.email, phone: g.phone, date_of_birth: g.date_of_birth })
         } else {
           const g = savedGuests.find(x => x.id === s.savedGuestId)
-          if (g) guestPax.push({ guest_id: g.id, first_name: g.first_name, last_name: g.last_name, email: g.email, phone: g.phone })
+          if (g) guestPax.push({ guest_id: g.id, first_name: g.first_name, last_name: g.last_name, email: g.email, phone: g.phone, date_of_birth: g.date_of_birth })
         }
       }
 
@@ -358,10 +361,10 @@ export default function ReservePage() {
       // 3. Record passengers (the member is always seat 1) on every leg.
       const [hostFirst, ...hostRest] = member.name.trim().split(/\s+/)
       const paxRows = bookingIds.flatMap(bid => [
-        { booking_id: bid, guest_id: null, is_host: true, first_name: hostFirst ?? member.name, last_name: hostRest.join(' '), email: null, phone: null },
+        { booking_id: bid, guest_id: null, is_host: true, first_name: hostFirst ?? member.name, last_name: hostRest.join(' '), email: null, phone: null, date_of_birth: null },
         ...guestPax.map(gp => ({
           booking_id: bid, guest_id: gp.guest_id, is_host: false,
-          first_name: gp.first_name, last_name: gp.last_name, email: gp.email, phone: gp.phone,
+          first_name: gp.first_name, last_name: gp.last_name, email: gp.email, phone: gp.phone, date_of_birth: gp.date_of_birth,
         })),
       ])
       // Best-effort: the booking is the source of truth; don't fail it if the
@@ -776,6 +779,10 @@ export default function ReservePage() {
                               <input className="input" placeholder="Last name *" value={slot.last_name} onChange={e => updateSlot(i, { last_name: e.target.value })} />
                               <input className="input" type="email" placeholder="Email" value={slot.email} onChange={e => updateSlot(i, { email: e.target.value })} />
                               <input className="input" inputMode="numeric" maxLength={12} placeholder="Phone * (xxx-xxx-xxxx)" value={slot.phone} onChange={e => updateSlot(i, { phone: formatPhone(e.target.value) })} />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                              <label style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-light)' }}>Date of birth *</label>
+                              <input className="input" type="date" value={slot.date_of_birth} onChange={e => updateSlot(i, { date_of_birth: e.target.value })} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                               <button

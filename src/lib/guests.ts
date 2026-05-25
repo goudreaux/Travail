@@ -5,6 +5,7 @@ export interface Guest {
   last_name: string
   email: string | null
   phone: string | null
+  date_of_birth: string | null
   member_id: string | null
   notes: string | null
   created_at: string
@@ -16,10 +17,11 @@ export interface GuestSlot {
   last_name: string
   email: string
   phone: string
+  date_of_birth: string
 }
 
 export const NEW_GUEST = '__new__'
 
 export function emptyGuestSlot(): GuestSlot {
-  return { savedGuestId: '', first_name: '', last_name: '', email: '', phone: '' }
+  return { savedGuestId: '', first_name: '', last_name: '', email: '', phone: '', date_of_birth: '' }
 }
