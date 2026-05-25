@@ -58,16 +58,13 @@ export function RosterStack({ entries, max = 4, occupied }: { entries: RosterEnt
   const shown = entries.slice(0, max)
   const extra = entries.length - shown.length
   const totalSeats = entries.reduce((s, e) => s + e.seats, 0)
-  // Members are the avatars; any seats beyond one-per-member are their guests.
-  const totalGuests = Math.max(0, totalSeats - entries.length)
-  // Seats held by members who kept their booking private — teased without names.
-  const others = occupied != null ? Math.max(0, occupied - totalSeats) : 0
+  // Everyone aboard who isn't a named (public) member — their guests AND members
+  // who kept their booking private — all teased together as "others".
+  const others = occupied != null
+    ? Math.max(0, occupied - entries.length)
+    : Math.max(0, totalSeats - entries.length)
 
   if (!entries.length && others === 0) return null
-
-  const parts: string[] = []
-  if (totalGuests > 0) parts.push(`+${totalGuests} guest${totalGuests !== 1 ? 's' : ''}`)
-  if (others > 0) parts.push(`+${others} other${others !== 1 ? 's' : ''}`)
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }} title={entries.length ? `${entries.map(e => e.name).join(', ')} on this trip` : 'Members going'}>
@@ -101,9 +98,9 @@ export function RosterStack({ entries, max = 4, occupied }: { entries: RosterEnt
           </div>
         )}
       </div>
-      {parts.length > 0 && (
+      {others > 0 && (
         <span style={{ fontSize: 11, color: 'var(--ink-light)', fontFamily: 'var(--mono)', letterSpacing: '0.03em' }}>
-          {parts.join(' · ')}
+          +{others} other{others !== 1 ? 's' : ''}
         </span>
       )}
     </div>
