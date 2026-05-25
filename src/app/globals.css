@@ -1294,12 +1294,13 @@ body::before {
   display: flex;
   flex-direction: column;
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(13, 51, 64, 0.05), 0 12px 30px rgba(13, 51, 64, 0.10);
   transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 
 .trip-card:hover {
   border-color: var(--tropic);
-  box-shadow: 0 4px 20px rgba(0, 179, 199, 0.1);
+  box-shadow: 0 4px 10px rgba(13, 51, 64, 0.07), 0 18px 42px rgba(0, 179, 199, 0.16);
   transform: translateY(-2px);
 }
 
