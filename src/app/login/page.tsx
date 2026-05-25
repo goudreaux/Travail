@@ -61,7 +61,7 @@ export default function LoginPage() {
             color: 'var(--tropic)',
             marginBottom: 14,
           }}>
-            Founding Season · Field &amp; Stream
+            Private aviation · Tampa Bay
           </div>
 
           {/* Wordmark */}

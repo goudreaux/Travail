@@ -125,7 +125,7 @@ export default function OnboardingPage() {
       <div className="invite-stage">
         {phase !== 'form' ? (
           <div className="envelope-scene">
-            <div className="envelope-eyebrow">Founding Season · Field &amp; Stream</div>
+            <div className="envelope-eyebrow">By private invitation</div>
             <div className="envelope-headline">You&rsquo;re invited.</div>
 
             <div
@@ -153,14 +153,14 @@ export default function OnboardingPage() {
               </div>
             ) : status === 'invalid' ? (
               <>
-                <div className="envelope-eyebrow">Founding Season · Field &amp; Stream</div>
+                <div className="envelope-eyebrow">By private invitation</div>
                 <h2 className="invite-title">Invite expired.</h2>
                 <p className="invite-sub">This invitation link is no longer valid. Ask Ops to resend your invite and we&rsquo;ll have you in shortly.</p>
                 <button className="btn-ghost" style={{ width: '100%' }} onClick={() => router.push('/login')}>Go to login</button>
               </>
             ) : (
               <>
-                <div className="envelope-eyebrow">Welcome to the founding circle</div>
+                <div className="envelope-eyebrow">Your membership begins</div>
                 <h2 className="invite-title">Welcome to Travail.</h2>
                 <p className="invite-sub">Choose a password and finish your member profile. This is yours — make it feel like home.</p>
 
