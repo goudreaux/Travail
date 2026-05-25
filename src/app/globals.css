@@ -2730,36 +2730,52 @@ textarea.input {
     gap: 16px;
   }
 
-  /* On phones the horizontal card gets cramped, so reclaim the left rail: hide
-     the decorative icon strip, slim the date chip, and pull the image back with
-     a harder fade so the title, name and seat meter get full width and never
-     sit on top of the photo. */
+  /* On phones the horizontal card is too cramped, so flip to a stacked layout:
+     the trip photo becomes a full-width banner up top with the date as an
+     overlay chip, and the title / name / time / seat meter get the full card
+     width below — no more text sitting on the image. */
   .trip-card__main {
+    flex-direction: column;
+    align-items: stretch;
     height: auto;
-    min-height: 110px;
+    min-height: 0;
   }
   .trip-card__icon {
     display: none;
   }
+  .trip-card__img {
+    position: relative;
+    order: -1;
+    width: 100%;
+    height: 136px;
+    opacity: 1;
+    object-fit: cover;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
   .trip-card__date {
-    width: 56px;
-    padding: 12px 6px;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 3;
+    width: auto;
+    height: auto;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 5px;
+    padding: 6px 11px;
+    border-radius: 9px;
+    background: rgba(6, 56, 71, 0.92);
+    box-shadow: 0 2px 10px rgba(13, 51, 64, 0.35);
   }
-  .trip-card__date-day {
-    font-size: 28px;
-  }
+  .trip-card__date-mo { font-size: 9.5px; }
+  .trip-card__date-day { font-size: 16px; margin: 0; }
+  .trip-card__date-dow { font-size: 9.5px; }
   .trip-card__content {
-    padding: 11px 14px;
+    padding: 13px 16px 15px;
   }
   .trip-card__title {
-    letter-spacing: 0.08em;
-  }
-  .trip-card__img {
-    display: block;
-    width: 44%;
-    opacity: 0.6;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 84%);
-    mask-image: linear-gradient(to right, transparent 0%, #000 84%);
+    letter-spacing: 0.1em;
   }
 
   .preview {
