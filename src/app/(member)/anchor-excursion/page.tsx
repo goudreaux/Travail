@@ -40,8 +40,8 @@ function AirportDropdown({
         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', height: 38, padding: '0 32px 0 12px' }}
         onClick={() => setOpen(o => !o)}
       >
-        <span style={{ fontWeight: 600, marginRight: 6, color: 'var(--ink)' }}>{value.code}</span>
-        <span style={{ fontSize: 12, color: 'var(--ink-light)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value.name}</span>
+        <span style={{ fontWeight: 600, marginRight: 6, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value.name}</span>
+        <span style={{ fontSize: 12, color: 'var(--ink-light)', flexShrink: 0 }}>({value.code})</span>
       </div>
       {open && (
         <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--card)', border: '1px solid var(--hair-2)', borderRadius: 10, boxShadow: '0 8px 32px rgba(13,51,64,0.14)', zIndex: 50, maxHeight: 260, overflowY: 'auto' }}>
@@ -53,9 +53,8 @@ function AirportDropdown({
               onMouseEnter={e => { if (a.code !== value.code) (e.currentTarget as HTMLElement).style.background = 'var(--warm)' }}
               onMouseLeave={e => { if (a.code !== value.code) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
             >
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', color: 'var(--tropic-d)', minWidth: 36 }}>{a.code}</span>
               <span style={{ flex: 1 }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', display: 'block', lineHeight: 1.3 }}>{a.name}</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', display: 'block', lineHeight: 1.3 }}>{a.name} <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}>({a.code})</span></span>
                 <span style={{ fontSize: 11, color: 'var(--ink-light)' }}>{a.sub}</span>
               </span>
             </div>
@@ -327,8 +326,8 @@ export default function AnchorExcursionPage() {
               <div className="field">
                 <label className="field-lab">To</label>
                 <div className="input" style={{ display: 'flex', alignItems: 'center', height: 38, color: 'var(--ink)', background: 'var(--warm)' }}>
-                  <span style={{ fontWeight: 600, marginRight: 6 }}>{destCode || '—'}</span>
-                  <span style={{ fontSize: 12, color: 'var(--ink-light)' }}>{destName}</span>
+                  <span style={{ fontWeight: 600, marginRight: 6 }}>{destName || '—'}</span>
+                  {destCode && <span style={{ fontSize: 12, color: 'var(--ink-light)' }}>({destCode})</span>}
                 </div>
               </div>
             </div>
@@ -438,7 +437,7 @@ export default function AnchorExcursionPage() {
                 {[
                   { label: 'Experience', value: experienceName || '—' },
                   { label: 'Operator', value: operatorName || '—' },
-                  { label: 'Route', value: `${origin.code} → ${destCode || '—'}` },
+                  { label: 'Route', value: `${origin.name} → ${destName || '—'}` },
                   { label: 'Length', value: isOvernight ? 'Overnight' : 'Day trip' },
                   { label: isOvernight ? 'Start date' : 'Date', value: date || '—' },
                   ...(isOvernight ? [{ label: 'Return date', value: returnDate || '—' }] : []),

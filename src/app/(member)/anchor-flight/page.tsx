@@ -8,17 +8,19 @@ import TimeInput from '@/components/TimeInput'
 import type { AirportMeta } from '@/lib/data'
 
 const ANCHOR_ORIGINS: AirportMeta[] = [
-  { code: 'TPF', name: 'Peter O. Knight Airport', sub: 'Davis Island, Tampa', role: 'origin' },
-  { code: 'TPA', name: 'Tampa International Airport', sub: 'Tampa, FL', role: 'origin' },
-  { code: 'FLL', name: 'Fort Lauderdale-Hollywood Intl', sub: 'Fort Lauderdale, FL', role: 'origin' },
+  { code: 'KTPF', name: 'Davis Island', sub: 'Tampa, FL', role: 'origin' },
+  { code: 'KFXE', name: 'Fort Lauderdale Exec', sub: 'Fort Lauderdale, FL', role: 'origin' },
 ]
 
 const ANCHOR_DESTS: AirportMeta[] = [
-  { code: 'WHV', name: 'Country Club of Winter Haven', sub: 'Winter Haven, FL', role: 'destination' },
-  { code: 'SRS', name: 'St. Regis Sarasota', sub: 'Sarasota, FL', role: 'destination' },
-  { code: 'EYW', name: 'Key West', sub: 'Key West, FL', role: 'destination' },
-  { code: 'ISM', name: 'Islamorada', sub: 'Florida Keys, FL', role: 'destination' },
-  { code: 'HMI', name: 'Honeymoon Island', sub: 'Dunedin, FL', role: 'destination' },
+  { code: 'KGIF', name: 'Winter Haven', sub: 'Central FL', role: 'destination' },
+  { code: 'X07', name: 'Islamorada', sub: 'FL Keys', role: 'destination' },
+  { code: 'KMTH', name: 'Marathon', sub: 'FL Keys', role: 'destination' },
+  { code: 'KEYW', name: 'Key West', sub: 'FL Keys', role: 'destination' },
+  { code: 'MYBS', name: 'South Bimini', sub: 'Bahamas', role: 'destination' },
+  { code: 'MYEF', name: 'Exuma', sub: 'Bahamas', role: 'destination' },
+  { code: 'MYAM', name: 'Marsh Harbour', sub: 'Bahamas · Abacos', role: 'destination' },
+  { code: 'MYAN', name: 'Andros Town', sub: 'Bahamas', role: 'destination' },
 ]
 
 type GuestEntry = { first_name: string; last_name: string; date_of_birth: string }
@@ -51,8 +53,8 @@ function AirportDropdown({
         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', height: 38, padding: '0 32px 0 12px' }}
         onClick={() => setOpen(o => !o)}
       >
-        <span style={{ fontWeight: 600, marginRight: 6, color: 'var(--ink)' }}>{value.code}</span>
-        <span style={{ fontSize: 12, color: 'var(--ink-light)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value.name}</span>
+        <span style={{ fontWeight: 600, marginRight: 6, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value.name}</span>
+        <span style={{ fontSize: 12, color: 'var(--ink-light)', flexShrink: 0 }}>({value.code})</span>
       </div>
       {open && (
         <div style={{
@@ -84,9 +86,8 @@ function AirportDropdown({
               onMouseEnter={e => { if (a.code !== value.code) (e.currentTarget as HTMLElement).style.background = 'var(--warm)' }}
               onMouseLeave={e => { if (a.code !== value.code) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
             >
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', color: 'var(--tropic-d)', minWidth: 36 }}>{a.code}</span>
               <span style={{ flex: 1 }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', display: 'block', lineHeight: 1.3 }}>{a.name}</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', display: 'block', lineHeight: 1.3 }}>{a.name} <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}>({a.code})</span></span>
                 <span style={{ fontSize: 11, color: 'var(--ink-light)' }}>{a.sub}</span>
               </span>
             </div>
@@ -439,7 +440,7 @@ export default function AnchorFlightPage() {
 
               <div className="wiz-summary" style={{ marginTop: 6 }}>
                 {[
-                  { label: 'Route', value: `${origin.code} ${isRoundTrip ? '⇄' : '→'} ${dest.code}` },
+                  { label: 'Route', value: `${origin.name} ${isRoundTrip ? '⇄' : '→'} ${dest.name}` },
                   { label: 'Trip type', value: isRoundTrip ? 'Round trip' : 'One way' },
                   { label: 'Departs', value: date || '—' },
                   { label: 'Departure time', value: departTime },
