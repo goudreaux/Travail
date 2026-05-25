@@ -593,17 +593,21 @@ body::before {
 }
 
 /* Dashboard two-column: My Trips (left) + Open Seats (right); stacks on mobile.
-   Columns size to their content (align-items: start) so a short My Trips column
-   stays compact instead of stretching to match Open Seats. Each panel is capped
-   so a long Open Seats list scrolls internally rather than running down the page. */
+   Equal-height columns capped to the viewport so they never run on forever;
+   each panel scrolls internally (the .scroll-y body is flex:1 / min-height:0).
+   max-width keeps each column near the Open Seats page width (~660px cards) so
+   trip images stay sharp instead of stretching on wide monitors. Mobile drops
+   both caps and lets the page scroll instead. */
 .dash-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
+  height: clamp(520px, calc(100vh - 240px), 760px);
+  max-width: 1400px;
 }
 .dash-cols > .panel {
-  max-height: clamp(480px, calc(100vh - 240px), 820px);
+  min-height: 0;
 }
 
 .hero-card {
@@ -2718,9 +2722,7 @@ textarea.input {
 
   .dash-cols {
     grid-template-columns: 1fr;
-  }
-  .dash-cols > .panel {
-    max-height: none;
+    height: auto;
   }
 
   .builder {
