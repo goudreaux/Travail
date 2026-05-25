@@ -68,8 +68,9 @@ export default function PullToRefresh() {
   }, [])
 
   const visible = pull > 0 || refreshing
-  const reached = pull >= THRESHOLD || refreshing
-  const rot = Math.min(360, (pull / THRESHOLD) * 320)
+  const fraction = refreshing ? 1 : Math.min(1, pull / THRESHOLD)
+  const SEGMENTS = 12
+  const lit = Math.round(fraction * SEGMENTS)
 
   return (
     <div
@@ -83,36 +84,44 @@ export default function PullToRefresh() {
         display: 'flex',
         alignItems: 'flex-end',
         justifyContent: 'center',
-        paddingBottom: 8,
+        paddingBottom: 10,
         pointerEvents: 'none',
         zIndex: 200,
         overflow: 'hidden',
         transition: dragging ? 'none' : 'height 0.22s ease, opacity 0.22s ease',
-        opacity: visible ? 1 : 0,
+        opacity: visible ? Math.min(1, pull / 22) : 0,
       }}
     >
       <div style={{
-        width: 32,
-        height: 32,
-        borderRadius: '50%',
-        background: 'var(--card)',
-        boxShadow: '0 3px 12px rgba(13,51,64,0.2)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        position: 'relative',
+        width: 20,
+        height: 20,
+        animation: refreshing ? 'spin 0.8s linear infinite' : 'none',
       }}>
-        {refreshing ? (
-          <span className="pending-indicator" style={{ width: 16, height: 16, borderWidth: 2 }} />
-        ) : (
-          <svg
-            width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke={reached ? 'var(--tropic-d)' : 'var(--ink-light)'} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
-            style={{ transform: `rotate(${rot}deg)`, transition: 'stroke 0.12s' }}
-          >
-            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-            <path d="M21 3v6h-6" />
-          </svg>
-        )}
+        {Array.from({ length: SEGMENTS }).map((_, i) => {
+          const opacity = refreshing
+            ? 0.2 + 0.8 * (i / (SEGMENTS - 1))
+            : i < lit ? 0.9 : 0.12
+          return (
+            <span
+              key={i}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: '50%',
+                width: 1.8,
+                height: 5,
+                marginLeft: -0.9,
+                borderRadius: 2,
+                background: 'var(--ink-light)',
+                opacity,
+                transform: `rotate(${i * (360 / SEGMENTS)}deg)`,
+                transformOrigin: '50% 10px',
+                transition: refreshing ? 'none' : 'opacity 0.1s',
+              }}
+            />
+          )
+        })}
       </div>
     </div>
   )
