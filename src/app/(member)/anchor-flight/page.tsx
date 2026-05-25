@@ -299,8 +299,11 @@ export default function AnchorFlightPage() {
 
       <div className="page-view">
         <div className="wiz">
-          <div className="wiz-progress">
-            {STEPS.map((_, i) => <div key={i} className={`seg${i + 1 <= step ? ' done' : ''}`} />)}
+          <div className="wiz-top">
+            <div className="wiz-progress" style={{ flex: 1, margin: 0 }}>
+              {STEPS.map((_, i) => <div key={i} className={`seg${i + 1 <= step ? ' done' : ''}`} />)}
+            </div>
+            <button className="wiz-cancel" onClick={() => router.push('/')}>Cancel ✕</button>
           </div>
 
           {/* ── Step 1 · Route ── */}

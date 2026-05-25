@@ -2,12 +2,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { ORIGINS, DESTINATIONS } from '@/lib/data'
+import { ORIGINS } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import TimeInput from '@/components/TimeInput'
 import type { AirportMeta } from '@/lib/data'
-
-const EXCURSION_DESTS: AirportMeta[] = DESTINATIONS
+import type { ExcursionTemplate } from '@/lib/supabase/types'
 
 type GuestEntry = { first_name: string; last_name: string; date_of_birth: string }
 
@@ -65,12 +64,13 @@ function AirportDropdown({
 export default function AnchorExcursionPage() {
   const [step, setStep] = useState(1)
   const [origin, setOrigin] = useState<AirportMeta>(ORIGINS[0])
-  const [dest, setDest] = useState<AirportMeta>(EXCURSION_DESTS[0])
+  const [templates, setTemplates] = useState<ExcursionTemplate[]>([])
+  const [templateId, setTemplateId] = useState('')
+  const [airportName, setAirportName] = useState<Record<string, string>>({})
   const [aircraft, setAircraft] = useState<4 | 8>(8)
   const [dayType, setDayType] = useState<'day' | 'overnight'>('day')
-  const [experienceName, setExperienceName] = useState('')
-  const [operatorName, setOperatorName] = useState('')
   const [date, setDate] = useState('')
+  const [returnDate, setReturnDate] = useState('')
   const [departTime, setDepartTime] = useState('7:00 AM')
   const [startTime, setStartTime] = useState('9:00 AM')
   const [returnTime, setReturnTime] = useState('4:00 PM')
@@ -87,11 +87,24 @@ export default function AnchorExcursionPage() {
   const router = useRouter()
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setIsAdmin(false); return }
-      const { data } = await supabase.from('members').select('is_admin').eq('user_id', user.id).single()
-      setIsAdmin(data?.is_admin ?? false)
-    })
+      const { data: m } = await supabase.from('members').select('is_admin').eq('user_id', user.id).single()
+      const admin = m?.is_admin ?? false
+      setIsAdmin(admin)
+      if (!admin) return
+      const [{ data: tpls }, { data: aps }] = await Promise.all([
+        supabase.from('excursion_templates').select('*').order('name'),
+        supabase.from('airports').select('code, name'),
+      ])
+      const am: Record<string, string> = {}
+      for (const a of (aps ?? []) as { code: string; name: string }[]) am[a.code] = a.name
+      setAirportName(am)
+      const list = (tpls ?? []) as ExcursionTemplate[]
+      setTemplates(list)
+      if (list.length) setTemplateId(list[0].id)
+    })()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isAdmin === null) return null
@@ -101,13 +114,20 @@ export default function AnchorExcursionPage() {
     </div>
   )
 
-  const STEPS = ['Route', 'Experience', 'When', 'Party', 'Review']
+  const STEPS = ['Experience', 'Route', 'When', 'Party', 'Review']
+  const tpl = templates.find(t => t.id === templateId) || null
+  const destCode = tpl?.dest_code ?? ''
+  const destName = airportName[destCode] || destCode
+  const experienceName = tpl?.name ?? ''
+  const operatorName = tpl?.operator ?? ''
+  const isOvernight = dayType === 'overnight'
+
   const pax = 1 + guests.length
   const capacity = aircraft
   const openSeats = visibility === 'private' ? 0 : Math.max(0, capacity - pax)
   const anchorSeats = visibility === 'private' ? capacity : pax
   const aircraftLabel = aircraft === 4 ? 'Cessna 206' : 'Cessna Grand Caravan'
-  const suggestedName = experienceName.trim() || `${dest.name} excursion`
+  const suggestedName = experienceName || (destName ? `${destName} excursion` : 'Excursion')
   const effectiveName = tripName.trim() || suggestedName
   const today = new Date().toISOString().split('T')[0]
 
@@ -117,9 +137,13 @@ export default function AnchorExcursionPage() {
   const removeGuest = (i: number) => setGuests(gs => gs.filter((_, idx) => idx !== i))
 
   function validateStep(s: number): string | null {
-    if (s === 1 && origin.code === dest.code) return 'Origin and destination must be different.'
-    if (s === 2 && !experienceName.trim()) return 'Name the experience (e.g. “Lobster Mini Season”).'
-    if (s === 3 && !date) return 'Select a date.'
+    if (s === 1 && !templateId) return 'Pick an experience to anchor.'
+    if (s === 2 && origin.code === destCode) return 'Origin and destination must be different.'
+    if (s === 3) {
+      if (!date) return 'Select a date.'
+      if (isOvernight && !returnDate) return 'Select a return date.'
+      if (isOvernight && returnDate < date) return 'Return date must be on or after the start date.'
+    }
     if (s === 4) {
       for (const g of guests) {
         if (!g.first_name.trim() || !g.last_name.trim() || !g.date_of_birth) {
@@ -142,7 +166,7 @@ export default function AnchorExcursionPage() {
   }
 
   async function handleSubmit() {
-    const err = validateStep(2) || validateStep(3) || validateStep(4)
+    const err = validateStep(1) || validateStep(2) || validateStep(3) || validateStep(4)
     if (err) { setError(err); return }
     setError('')
     setSubmitting(true)
@@ -159,16 +183,18 @@ export default function AnchorExcursionPage() {
           kind: 'excursion',
           member_id: member.id,
           payload: {
+            templateId,
             originCode: origin.code,
-            destCode: dest.code,
+            destCode,
             date,
+            returnDate: isOvernight ? returnDate : null,
             tripType: dayType,
             departTime,
             startTime,
             returnTime,
             aircraftId: aircraft === 4 ? 'c206' : 'caravan',
-            experienceName: experienceName.trim() || null,
-            experienceOperator: operatorName.trim() || null,
+            experienceName: experienceName || null,
+            experienceOperator: operatorName || null,
             name: effectiveName,
             pitch,
             visibility,
@@ -232,44 +258,72 @@ export default function AnchorExcursionPage() {
 
   return (
     <div className="page">
-      <PageHero eyebrow="PLAN A TRIP · EXCURSION" title="Anchor an Excursion" sub="Set the experience, lock your spots, and invite the network to fill the rest." />
+      <PageHero eyebrow="PLAN A TRIP · EXCURSION" title="Anchor an Excursion" sub="Pick an experience, lock your spots, and invite the network to fill the rest." />
       <div className="page-view">
         <div className="wiz">
-          <div className="wiz-progress">
-            {STEPS.map((_, i) => <div key={i} className={`seg${i + 1 <= step ? ' done' : ''}`} />)}
+          <div className="wiz-top">
+            <div className="wiz-progress" style={{ flex: 1, margin: 0 }}>
+              {STEPS.map((_, i) => <div key={i} className={`seg${i + 1 <= step ? ' done' : ''}`} />)}
+            </div>
+            <button className="wiz-cancel" onClick={() => router.push('/')}>Cancel ✕</button>
           </div>
 
           {step === 1 && (
             <div>
-              <div className="wiz-step-eyebrow">Step 1 of {STEPS.length} · Route</div>
-              <h2 className="wiz-step-title">Where&apos;s the excursion?</h2>
-              <p className="wiz-step-sub">Your departure airport and the destination. Origin defaults to your home base.</p>
-              <div className="field"><label className="field-lab">From</label><AirportDropdown value={origin} options={ORIGINS} onChange={setOrigin} /></div>
-              <div className="field"><label className="field-lab">To</label><AirportDropdown value={dest} options={EXCURSION_DESTS} onChange={setDest} /></div>
+              <div className="wiz-step-eyebrow">Step 1 of {STEPS.length} · Experience</div>
+              <h2 className="wiz-step-title">What experience are you anchoring?</h2>
+              <p className="wiz-step-sub">Choose from the club&apos;s curated excursions.</p>
+              {templates.length === 0 ? (
+                <div style={{ background: 'var(--warm)', border: '1px solid var(--hair)', borderRadius: 10, padding: '16px 18px', fontSize: 13.5, color: 'var(--ink-mid)', lineHeight: 1.5 }}>
+                  No excursion templates yet. Ask Ops to add experiences in the dashboard, then come back to anchor one.
+                </div>
+              ) : (
+                <>
+                  <div className="field">
+                    <label className="field-lab">Experience <span className="req">*</span></label>
+                    <select className="select" value={templateId} onChange={e => setTemplateId(e.target.value)}>
+                      {templates.map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.name} — {airportName[t.dest_code] || t.dest_code}{t.operator ? ` · ${t.operator}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {tpl && (
+                    <div style={{ background: 'var(--warm)', border: '1px solid var(--hair)', borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ fontFamily: 'var(--display)', fontSize: 18, color: 'var(--ink)' }}>{tpl.name}</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--ink-mid)' }}>
+                        {destName}{tpl.operator ? ` · ${tpl.operator}` : ''}
+                      </div>
+                      {tpl.description && <div style={{ fontSize: 12.5, color: 'var(--ink-light)', lineHeight: 1.5 }}>{tpl.description}</div>}
+                    </div>
+                  )}
+                  <div className="field" style={{ marginTop: 16 }}>
+                    <label className="field-lab">Length</label>
+                    <div style={{ display: 'flex', background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: 4, gap: 4 }}>
+                      {(['day', 'overnight'] as const).map(t => (
+                        <button key={t} onClick={() => setDayType(t)} style={{ flex: 1, height: 36, border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s', background: dayType === t ? 'var(--tropic)' : 'transparent', color: dayType === t ? '#fff' : 'var(--ink-light)' }}>
+                          {t === 'day' ? 'Day trip' : 'Overnight'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
           {step === 2 && (
             <div>
-              <div className="wiz-step-eyebrow">Step 2 of {STEPS.length} · Experience</div>
-              <h2 className="wiz-step-title">What&apos;s the experience?</h2>
-              <p className="wiz-step-sub">Tell members what they&apos;re signing up for.</p>
+              <div className="wiz-step-eyebrow">Step 2 of {STEPS.length} · Route</div>
+              <h2 className="wiz-step-title">Where are you leaving from?</h2>
+              <p className="wiz-step-sub">Your departure airport. The destination comes from the experience.</p>
+              <div className="field"><label className="field-lab">From</label><AirportDropdown value={origin} options={ORIGINS} onChange={setOrigin} /></div>
               <div className="field">
-                <label className="field-lab">Experience name <span className="req">*</span></label>
-                <input className="input" placeholder="e.g. Lobster Mini Season" value={experienceName} onChange={e => setExperienceName(e.target.value)} maxLength={80} />
-              </div>
-              <div className="field">
-                <label className="field-lab">Operator <span style={{ color: 'var(--ink-faint)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
-                <input className="input" placeholder="e.g. Tropic Air, Bud N' Mary's" value={operatorName} onChange={e => setOperatorName(e.target.value)} maxLength={80} />
-              </div>
-              <div className="field">
-                <label className="field-lab">Length</label>
-                <div style={{ display: 'flex', background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: 4, gap: 4 }}>
-                  {(['day', 'overnight'] as const).map(t => (
-                    <button key={t} onClick={() => setDayType(t)} style={{ flex: 1, height: 36, border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s', background: dayType === t ? 'var(--tropic)' : 'transparent', color: dayType === t ? '#fff' : 'var(--ink-light)' }}>
-                      {t === 'day' ? 'Day trip' : 'Overnight'}
-                    </button>
-                  ))}
+                <label className="field-lab">To</label>
+                <div className="input" style={{ display: 'flex', alignItems: 'center', height: 38, color: 'var(--ink)', background: 'var(--warm)' }}>
+                  <span style={{ fontWeight: 600, marginRight: 6 }}>{destCode || '—'}</span>
+                  <span style={{ fontSize: 12, color: 'var(--ink-light)' }}>{destName}</span>
                 </div>
               </div>
             </div>
@@ -279,10 +333,18 @@ export default function AnchorExcursionPage() {
             <div>
               <div className="wiz-step-eyebrow">Step 3 of {STEPS.length} · When</div>
               <h2 className="wiz-step-title">When are you going?</h2>
-              <p className="wiz-step-sub">Pick the date and the timing for the day.</p>
-              <div className="field">
-                <label className="field-lab">Date <span className="req">*</span></label>
-                <input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} min={today} />
+              <p className="wiz-step-sub">Pick the date{isOvernight ? 's' : ''} and timing for the trip.</p>
+              <div className="row-2">
+                <div className="field">
+                  <label className="field-lab">{isOvernight ? 'Start date' : 'Date'} <span className="req">*</span></label>
+                  <input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} min={today} />
+                </div>
+                {isOvernight && (
+                  <div className="field">
+                    <label className="field-lab">Return date <span className="req">*</span></label>
+                    <input type="date" className="input" value={returnDate} onChange={e => setReturnDate(e.target.value)} min={date || today} />
+                  </div>
+                )}
               </div>
               <div className="row-2">
                 <TimeInput label="Depart (flight out)" value={departTime} onChange={setDepartTime} />
@@ -369,11 +431,12 @@ export default function AnchorExcursionPage() {
               </div>
               <div className="wiz-summary" style={{ marginTop: 6 }}>
                 {[
-                  { label: 'Experience', value: experienceName.trim() || '—' },
-                  { label: 'Operator', value: operatorName.trim() || '—' },
-                  { label: 'Route', value: `${origin.code} → ${dest.code}` },
-                  { label: 'Length', value: dayType === 'day' ? 'Day trip' : 'Overnight' },
-                  { label: 'Date', value: date || '—' },
+                  { label: 'Experience', value: experienceName || '—' },
+                  { label: 'Operator', value: operatorName || '—' },
+                  { label: 'Route', value: `${origin.code} → ${destCode || '—'}` },
+                  { label: 'Length', value: isOvernight ? 'Overnight' : 'Day trip' },
+                  { label: isOvernight ? 'Start date' : 'Date', value: date || '—' },
+                  ...(isOvernight ? [{ label: 'Return date', value: returnDate || '—' }] : []),
                   { label: 'Depart', value: departTime },
                   { label: 'Experience start', value: startTime },
                   { label: 'Return', value: returnTime },

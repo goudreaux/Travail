@@ -3255,7 +3255,27 @@ textarea.input {
 .wiz-step-sub { font-size: 13.5px; color: var(--ink-light); margin: 0 0 22px; line-height: 1.5; }
 .wiz-nav { display: flex; gap: 12px; margin-top: 26px; }
 .wiz-nav button { flex: 1; height: 46px; justify-content: center; }
+.wiz-top { display: flex; align-items: center; gap: 14px; margin-bottom: 26px; }
+.wiz-cancel {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  transition: color 0.15s;
+}
+.wiz-cancel:hover { color: var(--signal); }
 .wiz-guest { padding: 14px; border: 1px solid var(--hair); border-radius: 10px; background: var(--card); margin-bottom: 10px; }
+@media (max-width: 640px) {
+  .wiz-step-title { font-size: 22px; line-height: 1.12; }
+  .wiz-step-sub { font-size: 13px; margin-bottom: 18px; }
+  .wiz-top { margin-bottom: 20px; }
+  .wiz-nav button { height: 44px; }
+}
 .wiz-guest-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .wiz-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--hair); border-radius: 10px; overflow: hidden; border: 1px solid var(--hair); }
 .wiz-summary > div { background: var(--card); padding: 10px 14px; }
