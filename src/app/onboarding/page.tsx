@@ -7,11 +7,14 @@ import type { Member } from '@/lib/supabase/types'
 
 const HOME_BASES = ['Tampa Bay', 'SFL']
 
+type Phase = 'intro' | 'opening' | 'form'
+
 export default function OnboardingPage() {
   const supabase = createClient()
   const router = useRouter()
 
   const [status, setStatus] = useState<'loading' | 'ready' | 'invalid'>('loading')
+  const [phase, setPhase] = useState<Phase>('intro')
   const [member, setMember] = useState<Member | null>(null)
   const [name, setName] = useState('')
   const [homeBase, setHomeBase] = useState(HOME_BASES[0])
@@ -21,6 +24,7 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // Verify the invite and load the member behind the scenes while the envelope plays.
   useEffect(() => {
     async function init() {
       // The invite link lands here with credentials. Support PKCE (?code=),
@@ -46,7 +50,8 @@ export default function OnboardingPage() {
       } catch { /* fall through to the session check */ }
 
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setStatus('invalid'); return }
+      // A dead invite shouldn't make anyone sit through the envelope ceremony.
+      if (!user) { setStatus('invalid'); setPhase('form'); return }
 
       const { data: m } = await supabase.from('members').select('*').eq('user_id', user.id).single()
       if (m) {
@@ -59,6 +64,33 @@ export default function OnboardingPage() {
     }
     init()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Respect reduced-motion: skip the envelope ceremony entirely. Done in an
+  // effect (not initial state) to avoid an SSR/client hydration mismatch.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPhase('form')
+    }
+  }, [])
+
+  // Auto-open the envelope shortly after it appears.
+  useEffect(() => {
+    if (phase !== 'intro') return
+    const t = setTimeout(() => setPhase(p => (p === 'intro' ? 'opening' : p)), 2200)
+    return () => clearTimeout(t)
+  }, [phase])
+
+  // After the opening animation, reveal the letter (form).
+  useEffect(() => {
+    if (phase !== 'opening') return
+    const t = setTimeout(() => setPhase('form'), 1050)
+    return () => clearTimeout(t)
+  }, [phase])
+
+  function openEnvelope() {
+    setPhase(p => (p === 'intro' ? 'opening' : p))
+  }
 
   async function complete() {
     setError('')
@@ -85,70 +117,94 @@ export default function OnboardingPage() {
     }
   }
 
-  const card: React.CSSProperties = {
-    background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 18,
-    padding: '40px 44px', maxWidth: 460, width: '100%',
-    boxShadow: '0 8px 40px rgba(13,51,64,0.08)',
-  }
-
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--bg)' }}>
-      {status === 'loading' ? (
-        <div style={card}>
-          <div style={{ textAlign: 'center', color: 'var(--ink-light)', fontSize: 14 }}>Verifying your invite…</div>
-        </div>
-      ) : status === 'invalid' ? (
-        <div style={card}>
-          <h2 className="display-i" style={{ fontSize: 26, color: 'var(--ink)', margin: '0 0 10px' }}>Invite expired.</h2>
-          <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 20px' }}>
-            This invite link is no longer valid. Ask Ops to resend your invitation.
-          </p>
-          <button className="btn-ghost" style={{ width: '100%' }} onClick={() => router.push('/login')}>Go to login</button>
-        </div>
-      ) : (
-        <div style={card}>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tropic-d)', marginBottom: 8 }}>
-            Welcome to Travail
-          </div>
-          <h2 className="display-i" style={{ fontSize: 28, color: 'var(--ink)', margin: '0 0 6px' }}>Set up your account.</h2>
-          <p style={{ fontSize: 13.5, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 24px' }}>
-            Choose a password and finish your member profile.
-          </p>
+    <div className="invite-wrap">
+      <div className="invite-glow invite-glow--top" />
+      <div className="invite-glow invite-glow--sun" />
 
-          <div className="field">
-            <label className="field-lab">Full name <span className="req">*</span></label>
-            <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="Your name" />
-          </div>
-          <div className="field">
-            <label className="field-lab">Home base</label>
-            <select className="select" value={homeBase} onChange={e => setHomeBase(e.target.value)}>
-              {HOME_BASES.map(b => <option key={b} value={b}>{b}</option>)}
-            </select>
-          </div>
-          <div className="field">
-            <label className="field-lab">Bio</label>
-            <textarea className="input" value={bio} onChange={e => setBio(e.target.value)} placeholder="A short intro for the network…" rows={3} maxLength={400} />
-          </div>
-          <div className="field">
-            <label className="field-lab">Password <span className="req">*</span></label>
-            <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" />
-          </div>
-          <div className="field">
-            <label className="field-lab">Confirm password <span className="req">*</span></label>
-            <input className="input" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-enter password" />
-          </div>
+      <div className="invite-stage">
+        {phase !== 'form' ? (
+          <div className="envelope-scene">
+            <div className="envelope-eyebrow">Founding Season · Field &amp; Stream</div>
+            <div className="envelope-headline">You&rsquo;re invited.</div>
 
-          {error && (
-            <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--signal)', marginBottom: 14 }}>
-              {error}
+            <div
+              className={`envelope${phase === 'opening' ? ' is-open' : ''}`}
+              role="button"
+              tabIndex={0}
+              aria-label="Open your invitation"
+              onClick={openEnvelope}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEnvelope() } }}
+            >
+              <div className="env-body" />
+              <div className="env-pocket" />
+              <div className="env-flap" />
+              <div className="env-seal">T</div>
             </div>
-          )}
 
-          <button className="btn-primary" style={{ width: '100%', height: 44, justifyContent: 'center' }} onClick={complete} disabled={saving}>
-            {saving ? 'Setting up…' : 'Enter Travail →'}
-          </button>
-        </div>
-      )}
+            <div className="envelope-hint">{phase === 'opening' ? 'Opening…' : 'Tap to open'}</div>
+          </div>
+        ) : (
+          <div className="invite-card is-rising">
+            {status === 'loading' ? (
+              <div style={{ textAlign: 'center', padding: '34px 0', color: 'var(--ink-light)', fontSize: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+                <span className="pending-indicator" />
+                Verifying your invitation…
+              </div>
+            ) : status === 'invalid' ? (
+              <>
+                <div className="envelope-eyebrow">Founding Season · Field &amp; Stream</div>
+                <h2 className="invite-title">Invite expired.</h2>
+                <p className="invite-sub">This invitation link is no longer valid. Ask Ops to resend your invite and we&rsquo;ll have you in shortly.</p>
+                <button className="btn-ghost" style={{ width: '100%' }} onClick={() => router.push('/login')}>Go to login</button>
+              </>
+            ) : (
+              <>
+                <div className="envelope-eyebrow">Welcome to the founding circle</div>
+                <h2 className="invite-title">Welcome to Travail.</h2>
+                <p className="invite-sub">Choose a password and finish your member profile. This is yours — make it feel like home.</p>
+
+                <div className="field">
+                  <label className="field-lab">Full name <span className="req">*</span></label>
+                  <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="Your name" autoFocus />
+                </div>
+                <div className="field">
+                  <label className="field-lab">Home base</label>
+                  <select className="select" value={homeBase} onChange={e => setHomeBase(e.target.value)}>
+                    {HOME_BASES.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label className="field-lab">Bio</label>
+                  <textarea className="input" value={bio} onChange={e => setBio(e.target.value)} placeholder="A short intro for the network…" rows={3} maxLength={400} />
+                </div>
+                <div className="field">
+                  <label className="field-lab">Password <span className="req">*</span></label>
+                  <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" />
+                </div>
+                <div className="field">
+                  <label className="field-lab">Confirm password <span className="req">*</span></label>
+                  <input className="input" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-enter password" />
+                </div>
+
+                {error && (
+                  <div role="alert" style={{ background: 'rgba(217,78,42,0.07)', border: '1px solid rgba(217,78,42,0.22)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--signal)', lineHeight: 1.45, marginBottom: 14 }}>
+                    {error}
+                  </div>
+                )}
+
+                <button className="btn-primary" style={{ width: '100%', height: 44, justifyContent: 'center', marginTop: 4 }} onClick={complete} disabled={saving}>
+                  {saving ? 'Setting up…' : 'Enter Travail →'}
+                </button>
+
+                <div className="invite-footer">
+                  Members only · Private invitation
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

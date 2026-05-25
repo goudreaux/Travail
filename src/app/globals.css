@@ -2794,3 +2794,231 @@ textarea.input {
     width: auto;
   }
 }
+
+/* ─── Onboarding · "The Invitation" ──────────────────────── */
+.invite-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+.invite-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+.invite-glow--top {
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 840px;
+  height: 840px;
+  background: radial-gradient(circle, rgba(0, 179, 199, 0.10), transparent 64%);
+}
+.invite-glow--sun {
+  bottom: -160px;
+  right: -160px;
+  width: 540px;
+  height: 540px;
+  background: radial-gradient(circle, rgba(244, 167, 44, 0.09), transparent 64%);
+}
+
+.invite-stage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+}
+
+/* ── Envelope intro ── */
+.envelope-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  perspective: 1500px;
+  animation: fade 0.55s ease;
+}
+.envelope-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--tropic);
+}
+.envelope-headline {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 34px;
+  color: var(--ink);
+  line-height: 1;
+  margin-top: -6px;
+}
+.envelope {
+  position: relative;
+  width: 360px;
+  max-width: 86vw;
+  height: 232px;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.6s ease;
+}
+.envelope:hover {
+  transform: translateY(-3px);
+}
+.envelope:focus-visible {
+  outline: 2px solid var(--tropic);
+  outline-offset: 8px;
+  border-radius: 14px;
+}
+.envelope.is-open {
+  transform: translateY(48px) scale(0.94);
+  opacity: 0;
+  pointer-events: none;
+}
+.env-body {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: linear-gradient(158deg, #fbf6ec 0%, #ecdfc6 100%);
+  border: 1px solid var(--hair-2);
+  box-shadow: 0 22px 55px rgba(13, 51, 64, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.env-pocket {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.env-pocket::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(155deg, #f0e6d2, #e1d2b3);
+  clip-path: polygon(0 100%, 100% 100%, 100% 40%, 50% 84%, 0 40%);
+}
+.env-pocket::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom right, transparent 49.5%, rgba(13, 51, 64, 0.07) 50%, transparent 50.5%),
+    linear-gradient(to bottom left, transparent 49.5%, rgba(13, 51, 64, 0.07) 50%, transparent 50.5%);
+}
+.env-flap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 58%;
+  background: linear-gradient(158deg, #f4ead7, #e6d8bc);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: top center;
+  transform: rotateX(0deg);
+  transition: transform 0.95s cubic-bezier(0.5, 0.04, 0.2, 1), z-index 0s linear 0.48s;
+  z-index: 4;
+  backface-visibility: hidden;
+  border-radius: 12px 12px 0 0;
+}
+.envelope.is-open .env-flap {
+  transform: rotateX(176deg);
+  z-index: 1;
+}
+.env-seal {
+  position: absolute;
+  top: 47%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  z-index: 5;
+  background: radial-gradient(circle at 36% 30%, #1ac6d9, var(--tropic-d) 80%);
+  box-shadow: 0 4px 14px rgba(0, 122, 140, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.3), inset 0 -3px 6px rgba(0, 0, 0, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 30px;
+  color: #eafcff;
+  transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.5, 0.04, 0.2, 1);
+}
+.envelope.is-open .env-seal {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.5) rotate(-14deg);
+}
+.envelope-hint {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+/* ── The letter / form card ── */
+.invite-card {
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 20px;
+  padding: 42px 42px 30px;
+  box-shadow: 0 12px 54px rgba(13, 51, 64, 0.11);
+  position: relative;
+}
+.invite-card.is-rising {
+  animation: invite-rise 0.85s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes invite-rise {
+  from { opacity: 0; transform: translateY(64px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+.invite-title {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 36px;
+  line-height: 1.04;
+  color: var(--ink);
+  margin: 10px 0 6px;
+}
+.invite-sub {
+  font-size: 13.5px;
+  color: var(--ink-light);
+  line-height: 1.6;
+  margin: 0 0 26px;
+}
+.invite-footer {
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--hair);
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  line-height: 1.8;
+}
+@media (prefers-reduced-motion: reduce) {
+  .envelope,
+  .env-flap,
+  .env-seal { transition: none !important; }
+  .invite-card.is-rising,
+  .envelope-scene { animation: none; }
+  .envelope-hint { animation: none; }
+}
+
+@media (max-width: 520px) {
+  .invite-card { padding: 30px 24px 24px; }
+  .invite-title { font-size: 30px; }
+  .envelope-headline { font-size: 28px; }
+}
