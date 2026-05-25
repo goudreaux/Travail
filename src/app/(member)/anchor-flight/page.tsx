@@ -21,6 +21,8 @@ const ANCHOR_DESTS: AirportMeta[] = [
   { code: 'HMI', name: 'Honeymoon Island', sub: 'Dunedin, FL', role: 'destination' },
 ]
 
+type GuestEntry = { first_name: string; last_name: string; date_of_birth: string }
+
 function AirportDropdown({
   value,
   options,
@@ -95,12 +97,15 @@ function AirportDropdown({
   )
 }
 
+const STEPS = ['Route', 'When', 'Party', 'Review']
+
 export default function AnchorFlightPage() {
+  const [step, setStep] = useState(1)
   const [origin, setOrigin] = useState<AirportMeta>(ANCHOR_ORIGINS[0])
   const [dest, setDest] = useState<AirportMeta>(ANCHOR_DESTS[0])
   const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('one-way')
   const [aircraft, setAircraft] = useState<4 | 8>(8)
-  const [pax, setPax] = useState(2)
+  const [guests, setGuests] = useState<GuestEntry[]>([])
   const [date, setDate] = useState('')
   const [departTime, setDepartTime] = useState('9:00 AM')
   const [returnDate, setReturnDate] = useState('')
@@ -124,10 +129,6 @@ export default function AnchorFlightPage() {
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (pax > aircraft) setPax(aircraft)
-  }, [aircraft]) // eslint-disable-line react-hooks/exhaustive-deps
-
   if (isAdmin === null) return null
 
   if (!isAdmin) return (
@@ -136,28 +137,55 @@ export default function AnchorFlightPage() {
     </div>
   )
 
+  const pax = 1 + guests.length
+  const isRoundTrip = tripType === 'round-trip'
   const openSeats = visibility === 'private' ? 0 : Math.max(0, aircraft - pax)
   const anchorSeats = visibility === 'private' ? aircraft : pax
   const aircraftLabel = aircraft === 4 ? 'Cessna 206' : 'Cessna Grand Caravan'
   const blockTime = fmtDur(90)
-  const isRoundTrip = tripType === 'round-trip'
+  const suggestedName = `${origin.name} → ${dest.name}`
+  const effectiveName = tripName.trim() || suggestedName
+  const today = new Date().toISOString().split('T')[0]
+
+  const updateGuest = (i: number, patch: Partial<GuestEntry>) =>
+    setGuests(gs => gs.map((g, idx) => idx === i ? { ...g, ...patch } : g))
+  const addGuest = () => { if (pax >= aircraft) return; setGuests(gs => [...gs, { first_name: '', last_name: '', date_of_birth: '' }]) }
+  const removeGuest = (i: number) => setGuests(gs => gs.filter((_, idx) => idx !== i))
+
+  function validateStep(s: number): string | null {
+    if (s === 1 && origin.code === dest.code) return 'Origin and destination must be different.'
+    if (s === 2) {
+      if (!date) return 'Select a departure date.'
+      if (isRoundTrip && !returnDate) return 'Select a return date.'
+      if (isRoundTrip && returnDate < date) return 'Return date must be on or after departure.'
+    }
+    if (s === 3) {
+      for (const g of guests) {
+        if (!g.first_name.trim() || !g.last_name.trim() || !g.date_of_birth) {
+          return 'Enter a first name, last name, and date of birth for each guest.'
+        }
+      }
+    }
+    return null
+  }
+
+  function next() {
+    const err = validateStep(step)
+    if (err) { setError(err); return }
+    setError('')
+    setStep(s => Math.min(4, s + 1))
+  }
+  function back() { setError(''); setStep(s => Math.max(1, s - 1)) }
 
   async function handleSubmit() {
-    if (!date) { setError('Please select a departure date.'); return }
-    if (!tripName.trim()) { setError('Please enter a trip name.'); return }
-    if (isRoundTrip && !returnDate) { setError('Please select a return date.'); return }
+    const err = validateStep(2) || validateStep(3)
+    if (err) { setError(err); return }
     setError('')
     setSubmitting(true)
-
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-
-      const { data: member } = await supabase
-        .from('members')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
+      const { data: member } = await supabase.from('members').select('id').eq('user_id', user.id).single()
       if (!member) { router.push('/login'); return }
 
       const { data, error: insertError } = await supabase
@@ -177,11 +205,12 @@ export default function AnchorFlightPage() {
             returnDate: isRoundTrip ? returnDate : null,
             returnDepartTime: isRoundTrip ? returnDepartTime : null,
             aircraftId: aircraft === 4 ? 'c206' : 'caravan',
-            name: tripName,
+            name: effectiveName,
             pitch,
             visibility,
             seatsTotal: aircraft,
             seatsAnchor: anchorSeats,
+            guests,
           },
           status: 'pending',
         } as never)
@@ -217,48 +246,44 @@ export default function AnchorFlightPage() {
       <div className="page">
         <div className="page-view" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 480 }}>
           <div style={{
-            background: 'var(--card)',
-            border: '1px solid var(--hair)',
-            borderRadius: 18,
-            padding: '48px 52px',
-            maxWidth: 480,
-            width: '100%',
-            textAlign: 'center',
+            background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 18,
+            padding: '48px 52px', maxWidth: 480, width: '100%', textAlign: 'center',
             boxShadow: '0 8px 40px rgba(13,51,64,0.08)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
               <div className="pending-indicator" />
               <span className="mono" style={{ color: 'var(--tropic-d)' }}>In review</span>
             </div>
-            <h2 className="display-i" style={{ fontSize: 32, color: 'var(--ink)', margin: '0 0 12px' }}>
-              Anchor in review.
-            </h2>
+            <h2 className="display-i" style={{ fontSize: 32, color: 'var(--ink)', margin: '0 0 12px' }}>Anchor in review.</h2>
             <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 8px' }}>
-              We've received your <strong>{origin.name} → {dest.name}</strong> anchor request.
+              We&apos;ve received your <strong>{origin.name} → {dest.name}</strong> anchor request.
             </p>
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', lineHeight: 1.5, margin: '0 0 32px' }}>
               The Travail team will get a quote from Tropic and reach back out to confirm pricing before your anchor goes live to the network.
             </p>
-            <div style={{
-              background: 'var(--warm)',
-              borderRadius: 10,
-              padding: '14px 18px',
-              marginBottom: 28,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
+            <div style={{ background: 'var(--warm)', borderRadius: 10, padding: '14px 18px', marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="mono">Submission ID</span>
               <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600, letterSpacing: '0.1em', color: 'var(--ink)' }}>{submitted.id}</span>
             </div>
-            <button className="btn-ghost" onClick={() => router.push('/flights')} style={{ width: '100%' }}>
-              Back to flights
-            </button>
+            <button className="btn-ghost" onClick={() => router.push('/')} style={{ width: '100%' }}>Back to the app</button>
           </div>
         </div>
       </div>
     )
   }
+
+  const tripToggle = (
+    <div style={{ display: 'flex', background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: 4, gap: 4 }}>
+      {(['one-way', 'round-trip'] as const).map(t => (
+        <button key={t} onClick={() => setTripType(t)} style={{
+          flex: 1, height: 36, border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+          transition: 'all 0.15s', background: tripType === t ? 'var(--tropic)' : 'transparent', color: tripType === t ? '#fff' : 'var(--ink-light)',
+        }}>
+          {t === 'one-way' ? 'One Way' : 'Round Trip'}
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <div className="page">
@@ -269,278 +294,190 @@ export default function AnchorFlightPage() {
       />
 
       <div className="page-view">
-        <div className="builder">
-          {/* ── Left: Form ── */}
-          <div className="builder-form">
-
-            {/* One-way / Round-trip toggle */}
-            <div className="field">
-              <div style={{ display: 'flex', background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: 4, gap: 4 }}>
-                {(['one-way', 'round-trip'] as const).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setTripType(t)}
-                    style={{
-                      flex: 1,
-                      height: 34,
-                      border: 'none',
-                      borderRadius: 7,
-                      fontSize: 13,
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                      background: tripType === t ? 'var(--tropic)' : 'transparent',
-                      color: tripType === t ? '#fff' : 'var(--ink-light)',
-                    }}
-                  >
-                    {t === 'one-way' ? 'One Way' : 'Round Trip'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Route */}
-            <div className="field">
-              <label className="field-lab">Route <span className="req">*</span></label>
-              <div className="select-row" style={{ alignItems: 'stretch' }}>
-                <AirportDropdown label="From" value={origin} options={ANCHOR_ORIGINS} onChange={setOrigin} />
-                <div style={{ display: 'flex', alignItems: 'center', padding: '0 8px', color: 'var(--ink-faint)', fontSize: 18, flexShrink: 0 }}>→</div>
-                <AirportDropdown label="To" value={dest} options={ANCHOR_DESTS} onChange={setDest} />
-              </div>
-            </div>
-
-            {/* Outbound */}
-            <div className="row-2">
-              <div className="field">
-                <label className="field-lab">Departure date <span className="req">*</span></label>
-                <input
-                  type="date"
-                  className="input"
-                  value={date}
-                  onChange={e => setDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-              <TimeInput label="Departure time" value={departTime} onChange={setDepartTime} />
-            </div>
-
-            {/* Return leg (round-trip only) */}
-            {isRoundTrip && (
-              <>
-                <div style={{ height: 1, background: 'var(--hair)', margin: '4px 0' }} />
-                <div className="row-2">
-                  <div className="field">
-                    <label className="field-lab">Return date <span className="req">*</span></label>
-                    <input
-                      type="date"
-                      className="input"
-                      value={returnDate}
-                      onChange={e => setReturnDate(e.target.value)}
-                      min={date || new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                  <TimeInput label="Return departure time" value={returnDepartTime} onChange={setReturnDepartTime} />
-                </div>
-              </>
-            )}
-
-            {/* Trip name */}
-            <div className="field">
-              <label className="field-lab">Trip name <span className="req">*</span></label>
-              <input
-                type="text"
-                className="input"
-                placeholder="e.g. Islamorada weekend"
-                value={tripName}
-                onChange={e => setTripName(e.target.value)}
-                maxLength={80}
-              />
-            </div>
-
-            {/* Pitch */}
-            <div className="field">
-              <label className="field-lab">Pitch</label>
-              <textarea
-                className="input"
-                placeholder="Entice members to join — what makes this trip special?"
-                value={pitch}
-                onChange={e => setPitch(e.target.value)}
-                rows={3}
-                maxLength={400}
-              />
-            </div>
-
-            {/* Aircraft */}
-            <div className="field">
-              <label className="field-lab">Aircraft</label>
-              <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
-                {([4, 8] as const).map((cap, i) => (
-                  <div
-                    key={cap}
-                    className="toggle-row"
-                    style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: i === 0 ? '1px solid var(--hair)' : 'none' }}
-                    onClick={() => setAircraft(cap)}
-                  >
-                    <div>
-                      <div className="t-lab">{cap === 4 ? 'Cessna 206' : 'Cessna Grand Caravan'}</div>
-                      <div className="t-sub">{cap === 4 ? '4 seats · amphibious single' : '8 seats · turboprop'}</div>
-                    </div>
-                    <div className={`toggle${aircraft === cap ? ' active' : ''}`} style={{ pointerEvents: 'none' }} />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Visibility */}
-            <div className="field">
-              <label className="field-lab">Visibility</label>
-              <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
-                {(['public', 'private'] as const).map((v, i) => (
-                  <div
-                    key={v}
-                    className="toggle-row"
-                    style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: i === 0 ? '1px solid var(--hair)' : 'none' }}
-                    onClick={() => setVisibility(v)}
-                  >
-                    <div>
-                      <div className="t-lab">{v === 'public' ? 'Open to network' : 'Private charter'}</div>
-                      <div className="t-sub">{v === 'public' ? 'Empty seats listed to members' : 'Full aircraft for your party only'}</div>
-                    </div>
-                    <div className={`toggle${visibility === v ? ' active' : ''}`} style={{ pointerEvents: 'none' }} />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Party size */}
-            <div className="field">
-              <label className="field-lab">Your party</label>
-              <div className="chips">
-                {Array.from({ length: aircraft }, (_, i) => i + 1).map(n => (
-                  <button
-                    key={n}
-                    className={`chip${pax === n ? ' active' : ''}`}
-                    onClick={() => setPax(n)}
-                  >
-                    {n} {n === 1 ? 'seat' : 'seats'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {error && (
-              <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--signal)' }}>
-                {error}
-              </div>
-            )}
+        <div className="wiz">
+          <div className="wiz-progress">
+            {STEPS.map((_, i) => <div key={i} className={`seg${i + 1 <= step ? ' done' : ''}`} />)}
           </div>
 
-          {/* ── Right: Live Preview ── */}
-          <div className="preview">
-            <div className="preview-head">Live preview</div>
-            <div className="preview-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-              {/* Trip name */}
-              <div>
-                <div className="mono" style={{ marginBottom: 4 }}>Trip name</div>
-                <div className="display-i" style={{ fontSize: 22, color: 'var(--ink)', lineHeight: 1.2 }}>
-                  {tripName || <span style={{ color: 'var(--ink-faint)', fontStyle: 'italic' }}>Your trip name…</span>}
-                </div>
+          {/* ── Step 1 · Route ── */}
+          {step === 1 && (
+            <div>
+              <div className="wiz-step-eyebrow">Step 1 of 4 · Route</div>
+              <h2 className="wiz-step-title">Where are you headed?</h2>
+              <p className="wiz-step-sub">Pick your departure airport and destination. Origin defaults to your home base.</p>
+              <div className="field">
+                <label className="field-lab">From</label>
+                <AirportDropdown value={origin} options={ANCHOR_ORIGINS} onChange={setOrigin} />
               </div>
+              <div className="field">
+                <label className="field-lab">To</label>
+                <AirportDropdown value={dest} options={ANCHOR_DESTS} onChange={setDest} />
+              </div>
+            </div>
+          )}
 
-              {/* Pitch */}
-              {pitch && (
-                <div style={{
-                  background: 'var(--warm)',
-                  borderLeft: '3px solid var(--tropic)',
-                  borderRadius: '0 6px 6px 0',
-                  padding: '10px 14px',
-                  fontStyle: 'italic',
-                  fontFamily: 'var(--display)',
-                  fontSize: 14,
-                  color: 'var(--ink-mid)',
-                  lineHeight: 1.55,
-                }}>
-                  "{pitch}"
+          {/* ── Step 2 · When ── */}
+          {step === 2 && (
+            <div>
+              <div className="wiz-step-eyebrow">Step 2 of 4 · When</div>
+              <h2 className="wiz-step-title">When are you flying?</h2>
+              <p className="wiz-step-sub">Choose one-way or round trip, then your dates and times.</p>
+              <div className="field">{tripToggle}</div>
+              <div className="row-2">
+                <div className="field">
+                  <label className="field-lab">Departure date <span className="req">*</span></label>
+                  <input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} min={today} />
                 </div>
+                <TimeInput label="Departure time" value={departTime} onChange={setDepartTime} />
+              </div>
+              {isRoundTrip && (
+                <>
+                  <div style={{ height: 1, background: 'var(--hair)', margin: '14px 0' }} />
+                  <div className="row-2">
+                    <div className="field">
+                      <label className="field-lab">Return date <span className="req">*</span></label>
+                      <input type="date" className="input" value={returnDate} onChange={e => setReturnDate(e.target.value)} min={date || today} />
+                    </div>
+                    <TimeInput label="Return departure time" value={returnDepartTime} onChange={setReturnDepartTime} />
+                  </div>
+                </>
               )}
+            </div>
+          )}
 
-              {/* Route */}
-              <div style={{
-                background: 'var(--night)',
-                borderRadius: 10,
-                padding: '16px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-              }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontFamily: 'var(--display)', fontSize: 32, fontWeight: 500, color: '#fff', lineHeight: 1 }}>{origin.code}</div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginTop: 4 }}>{origin.sub}</div>
-                </div>
-                <div style={{ color: 'var(--tropic)', fontSize: 20, flex: 1, textAlign: 'center' }}>
-                  {isRoundTrip ? '⇄' : '→'}
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontFamily: 'var(--display)', fontSize: 32, fontWeight: 500, color: '#fff', lineHeight: 1 }}>{dest.code}</div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginTop: 4 }}>{dest.sub}</div>
+          {/* ── Step 3 · Party ── */}
+          {step === 3 && (
+            <div>
+              <div className="wiz-step-eyebrow">Step 3 of 4 · Your party</div>
+              <h2 className="wiz-step-title">Who&apos;s flying with you?</h2>
+              <p className="wiz-step-sub">Pick the aircraft and add your guests. You hold seat&nbsp;1; each guest takes another seat.</p>
+
+              <div className="field">
+                <label className="field-lab">Aircraft</label>
+                <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
+                  {([4, 8] as const).map((cap, i) => (
+                    <div key={cap} className="toggle-row" style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: i === 0 ? '1px solid var(--hair)' : 'none' }} onClick={() => setAircraft(cap)}>
+                      <div>
+                        <div className="t-lab">{cap === 4 ? 'Cessna 206' : 'Cessna Grand Caravan'}</div>
+                        <div className="t-sub">{cap === 4 ? '4 seats · amphibious single' : '8 seats · turboprop'}</div>
+                      </div>
+                      <div className={`toggle${aircraft === cap ? ' active' : ''}`} style={{ pointerEvents: 'none' }} />
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Summary grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: 'var(--hair)', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--hair)' }}>
+              <div className="field">
+                <label className="field-lab">Your party · {pax} of {aircraft} seats</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', border: '1px solid var(--hair)', borderRadius: 10, background: 'var(--warm)', marginBottom: 10 }}>
+                  <span className="pill tropic" style={{ fontSize: 10 }}>SEAT 1</span>
+                  <span style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 500 }}>You</span>
+                </div>
+
+                {guests.map((g, i) => (
+                  <div key={i} className="wiz-guest">
+                    <div className="wiz-guest-head">
+                      <span className="mono" style={{ fontSize: 10, color: 'var(--ink-light)' }}>GUEST · SEAT {i + 2}</span>
+                      <button onClick={() => removeGuest(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--signal)', fontSize: 12.5, fontWeight: 500 }}>Remove</button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <input className="input" placeholder="First name *" value={g.first_name} onChange={e => updateGuest(i, { first_name: e.target.value })} />
+                      <input className="input" placeholder="Last name *" value={g.last_name} onChange={e => updateGuest(i, { last_name: e.target.value })} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 10 }}>
+                      <label style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-light)' }}>Date of birth *</label>
+                      <input className="input" type="date" value={g.date_of_birth} onChange={e => updateGuest(i, { date_of_birth: e.target.value })} max={today} />
+                    </div>
+                  </div>
+                ))}
+
+                <button className="btn-ghost" style={{ width: '100%', height: 40 }} onClick={addGuest} disabled={pax >= aircraft}>
+                  {pax >= aircraft ? 'Aircraft is full' : '+ Add guest'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 4 · Review ── */}
+          {step === 4 && (
+            <div>
+              <div className="wiz-step-eyebrow">Step 4 of 4 · Review</div>
+              <h2 className="wiz-step-title">Review &amp; send</h2>
+              <p className="wiz-step-sub">Confirm the details and send to Ops. They&apos;ll quote pricing with Tropic before it goes live.</p>
+
+              <div className="field">
+                <label className="field-lab">Sharing</label>
+                <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
+                  {(['public', 'private'] as const).map((v, i) => (
+                    <div key={v} className="toggle-row" style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: i === 0 ? '1px solid var(--hair)' : 'none' }} onClick={() => setVisibility(v)}>
+                      <div>
+                        <div className="t-lab">{v === 'public' ? 'Open to network' : 'Private charter'}</div>
+                        <div className="t-sub">{v === 'public' ? 'Spare seats listed to members' : 'Full aircraft for your party only'}</div>
+                      </div>
+                      <div className={`toggle${visibility === v ? ' active' : ''}`} style={{ pointerEvents: 'none' }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="field">
+                <label className="field-lab">Trip name</label>
+                <input type="text" className="input" placeholder={suggestedName} value={tripName} onChange={e => setTripName(e.target.value)} maxLength={80} />
+              </div>
+
+              <div className="field">
+                <label className="field-lab">Pitch <span style={{ color: 'var(--ink-faint)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
+                <textarea className="input" placeholder="Entice members to join — what makes this trip special?" value={pitch} onChange={e => setPitch(e.target.value)} rows={3} maxLength={400} />
+              </div>
+
+              <div className="wiz-summary" style={{ marginTop: 6 }}>
                 {[
+                  { label: 'Route', value: `${origin.code} ${isRoundTrip ? '⇄' : '→'} ${dest.code}` },
                   { label: 'Trip type', value: isRoundTrip ? 'Round trip' : 'One way' },
-                  { label: 'Aircraft', value: aircraftLabel },
                   { label: 'Departs', value: date || '—' },
                   { label: 'Departure time', value: departTime },
                   ...(isRoundTrip ? [
                     { label: 'Returns', value: returnDate || '—' },
                     { label: 'Return time', value: returnDepartTime },
                   ] : []),
+                  { label: 'Aircraft', value: aircraftLabel },
                   { label: 'Block time', value: blockTime },
-                  { label: 'Party', value: `${pax} seat${pax > 1 ? 's' : ''}` },
+                  { label: 'Your party', value: `${pax} seat${pax > 1 ? 's' : ''}` },
                   { label: 'Open to fill', value: visibility === 'private' ? 'No' : `${openSeats} seat${openSeats !== 1 ? 's' : ''}` },
                 ].map(({ label, value }) => (
-                  <div key={label} style={{ background: 'var(--card)', padding: '10px 14px' }}>
+                  <div key={label}>
                     <div className="mono" style={{ marginBottom: 2 }}>{label}</div>
                     <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{value}</div>
                   </div>
                 ))}
               </div>
 
-              {/* Pricing note */}
-              <div style={{
-                background: 'var(--tropic-glow)',
-                border: '1px solid rgba(0,179,199,0.2)',
-                borderRadius: 10,
-                padding: '14px 16px',
-              }}>
+              <div style={{ background: 'var(--tropic-glow)', border: '1px solid rgba(0,179,199,0.2)', borderRadius: 10, padding: '14px 16px', marginTop: 14 }}>
                 <div className="mono" style={{ color: 'var(--tropic-d)', marginBottom: 6 }}>Pricing</div>
                 <p style={{ fontSize: 12.5, color: 'var(--ink-mid)', lineHeight: 1.55, margin: 0 }}>
-                  Seat pricing will be confirmed by the Travail team. We'll check with Tropic for a quote and reach out to confirm before your anchor goes live.
+                  Seat pricing is confirmed by the Travail team. We&apos;ll check with Tropic for a quote and reach out before your anchor goes live.
                 </p>
               </div>
-
-              {/* Submit */}
-              <button
-                className="btn-primary"
-                style={{ width: '100%', height: 44, fontSize: 14, justifyContent: 'center' }}
-                onClick={handleSubmit}
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <>
-                    <span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                    Submitting…
-                  </>
-                ) : (
-                  'Submit anchor to Ops →'
-                )}
-              </button>
-
             </div>
+          )}
+
+          {error && (
+            <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--signal)', marginTop: 16 }}>
+              {error}
+            </div>
+          )}
+
+          <div className="wiz-nav">
+            {step > 1 && <button className="btn-ghost" onClick={back}>← Back</button>}
+            {step < 4 ? (
+              <button className="btn-primary" onClick={next}>Next →</button>
+            ) : (
+              <button className="btn-primary" onClick={handleSubmit} disabled={submitting}>
+                {submitting ? (
+                  <><span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 2 }} /> Submitting…</>
+                ) : 'Submit to Ops →'}
+              </button>
+            )}
           </div>
         </div>
       </div>
