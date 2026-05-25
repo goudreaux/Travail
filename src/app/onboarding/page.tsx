@@ -77,7 +77,7 @@ export default function OnboardingPage() {
   // Auto-open the envelope shortly after it appears.
   useEffect(() => {
     if (phase !== 'intro') return
-    const t = setTimeout(() => setPhase(p => (p === 'intro' ? 'opening' : p)), 2200)
+    const t = setTimeout(() => setPhase(p => (p === 'intro' ? 'opening' : p)), 4000)
     return () => clearTimeout(t)
   }, [phase])
 
