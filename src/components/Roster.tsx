@@ -59,6 +59,8 @@ export function RosterStack({ entries, max = 4 }: { entries: RosterEntry[]; max?
   const shown = entries.slice(0, max)
   const extra = entries.length - shown.length
   const totalSeats = entries.reduce((s, e) => s + e.seats, 0)
+  // Members are the avatars; any seats beyond one-per-member are their guests.
+  const totalGuests = Math.max(0, totalSeats - entries.length)
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }} title={`${entries.map(e => e.name).join(', ')} on this trip`}>
       <div style={{ display: 'flex' }}>
@@ -78,9 +80,11 @@ export function RosterStack({ entries, max = 4 }: { entries: RosterEntry[]; max?
           </div>
         )}
       </div>
-      <span style={{ fontSize: 11, color: 'var(--ink-light)', fontFamily: 'var(--mono)', letterSpacing: '0.03em' }}>
-        {totalSeats} going
-      </span>
+      {totalGuests > 0 && (
+        <span style={{ fontSize: 11, color: 'var(--ink-light)', fontFamily: 'var(--mono)', letterSpacing: '0.03em' }}>
+          +{totalGuests} guest{totalGuests !== 1 ? 's' : ''}
+        </span>
+      )}
     </div>
   )
 }
