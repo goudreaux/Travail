@@ -315,10 +315,10 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
         </div>
 
         {/* Anchor CTAs — Flight (teal) + Excursion (gold) */}
-        <Link href="/anchor-flight" className="btn-primary" style={{ height: 36, padding: '0 14px', fontSize: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Link href="/anchor-flight" className="cta-flight">
           + Flight
         </Link>
-        <Link href="/anchor-excursion" className="btn-sun" style={{ height: 36, padding: '0 14px', fontSize: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Link href="/anchor-excursion" className="cta-exc">
           + Exc.
         </Link>
 

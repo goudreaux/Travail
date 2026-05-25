@@ -422,6 +422,87 @@ body::before {
 .btn-sun:hover { filter: brightness(1.04); box-shadow: 0 2px 4px rgba(201, 126, 14, 0.28), 0 10px 24px rgba(244, 167, 44, 0.28); }
 .btn-sun:active { transform: translateY(1px) scale(0.99); box-shadow: 0 1px 2px rgba(201, 126, 14, 0.25); }
 
+/* ── Neon anchor CTAs (top bar) — vivid, glowing, "press me" ── */
+.cta-flight, .cta-exc {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 9px;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.15s ease;
+}
+.cta-flight {
+  background: linear-gradient(135deg, #1ad6ec 0%, #00b3c7 55%, #009bb0 100%);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(0,179,199,0.55), 0 4px 14px rgba(0,179,199,0.45), 0 0 16px rgba(0,179,199,0.4);
+  animation: cta-glow-teal 2.6s ease-in-out infinite;
+}
+.cta-exc {
+  background: linear-gradient(135deg, #ffc658 0%, #f4a72c 55%, #e8950f 100%);
+  color: #3a2a08;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.28);
+  box-shadow: 0 0 0 1px rgba(244,167,44,0.55), 0 4px 14px rgba(244,167,44,0.5), 0 0 16px rgba(244,167,44,0.45);
+  animation: cta-glow-sun 2.6s ease-in-out infinite;
+  animation-delay: 1.3s;
+}
+.cta-flight:hover {
+  transform: translateY(-1.5px);
+  filter: brightness(1.07) saturate(1.1);
+  box-shadow: 0 0 0 1px rgba(0,179,199,0.85), 0 8px 22px rgba(0,179,199,0.6), 0 0 30px rgba(0,179,199,0.7);
+}
+.cta-exc:hover {
+  transform: translateY(-1.5px);
+  filter: brightness(1.06) saturate(1.1);
+  box-shadow: 0 0 0 1px rgba(244,167,44,0.85), 0 8px 22px rgba(244,167,44,0.6), 0 0 30px rgba(244,167,44,0.75);
+}
+.cta-flight:active, .cta-exc:active { transform: translateY(0) scale(0.98); }
+
+/* Periodic light sheen sweeping across the button. */
+.cta-flight::before, .cta-exc::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.55), transparent);
+  transform: skewX(-18deg);
+  pointer-events: none;
+  animation: cta-sheen 4.5s ease-in-out infinite;
+}
+.cta-exc::before { animation-delay: 2.25s; }
+
+@keyframes cta-glow-teal {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(0,179,199,0.5), 0 4px 14px rgba(0,179,199,0.4), 0 0 12px rgba(0,179,199,0.3); }
+  50%      { box-shadow: 0 0 0 1px rgba(0,179,199,0.78), 0 5px 18px rgba(0,179,199,0.55), 0 0 26px rgba(0,179,199,0.65); }
+}
+@keyframes cta-glow-sun {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(244,167,44,0.5), 0 4px 14px rgba(244,167,44,0.45), 0 0 12px rgba(244,167,44,0.35); }
+  50%      { box-shadow: 0 0 0 1px rgba(244,167,44,0.8), 0 5px 18px rgba(244,167,44,0.6), 0 0 26px rgba(244,167,44,0.7); }
+}
+@keyframes cta-sheen {
+  0%        { left: -60%; }
+  18%, 100% { left: 130%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-flight, .cta-exc { animation: none; }
+  .cta-flight::before, .cta-exc::before { display: none; }
+}
+
 /* ─── Page ───────────────────────────────────────────────── */
 
 .page {
