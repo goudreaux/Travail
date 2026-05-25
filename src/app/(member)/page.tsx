@@ -5,6 +5,7 @@ import { adaptFlight, adaptExcursion, returnLegIds, fmtMoney, DisplayFlight, Dis
 import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
 import { SeatMeter } from '@/components/SeatMeter'
+import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'
 import { useRouter } from 'next/navigation'
 import type { Member, Booking, ExcursionTemplate, Flight, Excursion } from '@/lib/supabase/types'
 
@@ -62,6 +63,8 @@ export default function FeedPage() {
   const [flights, setFlights] = useState<DisplayFlight[]>([])
   const [excursions, setExcursions] = useState<DisplayExcursion[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [flightRosters, setFlightRosters] = useState<Record<string, RosterEntry[]>>({})
+  const [excRosters, setExcRosters] = useState<Record<string, RosterEntry[]>>({})
   const [airportName, setAirportName] = useState<Record<string, string>>({})
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [loading, setLoading] = useState(true)
@@ -140,6 +143,15 @@ export default function FeedPage() {
         )
       )
       setBookings(myBookings)
+
+      // "Who's going" rosters for the open board — drives the FOMO tease.
+      const [fRosters, eRosters] = await Promise.all([
+        fetchRosters(supabase, 'flight', flightsData.map(f => f.id)),
+        fetchRosters(supabase, 'excursion', excursionsData.map(e => e.id)),
+      ])
+      setFlightRosters(fRosters)
+      setExcRosters(eRosters)
+
       setLoading(false)
     }
 
@@ -451,6 +463,9 @@ export default function FeedPage() {
                             <div className="trip-card__name">{placeName(f.origin_code, airportName)}<span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span>{placeName(f.dest_code, airportName)}</div>
                             <div className="trip-card__meta">{f.departTimeStr}{f.durationStr ? ` · ${f.durationStr}` : ''}</div>
                             <SeatMeter total={f.seats_total} available={f.seatsAvailable} accent={colors.dot} unit="seats" />
+                            {(flightRosters[f.id]?.length ?? 0) > 0 && (
+                              <div onClick={ev => ev.stopPropagation()}><RosterStack entries={flightRosters[f.id]} /></div>
+                            )}
                           </div>
                           <img className="trip-card__img" src={f.image_url || '/trip-default.jpeg'} alt="" />
                         </div>
@@ -483,6 +498,9 @@ export default function FeedPage() {
                           <div className="trip-card__name">{e.name}</div>
                           <div className="trip-card__meta">{e.startTimeStr !== '—' ? e.startTimeStr : ''}{e.templateMeta?.operator ? ` · ${e.templateMeta.operator}` : ''}</div>
                           <SeatMeter total={e.spots_total} available={e.spotsAvailable} accent={colors.dot} unit="spots" />
+                          {(excRosters[e.id]?.length ?? 0) > 0 && (
+                            <div onClick={ev => ev.stopPropagation()}><RosterStack entries={excRosters[e.id]} /></div>
+                          )}
                         </div>
                         <img className="trip-card__img" src={e.image_url || '/trip-default.jpeg'} alt="" />
                       </div>
