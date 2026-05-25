@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'Travail',
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
   },
 }
 
