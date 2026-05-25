@@ -2730,20 +2730,36 @@ textarea.input {
     gap: 16px;
   }
 
-  /* On phones, show the image with the same right-side fade as desktop (text
-     keeps the solid card background for contrast). Height goes auto so the
-     content never clips. */
+  /* On phones the horizontal card gets cramped, so reclaim the left rail: hide
+     the decorative icon strip, slim the date chip, and pull the image back with
+     a harder fade so the title, name and seat meter get full width and never
+     sit on top of the photo. */
   .trip-card__main {
     height: auto;
-    min-height: 116px;
+    min-height: 110px;
   }
-
+  .trip-card__icon {
+    display: none;
+  }
+  .trip-card__date {
+    width: 56px;
+    padding: 12px 6px;
+  }
+  .trip-card__date-day {
+    font-size: 28px;
+  }
+  .trip-card__content {
+    padding: 11px 14px;
+  }
+  .trip-card__title {
+    letter-spacing: 0.08em;
+  }
   .trip-card__img {
     display: block;
-    width: 52%;
-    opacity: 0.72;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 78%);
-    mask-image: linear-gradient(to right, transparent 0%, #000 78%);
+    width: 44%;
+    opacity: 0.6;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 84%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 84%);
   }
 
   .preview {
