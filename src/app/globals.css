@@ -258,13 +258,11 @@ body::before {
 }
 
 .topbar {
-  height: calc(60px + env(safe-area-inset-top));
-  padding-top: env(safe-area-inset-top);
+  height: 60px;
   border-bottom: 1px solid var(--hair);
   display: flex;
   align-items: center;
-  padding-left: 28px;
-  padding-right: 28px;
+  padding: 0 28px;
   gap: 12px;
   background: var(--paper);
   position: sticky;
