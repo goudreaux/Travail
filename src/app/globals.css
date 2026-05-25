@@ -2655,6 +2655,17 @@ textarea.input {
   display: none;
 }
 
+/* Hide iOS's native "start playback" / media controls on the splash video. */
+.splash-video::-webkit-media-controls,
+.splash-video::-webkit-media-controls-enclosure,
+.splash-video::-webkit-media-controls-panel,
+.splash-video::-webkit-media-controls-play-button,
+.splash-video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .splash-video {
   position: absolute;
   inset: 0;
