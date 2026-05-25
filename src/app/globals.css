@@ -2632,22 +2632,17 @@ textarea.input {
   50% { opacity: 0.7; transform: scale(1.06); }
 }
 
-/* ─── Launch animation (seaplane takeoff splash) ─────────────── */
+/* ─── Launch animation (seaplane flyover video splash) ───────── */
 
 .splash {
   position: fixed;
   inset: 0;
   z-index: 9999;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-  background:
-    radial-gradient(1100px 520px at 100% -8%, rgba(0, 179, 199, 0.06), transparent 60%),
-    radial-gradient(900px 480px at -8% 108%, rgba(244, 167, 44, 0.05), transparent 60%),
-    var(--bg);
-  transition: opacity 0.5s ease;
+  background: #123a37;
+  transition: opacity 0.6s ease;
   will-change: opacity;
 }
 
@@ -2656,39 +2651,42 @@ textarea.input {
   pointer-events: none;
 }
 
-.splash-plane {
-  width: clamp(170px, 52vw, 320px);
-  animation: splash-flyover 1.7s cubic-bezier(0.45, 0, 0.75, 0.25) both;
-}
-
-.splash-plane svg {
+.splash-video {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
-  display: block;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  animation: splash-video-in 0.6s ease forwards;
 }
 
-.splash-prop {
-  transform-box: view-box;
-  transform-origin: 128px 90px;
-  animation: spin 0.16s linear infinite;
+@keyframes splash-video-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-@keyframes splash-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.96); }
-  to { opacity: 1; transform: none; }
+.splash-word {
+  position: relative;
+  z-index: 1;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: clamp(34px, 10vw, 60px);
+  letter-spacing: 0.05em;
+  color: #fbf6ec;
+  text-shadow: 0 2px 26px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
 }
 
-/* Face-on seaplane flies toward the viewer, then rushes up and over their head. */
-@keyframes splash-flyover {
-  0% { transform: translateY(6%) scale(0.34); opacity: 0; }
-  14% { transform: translateY(3%) scale(0.46); opacity: 1; }
-  60% { transform: translateY(-4%) scale(1); opacity: 1; }
-  100% { transform: translateY(-72vh) scale(4); opacity: 0; }
+.splash.show-word .splash-word {
+  opacity: 1;
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .splash-plane { animation: splash-in 0.4s ease-out both; }
-  .splash-prop { animation: none; }
+  .splash-video { display: none; }
 }
 
 .pending-indicator {
