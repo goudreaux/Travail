@@ -2699,6 +2699,25 @@ textarea.input {
   to { opacity: 1; }
 }
 
+.splash-word {
+  position: relative;
+  z-index: 2;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: clamp(34px, 10vw, 60px);
+  letter-spacing: 0.04em;
+  color: #fbf6ec;
+  text-shadow: 0 2px 26px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+  transition: opacity 0.9s ease, transform 0.9s ease;
+}
+
+.splash.show-word .splash-word {
+  opacity: 1;
+  transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .splash-video { display: none; }
 }
