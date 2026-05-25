@@ -20,6 +20,7 @@ export default function LaunchAnimation() {
   const [leaving, setLeaving] = useState(false)
   const [noVideo, setNoVideo] = useState(false)
   const finishRef = useRef<() => void>(() => {})
+  const failRef = useRef<() => void>(() => {})
   const vRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -32,13 +33,23 @@ export default function LaunchAnimation() {
 
     const timers: ReturnType<typeof setTimeout>[] = []
     let done = false
+    let settled = false
     const finish = () => {
       if (done) return
       done = true
       setLeaving(true)
       timers.push(setTimeout(() => setShow(false), 700))
     }
+    // Autoplay blocked or the video failed to load: show the poster (with its
+    // slow zoom) for a beat, then reveal the page.
+    const fail = () => {
+      if (settled) return
+      settled = true
+      setNoVideo(true)
+      timers.push(setTimeout(finish, 2100))
+    }
     finishRef.current = finish
+    failRef.current = fail
 
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     const mobile = window.matchMedia?.('(max-width: 768px)').matches
@@ -50,8 +61,7 @@ export default function LaunchAnimation() {
 
     const v = vRef.current
     if (reduce || !v) {
-      setNoVideo(true)
-      timers.push(setTimeout(finish, 1100))
+      fail()
       return () => timers.forEach(clearTimeout)
     }
 
@@ -59,14 +69,11 @@ export default function LaunchAnimation() {
     const p = v.play()
     if (p && typeof p.then === 'function') {
       p.then(() => {
+        settled = true
         // Safety net in case 'ended' never fires; sized to the clip's length.
         const ms = isFinite(v.duration) && v.duration > 0 ? v.duration * 1000 + 1500 : 9000
         timers.push(setTimeout(finish, ms))
-      }).catch(() => {
-        // Autoplay refused (e.g. Low Power Mode): skip the video, reveal the page.
-        setNoVideo(true)
-        timers.push(setTimeout(finish, 1100))
-      })
+      }).catch(fail)
     } else {
       timers.push(setTimeout(finish, 9000))
     }
@@ -77,6 +84,7 @@ export default function LaunchAnimation() {
 
   return (
     <div className={'splash' + (noVideo ? ' no-video' : '') + (leaving ? ' leaving' : '')} aria-hidden>
+      <div className="splash-poster" />
       <video
         ref={vRef}
         className="splash-video"
@@ -87,6 +95,7 @@ export default function LaunchAnimation() {
         playsInline
         preload="auto"
         onEnded={() => finishRef.current()}
+        onError={() => failRef.current()}
       />
     </div>
   )
