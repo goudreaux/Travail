@@ -2681,27 +2681,13 @@ textarea.input {
   to { opacity: 1; }
 }
 
-.splash-word {
-  position: relative;
-  z-index: 1;
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: clamp(34px, 10vw, 60px);
-  letter-spacing: 0.05em;
-  color: #fbf6ec;
-  text-shadow: 0 2px 26px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.35);
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.8s ease, transform 0.8s ease;
-}
-
-.splash.show-word .splash-word {
-  opacity: 1;
-  transform: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .splash-video { display: none; }
+}
+
+/* Launch splash is mobile-only. */
+@media (min-width: 769px) {
+  .splash { display: none; }
 }
 
 .pending-indicator {
