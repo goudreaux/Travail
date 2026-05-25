@@ -83,7 +83,7 @@ export default function ActivityPage() {
   const filtered = rows.filter(r => group === 'all' || r.action.startsWith(group))
 
   return (
-    <div style={{ padding: 32 }}>
+    <div className="admin-page">
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Activity</h1>
         <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>

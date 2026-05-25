@@ -666,7 +666,7 @@ export default function QueuePage() {
   const totalPending = queueItems.length + anchors.length + cancellations.length
 
   return (
-    <div style={{ padding: 32, maxWidth: 980 }}>
+    <div className="admin-page" style={{ maxWidth: 980 }}>
       {toast && <Toast msg={toast.msg} kind={toast.kind} />}
 
       {/* ── Decline modal ── */}

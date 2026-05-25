@@ -97,7 +97,7 @@ export default function PostsPage() {
   }
 
   return (
-    <div style={{ padding: 32 }}>
+    <div className="admin-page">
       {toast && <Toast msg={toast.msg} kind={toast.kind} />}
 
       {confirmDelete && (

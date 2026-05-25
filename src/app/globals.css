@@ -2442,6 +2442,9 @@ textarea.input {
   background: var(--bg);
 }
 
+/* Standard padding for ops dashboard pages; tightens on mobile (see media query). */
+.admin-page { padding: 32px; }
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -2694,6 +2697,7 @@ textarea.input {
     padding-bottom: calc(66px + env(safe-area-inset-bottom));
   }
   .admin-aside { display: none !important; }
+  .admin-page { padding: 18px 16px; }
 
   /* Declutter the top bar on phones */
   .topbar .search { display: none; }
