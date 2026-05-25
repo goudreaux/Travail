@@ -2,24 +2,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
-// Launch splash: fades into the Midjourney seaplane clip, plays it through, then
-// fades the "Travail" wordmark in and fades out to reveal the app. Mobile-only,
-// and only inside the member area — it does NOT show on the login / onboarding
-// screens, so it plays once you're signed in (the app reloads to "/" after
-// login). Plays once per session (sessionStorage) so in-app reloads — e.g.
-// pull-to-refresh — don't replay it.
+// Launch splash: fades into the Midjourney seaplane clip, then crossfades into
+// the app a beat before the clip ends. Mobile-only, and only inside the member
+// area — it does NOT show on the login / onboarding screens, so it plays once
+// you're signed in (the app reloads to "/" after login). Plays once per session
+// (sessionStorage) so in-app reloads — e.g. pull-to-refresh — don't replay it.
 //
 // iOS blocks autoplay in Low Power Mode (and can reject muted autoplay). If the
-// video can't play we show the poster (with a slow zoom) under the wordmark
-// instead. Reduced-motion skips the video too.
+// video can't play we show the poster (with a slow zoom) instead. Reduced-motion
+// skips the video too.
 export default function LaunchAnimation() {
   const pathname = usePathname()
   const onAuthScreen =
     !!pathname && (pathname.startsWith('/login') || pathname.startsWith('/onboarding'))
   const [show, setShow] = useState(true)
-  const [phase, setPhase] = useState<'video' | 'word' | 'leaving'>('video')
+  const [leaving, setLeaving] = useState(false)
   const [noVideo, setNoVideo] = useState(false)
-  const toWordRef = useRef<() => void>(() => {})
+  const finishRef = useRef<() => void>(() => {})
   const failRef = useRef<() => void>(() => {})
   const vRef = useRef<HTMLVideoElement>(null)
 
@@ -32,24 +31,22 @@ export default function LaunchAnimation() {
     sessionStorage.setItem('tv_splashed', '1')
 
     const timers: ReturnType<typeof setTimeout>[] = []
-    let advanced = false
+    let done = false
     let settled = false
-    // Video done (or skipped): fade the wordmark in, hold, then fade out.
-    const toWord = () => {
-      if (advanced) return
-      advanced = true
-      setPhase('word')
-      timers.push(setTimeout(() => setPhase('leaving'), 1600))
-      timers.push(setTimeout(() => setShow(false), 2300))
+    const finish = () => {
+      if (done) return
+      done = true
+      setLeaving(true)
+      timers.push(setTimeout(() => setShow(false), 700))
     }
-    // Autoplay blocked or video failed to load: show the poster, then continue.
+    // Autoplay blocked or video failed to load: show the poster, then fade out.
     const fail = () => {
       if (settled) return
       settled = true
       setNoVideo(true)
-      timers.push(setTimeout(toWord, 1400))
+      timers.push(setTimeout(finish, 1800))
     }
-    toWordRef.current = toWord
+    finishRef.current = finish
     failRef.current = fail
 
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -71,12 +68,12 @@ export default function LaunchAnimation() {
     if (p && typeof p.then === 'function') {
       p.then(() => {
         settled = true
-        // Safety net in case 'ended' never fires; sized to the clip's length.
-        const ms = isFinite(v.duration) && v.duration > 0 ? v.duration * 1000 + 1500 : 9000
-        timers.push(setTimeout(toWord, ms))
+        // Begin the crossfade into the app ~1.3s before the clip ends.
+        const dur = isFinite(v.duration) && v.duration > 0 ? v.duration * 1000 : 5200
+        timers.push(setTimeout(finish, Math.max(500, dur - 1300)))
       }).catch(fail)
     } else {
-      timers.push(setTimeout(toWord, 9000))
+      timers.push(setTimeout(finish, 3500))
     }
     return () => timers.forEach(clearTimeout)
   }, [onAuthScreen])
@@ -84,15 +81,7 @@ export default function LaunchAnimation() {
   if (!show || onAuthScreen) return null
 
   return (
-    <div
-      className={
-        'splash' +
-        (noVideo ? ' no-video' : '') +
-        (phase !== 'video' ? ' show-word' : '') +
-        (phase === 'leaving' ? ' leaving' : '')
-      }
-      aria-hidden
-    >
+    <div className={'splash' + (noVideo ? ' no-video' : '') + (leaving ? ' leaving' : '')} aria-hidden>
       <div className="splash-poster" />
       <video
         ref={vRef}
@@ -103,10 +92,9 @@ export default function LaunchAnimation() {
         muted
         playsInline
         preload="auto"
-        onEnded={() => toWordRef.current()}
+        onEnded={() => finishRef.current()}
         onError={() => failRef.current()}
       />
-      <div className="splash-word">Travail</div>
     </div>
   )
 }
