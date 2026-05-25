@@ -199,7 +199,7 @@ export default function CalendarPage() {
   return (
     <div className="page">
       <PageHero
-        eyebrow="FOUNDING SEASON · 6-MONTH HORIZON"
+        eyebrow="THE SEASON AHEAD · 6-MONTH HORIZON"
         title="Calendar"
         sub={`${totalFlights + totalExcursions} departures over the next 6 months${totalFlights > 0 ? ` · ${totalFlights} flight${totalFlights !== 1 ? 's' : ''}` : ''}${totalExcursions > 0 ? ` · ${totalExcursions} excursion${totalExcursions !== 1 ? 's' : ''}` : ''}`}
       />

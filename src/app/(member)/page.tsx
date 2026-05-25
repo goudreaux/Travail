@@ -232,7 +232,7 @@ export default function FeedPage() {
   return (
     <div className="page">
       <PageHero
-        eyebrow="FOUNDING SEASON · TRAVAIL × FIELD & STREAM"
+        eyebrow="TRAVAIL × TROPIC AIR · TAMPA BAY"
         title={`${greeting}${member ? `, ${member.name.split(' ')[0]}.` : '.'}`}
         sub="Your trips, what's open, and the latest from the network."
       >
