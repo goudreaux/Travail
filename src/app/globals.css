@@ -258,11 +258,13 @@ body::before {
 }
 
 .topbar {
-  height: 60px;
+  height: calc(60px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
   border-bottom: 1px solid var(--hair);
   display: flex;
   align-items: center;
-  padding: 0 28px;
+  padding-left: 28px;
+  padding-right: 28px;
   gap: 12px;
   background: var(--paper);
   position: sticky;
@@ -2641,7 +2643,7 @@ textarea.input {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #123a37;
+  background: #065465;
   transition: opacity 0.6s ease;
   will-change: opacity;
 }
@@ -2655,7 +2657,7 @@ textarea.input {
 .splash-poster {
   position: absolute;
   inset: 0;
-  background: #123a37 url('/launch-poster.jpg') center / cover no-repeat;
+  background: #065465 url('/launch-poster.jpg') center / cover no-repeat;
   transform: scale(1.05);
 }
 
