@@ -458,7 +458,7 @@ export default function SeatsPage() {
         sub={loading ? 'Loading available departures…' : `${totalOpen} departure${totalOpen !== 1 ? 's' : ''} with open availability`}
       />
 
-      <div className="page-view" style={{ maxWidth: 760 }}>
+      <div className="page-view" style={{ maxWidth: 716 }}>
         {/* Filter bar */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
           {FILTERS.map(f => (
