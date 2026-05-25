@@ -2993,12 +2993,12 @@ textarea.input {
   box-shadow: 0 22px 52px rgba(13, 51, 64, 0.18);
 }
 
-/* Bottom pocket: a triangle rising to the centre */
+/* Bottom pocket: a triangle rising to the centre, matching the ivory sides */
 .env-pocket {
   position: absolute;
   inset: 0;
   z-index: 3;
-  background: linear-gradient(180deg, #ecdfc6, #e1d2b3);
+  background: linear-gradient(180deg, #f9f2e3, #f4ecda);
   clip-path: polygon(0 100%, 50% 42%, 100% 100%);
 }
 
