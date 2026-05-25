@@ -4,12 +4,19 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Travail',
   description: 'Private aviation + experiences membership',
+  applicationName: 'Travail',
+  appleWebApp: {
+    capable: true,
+    title: 'Travail',
+    statusBarStyle: 'default',
+  },
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  themeColor: '#063847',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
