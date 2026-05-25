@@ -466,6 +466,7 @@ export default function QueuePage() {
   }
 
   async function publishAnchor(anchor: AnchorRow) {
+    if (working) return
     const p = anchor.payload as Record<string, unknown>
     // Edited values from the expanded review form; fall back to the submission.
     const d = expanded === anchor.id ? draft : {}
@@ -602,6 +603,10 @@ export default function QueuePage() {
       })
 
       showToast(`Published — ${anchor.kind === 'flight' ? 'Flight' : 'Excursion'} is now live`)
+      // Remove it from the queue immediately so it can't be published twice
+      // (don't rely on the realtime refetch, which may not be enabled).
+      setAnchors(prev => prev.filter(a => a.id !== anchor.id))
+      if (expanded === anchor.id) setExpanded(null)
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Publish failed', 'error')
     } finally { setWorking(null) }

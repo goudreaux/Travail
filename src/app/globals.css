@@ -556,6 +556,12 @@ body::before {
 .seat-list::-webkit-scrollbar-thumb:hover,
 .feed::-webkit-scrollbar-thumb:hover { background: var(--ink-light); }
 
+/* Cards inside a scrolling panel must keep their natural height — otherwise the
+   flex column squashes them into each other once the list overflows. This is
+   what keeps My Trips / Open Seats clean at any volume of trips. */
+.scroll-y > .my-trip-card,
+.scroll-y > .trip-card { flex-shrink: 0; }
+
 /* ─── Pills ──────────────────────────────────────────────── */
 
 .pill {
