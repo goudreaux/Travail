@@ -463,9 +463,7 @@ export default function FeedPage() {
                             <div className="trip-card__name">{placeName(f.origin_code, airportName)}<span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span>{placeName(f.dest_code, airportName)}</div>
                             <div className="trip-card__meta">{f.departTimeStr}{f.durationStr ? ` · ${f.durationStr}` : ''}</div>
                             <SeatMeter total={f.seats_total} available={f.seatsAvailable} accent={colors.dot} unit="seats" />
-                            {(flightRosters[f.id]?.length ?? 0) > 0 && (
-                              <div onClick={ev => ev.stopPropagation()}><RosterStack entries={flightRosters[f.id]} /></div>
-                            )}
+                            <RosterStack entries={flightRosters[f.id] ?? []} occupied={f.seats_total - f.seatsAvailable} />
                           </div>
                           <img className="trip-card__img" src={f.image_url || '/trip-default.jpeg'} alt="" />
                         </div>
@@ -498,9 +496,7 @@ export default function FeedPage() {
                           <div className="trip-card__name">{e.name}</div>
                           <div className="trip-card__meta">{e.startTimeStr !== '—' ? e.startTimeStr : ''}{e.templateMeta?.operator ? ` · ${e.templateMeta.operator}` : ''}</div>
                           <SeatMeter total={e.spots_total} available={e.spotsAvailable} accent={colors.dot} unit="spots" />
-                          {(excRosters[e.id]?.length ?? 0) > 0 && (
-                            <div onClick={ev => ev.stopPropagation()}><RosterStack entries={excRosters[e.id]} /></div>
-                          )}
+                          <RosterStack entries={excRosters[e.id] ?? []} occupied={e.spots_total - e.spotsAvailable} />
                         </div>
                         <img className="trip-card__img" src={e.image_url || '/trip-default.jpeg'} alt="" />
                       </div>

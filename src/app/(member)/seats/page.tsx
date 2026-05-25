@@ -152,9 +152,7 @@ function FlightCard({
             {flight.durationStr ? ` · ${flight.durationStr}` : ''}
           </div>
           <SeatMeter total={flight.seats_total} available={flight.seatsAvailable} accent={colors.dot} unit="seats" />
-          {roster && roster.length > 0 && (
-            <div onClick={e => e.stopPropagation()}><RosterStack entries={roster} /></div>
-          )}
+          <div onClick={e => e.stopPropagation()}><RosterStack entries={roster ?? []} occupied={flight.seats_total - flight.seatsAvailable} /></div>
         </div>
         <img className="trip-card__img" src={flight.image_url || '/trip-default.jpeg'} alt="" />
       </div>
@@ -218,9 +216,7 @@ function RoundTripCard({
             Return {dpRet.mo} {dpRet.day} · {ret.departTimeStr}
           </div>
           <SeatMeter total={outbound.seats_total} available={seatsLeft} accent={colors.dot} unit="seats" />
-          {roster && roster.length > 0 && (
-            <div onClick={e => e.stopPropagation()}><RosterStack entries={roster} /></div>
-          )}
+          <div onClick={e => e.stopPropagation()}><RosterStack entries={roster ?? []} occupied={outbound.seats_total - seatsLeft} /></div>
         </div>
         <img className="trip-card__img" src={outbound.image_url || '/trip-default.jpeg'} alt="" />
       </div>
@@ -283,9 +279,7 @@ function ExcursionCard({
             {excursion.templateMeta?.operator ? ` · ${excursion.templateMeta.operator}` : ''}
           </div>
           <SeatMeter total={excursion.spots_total} available={excursion.spotsAvailable} accent={colors.dot} unit="spots" />
-          {roster && roster.length > 0 && (
-            <div onClick={e => e.stopPropagation()}><RosterStack entries={roster} /></div>
-          )}
+          <div onClick={e => e.stopPropagation()}><RosterStack entries={roster ?? []} occupied={excursion.spots_total - excursion.spotsAvailable} /></div>
         </div>
         <img className="trip-card__img" src={excursion.image_url || '/trip-default.jpeg'} alt="" />
       </div>
