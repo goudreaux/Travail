@@ -2641,7 +2641,7 @@ textarea.input {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #123a37;
+  background: #123a37 url('/launch-poster.jpg') center / cover no-repeat;
   transition: opacity 0.6s ease;
   will-change: opacity;
 }
@@ -2649,6 +2649,21 @@ textarea.input {
 .splash.leaving {
   opacity: 0;
   pointer-events: none;
+}
+
+.splash.no-video .splash-video {
+  display: none;
+}
+
+/* Hide iOS's native "start playback" / media controls on the splash video. */
+.splash-video::-webkit-media-controls,
+.splash-video::-webkit-media-controls-enclosure,
+.splash-video::-webkit-media-controls-panel,
+.splash-video::-webkit-media-controls-play-button,
+.splash-video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .splash-video {
