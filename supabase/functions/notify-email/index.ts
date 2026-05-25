@@ -20,6 +20,14 @@ interface NotificationRow {
 
 Deno.serve(async (req) => {
   try {
+    // Optional shared-secret gate. Set the NOTIFY_WEBHOOK_SECRET function secret
+    // and add a matching `x-webhook-secret` header to the Database Webhook to
+    // stop anyone who finds the URL from triggering emails. No-op until set.
+    const requiredSecret = Deno.env.get('NOTIFY_WEBHOOK_SECRET')
+    if (requiredSecret && req.headers.get('x-webhook-secret') !== requiredSecret) {
+      return new Response('unauthorized', { status: 401 })
+    }
+
     const payload = await req.json()
     const record: NotificationRow | undefined = payload?.record
     if (!record?.member_id) {
