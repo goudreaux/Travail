@@ -25,8 +25,7 @@ export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsC
     { href: '/calendar',           label: 'Calendar',            icon: Icons.cal },
     { href: '/seats',              label: 'Open seats',          icon: Icons.seat,   badge: openSeatsCount > 0 ? `${openSeatsCount} LIVE` : undefined, badgeColor: 'var(--tropic)' },
     { href: '/bookings',           label: 'Bookings',            icon: Icons.member, badge: pendingCount > 0 ? `${pendingCount} PENDING` : undefined, badgeColor: 'var(--signal)' },
-    { href: '/anchor-flight',      label: 'Anchor a flight',     icon: Icons.build },
-    { href: '/anchor-excursion',   label: 'Anchor an excursion', icon: Icons.compass },
+    { href: '/plan',               label: 'Plan a trip',         icon: Icons.build },
     { href: '/contact',            label: 'Contact us',          icon: Icons.phone },
   ]
 

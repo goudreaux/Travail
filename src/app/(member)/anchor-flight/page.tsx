@@ -175,7 +175,11 @@ export default function AnchorFlightPage() {
     setError('')
     setStep(s => Math.min(4, s + 1))
   }
-  function back() { setError(''); setStep(s => Math.max(1, s - 1)) }
+  function back() {
+    setError('')
+    if (step === 1) { router.push('/plan'); return }
+    setStep(s => Math.max(1, s - 1))
+  }
 
   async function handleSubmit() {
     const err = validateStep(2) || validateStep(3)
@@ -468,7 +472,7 @@ export default function AnchorFlightPage() {
           )}
 
           <div className="wiz-nav">
-            {step > 1 && <button className="btn-ghost" onClick={back}>← Back</button>}
+            <button className="btn-ghost" onClick={back}>{step === 1 ? '← Trip type' : '← Back'}</button>
             {step < 4 ? (
               <button className="btn-primary" onClick={next}>Next →</button>
             ) : (

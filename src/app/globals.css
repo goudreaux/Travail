@@ -3259,3 +3259,37 @@ textarea.input {
 .wiz-guest-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .wiz-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--hair); border-radius: 10px; overflow: hidden; border: 1px solid var(--hair); }
 .wiz-summary > div { background: var(--card); padding: 10px 14px; }
+
+/* "Plan a Trip" chooser cards */
+.plan-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.plan-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 16px;
+  padding: 26px 24px;
+  box-shadow: 0 2px 4px rgba(13, 51, 64, 0.04), 0 10px 28px rgba(13, 51, 64, 0.07);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.15s ease;
+}
+.plan-choice:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(13, 51, 64, 0.08), 0 18px 40px rgba(13, 51, 64, 0.12);
+  border-color: var(--hair-2);
+}
+.plan-choice__icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; margin-bottom: 6px;
+}
+.plan-choice__icon svg { width: 24px; height: 24px; }
+.plan-choice__eyebrow { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; }
+.plan-choice__title { font-family: var(--display); font-size: 22px; font-weight: 500; color: var(--ink); line-height: 1.1; }
+.plan-choice__sub { font-size: 13px; color: var(--ink-light); line-height: 1.5; }
+.plan-choice__cta { font-size: 13px; font-weight: 600; margin-top: 6px; }
+@media (max-width: 640px) {
+  .plan-choices { grid-template-columns: 1fr; }
+}

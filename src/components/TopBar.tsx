@@ -314,12 +314,9 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
           )}
         </div>
 
-        {/* Anchor CTAs — Flight (teal) + Excursion (gold) */}
-        <Link href="/anchor-flight" className="cta-flight">
-          + Flight
-        </Link>
-        <Link href="/anchor-excursion" className="cta-exc">
-          + Exc.
+        {/* Plan a Trip — opens the flight/excursion wizard */}
+        <Link href="/plan" className="cta-flight">
+          Plan a Trip
         </Link>
 
         {/* Sign out — visible in every member window (desktop + mobile top bar) */}
