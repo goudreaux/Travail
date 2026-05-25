@@ -110,7 +110,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
         />
         {children}
       </main>
-      <MobileNav pathname={pathname} />
+      <MobileNav pathname={pathname} isAdmin={!!member?.is_admin} />
       <ToastHost />
     </div>
   )

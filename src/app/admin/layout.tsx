@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import MobileNav from '@/components/MobileNav'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
@@ -128,6 +129,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <main style={{ padding: 0 }}>
         {children}
       </main>
+      <MobileNav pathname={pathname} isAdmin />
     </div>
   )
 }

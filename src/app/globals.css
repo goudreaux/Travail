@@ -2673,6 +2673,8 @@ textarea.input {
 /* Mobile bottom nav — rendered always, shown only on small screens below */
 .mobile-nav { display: none; }
 .mobile-nav .m-item svg { width: 21px; height: 21px; }
+/* The context-switch tab (Ops / App) is tinted so it reads as a toggle. */
+.mobile-nav .m-item.m-toggle { color: var(--tropic); }
 
 @media (max-width: 768px) {
   /* Darken the muted greys one palette step on phones for readability. */
@@ -2686,9 +2688,12 @@ textarea.input {
     padding-bottom: calc(66px + env(safe-area-inset-bottom));
   }
 
-  /* Admin shell stacks; sidebar no longer full-height sticky */
-  .admin-shell { grid-template-columns: 1fr !important; }
-  .admin-aside { position: static !important; height: auto !important; }
+  /* Admin shell stacks; the desktop sidebar is replaced by the bottom tab bar. */
+  .admin-shell {
+    grid-template-columns: 1fr !important;
+    padding-bottom: calc(66px + env(safe-area-inset-bottom));
+  }
+  .admin-aside { display: none !important; }
 
   /* Declutter the top bar on phones */
   .topbar .search { display: none; }
