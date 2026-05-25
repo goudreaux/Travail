@@ -237,12 +237,10 @@ export default function FeedPage() {
         sub="Your trips, what's open, and the latest from the network."
       >
         {nextTrip && nextDate && (
-          <div style={{ marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 999, padding: '7px 8px 7px 14px', flexWrap: 'wrap' }}>
-            <span className="mono" style={{ fontSize: 9, letterSpacing: '0.16em', color: 'var(--tropic)' }}>NEXT UP</span>
-            <span style={{ color: '#fff', fontSize: 13, fontWeight: 500 }}>{nextLabel}</span>
-            <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, fontFamily: 'var(--mono)', background: 'rgba(255,255,255,0.06)', borderRadius: 999, padding: '3px 10px' }}>
-              {nextDate.dow}, {nextDate.mo} {nextDate.day}
-            </span>
+          <div className="next-up">
+            <span className="next-up__label">NEXT UP</span>
+            <span className="next-up__name">{nextLabel}</span>
+            <span className="next-up__date">{nextDate.dow}, {nextDate.mo} {nextDate.day}</span>
           </div>
         )}
       </PageHero>
