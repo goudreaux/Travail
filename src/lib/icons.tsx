@@ -97,3 +97,44 @@ export const TRIP_TYPE_ICONS: Record<string, React.ReactElement> = {
   Leisure: KIND_ICONS.sun,
   Surfing: KIND_ICONS.surfboard,
 }
+
+// Ordered list of every available mark — used by the admin form's icon
+// picker so it always reflects the full library without drift.
+export const ALL_ICONS = [
+  'flight', 'sail', 'fish', 'lobster', 'snorkel', 'surfboard', 'wave',
+  'rifle', 'bow', 'quail', 'hog', 'antlers', 'croc',
+  'golf', 'sun',
+] as const
+
+// Auto-derive an icon from an excursion / activity name. Order matters —
+// more specific keywords are checked first (e.g. lobster before fish,
+// hog before generic hunt) so a "Lobster Mini Season" excursion picks
+// the lobster mark rather than the fish mark.
+//
+// Returns null when nothing matches so callers can keep the existing
+// value instead of forcing a default.
+const ICON_KEYWORDS: Array<readonly [string, RegExp]> = [
+  ['lobster',   /\b(lobster|crawfish|crayfish|shrimp|crab)\b/i],
+  ['fish',      /\b(tarpon|snook|red\s*fish|redfish|bass|trout|grouper|snapper|sailfish|marlin|mahi|cobia|permit|swordfish|tuna|fly\s*fish|fish(?:ing|erman|er|es)?|catch|angler|angling|fly\s*rod|inshore|offshore)\b/i],
+  ['snorkel',   /\b(snorkel(?:ing)?|scuba|dive|diving|reef|coral)\b/i],
+  ['surfboard', /\b(surf(?:ing|board)?|swell|wakeboard|paddle\s*board)\b/i],
+  ['sail',      /\b(sail(?:ing|boat)?|regatta|yacht|charter)\b/i],
+  ['wave',      /\b(beach|wave|tide|ocean|cruise|swim)\b/i],
+  ['antlers',   /\b(deer|buck|stag|elk|antler|venison|whitetail)\b/i],
+  ['hog',       /\b(hog|boar|pig|javelina)\b/i],
+  ['croc',      /\b(croc|crocodile|alligator|gator)\b/i],
+  ['quail',     /\b(quail|bobwhite|dove|pheasant|partridge|upland|grouse)\b/i],
+  ['bow',       /\b(bow(?:hunt|hunting)?|archery|arrow)\b/i],
+  ['rifle',     /\b(rifle|shoot(?:ing)?|hunt(?:ing)?|target|sporting|skeet|clay)\b/i],
+  ['golf',      /\b(golf|tee|fairway|country\s*club|pga|caddie|caddy|18\s*holes)\b/i],
+  ['flight',    /\b(flight|fly(?:over|by)?|aviation|airplane|plane|jet|aircraft|aero|charter|transfer)\b/i],
+  ['sun',       /\b(spa|pool|resort|relax|leisure|sunset|sundowner|lounge)\b/i],
+]
+
+export function suggestIconForActivity(name: string | null | undefined): string | null {
+  if (!name) return null
+  for (const [icon, re] of ICON_KEYWORDS) {
+    if (re.test(name)) return icon
+  }
+  return null
+}
