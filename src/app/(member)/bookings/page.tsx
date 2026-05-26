@@ -86,7 +86,7 @@ interface EnrichedSubmission extends AnchorSubmission {
 
 // ─── Booking card ──────────────────────────────────────────────────────────────
 
-function BookingCard({ booking, onNavigate, roundReturn }: { booking: EnrichedBooking; onNavigate: () => void; roundReturn?: Flight }) {
+function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect }: { booking: EnrichedBooking; onNavigate: () => void; roundReturn?: Flight; isExpanded: boolean; onSelect: () => void }) {
   const isBoarding = booking.status === 'approved'
   const isFlight = booking.item_kind === 'flight'
   const f = booking.flight
@@ -114,8 +114,8 @@ function BookingCard({ booking, onNavigate, roundReturn }: { booking: EnrichedBo
   return (
     <div
       className={`my-trip-card s-${booking.status}`}
-      style={{ cursor: 'pointer' }}
-      onClick={onNavigate}
+      data-expanded={isExpanded ? '1' : '0'}
+      onClick={() => (isExpanded ? onNavigate() : onSelect())}
     >
       <div className="my-trip-card__header">
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1 }}>
@@ -204,7 +204,7 @@ function BookingCard({ booking, onNavigate, roundReturn }: { booking: EnrichedBo
 
 // ─── Anchor card ───────────────────────────────────────────────────────────────
 
-function AnchorCard({ submission }: { submission: EnrichedSubmission }) {
+function AnchorCard({ submission, isExpanded, onSelect }: { submission: EnrichedSubmission; isExpanded: boolean; onSelect: () => void }) {
   const isFlight = submission.kind === 'flight'
   const f = submission.flight
   const e = submission.excursion
@@ -233,7 +233,11 @@ function AnchorCard({ submission }: { submission: EnrichedSubmission }) {
   const statusLabel = submissionStatusLabel(effStatus)
 
   return (
-    <div className="my-trip-card">
+    <div
+      className="my-trip-card"
+      data-expanded={isExpanded ? '1' : '0'}
+      onClick={onSelect}
+    >
       <div className="my-trip-card__header">
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1 }}>
           <div
@@ -299,6 +303,8 @@ export default function BookingsPage() {
   const [anchors, setAnchors] = useState<EnrichedSubmission[]>([])
   const [loading, setLoading] = useState(true)
   const [showHistory, setShowHistory] = useState(false)
+  // iOS Wallet-style stack: one card expanded at a time across the whole page.
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -399,6 +405,14 @@ export default function BookingsPage() {
   const confirmedCount = activeBookings.filter(b => b.status === 'approved').length
   const pendingCount = activeBookings.filter(b => b.status === 'pending').length
 
+  // Wallet stack: default expanded is the first active booking, or the first
+  // active anchor if there are no bookings.
+  const effectiveExpanded =
+    expandedId
+    ?? activeBookings[0]?.id
+    ?? activeAnchors[0]?.id
+    ?? null
+
   return (
     <div className="page">
       <PageHero
@@ -434,13 +448,15 @@ export default function BookingsPage() {
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div className="my-trips-stack">
                   {activeBookings.map(b => (
                     <BookingCard
                       key={b.id}
                       booking={b}
                       onNavigate={() => router.push(`/boarding-pass/${b.id}`)}
                       roundReturn={b.item_kind === 'flight' ? flightById.get(`${b.item_id}R`) : undefined}
+                      isExpanded={effectiveExpanded === b.id}
+                      onSelect={() => setExpandedId(b.id)}
                     />
                   ))}
                 </div>
@@ -471,9 +487,14 @@ export default function BookingsPage() {
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div className="my-trips-stack">
                   {activeAnchors.map(a => (
-                    <AnchorCard key={a.id} submission={a} />
+                    <AnchorCard
+                      key={a.id}
+                      submission={a}
+                      isExpanded={effectiveExpanded === a.id}
+                      onSelect={() => setExpandedId(a.id)}
+                    />
                   ))}
                 </div>
               )}
@@ -495,17 +516,24 @@ export default function BookingsPage() {
                 </button>
 
                 {showHistory && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+                  <div className="my-trips-stack" style={{ marginTop: 12 }}>
                     {closedBookings.map(b => (
                       <BookingCard
                         key={b.id}
                         booking={b}
                         onNavigate={() => router.push(`/boarding-pass/${b.id}`)}
                         roundReturn={b.item_kind === 'flight' ? flightById.get(`${b.item_id}R`) : undefined}
+                        isExpanded={effectiveExpanded === b.id}
+                        onSelect={() => setExpandedId(b.id)}
                       />
                     ))}
                     {closedAnchors.map(a => (
-                      <AnchorCard key={a.id} submission={a} />
+                      <AnchorCard
+                        key={a.id}
+                        submission={a}
+                        isExpanded={effectiveExpanded === a.id}
+                        onSelect={() => setExpandedId(a.id)}
+                      />
                     ))}
                   </div>
                 )}
