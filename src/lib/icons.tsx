@@ -25,10 +25,11 @@ export const Icons = {
 // stroke width (1.5), round caps / joins, and currentColor stroke — so they
 // inherit theme color and feel like one coherent set.
 export const KIND_ICONS: Record<string, React.ReactElement> = {
-  // Four-blade aircraft propeller — outlined airfoil teardrop blade rotated
-  // at 90° intervals around a small filled spinner hub. Stroke-only blades
-  // so it doesn't read as a solid block of color.
-  flight: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><g><path d="M9.5 11 L12.5 11 C13.5 8 13 4 11.5 1.5 L10.5 1.5 C9 4 8.5 8 9.5 11 Z"/><path d="M9.5 11 L12.5 11 C13.5 8 13 4 11.5 1.5 L10.5 1.5 C9 4 8.5 8 9.5 11 Z" transform="rotate(90 11 11)"/><path d="M9.5 11 L12.5 11 C13.5 8 13 4 11.5 1.5 L10.5 1.5 C9 4 8.5 8 9.5 11 Z" transform="rotate(180 11 11)"/><path d="M9.5 11 L12.5 11 C13.5 8 13 4 11.5 1.5 L10.5 1.5 C9 4 8.5 8 9.5 11 Z" transform="rotate(270 11 11)"/></g><circle cx="11" cy="11" r="1.6" fill="currentColor"/></svg>),
+  // Face-on seaplane silhouette — high wings with dihedral, round fuselage
+  // nose with a 4-blade propeller cross, small vertical tail fin behind the
+  // wings, twin pontoons with V-struts. Reads as 'small aircraft coming
+  // toward you' at icon size.
+  flight: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M11 2.5 L11 5"/><path d="M1 10 L11 8.5 L21 10"/><circle cx="11" cy="13" r="2.2"/><line x1="11" y1="13" x2="11" y2="11.2"/><line x1="11" y1="13" x2="11" y2="14.8"/><line x1="11" y1="13" x2="9.2" y2="13"/><line x1="11" y1="13" x2="12.8" y2="13"/><circle cx="11" cy="13" r="0.5" fill="currentColor"/><line x1="2" y1="18.5" x2="9" y2="18.5"/><line x1="13" y1="18.5" x2="20" y2="18.5"/><line x1="5" y1="18.5" x2="9.5" y2="15"/><line x1="17" y1="18.5" x2="12.5" y2="15"/></svg>),
 
   // Sailfish / billfish — long pointed bill out front, S-curved body, tall
   // sail-like dorsal fin, forked tail, eye.
@@ -74,6 +75,16 @@ export const KIND_ICONS: Record<string, React.ReactElement> = {
   // Classic longboard standing upright — elongated pointed silhouette with
   // a center stringer line and a small fin at the tail.
   surfboard: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 2 C8 4 7 8 7 12 C7 17 9 19 11 19 C13 19 15 17 15 12 C15 8 14 4 11 2"/><line x1="11" y1="4" x2="11" y2="18"/><path d="M10 19 L11 21.5 L12 19"/></svg>),
+
+  // Recurve bow with horizontal arrow nocked + drawn. Vertical bow on the
+  // left (curve opens to the right), taut bowstring, arrow shaft passing
+  // through with a V-tip and small fletching on the back.
+  bow: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 3 Q11 11 5 19"/><line x1="5" y1="3" x2="5" y2="19"/><line x1="2" y1="11" x2="20" y2="11"/><path d="M20 11 L17 9 M20 11 L17 13"/><path d="M2 11 L4 9.5 M2 11 L4 12.5"/></svg>),
+
+  // Lobster — top-down silhouette with segmented body, three-fin tail fan
+  // on the left, two raised claws and a pair of long swept antennae on the
+  // right (the head end). For lobster-season excursions.
+  lobster: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="11" cy="11" rx="3.5" ry="2"/><line x1="9.5" y1="9.5" x2="9.5" y2="12.5"/><line x1="11" y1="9.3" x2="11" y2="12.7"/><line x1="12.5" y1="9.5" x2="12.5" y2="12.5"/><path d="M7.5 11 L5 9.5 M7.5 11 L4.5 11 M7.5 11 L5 12.5"/><path d="M14 10 L17 8 Q19 7 19 9 L17 9.5"/><path d="M14 12 L17 14 Q19 15 19 13 L17 12.5"/><path d="M14.5 10 Q17 4 21 3"/><path d="M14.5 12 Q17 18 21 19"/></svg>),
 }
 
 // Canonical trip-type → icon, used for member interests across the app.
