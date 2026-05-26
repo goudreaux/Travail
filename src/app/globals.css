@@ -740,11 +740,26 @@ body::before {
 /* ─── Panel ──────────────────────────────────────────────── */
 
 .panel {
-  background: var(--card);
+  position: relative;
+  /* Subtle vignette: a hint of paper highlight at the top fades into the
+     card bg toward the bottom, so the panel feels lit from above without
+     looking gradient-y. */
+  background:
+    radial-gradient(140% 100% at 50% -10%, rgba(255, 255, 255, 0.55) 0%, transparent 55%),
+    var(--card);
   border: 1px solid var(--hair);
-  border-radius: 14px;
+  border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(13, 51, 64, 0.04), 0 6px 20px rgba(13, 51, 64, 0.05);
+  /* Layered shadows for a premium lift over the cream page bg: a hairline
+     top highlight (paper edge catching light), a close edge shadow for
+     definition, a mid drop for visible separation, and a deep diffuse for
+     ambient depth. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    inset 0 -1px 0 rgba(13, 51, 64, 0.04),
+    0 1px 2px rgba(13, 51, 64, 0.06),
+    0 14px 28px -10px rgba(13, 51, 64, 0.14),
+    0 36px 64px -20px rgba(13, 51, 64, 0.20);
 }
 
 .panel-head {
