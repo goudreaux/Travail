@@ -701,224 +701,260 @@ body::before {
   min-height: 0;
 }
 
-/* ─── Feed hero (boutique/concierge greeting) ────────────────── */
-/* A single editorial block: massive italic greeting on the left, frosted
-   "next up" card on the right. Replaces the generic PageHero on the feed
-   only so the rest of the app keeps the standard hero. */
+/* ─── Feed hero ── compact concierge brief ─────────────────────── */
+/* Tight editorial dashboard block: live status chip, a refined italic
+   greeting on one line, a hairline that sweeps in, a rotating "brief"
+   wire that ticks through curated lines, and a compact next-up rail. */
 .feed-hero {
   position: relative;
   overflow: hidden;
-  border-radius: 24px;
-  margin: 28px 28px 0;
-  padding: clamp(36px, 5vw, 64px) clamp(28px, 4vw, 56px);
+  border-radius: 22px;
+  margin: 24px 28px 0;
+  padding: 26px 30px 22px;
   background:
-    radial-gradient(900px 360px at 8% -10%, rgba(0, 179, 199, 0.18), transparent 62%),
-    linear-gradient(135deg, #042128 0%, #0a3340 48%, #0a4a55 100%);
+    radial-gradient(900px 280px at 90% 110%, rgba(0, 179, 199, 0.14), transparent 60%),
+    linear-gradient(135deg, #042128 0%, #0a3340 52%, #073744 100%);
   box-shadow:
-    0 18px 56px rgba(13, 51, 64, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 48px;
-  align-items: end;
+    0 16px 44px rgba(13, 51, 64, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 .feed-hero::after {
-  /* Subtle diagonal hairline texture — the same passport-paper trick as
-     the boarding-pass cards, but bright on dark. */
+  /* Editorial hairline texture, very subtle. */
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 18px);
+  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 20px);
 }
+.feed-hero > * { position: relative; z-index: 1; }
+
 .feed-hero__glow {
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
   filter: blur(2px);
+  z-index: 0;
 }
 .feed-hero__glow--teal {
-  top: -160px;
-  right: -120px;
-  width: 420px;
-  height: 420px;
-  background: radial-gradient(circle, rgba(0, 179, 199, 0.30), transparent 68%);
-  animation: feed-hero-pulse 7s ease-in-out infinite;
-}
-.feed-hero__glow--sun {
-  bottom: -160px;
-  left: 32%;
+  top: -120px;
+  right: -80px;
   width: 320px;
   height: 320px;
-  background: radial-gradient(circle, rgba(244, 167, 44, 0.14), transparent 72%);
-  animation: feed-hero-pulse 9s ease-in-out 1.5s infinite;
+  background: radial-gradient(circle, rgba(0, 179, 199, 0.30), transparent 68%);
+  animation: feed-hero-pulse 8s ease-in-out infinite;
+}
+.feed-hero__glow--sun {
+  bottom: -120px;
+  left: 28%;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(244, 167, 44, 0.12), transparent 72%);
+  animation: feed-hero-pulse 10s ease-in-out 2s infinite;
 }
 @keyframes feed-hero-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.08); opacity: 0.72; }
+  50% { transform: scale(1.06); opacity: 0.75; }
 }
 
-.feed-hero__content {
-  position: relative;
-  z-index: 1;
-  min-width: 0;
+/* Topline: live status (left) + date (right) */
+.feed-hero__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  opacity: 0;
+  animation: feed-hero-rise 0.5s ease 0.05s forwards;
 }
-
-.feed-hero__eyebrow {
+.feed-hero__live-chip {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
-  margin-bottom: 26px;
-  opacity: 0;
-  animation: feed-hero-rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.05s forwards;
+  gap: 8px;
 }
-.feed-hero__live {
-  width: 7px;
-  height: 7px;
+.feed-hero__live-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--tropic);
-  box-shadow: 0 0 0 0 rgba(0, 179, 199, 0.6);
-  animation: feed-hero-live 2.4s ease-out infinite;
+  box-shadow: 0 0 0 0 rgba(0, 179, 199, 0.55);
+  animation: feed-hero-live 2s ease-out infinite;
 }
 @keyframes feed-hero-live {
   0% { box-shadow: 0 0 0 0 rgba(0, 179, 199, 0.55); }
-  70% { box-shadow: 0 0 0 10px rgba(0, 179, 199, 0); }
+  70% { box-shadow: 0 0 0 8px rgba(0, 179, 199, 0); }
   100% { box-shadow: 0 0 0 0 rgba(0, 179, 199, 0); }
 }
-.feed-hero__sep { color: rgba(255, 255, 255, 0.3); }
+.feed-hero__live-text {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+.feed-hero__date {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: rgba(255, 255, 255, 0.4);
+}
 
-.feed-hero__greet {
+/* Refined italic greeting — much smaller, single line */
+.feed-hero__welcome {
   font-family: var(--display);
   font-style: italic;
   font-weight: 500;
   color: #fff;
   margin: 0;
-  line-height: 0.96;
-  letter-spacing: -0.02em;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.feed-hero__greet-time {
-  font-size: clamp(34px, 5vw, 58px);
-  color: rgba(255, 255, 255, 0.62);
+  line-height: 1.05;
+  letter-spacing: -0.018em;
+  font-size: clamp(26px, 3.4vw, 38px);
   opacity: 0;
-  animation: feed-hero-rise 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) 0.18s forwards;
+  animation: feed-hero-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s forwards;
 }
-.feed-hero__greet-name {
-  font-size: clamp(52px, 8vw, 92px);
+.feed-hero__welcome-pre {
+  color: rgba(255, 255, 255, 0.6);
+}
+.feed-hero__welcome-name {
   color: #fff;
-  opacity: 0;
-  animation: feed-hero-rise 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) 0.32s forwards;
 }
 
-.feed-hero__sub {
-  font-size: clamp(14px, 1.3vw, 16px);
-  color: rgba(255, 255, 255, 0.58);
-  margin: 24px 0 0;
-  max-width: 520px;
-  line-height: 1.55;
-  opacity: 0;
-  animation: feed-hero-rise 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) 0.48s forwards;
+/* Hairline that grows in from the left */
+.feed-hero__rule {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0, 179, 199, 0.55), rgba(255, 255, 255, 0.08) 60%, transparent);
+  margin: 16px 0 14px;
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: feed-hero-rule 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.35s forwards;
+}
+@keyframes feed-hero-rule {
+  to { transform: scaleX(1); }
 }
 
-.feed-hero__next {
-  position: relative;
-  z-index: 1;
+/* The brief — rotating concierge line */
+.feed-hero__brief {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 20px 24px 22px;
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.06) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  align-items: baseline;
+  gap: 14px;
+  min-height: 22px;
+  opacity: 0;
+  animation: feed-hero-rise 0.6s ease 0.5s forwards;
+}
+.feed-hero__brief-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--tropic);
+  flex-shrink: 0;
+  font-weight: 600;
+}
+.feed-hero__brief-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: -0.005em;
+  /* `key` change on this element retriggers the swap-in animation each tick. */
+  animation: feed-hero-brief-swap 0.55s ease both;
+}
+@keyframes feed-hero-brief-swap {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Compact next-up rail */
+.feed-hero__next {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   text-decoration: none;
   color: #fff;
-  width: 320px;
-  max-width: 100%;
-  transition: background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  transition: background 0.18s, border-color 0.18s, transform 0.18s;
   opacity: 0;
-  animation: feed-hero-rise 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) 0.6s forwards;
+  animation: feed-hero-rise 0.6s ease 0.65s forwards;
 }
 .feed-hero__next:hover {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.09) 100%);
-  border-color: rgba(0, 179, 199, 0.45);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px -8px rgba(0, 179, 199, 0.25);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(0, 179, 199, 0.4);
+  transform: translateY(-1px);
 }
-.feed-hero__next-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-.feed-hero__next-eyebrow {
+.feed-hero__next-label {
   font-family: var(--mono);
   font-size: 9.5px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--tropic);
   font-weight: 600;
+  flex-shrink: 0;
 }
-.feed-hero__next-date {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+.feed-hero__next-sep {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.16);
+  flex-shrink: 0;
 }
 .feed-hero__next-name {
   font-family: var(--display);
   font-style: italic;
-  font-size: 24px;
+  font-size: 16px;
   font-weight: 500;
-  line-height: 1.18;
-  letter-spacing: -0.01em;
-  color: #fff;
+  letter-spacing: -0.008em;
+  line-height: 1.1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
 }
-.feed-hero__next-cta {
+.feed-hero__next-when {
   font-family: var(--mono);
   font-size: 10.5px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--tropic);
-  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.55);
+  flex-shrink: 0;
 }
+.feed-hero__next-arrow {
+  color: var(--tropic);
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: transform 0.18s;
+}
+.feed-hero__next:hover .feed-hero__next-arrow { transform: translateX(2px); }
 
 @keyframes feed-hero-rise {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @media (max-width: 768px) {
   .feed-hero {
-    grid-template-columns: 1fr;
-    gap: 28px;
     margin: 16px 16px 0;
-    padding: 32px 22px 28px;
-    border-radius: 20px;
-    align-items: stretch;
+    padding: 22px 20px 18px;
+    border-radius: 18px;
   }
-  .feed-hero__eyebrow { margin-bottom: 18px; font-size: 9.5px; }
-  .feed-hero__sub { margin-top: 18px; }
-  .feed-hero__next { width: 100%; padding: 16px 18px 18px; }
-  .feed-hero__next-name { font-size: 20px; }
+  .feed-hero__topline { margin-bottom: 14px; }
+  .feed-hero__date { font-size: 9.5px; }
+  .feed-hero__welcome { font-size: 26px; }
+  .feed-hero__brief { flex-direction: column; gap: 6px; align-items: flex-start; }
+  .feed-hero__brief-text { font-size: 13.5px; line-height: 1.45; }
+  .feed-hero__next { padding: 11px 14px; gap: 10px; }
+  .feed-hero__next-name { font-size: 14.5px; }
+  .feed-hero__next-when { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .feed-hero__eyebrow,
-  .feed-hero__greet-time,
-  .feed-hero__greet-name,
-  .feed-hero__sub,
+  .feed-hero__topline,
+  .feed-hero__welcome,
+  .feed-hero__brief,
   .feed-hero__next { opacity: 1; animation: none; }
-  .feed-hero__live { animation: none; }
+  .feed-hero__rule { transform: scaleX(1); animation: none; }
+  .feed-hero__brief-text { animation: none; }
+  .feed-hero__live-dot { animation: none; }
   .feed-hero__glow--teal,
   .feed-hero__glow--sun { animation: none; }
 }
