@@ -382,6 +382,7 @@ export default function FeedPage() {
                                 </h3>
                                 <span className={statusPillClass(booking.status)}>{statusLabel(booking.status)}</span>
                               </div>
+                              <div className="my-trip-card__when">{`${dp.dow} ${dp.mo} ${dp.day}`}</div>
                               <div className="my-trip-card__meta">
                                 {`${dp.dow} ${dp.mo} ${dp.day}`}
                                 {flight.departTimeStr ? ` · ${flight.departTimeStr}` : ''}
@@ -423,6 +424,7 @@ export default function FeedPage() {
                                 <h3 className="my-trip-card__route"><span>{excursion.name}</span></h3>
                                 <span className={statusPillClass(booking.status)}>{statusLabel(booking.status)}</span>
                               </div>
+                              <div className="my-trip-card__when">{`${dp.dow} ${dp.mo} ${dp.day}`}</div>
                               <div className="my-trip-card__meta">
                                 {`${dp.dow} ${dp.mo} ${dp.day}`}
                                 {excursion.startTimeStr && excursion.startTimeStr !== '—' ? ` · ${excursion.startTimeStr}` : ''}

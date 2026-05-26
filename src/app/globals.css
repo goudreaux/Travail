@@ -2020,8 +2020,8 @@ body::before {
 
 /* Collapsed: only the top strip (route + meta + status pill) is visible. */
 .my-trip-card[data-expanded="0"] {
-  /* Tall enough for a 2-line title without clipping the second city. */
-  max-height: 104px;
+  /* Tall enough for a 2-line title + the date teaser pill. */
+  max-height: 132px;
   overflow: hidden;
 }
 .my-trip-card[data-expanded="0"] .my-trip-card__img,
@@ -2029,8 +2029,8 @@ body::before {
 .my-trip-card[data-expanded="0"] .my-trip-card__stub,
 .my-trip-card[data-expanded="0"] .my-trip-card__body,
 .my-trip-card[data-expanded="0"] .my-trip-card__footer,
-/* Hide the busy meta line on retracted cards — title-only keeps the
-   wallet stack clean. The meta returns the moment the card expands. */
+/* Hide the busy full meta line on retracted cards — title + date teaser
+   only. The meta returns the moment the card expands. */
 .my-trip-card[data-expanded="0"] .my-trip-card__meta {
   display: none;
 }
@@ -2049,6 +2049,19 @@ body::before {
   -webkit-box-orient: vertical;
   overflow: hidden;
   min-width: 0;
+}
+/* Date teaser: only visible when retracted, so the user gets a glance
+   at the trip date without the rest of the meta noise. */
+.my-trip-card__when { display: none; }
+.my-trip-card[data-expanded="0"] .my-trip-card__when {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  font-weight: 600;
 }
 
 /* Collapsed cards peek under each other for the wallet stack look. */
