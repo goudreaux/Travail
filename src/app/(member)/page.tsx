@@ -409,7 +409,6 @@ export default function FeedPage() {
                             onClick={onCardClick('flight')}
                           >
                             <img className="my-trip-card__img" src={flight.image_url || '/trip-default.jpeg'} alt="" />
-                            <span className="my-trip-card__stamp" aria-hidden>{KIND_ICONS.flight}</span>
                             <div className="my-trip-card__top">
                               <div className="my-trip-card__top-row">
                                 <h3 className="my-trip-card__route">
@@ -456,7 +455,6 @@ export default function FeedPage() {
                             onClick={onCardClick('excursion')}
                           >
                             <img className="my-trip-card__img" src={excursion.image_url || '/trip-default.jpeg'} alt="" />
-                            <span className="my-trip-card__stamp" aria-hidden>{KIND_ICONS[excursion.templateMeta?.icon ?? 'fish'] ?? KIND_ICONS.fish}</span>
                             <div className="my-trip-card__top">
                               <div className="my-trip-card__top-row">
                                 <h3 className="my-trip-card__route"><span>{excursion.name}</span></h3>

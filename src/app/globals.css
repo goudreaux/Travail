@@ -2085,14 +2085,10 @@ body::before {
   display: block;
 }
 
-/* Activity-icon stamp on the photo. Sits at the bottom-right corner of
-   the hero image — large, white, low-opacity, slightly rotated so it
-   reads as a stationery / luggage-tag mark rather than a UI element.
-   Mobile only; on desktop the kind already shows in the icon column or
-   eyebrow. */
-.my-trip-card__stamp,
+/* Activity-icon watermark on the open-seat photo. Top-right, faded,
+   blended with the image so it reads as a printed mark rather than a UI
+   element. Hidden by default; mobile media query turns it on. */
 .trip-card__stamp { display: none; }
-.my-trip-card__stamp svg,
 .trip-card__stamp svg { width: 100%; height: 100%; }
 
 @media (max-width: 768px) {
@@ -3697,31 +3693,22 @@ textarea.input {
     mask-image: none;
   }
 
-  /* Activity-icon stamp on the photo — passport / customs-stamp feel.
-     Small (32px), circled, cocked at a hurried angle, faded ivory ink
-     that overlay-blends with the photograph so it reads as printed
-     rather than overlaid. No drop shadow — stamps don't float. */
-  .trip-card__stamp,
-  .my-trip-card__stamp {
+  /* Activity-icon watermark on the open-seat photo. Top-right, no ring,
+     no rotation — just a faded ivory mark that overlay-blends with the
+     image so it reads as printed signage rather than UI. */
+  .trip-card__stamp {
     display: block;
     position: absolute;
+    top: 12px;
     right: 12px;
-    width: 32px;
-    height: 32px;
-    padding: 4px;
-    border: 1.4px solid currentColor;
-    border-radius: 50%;
-    color: rgba(255, 250, 232, 0.78);
-    opacity: 0.78;
-    transform: rotate(-14deg);
+    width: 30px;
+    height: 30px;
+    color: rgba(255, 250, 232, 0.85);
+    opacity: 0.55;
     mix-blend-mode: overlay;
     pointer-events: none;
     z-index: 3;
   }
-  .trip-card__stamp { bottom: 10px; }
-  /* Wallet-stack hero on mobile: anchor stamp at the bottom-right of the
-     168px image area. */
-  .my-trip-card__stamp { top: calc(168px - 42px); }
   /* Hide the stamp on retracted wallet cards (the image is gone). */
   .my-trip-card[data-expanded="0"] .my-trip-card__stamp { display: none; }
 
