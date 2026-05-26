@@ -1790,9 +1790,11 @@ body::before {
 
 .builder {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 24px;
   align-items: start;
+  max-width: 640px;
+  margin: 0 auto;
 }
 
 .builder-form {
@@ -3734,14 +3736,52 @@ textarea.input {
 .reserve-cta-bar { display: none; }
 .reserve-page-pad { display: none; }
 .reserve-inline-submit { display: inline-flex; }
+/* Default: the sheet is transparent — its children sit as direct flex
+   children of .builder-form. The parallax effect only kicks in on mobile. */
+.reserve-sheet { display: contents; }
 
 @media (max-width: 768px) {
-  /* Bleed the hero edge-to-edge under the top bar (counteract page-view padding). */
+  /* Bleed the hero edge-to-edge under the top bar (counteract page-view padding)
+     AND pin it in place so the form sheet slides up over it as the page scrolls. */
   .reserve-hero {
     height: 290px;
     border-radius: 0;
     box-shadow: none;
-    margin: -24px -28px 16px;
+    margin: -24px -28px 0;
+    position: sticky;
+    top: 0;
+    z-index: 0;
+  }
+
+  /* The form rises up over the pinned hero like a sheet. Edge-to-edge bleed,
+     soft rounded top, top shadow + hairline to lift it off the image. */
+  .builder-form { gap: 0; }
+  .reserve-sheet {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    background: var(--bg);
+    margin: -28px -28px 0;
+    padding: 24px 28px 0;
+    border-radius: 24px 24px 0 0;
+    box-shadow:
+      0 -1px 0 rgba(255, 255, 255, 0.7) inset,
+      0 -12px 30px -10px rgba(13, 51, 64, 0.22);
+  }
+  /* Tiny grabber at the top, like an iOS sheet handle, to telegraph the layering. */
+  .reserve-sheet::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(13, 51, 64, 0.16);
+    pointer-events: none;
   }
 
   /* Mobile only: hide the inline submit (sticky bar takes over). */
@@ -3830,4 +3870,75 @@ textarea.input {
 .reserve-card > * {
   position: relative;
   z-index: 1;
+}
+
+/* ─── Reserve page: confirmation modal ─── */
+
+.reserve-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(13, 51, 64, 0.42);
+  backdrop-filter: saturate(140%) blur(6px);
+  -webkit-backdrop-filter: saturate(140%) blur(6px);
+  animation: fade 0.2s ease;
+}
+.reserve-confirm__sheet {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: 18px;
+  padding: 24px 24px 22px;
+  box-shadow:
+    0 24px 60px -10px rgba(13, 51, 64, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+  animation: confirm-rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.reserve-confirm__close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--ink-mid);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.reserve-confirm__close:hover {
+  background: var(--warm);
+  color: var(--ink);
+}
+@keyframes confirm-rise {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .reserve-confirm {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .reserve-confirm__sheet {
+    max-width: 100%;
+    border-radius: 18px 18px 0 0;
+    padding: 28px 22px calc(24px + env(safe-area-inset-bottom));
+    animation: confirm-slide-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes confirm-slide-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
 }

@@ -74,8 +74,10 @@ function FlightLeg({ label, f, names }: { label?: string; f: Flight; names: Reco
         {[
           { label: 'Date', value: `${dp.dow} ${dp.mo} ${dp.day}` },
           { label: 'Departs', value: fmtTime(f.depart_time) },
-          { label: 'Block', value: fmtDur(f.duration_mins) },
           { label: 'Arrives', value: addMins(f.depart_time, f.duration_mins) },
+          { label: 'Block', value: fmtDur(f.duration_mins) },
+          { label: 'Operator', value: 'Travail Ops' },
+          { label: 'Aircraft', value: f.aircraft_id },
         ].map(({ label, value }) => (
           <div key={label}>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-light)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3, fontWeight: 600 }}>{label}</div>
@@ -120,6 +122,7 @@ export default function ReservePage() {
   const [rosterPublic, setRosterPublic] = useState(true)
   const [roster, setRoster] = useState<RosterEntry[]>([])
   const [wlJoined, setWlJoined] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   async function joinWaitlist() {
     if (!member) return
@@ -561,6 +564,7 @@ export default function ReservePage() {
               )
             })()}
 
+            <div className="reserve-sheet">
             {/* Back link + header */}
             <div style={{ marginBottom: 4 }}>
               <Link
@@ -664,6 +668,7 @@ export default function ReservePage() {
                         { label: 'Date', value: `${dp.dow} ${dp.mo} ${dp.day}` },
                         { label: 'Departs', value: departTime },
                         { label: 'Duration', value: durationStr },
+                        { label: 'Operator', value: template?.operator ?? 'Travail Ops' },
                       ].map(({ label, value }) => (
                         <div key={label}>
                           <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-light)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3, fontWeight: 600 }}>
@@ -947,118 +952,19 @@ export default function ReservePage() {
                 {error}
               </div>
             )}
-          </div>
 
-          {/* ── RIGHT: Preview / Confirm ── */}
-          <div className="preview">
-            <div className="preview-head">Confirm reservation</div>
-            <div className="preview-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Desktop CTA — sticky bar handles mobile. Opens the confirm sheet. */}
+            <button
+              className="btn-primary reserve-inline-submit"
+              style={{ width: '100%', height: 50, fontSize: 15, justifyContent: 'center', marginTop: 4 }}
+              onClick={() => setConfirmOpen(true)}
+              disabled={submitting || maxSeats === 0 || !guestsComplete}
+            >
+              {maxSeats === 0 ? 'Fully booked' : `Reserve seat${seats !== 1 ? 's' : ''} · ${fmtMoney(total)}`}
+            </button>
 
-              {/* Trip name */}
-              <div>
-                <div className="mono" style={{ marginBottom: 4 }}>Trip</div>
-                <div style={{ fontFamily: 'var(--ui)', fontSize: 17, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.25, letterSpacing: '-0.012em' }}>
-                  {itemName}
-                </div>
-              </div>
-
-              {/* Summary table: key/value rows on dashed dividers */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {[
-                  { label: 'Date', value: formatDateLong(itemDate).split(',')[0] + ', ' + formatDateLong(itemDate).split(',').slice(1).join(',').trim() },
-                  { label: 'Push time', value: departTime },
-                  { label: kind === 'flight' ? 'Block' : 'Duration', value: durationStr },
-                  ...(kind === 'flight' && flight
-                    ? [
-                        { label: 'Operator', value: 'Travail Ops' },
-                        { label: 'Aircraft', value: flight.aircraft_id },
-                        { label: 'Route', value: `${airportCity(flight.origin_code, airportNames)} → ${airportCity(flight.dest_code, airportNames)}` },
-                      ]
-                    : [
-                        { label: 'Operator', value: template?.operator ?? 'Travail Ops' },
-                        { label: 'Origin', value: excursion ? airportCity(excursion.origin_code, airportNames) : '' },
-                      ]
-                  ),
-                  { label: kind === 'flight' ? 'Seats' : 'Spots', value: String(seats) },
-                  { label: 'Per seat', value: fmtMoney(pricePerSeat) },
-                ].map(({ label, value }, i, arr) => (
-                  <div key={label} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderBottom: i === arr.length - 1 ? 'none' : '1px dashed var(--hair-2)' }}>
-                    <div className="mono" style={{ flexShrink: 0 }}>{label}</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', textAlign: 'right' }}>{value}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Pricing */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-soft)' }}>
-                  <span>{seats} seat{seats !== 1 ? 's' : ''} × {fmtMoney(pricePerSeat)}</span>
-                  <span>{fmtMoney(subtotal)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-light)' }}>
-                  <span>Service fee (3%)</span>
-                  <span>{fmtMoney(serviceFee)}</span>
-                </div>
-                <div style={{ height: 1, background: 'var(--hair)', margin: '2px 0' }} />
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Total</span>
-                  <span style={{ fontFamily: 'var(--display)', fontSize: 28, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
-                    {fmtMoney(total)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Payment display */}
-              <div style={{
-                background: 'var(--warm)',
-                borderRadius: 8,
-                padding: '10px 14px',
-                fontSize: 12.5,
-                color: 'var(--ink-mid)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}>
-                <svg width="14" height="14" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-                  <rect x="2" y="6" width="18" height="13" rx="2" />
-                  <line x1="2" y1="10" x2="20" y2="10" />
-                </svg>
-                {member?.card_last4
-                  ? `Card ending ••${member.card_last4}`
-                  : 'No payment on file'}
-              </div>
-
-              {/* Submit button */}
-              <button
-                className="btn-primary reserve-inline-submit"
-                style={{ width: '100%', height: 46, fontSize: 14, justifyContent: 'center' }}
-                onClick={handleSubmit}
-                disabled={submitting || maxSeats === 0 || !guestsComplete}
-              >
-                {submitting ? (
-                  <>
-                    <span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                    Submitting to Ops…
-                  </>
-                ) : maxSeats === 0 ? (
-                  'Fully booked'
-                ) : (
-                  'Submit to Ops →'
-                )}
-              </button>
-              {/* Bottom-pad on mobile so the sticky CTA bar doesn't cover anything. */}
-              <div className="reserve-page-pad" aria-hidden />
-
-              {/* Hold notice */}
-              <div style={{ textAlign: 'center' }}>
-                <span className="mono" style={{ fontSize: 9, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>
-                  HOLD ONLY — CARD CAPTURED ON OPS CONFIRMATION
-                </span>
-              </div>
+            {/* Bottom-pad on mobile so the sticky CTA bar doesn't cover anything. */}
+            <div className="reserve-page-pad" aria-hidden />
             </div>
           </div>
         </div>
@@ -1076,12 +982,104 @@ export default function ReservePage() {
         <button
           className="btn-primary"
           style={{ height: 46, padding: '0 22px', fontSize: 14, fontWeight: 600 }}
-          onClick={handleSubmit}
+          onClick={() => setConfirmOpen(true)}
           disabled={submitting || maxSeats === 0 || !guestsComplete}
         >
-          {submitting ? 'Submitting…' : maxSeats === 0 ? 'Fully booked' : 'Reserve →'}
+          {maxSeats === 0 ? 'Fully booked' : 'Reserve →'}
         </button>
       </div>
+
+      {/* Final confirmation sheet — shown after the member taps Reserve.
+          This is the only place the full price + payment summary appears. */}
+      {confirmOpen && (
+        <div
+          className="reserve-confirm"
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => { if (e.target === e.currentTarget) setConfirmOpen(false) }}
+        >
+          <div className="reserve-confirm__sheet">
+            <button
+              type="button"
+              className="reserve-confirm__close"
+              aria-label="Close"
+              onClick={() => setConfirmOpen(false)}
+            >
+              ×
+            </button>
+
+            <div className="mono" style={{ fontSize: 9.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tropic-d)', marginBottom: 6, fontWeight: 600 }}>
+              Confirm reservation
+            </div>
+            <h2 style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 26, fontWeight: 500, letterSpacing: '-0.015em', color: 'var(--ink)', margin: '0 0 18px', lineHeight: 1.1 }}>
+              {itemName}
+            </h2>
+
+            {/* Pricing */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-soft)' }}>
+                <span>{seats} {kind === 'flight' ? (seats === 1 ? 'seat' : 'seats') : (seats === 1 ? 'spot' : 'spots')} × {fmtMoney(pricePerSeat)}</span>
+                <span>{fmtMoney(subtotal)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-light)' }}>
+                <span>Service fee (3%)</span>
+                <span>{fmtMoney(serviceFee)}</span>
+              </div>
+              <div style={{ height: 1, background: 'var(--hair)', margin: '4px 0' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Total</span>
+                <span style={{ fontFamily: 'var(--ui)', fontSize: 24, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
+                  {fmtMoney(total)}
+                </span>
+              </div>
+            </div>
+
+            {/* Payment display */}
+            <div style={{
+              background: 'var(--warm)',
+              borderRadius: 8,
+              padding: '12px 14px',
+              fontSize: 13,
+              color: 'var(--ink-mid)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 16,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+                <rect x="2" y="6" width="18" height="13" rx="2" />
+                <line x1="2" y1="10" x2="20" y2="10" />
+              </svg>
+              {member?.card_last4
+                ? `Card ending ••${member.card_last4}`
+                : 'No payment on file'}
+            </div>
+
+            {/* Confirm submit */}
+            <button
+              className="btn-primary"
+              style={{ width: '100%', height: 50, fontSize: 15, justifyContent: 'center', marginTop: 18 }}
+              onClick={handleSubmit}
+              disabled={submitting || maxSeats === 0 || !guestsComplete}
+            >
+              {submitting ? (
+                <>
+                  <span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                  Submitting to Ops…
+                </>
+              ) : (
+                'Submit to Ops →'
+              )}
+            </button>
+
+            <div style={{ textAlign: 'center', marginTop: 12 }}>
+              <span className="mono" style={{ fontSize: 9, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>
+                HOLD ONLY — CARD CAPTURED ON OPS CONFIRMATION
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
