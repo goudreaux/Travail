@@ -3032,28 +3032,6 @@ textarea.input {
   pointer-events: none;
 }
 
-/* Poster layer behind the video; also the fallback when autoplay is blocked. */
-.splash-poster {
-  position: absolute;
-  inset: 0;
-  background: #065465 url('/launch-poster.jpg') center / cover no-repeat;
-  transform: scale(1.05);
-}
-
-/* When the video can't play (e.g. Low Power Mode), give the still a slow zoom. */
-.splash.no-video .splash-poster {
-  animation: splash-kenburns 3s ease-out both;
-}
-
-.splash.no-video .splash-video {
-  display: none;
-}
-
-@keyframes splash-kenburns {
-  from { transform: scale(1.05); }
-  to { transform: scale(1.16) translateY(-1.5%); }
-}
-
 /* Hide iOS's native "start playback" / media controls on the splash video. */
 .splash-video::-webkit-media-controls,
 .splash-video::-webkit-media-controls-enclosure,
