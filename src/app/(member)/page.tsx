@@ -576,7 +576,7 @@ export default function FeedPage() {
                           <span style={{ color: 'var(--ink-light)', fontSize: 12 }}>{f.name || `${f.origin_code}–${f.dest_code}`}</span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <span className="trip-card__price">{fmtMoney(f.price_per_seat)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/seat</span></span>
-                            <span className="btn-primary" style={{ height: 30, padding: '0 14px', fontSize: 12, background: colors.dot }}>Take seat →</span>
+                            <span className="cta-outline" style={{ color: colors.dot }}>Take seat →</span>
                           </div>
                         </div>
                       </div>
@@ -610,7 +610,7 @@ export default function FeedPage() {
                         <span style={{ color: 'var(--ink-light)', fontSize: 12 }}>{e.stay_type === 'day_trip' ? 'Day trip' : e.stay_type === 'overnight' ? 'Overnight' : 'Multi-night'}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           {price ? <span className="trip-card__price">{fmtMoney(price)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/person</span></span> : null}
-                          <span className="btn-primary" style={{ height: 30, padding: '0 14px', fontSize: 12, background: colors.dot }}>Reserve spot →</span>
+                          <span className="cta-outline" style={{ color: colors.dot }}>Reserve spot →</span>
                         </div>
                       </div>
                     </div>

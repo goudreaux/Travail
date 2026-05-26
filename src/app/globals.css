@@ -436,6 +436,36 @@ body::before {
   box-shadow: 0 2px 8px rgba(13, 51, 64, 0.07);
 }
 
+/* Ghost-outline accent button — used for in-card 'Take seat' / 'Reserve
+   spot' actions. Refined, photo-respecting: paper bg, 1.5px accent
+   border, accent text. The color is passed in via inline `color:` and
+   the rest follows currentColor. Soft accent-tint on hover, light lift. */
+.cta-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  background: transparent;
+  font-family: var(--ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.16s, border-color 0.16s, transform 0.10s, box-shadow 0.16s;
+}
+.cta-outline:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -4px color-mix(in srgb, currentColor 60%, transparent);
+}
+.cta-outline:active { transform: translateY(0) scale(0.97); }
+
 /* Quiet text-link button — used for in-card secondary actions (e.g.
    'Boarding pass →' on trip cards) where the primary teal CTA was
    shouting too loud. Reads as a refined link, not a button. */
