@@ -2,22 +2,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
-// Launch splash: fades into the Midjourney seaplane clip, then crossfades into
-// the app a beat before the clip ends. Mobile-only, and only inside the member
-// area — it does NOT show on the login / onboarding screens, so it plays once
-// you're signed in (the app reloads to "/" after login). Plays once per session
-// (sessionStorage) so in-app reloads — e.g. pull-to-refresh — don't replay it.
+// Launch splash: fades into the seaplane clip, then crossfades into the app a
+// beat before the clip ends. Mobile-only, member-area only, plays once per
+// session (sessionStorage gate so pull-to-refresh doesn't replay it).
 //
-// iOS blocks autoplay in Low Power Mode (and can reject muted autoplay). If the
-// video can't play we show the poster (with a slow zoom) instead. Reduced-motion
-// skips the video too.
+// iOS Low Power Mode (and reduced-motion) blocks muted autoplay. When that
+// happens we don't show any fallback — the splash exits immediately and the
+// member lands straight in the feed. The previous poster + Ken Burns fallback
+// caused iOS to flash a native play-button overlay before bailing, which read
+// as broken.
 export default function LaunchAnimation() {
   const pathname = usePathname()
   const onAuthScreen =
     !!pathname && (pathname.startsWith('/login') || pathname.startsWith('/onboarding'))
   const [show, setShow] = useState(true)
   const [leaving, setLeaving] = useState(false)
-  const [noVideo, setNoVideo] = useState(false)
   const finishRef = useRef<() => void>(() => {})
   const failRef = useRef<() => void>(() => {})
   const vRef = useRef<HTMLVideoElement>(null)
@@ -39,12 +38,12 @@ export default function LaunchAnimation() {
       setLeaving(true)
       timers.push(setTimeout(() => setShow(false), 720))
     }
-    // Autoplay blocked or video failed to load: show the poster, then fade out.
+    // Autoplay blocked (Low Power Mode) or video errored — just unmount the
+    // splash immediately. No poster fallback, no fade.
     const fail = () => {
       if (settled) return
       settled = true
-      setNoVideo(true)
-      timers.push(setTimeout(finish, 1100))
+      setShow(false)
     }
     finishRef.current = finish
     failRef.current = fail
@@ -83,13 +82,14 @@ export default function LaunchAnimation() {
   if (!show || onAuthScreen) return null
 
   return (
-    <div className={'splash' + (noVideo ? ' no-video' : '') + (leaving ? ' leaving' : '')} aria-hidden>
-      <div className="splash-poster" />
+    <div className={'splash' + (leaving ? ' leaving' : '')} aria-hidden>
+      {/* No `poster` attribute on the <video> — iOS overlays a play button on
+          the poster image until play() resolves, which flashes for LPM users
+          right before we tear the splash down. */}
       <video
         ref={vRef}
         className="splash-video"
         src="/launch.mp4"
-        poster="/launch-poster.jpg"
         autoPlay
         muted
         playsInline
