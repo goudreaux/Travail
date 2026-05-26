@@ -381,7 +381,7 @@ export default function BookingsPage() {
             <p>Loading your bookings…</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 32, maxWidth: 760, margin: '0 auto', width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32, maxWidth: 760, width: '100%' }}>
             {/* Your Active Bookings */}
             <section>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
