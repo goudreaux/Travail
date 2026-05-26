@@ -4983,3 +4983,117 @@ textarea.input {
 @media (prefers-reduced-motion: reduce) {
   .contact-sent { animation: none; }
 }
+
+/* ─── Admin shell ────────────────────────────────────────────── */
+/* Desktop layout: fixed-width sticky sidebar + main. Mobile collapses
+   the sidebar entirely and surfaces a compact top bar so ops can run
+   urgent tasks from a phone. */
+
+.admin-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.admin-aside {
+  background: var(--night);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.admin-main {
+  padding: 0;
+  min-width: 0; /* lets long admin tables shrink instead of pushing the page */
+}
+
+/* Mobile top bar — hidden on desktop. */
+.admin-mobile-top { display: none; }
+
+@media (max-width: 768px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+  .admin-aside {
+    display: none;
+  }
+  .admin-mobile-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--night);
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+  .admin-mobile-top__brand {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+  .admin-mobile-top__name {
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    color: #fff;
+  }
+  .admin-mobile-top__tag {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    color: var(--tropic);
+    font-weight: 600;
+  }
+  .admin-mobile-top__back {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .admin-mobile-top__signout {
+    appearance: none;
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    width: 34px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+  }
+
+  /* Pad the bottom of every admin page so its content clears the
+     mobile nav bar. Inline padding on admin pages tends to be 0, so
+     we add the reserve here. */
+  .admin-main {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  /* Let admin tables scroll horizontally rather than break the layout. */
+  .admin-main table,
+  .admin-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+}
