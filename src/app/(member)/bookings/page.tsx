@@ -111,7 +111,7 @@ function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect, a
 
   const statusCls = bookingStatusClass(booking.status)
   const statusLabel = bookingStatusLabel(booking.status)
-  const imageUrl = isFlight ? f?.image_url : e?.image_url
+  const imageUrl = (isFlight ? f?.image_url : e?.image_url) || '/trip-default.jpeg'
 
   return (
     <div
@@ -119,7 +119,7 @@ function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect, a
       data-expanded={isExpanded ? '1' : '0'}
       onClick={() => (isExpanded ? onNavigate() : onSelect())}
     >
-      {imageUrl && <img className="my-trip-card__img" src={imageUrl} alt="" />}
+      <img className="my-trip-card__img" src={imageUrl} alt="" />
       <div className="my-trip-card__top">
         <div className="my-trip-card__top-row">
           <h3 className="my-trip-card__route">
@@ -208,16 +208,16 @@ function AnchorCard({ submission, isExpanded, onSelect }: { submission: Enriched
   const effStatus = effectiveAnchorStatus(submission)
   const statusCls = submissionStatusClass(effStatus)
   const statusLabel = submissionStatusLabel(effStatus)
-  const imageUrl = isFlight ? f?.image_url : e?.image_url
+  const imageUrl = (isFlight ? f?.image_url : e?.image_url) || '/trip-default.jpeg'
   const submittedLabel = `SUBMITTED ${new Date(submission.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()}`
 
   return (
     <div
       className="my-trip-card"
-      data-expanded={isExpanded ? '1' : '0'}
+      data-expanded="1"
       onClick={onSelect}
     >
-      {imageUrl && <img className="my-trip-card__img" src={imageUrl} alt="" />}
+      <img className="my-trip-card__img" src={imageUrl} alt="" />
       <div className="my-trip-card__top">
         <div className="my-trip-card__top-row">
           <h3 className="my-trip-card__route"><span>{name}</span></h3>
@@ -370,12 +370,12 @@ export default function BookingsPage() {
   const confirmedCount = activeBookings.filter(b => b.status === 'approved').length
   const pendingCount = activeBookings.filter(b => b.status === 'pending').length
 
-  // Wallet stack: default expanded is the first active booking, or the first
-  // active anchor if there are no bookings.
+  // Wallet stack covers bookings only (anchors render unstacked). Default
+  // expanded = first active booking, or first closed booking when history is open.
   const effectiveExpanded =
     expandedId
     ?? activeBookings[0]?.id
-    ?? activeAnchors[0]?.id
+    ?? closedBookings[0]?.id
     ?? null
 
   return (
@@ -453,13 +453,13 @@ export default function BookingsPage() {
                   </div>
                 </div>
               ) : (
-                <div className="my-trips-stack">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {activeAnchors.map(a => (
                     <AnchorCard
                       key={a.id}
                       submission={a}
-                      isExpanded={effectiveExpanded === a.id}
-                      onSelect={() => setExpandedId(a.id)}
+                      isExpanded={true}
+                      onSelect={() => {}}
                     />
                   ))}
                 </div>
