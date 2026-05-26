@@ -154,7 +154,7 @@ export default function MobileNav({
                 <li>
                   <Link href="/admin" className="m-more__row m-more__row--admin">
                     <span className="m-more__icon">{iconWrap(Icons.build)}</span>
-                    <span>Ops dashboard</span>
+                    <span>Admin Dashboard</span>
                     <span className="m-more__chev" aria-hidden>›</span>
                   </Link>
                 </li>

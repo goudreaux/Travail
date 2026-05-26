@@ -534,7 +534,7 @@ export default function ReservePage() {
                 You&rsquo;re on the waitlist — we&rsquo;ll be in touch.
               </div>
             ) : (
-              <button className="btn-primary" style={{ width: '100%', height: 44, justifyContent: 'center', marginBottom: 10 }} onClick={joinWaitlist}>
+              <button className="btn-ghost" style={{ width: '100%', height: 44, justifyContent: 'center', marginBottom: 10 }} onClick={joinWaitlist}>
                 Join the waitlist
               </button>
             )}
