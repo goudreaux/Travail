@@ -73,12 +73,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isActive = (item: typeof nav[0]) => item.exact ? pathname === item.href : pathname.startsWith(item.href)
 
   return (
-    <div className="admin-shell" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', minHeight: '100vh', background: 'var(--bg)' }}>
-      <aside className="admin-aside" style={{
-        background: 'var(--night)', padding: '24px 16px',
-        display: 'flex', flexDirection: 'column', gap: 4,
-        position: 'sticky', top: 0, height: '100vh',
-      }}>
+    <div className="admin-shell">
+      <aside className="admin-aside">
         <div style={{ padding: '6px 8px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 12 }}>
           <div style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 22, color: '#fff' }}>Travail</div>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.18em', color: 'var(--tropic)', marginTop: 3 }}>OPS DASHBOARD</div>
@@ -127,7 +123,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
       </aside>
-      <main style={{ padding: 0 }}>
+      {/* Compact mobile top bar — only renders below 768px via CSS. Lets
+          ops see what page they're on + jump back to the member app. */}
+      <header className="admin-mobile-top">
+        <div className="admin-mobile-top__brand">
+          <span className="admin-mobile-top__name">Travail</span>
+          <span className="admin-mobile-top__tag">OPS</span>
+        </div>
+        <Link href="/" className="admin-mobile-top__back" aria-label="Back to member app">
+          ← App
+        </Link>
+        <button onClick={signOut} className="admin-mobile-top__signout" aria-label="Sign out">
+          <svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
+            <path d="M14 16l5-5-5-5" />
+            <path d="M19 11H8" />
+          </svg>
+        </button>
+      </header>
+      <main className="admin-main">
         {children}
       </main>
       <MobileNav pathname={pathname} isAdmin />
