@@ -550,6 +550,23 @@ export default function ReservePage() {
         <div className="builder">
           {/* ── LEFT: Form ── */}
           <div className="builder-form">
+            {/* Trip hero image — matches the open-seats card it was tapped from */}
+            {(() => {
+              const heroSrc = (kind === 'flight' ? flight?.image_url : excursion?.image_url) || '/trip-default.jpeg'
+              return (
+                <div style={{
+                  width: '100%',
+                  height: 200,
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  boxShadow: '0 1px 2px rgba(13,51,64,0.08), 0 14px 28px -8px rgba(13,51,64,0.18)',
+                  marginBottom: 6,
+                }}>
+                  <img src={heroSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </div>
+              )
+            })()}
+
             {/* Back link + header */}
             <div style={{ marginBottom: 4 }}>
               <Link
@@ -569,10 +586,11 @@ export default function ReservePage() {
               </Link>
               <h1 style={{
                 fontFamily: 'var(--display)',
-                fontSize: 32,
+                fontStyle: 'italic',
+                fontSize: 34,
                 fontWeight: 500,
                 letterSpacing: '-0.015em',
-                lineHeight: 1.1,
+                lineHeight: 1.05,
                 color: 'var(--ink)',
                 margin: '0 0 6px',
               }}>
@@ -591,20 +609,29 @@ export default function ReservePage() {
               ) : null}
             </div>
 
-            {/* Anchor pitch — up top to draw the eye */}
+            {/* Pitch — pull-quote on the paper bg (no box) */}
             {pitch && (
-              <div style={{
-                background: 'linear-gradient(135deg, #0c3a48, var(--night))',
-                borderRadius: 14,
-                padding: '22px 26px',
-                position: 'relative',
-                overflow: 'hidden',
-              }}>
-                <div style={{ position: 'absolute', top: -22, right: 16, fontFamily: 'var(--display)', fontSize: 120, lineHeight: 1, color: 'rgba(0,179,199,0.12)', pointerEvents: 'none' }}>”</div>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tropic)', marginBottom: 10 }}>
+              <div style={{ position: 'relative', padding: '14px 14px 14px 44px' }}>
+                <div
+                  aria-hidden
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: -10,
+                    fontFamily: 'var(--display)',
+                    fontStyle: 'italic',
+                    fontSize: 90,
+                    lineHeight: 1,
+                    color: 'rgba(13,51,64,0.16)',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  &ldquo;
+                </div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tropic-d)', marginBottom: 8 }}>
                   {anchorMemberId ? 'Why you should come' : 'The pitch'}
                 </div>
-                <p style={{ margin: 0, fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 21, lineHeight: 1.45, color: '#fff', position: 'relative' }}>
+                <p style={{ margin: 0, fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 21, lineHeight: 1.4, color: 'var(--ink)' }}>
                   {pitch}
                 </p>
               </div>
@@ -963,11 +990,11 @@ export default function ReservePage() {
                     ? [
                         { label: 'Operator', value: 'Travail Ops' },
                         { label: 'Aircraft', value: flight.aircraft_id },
-                        { label: 'Route', value: `${flight.origin_code} → ${flight.dest_code}` },
+                        { label: 'Route', value: `${airportCity(flight.origin_code, airportNames)} → ${airportCity(flight.dest_code, airportNames)}` },
                       ]
                     : [
                         { label: 'Operator', value: template?.operator ?? 'Travail Ops' },
-                        { label: 'Origin', value: excursion?.origin_code ?? '' },
+                        { label: 'Origin', value: excursion ? airportCity(excursion.origin_code, airportNames) : '' },
                       ]
                   ),
                   { label: kind === 'flight' ? 'Seats' : 'Spots', value: String(seats) },
