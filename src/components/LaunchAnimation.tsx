@@ -37,14 +37,14 @@ export default function LaunchAnimation() {
       if (done) return
       done = true
       setLeaving(true)
-      timers.push(setTimeout(() => setShow(false), 700))
+      timers.push(setTimeout(() => setShow(false), 260))
     }
     // Autoplay blocked or video failed to load: show the poster, then fade out.
     const fail = () => {
       if (settled) return
       settled = true
       setNoVideo(true)
-      timers.push(setTimeout(finish, 1800))
+      timers.push(setTimeout(finish, 1100))
     }
     finishRef.current = finish
     failRef.current = fail
@@ -68,12 +68,13 @@ export default function LaunchAnimation() {
     if (p && typeof p.then === 'function') {
       p.then(() => {
         settled = true
-        // Begin the crossfade into the app ~1.3s before the clip ends.
-        const dur = isFinite(v.duration) && v.duration > 0 ? v.duration * 1000 : 5200
-        timers.push(setTimeout(finish, Math.max(500, dur - 1300)))
+        // Start the crossfade in tandem with the clip's built-in fade-out so the
+        // whole splash lands at ~1.5s total.
+        const dur = isFinite(v.duration) && v.duration > 0 ? v.duration * 1000 : 1500
+        timers.push(setTimeout(finish, Math.max(300, dur - 250)))
       }).catch(fail)
     } else {
-      timers.push(setTimeout(finish, 3500))
+      timers.push(setTimeout(finish, 1500))
     }
     return () => timers.forEach(clearTimeout)
   }, [onAuthScreen])
