@@ -25,12 +25,14 @@ export const Icons = {
 // stroke width (1.5), round caps / joins, and currentColor stroke — so they
 // inherit theme color and feel like one coherent set.
 export const KIND_ICONS: Record<string, React.ReactElement> = {
-  // Cessna 208 Caravan on floats — fuselage ellipse + high wing + tail fin
-  // + pontoon and struts, with a single water line beneath.
-  flight: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="11" cy="9" rx="8" ry="1.4"/><path d="M7 8 L9 5 L13 5 L15 8"/><path d="M18 8 L20 5"/><line x1="5" y1="13" x2="17" y2="13"/><line x1="7" y1="10" x2="7" y2="13"/><line x1="15" y1="10" x2="15" y2="13"/><path d="M2 16.5 Q11 15.5 20 16.5"/></svg>),
+  // Cessna 208 Caravan on floats — fuselage ellipse + high wing + tail fin +
+  // pontoon and struts. Nose carries a small spinner hub + three propeller
+  // blades. Water line beneath.
+  flight: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="9" rx="6" ry="1.4"/><path d="M8 8 L10 5 L14 5 L16 8"/><path d="M17 8 L19 5"/><line x1="6" y1="13" x2="18" y2="13"/><line x1="8" y1="10" x2="8" y2="13"/><line x1="16" y1="10" x2="16" y2="13"/><circle cx="5.5" cy="9" r="0.7" fill="currentColor"/><line x1="5.5" y1="9" x2="3.5" y2="7"/><line x1="5.5" y1="9" x2="3.5" y2="11"/><line x1="5.5" y1="9" x2="5.5" y2="6.5"/><path d="M2 16.5 Q11 15.5 20 16.5"/></svg>),
 
-  // Tarpon — leaf-shaped body with a forked tail, gill curve, eye, dorsal fin.
-  fish: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11 Q4.5 6 11 6 Q16 6 17.5 9 L17.5 13 Q16 16 11 16 Q4.5 16 3 11 Z"/><path d="M17.5 9 L20.5 6 L19.5 11 L20.5 16 L17.5 13"/><path d="M7 8.5 Q7.8 11 7 13.5"/><circle cx="5.2" cy="10" r="0.7" fill="currentColor"/><path d="M10 6 L11 4 L13 6"/></svg>),
+  // Sailfish / billfish — long pointed bill out front, S-curved body, tall
+  // sail-like dorsal fin, forked tail, eye.
+  fish: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 11 L6 11"/><path d="M6 11 Q9 6 14 7 Q18 8 19 11 Q18 14 14 15 Q9 16 6 11 Z"/><path d="M9 7 L10 3 L13 3.5 L14 7.5" fill="currentColor"/><path d="M19 11 L21.5 8 L20.5 11 L21.5 14"/><circle cx="7.8" cy="10" r="0.55" fill="currentColor"/><path d="M11 15 L11 17"/></svg>),
 
   // Sloop — mast with filled mainsail + open jib, a hull underneath, water line.
   sail: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="11" y1="2.5" x2="11" y2="15"/><path d="M11 4 L17 14 L11 14 Z" fill="currentColor"/><path d="M11 6 L7 14 L11 14"/><path d="M3 15 Q11 18 19 15 L17.5 17.5 Q11 18.5 4.5 17.5 Z"/><path d="M1 20 Q5 19 9 20 T 17 20 T 21 20"/></svg>),
@@ -54,13 +56,33 @@ export const KIND_ICONS: Record<string, React.ReactElement> = {
 
   // Refined sun — disc + 4 long cardinal rays + 4 short diagonal rays.
   sun: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="3.5"/><path d="M11 1.5 L11 4 M11 18 L11 20.5 M1.5 11 L4 11 M18 11 L20.5 11"/><path d="M4.6 4.6 L6 6 M16 16 L17.4 17.4 M17.4 4.6 L16 6 M6 16 L4.6 17.4"/></svg>),
+
+  // Bolt-action hunting rifle, side profile — scope on top, barrel + receiver,
+  // trigger loop, filled angled stock. The general "Hunting" filter uses this;
+  // specific quail / hog / deer / croc trips can still use their animal marks.
+  rifle: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="20" y1="10.5" x2="9" y2="10.5"/><rect x="6" y="10" width="3" height="2"/><path d="M6.5 12 L6.5 13.5 Q7.5 14 8.5 13.5 L8.5 12"/><path d="M6 12 L2.5 14.5 L2.5 16 L6 13.5 Z" fill="currentColor"/><path d="M5.5 8 L11 8 L11 9.5 L5.5 9.5 Z"/><line x1="5.5" y1="7.5" x2="5.5" y2="10"/><line x1="19" y1="10.5" x2="19" y2="9"/></svg>),
+
+  // White-tailed deer antler rack — symmetric branching, dual main beams
+  // with three tines each, small skull plate at the base.
+  antlers: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 18 Q8 14 5 11 Q3 7 4 3"/><path d="M8 14 L5 14 M5 11 L2 10 M4 7 L1 6"/><path d="M11 18 Q14 14 17 11 Q19 7 18 3"/><path d="M14 14 L17 14 M17 11 L20 10 M18 7 L21 6"/><path d="M9 19 L13 19"/></svg>),
+
+  // Alligator / crocodile in side profile — low ridge-backed body with snout
+  // on the right, eye, nostril, four short legs, tapered tail on the left.
+  croc: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 13 L3.5 12.5 L4 13 L5.5 12.5 L6 13 L7.5 12.5 L8 13 L9.5 12.5 L10 13 L11.5 12.5 L12 13 L13.5 12.5 L14 13 L15.5 12.5 L16 13"/><path d="M16 13 Q18 12.5 21 13.5 L21 14.5 Q19 15 16 14"/><path d="M2 13 Q4 15 8 14.5 L16 14"/><path d="M2 13 L0.5 12 M2 13 L0.5 14"/><circle cx="18" cy="13" r="0.5" fill="currentColor"/><circle cx="20.5" cy="13.5" r="0.3" fill="currentColor"/><path d="M5 15 L5 17 M8 15 L8 17 M13 15 L13 17 M16 14 L16 17"/></svg>),
+
+  // Classic longboard standing upright — elongated pointed silhouette with
+  // a center stringer line and a small fin at the tail.
+  surfboard: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 2 C8 4 7 8 7 12 C7 17 9 19 11 19 C13 19 15 17 15 12 C15 8 14 4 11 2"/><line x1="11" y1="4" x2="11" y2="18"/><path d="M10 19 L11 21.5 L12 19"/></svg>),
 }
 
 // Canonical trip-type → icon, used for member interests across the app.
+// General Hunting uses the rifle mark; the animal-specific marks (quail,
+// hog, antlers, croc) live in KIND_ICONS and can be wired into individual
+// excursion templates as needed.
 export const TRIP_TYPE_ICONS: Record<string, React.ReactElement> = {
   Fishing: KIND_ICONS.fish,
-  Hunting: KIND_ICONS.quail,
+  Hunting: KIND_ICONS.rifle,
   Golf: KIND_ICONS.golf,
   Leisure: KIND_ICONS.sun,
-  Surfing: KIND_ICONS.wave,
+  Surfing: KIND_ICONS.surfboard,
 }
