@@ -1564,124 +1564,153 @@ body::before {
   color: var(--ink);
 }
 
-/* ─── My trip cards ──────────────────────────────────────── */
+/* ─── My trip cards (boarding-pass) ────────────────────────── */
 
 .my-trip-card {
-  background: var(--card);
+  background: var(--paper);
   border: 1px solid var(--hair);
   border-radius: 16px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: 0 2px 4px rgba(13, 51, 64, 0.05), 0 12px 30px rgba(13, 51, 64, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 2px 4px rgba(13, 51, 64, 0.05),
+    0 12px 30px rgba(13, 51, 64, 0.10);
   transition: box-shadow 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
+  cursor: pointer;
 }
 
-/* Trip image fading in from the right of the card (content rows are left-aligned). */
-.my-trip-card__img {
+/* Subtle passport-paper diagonal watermark behind the content. */
+.my-trip-card::before {
+  content: "";
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 56%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.85;
-  z-index: 0;
+  inset: 0;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 62%);
-  mask-image: linear-gradient(to right, transparent 0%, #000 62%);
-}
-
-.my-trip-card__header,
-.my-trip-card__body,
-.my-trip-card__footer {
-  position: relative;
-  z-index: 1;
+  background-image: repeating-linear-gradient(135deg, rgba(13, 51, 64, 0.022) 0 1px, transparent 1px 18px);
+  z-index: 0;
 }
 
 .my-trip-card:hover {
   border-color: var(--hair-2);
-  box-shadow: 0 2px 6px rgba(13, 51, 64, 0.06), 0 14px 34px rgba(13, 51, 64, 0.11);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 6px rgba(13, 51, 64, 0.06),
+    0 14px 34px rgba(13, 51, 64, 0.11);
   transform: translateY(-2px);
 }
 
-/* Status accent — left stripe + tinted header, by booking status */
+/* Status accents — left stripe; the stub colors the rest. */
 .my-trip-card.s-approved { border-left: 3px solid var(--moss); }
 .my-trip-card.s-pending { border-left: 3px solid var(--sun); }
 .my-trip-card.s-declined { border-left: 3px solid var(--signal); }
 .my-trip-card.s-cancelled,
 .my-trip-card.s-refunded { border-left: 3px solid var(--ink-faint); }
 
-.my-trip-card.s-approved .my-trip-card__header { background: rgba(62, 140, 109, 0.06); }
-.my-trip-card.s-pending .my-trip-card__header { background: rgba(244, 167, 44, 0.07); }
-.my-trip-card.s-declined .my-trip-card__header { background: rgba(217, 78, 42, 0.06); }
-
-.my-trip-card__header {
-  padding: 16px 18px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid var(--hair);
+/* Top hero image fills the card width. */
+.my-trip-card__img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
 }
 
-.my-trip-card__title {
-  font-family: var(--display);
-  font-size: 20px;
-  font-weight: 500;
+@media (max-width: 768px) {
+  .my-trip-card__img { height: 168px; }
+}
+
+/* Top section: route + utility meta line. */
+.my-trip-card__top {
+  position: relative;
+  z-index: 1;
+  padding: 16px 18px 14px;
+}
+
+.my-trip-card__route {
+  font-family: var(--ui);
+  font-weight: 700;
+  font-size: clamp(20px, 5.5vw, 26px);
+  letter-spacing: -0.022em;
+  line-height: 1.12;
   color: var(--ink);
-  line-height: 1.2;
-  margin-bottom: 2px;
-}
-
-.my-trip-card__sub {
-  font-size: 12px;
-  color: var(--ink-mid);
-}
-
-.my-trip-card__body {
-  padding: 14px 18px;
+  margin: 0 0 8px;
   display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.my-trip-card__row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--ink-soft);
-}
-
-.my-trip-card__row .label {
-  color: var(--ink-light);
-  min-width: 80px;
-  font-size: 11px;
-  font-family: var(--mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.my-trip-card__footer {
-  padding: 12px 18px;
-  background: linear-gradient(180deg, rgba(13, 51, 64, 0.015), rgba(13, 51, 64, 0.04));
-  border-top: 1px solid var(--hair);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  align-items: baseline;
+  gap: 10px;
   flex-wrap: wrap;
 }
+
+.my-trip-card__route-arrow {
+  color: var(--tropic-d);
+  font-weight: 500;
+  font-size: 0.86em;
+}
+
+.my-trip-card__meta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-mid);
+  line-height: 1.5;
+}
+
+/* Perforated divider with side notches and a dashed line. */
+.my-trip-card__perf {
+  position: relative;
+  z-index: 1;
+  height: 22px;
+}
+.my-trip-card__perf::before,
+.my-trip-card__perf::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg);
+}
+.my-trip-card__perf::before { left: -11px; }
+.my-trip-card__perf::after  { right: -11px; }
+
+.my-trip-card__perf-dash {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 50%;
+  border-top: 1.5px dashed var(--hair-2);
+  transform: translateY(-50%);
+}
+
+/* Stub (bottom section): status pill + confirmation + action. Status-tinted. */
+.my-trip-card__stub {
+  position: relative;
+  z-index: 1;
+  padding: 12px 18px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.my-trip-card.s-approved .my-trip-card__stub { background: linear-gradient(180deg, rgba(62, 140, 109, 0.05), rgba(62, 140, 109, 0.12)); }
+.my-trip-card.s-pending  .my-trip-card__stub { background: linear-gradient(180deg, rgba(244, 167, 44, 0.05), rgba(244, 167, 44, 0.14)); }
+.my-trip-card.s-declined .my-trip-card__stub { background: linear-gradient(180deg, rgba(217, 78, 42, 0.04), rgba(217, 78, 42, 0.10)); }
+.my-trip-card.s-cancelled .my-trip-card__stub,
+.my-trip-card.s-refunded  .my-trip-card__stub { background: linear-gradient(180deg, rgba(13, 51, 64, 0.02), rgba(13, 51, 64, 0.06)); }
 
 .my-trip-card__conf {
   font-family: var(--mono);
   font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.14em;
-  color: var(--ink);
+  color: var(--sun-d);
   text-transform: uppercase;
 }
 
@@ -3389,4 +3418,21 @@ textarea.input {
 .plan-choice__cta { font-size: 13px; font-weight: 600; margin-top: 6px; }
 @media (max-width: 640px) {
   .plan-choices { grid-template-columns: 1fr; }
+}
+
+/* ─── Compact mobile member hero ───────────────────────────── */
+
+@media (max-width: 768px) {
+  .page-hero {
+    padding: 16px 18px;
+    margin: 12px 12px 0;
+    border-radius: 14px;
+  }
+  .page-hero__eyebrow { font-size: 9px; margin-bottom: 8px; }
+  .page-hero__title { font-size: 22px; }
+  .page-hero__sub { display: none; }
+  .next-up { margin-top: 10px; padding: 5px 8px 5px 11px; gap: 8px; }
+  .next-up__label { font-size: 8.5px; }
+  .next-up__name { font-size: 12.5px; }
+  .next-up__date { font-size: 11px; padding: 2px 8px; }
 }

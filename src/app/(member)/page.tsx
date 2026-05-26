@@ -287,114 +287,70 @@ export default function FeedPage() {
                 if (trip.kind === 'flight') {
                   const { flight, booking } = trip
                   const dp = flight.dateParts
+                  const seatsLabel = booking.seats === 1 ? '1 SEAT' : `${booking.seats} SEATS`
                   return (
-                    <div key={booking.id} className={`my-trip-card s-${booking.status}`} style={{ cursor: 'pointer' }} onClick={() => router.push(`/reserve/${booking.item_id}?kind=flight${trip.roundReturn ? `&return=${trip.roundReturn.id}` : ''}`)}>
+                    <div key={booking.id} className={`my-trip-card s-${booking.status}`} onClick={() => router.push(`/reserve/${booking.item_id}?kind=flight${trip.roundReturn ? `&return=${trip.roundReturn.id}` : ''}`)}>
                       <img className="my-trip-card__img" src={flight.image_url || '/trip-default.jpeg'} alt="" />
-                      <div className="my-trip-card__header">
-                        <div>
-                          <div className="my-trip-card__title">
-                            {placeName(flight.origin_code, airportName)} {trip.roundReturn ? '⇄' : '→'} {placeName(flight.dest_code, airportName)}
-                          </div>
-                          <div className="my-trip-card__sub">
-                            {trip.roundReturn ? 'Round trip · ' : ''}{dp.dow}, {dp.mo} {dp.day} · {flight.departTimeStr} · {flight.durationStr}
-                          </div>
+                      <div className="my-trip-card__top">
+                        <h3 className="my-trip-card__route">
+                          <span>{placeName(flight.origin_code, airportName)}</span>
+                          <span className="my-trip-card__route-arrow">{trip.roundReturn ? '⇄' : '→'}</span>
+                          <span>{placeName(flight.dest_code, airportName)}</span>
+                        </h3>
+                        <div className="my-trip-card__meta">
+                          {`${dp.dow} ${dp.mo} ${dp.day}`}
+                          {flight.departTimeStr ? ` · ${flight.departTimeStr}` : ''}
+                          {flight.durationStr ? ` · ${flight.durationStr}` : ''}
+                          {` · ${seatsLabel}`}
+                          {trip.roundReturn ? ' · ROUND TRIP' : ''}
                         </div>
-                        <span className={statusPillClass(booking.status)}>
-                          {statusLabel(booking.status)}
-                        </span>
                       </div>
-                      <div className="my-trip-card__body">
-                        <div className="my-trip-card__row">
-                          <span className="label">From</span>
-                          <span>{placeName(flight.origin_code, airportName)} ({flight.origin_code})</span>
-                        </div>
-                        <div className="my-trip-card__row">
-                          <span className="label">To</span>
-                          <span>{placeName(flight.dest_code, airportName)} ({flight.dest_code})</span>
-                        </div>
-                        {trip.roundReturn && (
-                          <div className="my-trip-card__row">
-                            <span className="label">Return</span>
-                            <span>{trip.roundReturn.dateParts.dow}, {trip.roundReturn.dateParts.mo} {trip.roundReturn.dateParts.day} · {trip.roundReturn.departTimeStr}</span>
-                          </div>
-                        )}
-                        <div className="my-trip-card__row">
-                          <span className="label">Seats</span>
-                          <span>{booking.seats}</span>
-                        </div>
-                        {flight.name && (
-                          <div className="my-trip-card__row">
-                            <span className="label">Trip</span>
-                            <span>{flight.name}</span>
-                          </div>
-                        )}
+                      <div className="my-trip-card__perf" aria-hidden>
+                        <span className="my-trip-card__perf-dash" />
                       </div>
-                      <div className="my-trip-card__footer">
-                        <span className="my-trip-card__conf">
-                          {booking.confirmation_code ?? '—'}
-                        </span>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button
-                            className="btn-primary"
-                            style={{ height: 30, padding: '0 12px', fontSize: 12 }}
-                            onClick={e => { e.stopPropagation(); router.push(`/boarding-pass/${booking.id}`) }}
-                          >
-                            Boarding pass
-                          </button>
-                        </div>
+                      <div className="my-trip-card__stub">
+                        <span className={statusPillClass(booking.status)}>{statusLabel(booking.status)}</span>
+                        <span className="my-trip-card__conf">{booking.confirmation_code ?? '—'}</span>
+                        <button
+                          className="btn-primary"
+                          style={{ height: 30, padding: '0 12px', fontSize: 12 }}
+                          onClick={e => { e.stopPropagation(); router.push(`/boarding-pass/${booking.id}`) }}
+                        >
+                          Boarding pass
+                        </button>
                       </div>
                     </div>
                   )
                 } else {
                   const { excursion, booking } = trip
                   const dp = excursion.dateParts
-                  const icon = excursion.templateMeta?.icon ?? 'fish'
+                  const operator = excursion.templateMeta?.operator
+                  const spotsLabel = booking.seats === 1 ? '1 SPOT' : `${booking.seats} SPOTS`
                   return (
-                    <div key={booking.id} className={`my-trip-card s-${booking.status}`} style={{ cursor: 'pointer' }} onClick={() => router.push(`/reserve/${booking.item_id}?kind=excursion`)}>
+                    <div key={booking.id} className={`my-trip-card s-${booking.status}`} onClick={() => router.push(`/reserve/${booking.item_id}?kind=excursion`)}>
                       <img className="my-trip-card__img" src={excursion.image_url || '/trip-default.jpeg'} alt="" />
-                      <div className="my-trip-card__header">
-                        <div>
-                          <div className="my-trip-card__title">{excursion.name}</div>
-                          <div className="my-trip-card__sub">
-                            {dp.dow}, {dp.mo} {dp.day}
-                            {excursion.startTimeStr && excursion.startTimeStr !== '—' ? ` · ${excursion.startTimeStr}` : ''}
-                            {' · '}{excursion.stay_type.replace('_', ' ')}
-                          </div>
-                        </div>
-                        <span className={statusPillClass(booking.status)}>
-                          {statusLabel(booking.status)}
-                        </span>
-                      </div>
-                      <div className="my-trip-card__body">
-                        <div className="my-trip-card__row">
-                          <span className="label">Origin</span>
-                          <span>{placeName(excursion.origin_code, airportName)} ({excursion.origin_code})</span>
-                        </div>
-                        {excursion.templateMeta?.operator && (
-                          <div className="my-trip-card__row">
-                            <span className="label">Operator</span>
-                            <span>{excursion.templateMeta.operator}</span>
-                          </div>
-                        )}
-                        <div className="my-trip-card__row">
-                          <span className="label">Spots</span>
-                          <span>{booking.seats}</span>
+                      <div className="my-trip-card__top">
+                        <h3 className="my-trip-card__route"><span>{excursion.name}</span></h3>
+                        <div className="my-trip-card__meta">
+                          {`${dp.dow} ${dp.mo} ${dp.day}`}
+                          {excursion.startTimeStr && excursion.startTimeStr !== '—' ? ` · ${excursion.startTimeStr}` : ''}
+                          {operator ? ` · ${operator.toUpperCase()}` : ''}
+                          {` · ${spotsLabel}`}
                         </div>
                       </div>
-                      <div className="my-trip-card__footer">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink-mid)' }}>
-                          <span style={{ color: 'var(--ink-mid)' }}>{KIND_ICONS[icon] ?? KIND_ICONS['fish']}</span>
-                          <span className="my-trip-card__conf">{booking.confirmation_code ?? '—'}</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button
-                            className="btn-primary"
-                            style={{ height: 30, padding: '0 12px', fontSize: 12 }}
-                            onClick={e => { e.stopPropagation(); router.push(`/boarding-pass/${booking.id}`) }}
-                          >
-                            Boarding pass
-                          </button>
-                        </div>
+                      <div className="my-trip-card__perf" aria-hidden>
+                        <span className="my-trip-card__perf-dash" />
+                      </div>
+                      <div className="my-trip-card__stub">
+                        <span className={statusPillClass(booking.status)}>{statusLabel(booking.status)}</span>
+                        <span className="my-trip-card__conf">{booking.confirmation_code ?? '—'}</span>
+                        <button
+                          className="btn-primary"
+                          style={{ height: 30, padding: '0 12px', fontSize: 12 }}
+                          onClick={e => { e.stopPropagation(); router.push(`/boarding-pass/${booking.id}`) }}
+                        >
+                          Boarding pass
+                        </button>
                       </div>
                     </div>
                   )
