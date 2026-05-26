@@ -50,7 +50,7 @@ function Endpoint({ code, names }: { code: string; names: Record<string, string>
   const name = airportCity(code, names)
   return (
     <div style={{ textAlign: 'center', minWidth: 0, flex: 1 }}>
-      <div style={{ fontFamily: 'var(--display)', fontSize: 21, fontWeight: 500, color: '#fff', lineHeight: 1.15 }}>{name}</div>
+      <div style={{ fontFamily: 'var(--ui)', fontSize: 22, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>{name}</div>
     </div>
   )
 }
@@ -60,17 +60,17 @@ function FlightLeg({ label, f, names }: { label?: string; f: Flight; names: Reco
   return (
     <div>
       {label && (
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--tropic)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>{label}</div>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--tropic-d)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 12, fontWeight: 600 }}>{label}</div>
       )}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
         <Endpoint code={f.origin_code} names={names} />
-        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <div style={{ color: 'var(--tropic)', fontSize: 20 }}>→</div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>{fmtDur(f.duration_mins)}</div>
+        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+          <div style={{ color: 'var(--tropic-d)', fontSize: 22, fontWeight: 500 }}>→</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-light)', letterSpacing: '0.12em' }}>{fmtDur(f.duration_mins)}</div>
         </div>
         <Endpoint code={f.dest_code} names={names} />
       </div>
-      <div style={{ display: 'flex', gap: 18, marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+      <div style={{ display: 'flex', gap: 18, marginTop: 14, paddingTop: 12, borderTop: '1px dashed var(--hair-2)', flexWrap: 'wrap' }}>
         {[
           { label: 'Date', value: `${dp.dow} ${dp.mo} ${dp.day}` },
           { label: 'Departs', value: fmtTime(f.depart_time) },
@@ -78,8 +78,8 @@ function FlightLeg({ label, f, names }: { label?: string; f: Flight; names: Reco
           { label: 'Arrives', value: addMins(f.depart_time, f.duration_mins) },
         ].map(({ label, value }) => (
           <div key={label}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>{value}</div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-light)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3, fontWeight: 600 }}>{label}</div>
+            <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>{value}</div>
           </div>
         ))}
       </div>
@@ -638,16 +638,12 @@ export default function ReservePage() {
                   1 — Itinerary
                 </span>
               </div>
-              <div style={{
-                background: 'var(--night)',
-                borderRadius: 12,
-                padding: '20px 24px',
-              }}>
+              <div className="reserve-card">
                 {kind === 'flight' && flight ? (
                   isRoundTrip && returnFlight ? (
                     <>
                       <FlightLeg label="Outbound" f={flight} names={airportNames} />
-                      <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '16px 0' }} />
+                      <div style={{ height: 1, background: 'var(--hair-2)', margin: '16px 0' }} />
                       <FlightLeg label="Return" f={returnFlight} names={airportNames} />
                     </>
                   ) : (
@@ -655,25 +651,25 @@ export default function ReservePage() {
                   )
                 ) : excursion ? (
                   <>
-                    <div style={{ textAlign: 'center' }}>
-                      <div className="display-i" style={{ fontSize: 28, color: '#fff', lineHeight: 1.2, marginBottom: 6 }}>
+                    <div>
+                      <div style={{ fontFamily: 'var(--ui)', fontSize: 22, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: 6 }}>
                         {excursion.name}
                       </div>
-                      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                        From {airportNames[excursion.origin_code] ?? excursion.origin_code} ({excursion.origin_code}) · {excursion.stay_type.replace('_', ' ')}
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-light)', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>
+                        From {airportCity(excursion.origin_code, airportNames)} · {excursion.stay_type.replace('_', ' ')}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 20, marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div style={{ display: 'flex', gap: 20, marginTop: 14, paddingTop: 12, borderTop: '1px dashed var(--hair-2)', flexWrap: 'wrap' }}>
                       {[
                         { label: 'Date', value: `${dp.dow} ${dp.mo} ${dp.day}` },
                         { label: 'Departs', value: departTime },
                         { label: 'Duration', value: durationStr },
                       ].map(({ label, value }) => (
                         <div key={label}>
-                          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3 }}>
+                          <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-light)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3, fontWeight: 600 }}>
                             {label}
                           </div>
-                          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>
+                          <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>
                             {value}
                           </div>
                         </div>
@@ -961,21 +957,13 @@ export default function ReservePage() {
               {/* Trip name */}
               <div>
                 <div className="mono" style={{ marginBottom: 4 }}>Trip</div>
-                <div className="display-i" style={{ fontSize: 22, color: 'var(--ink)', lineHeight: 1.2 }}>
+                <div style={{ fontFamily: 'var(--ui)', fontSize: 17, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.25, letterSpacing: '-0.012em' }}>
                   {itemName}
                 </div>
               </div>
 
-              {/* Summary grid */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 1,
-                background: 'var(--hair)',
-                borderRadius: 10,
-                overflow: 'hidden',
-                border: '1px solid var(--hair)',
-              }}>
+              {/* Summary table: key/value rows on dashed dividers */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {[
                   { label: 'Date', value: formatDateLong(itemDate).split(',')[0] + ', ' + formatDateLong(itemDate).split(',').slice(1).join(',').trim() },
                   { label: 'Push time', value: departTime },
@@ -993,11 +981,10 @@ export default function ReservePage() {
                   ),
                   { label: kind === 'flight' ? 'Seats' : 'Spots', value: String(seats) },
                   { label: 'Per seat', value: fmtMoney(pricePerSeat) },
-                ].map(({ label, value }) => (
-                  <div key={label} style={{ background: 'var(--card)', padding: '10px 14px' }}>
-                    <div className="mono" style={{ marginBottom: 2 }}>{label}</div>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{value}</div>
-                  </div>
+                ].map(({ label, value }, i, arr) => (
+                  <div key={label} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderBottom: i === arr.length - 1 ? 'none' : '1px dashed var(--hair-2)' }}>
+                    <div className="mono" style={{ flexShrink: 0 }}>{label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', textAlign: 'right' }}>{value}</div>
                 ))}
               </div>
 
