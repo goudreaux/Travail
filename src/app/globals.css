@@ -527,57 +527,55 @@ body::before {
   position: relative;
   display: inline-flex;
   align-items: center;
-  height: 36px;
-  padding: 0 16px;
-  border: 1px solid rgba(244, 167, 44, 0.45);
+  height: 38px;
+  padding: 0 18px;
+  border: 1px solid rgba(232, 149, 15, 0.85);
   border-radius: 999px;
   background:
-    linear-gradient(180deg, rgba(255, 250, 232, 0.55) 0%, rgba(244, 167, 44, 0.14) 100%);
-  color: var(--ink);
+    linear-gradient(180deg, #ffc658 0%, #f4a72c 60%, #e8950f 100%);
+  color: #3a2a08;
   font-family: var(--ui);
   font-size: 13.5px;
-  font-weight: 600;
-  letter-spacing: -0.005em;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.32);
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
   text-decoration: none;
-  /* Resting shadow handled by the glow animation below. */
-  transition: border-color 0.18s, transform 0.12s, background 0.18s;
-  /* Slow sun-gold breathing glow — the button feels alive without
-     needing a separate pulsing dot. */
+  transition: border-color 0.18s, transform 0.12s, filter 0.15s;
+  /* Saturated sun-gold breathing glow — pulls the eye to the topbar. */
   animation: cta-go-glow 2.6s ease-in-out infinite;
 }
 @keyframes cta-go-glow {
   0%, 100% {
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.85),
-      0 1px 2px rgba(244, 167, 44, 0.22),
-      0 6px 16px -6px rgba(244, 167, 44, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 0.42),
+      0 1px 2px rgba(146, 80, 0, 0.40),
+      0 6px 18px -4px rgba(244, 167, 44, 0.55),
       0 0 0 0 rgba(244, 167, 44, 0.0);
   }
   50% {
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.95),
-      0 2px 4px rgba(244, 167, 44, 0.34),
-      0 10px 24px -4px rgba(244, 167, 44, 0.55),
-      0 0 22px 2px rgba(244, 167, 44, 0.32);
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      0 2px 4px rgba(146, 80, 0, 0.50),
+      0 12px 28px -4px rgba(244, 167, 44, 0.80),
+      0 0 28px 4px rgba(244, 167, 44, 0.55);
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .cta-go {
     animation: none;
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.90),
-      0 1px 2px rgba(244, 167, 44, 0.22),
-      0 6px 16px -6px rgba(244, 167, 44, 0.40);
+      inset 0 1px 0 rgba(255, 255, 255, 0.45),
+      0 1px 2px rgba(146, 80, 0, 0.40),
+      0 8px 22px -6px rgba(244, 167, 44, 0.70);
   }
 }
 .cta-go:hover {
-  transform: translateY(-1px);
-  border-color: rgba(244, 167, 44, 0.80);
-  background:
-    linear-gradient(180deg, rgba(255, 250, 232, 0.85) 0%, rgba(244, 167, 44, 0.22) 100%);
+  transform: translateY(-1.5px);
+  filter: brightness(1.06) saturate(1.08);
+  border-color: rgba(180, 110, 0, 0.95);
   /* Speed up the glow on hover so it feels eager. */
   animation-duration: 1.4s;
 }
