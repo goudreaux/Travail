@@ -263,7 +263,7 @@ export default function FeedPage() {
         )}
       </PageHero>
 
-      <div className="page-view" style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 760, margin: '0 auto', width: '100%' }}>
+      <div className="page-view" style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1080, width: '100%' }}>
       {/* My trips (left/top) + open seats (right/bottom) */}
       <div className="dash-cols">
         {/* My Trips */}

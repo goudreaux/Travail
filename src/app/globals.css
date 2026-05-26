@@ -3728,6 +3728,7 @@ textarea.input {
 /* ─── Reserve page: Airbnb-style hero + sticky bottom CTA ─── */
 
 .reserve-hero {
+  position: relative;
   width: 100%;
   height: 220px;
   border-radius: 16px;
@@ -3742,8 +3743,33 @@ textarea.input {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
 }
+/* Floating back button on the hero (Airbnb-style). Frosted glass over the
+   image, navigates to the previous page. */
+.reserve-hero__back {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: saturate(160%) blur(8px);
+  -webkit-backdrop-filter: saturate(160%) blur(8px);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(13, 51, 64, 0.22);
+  z-index: 2;
+  transition: background 0.12s, transform 0.12s;
+}
+.reserve-hero__back:hover { background: #fff; }
+.reserve-hero__back:active { transform: scale(0.94); }
 
 .reserve-cta-bar { display: none; }
 .reserve-page-pad { display: none; }
@@ -3753,49 +3779,22 @@ textarea.input {
 .reserve-sheet { display: contents; }
 
 @media (max-width: 768px) {
-  /* Bleed the hero edge-to-edge under the top bar (counteract page-view padding)
-     AND pin it in place so the form sheet slides up over it as the page scrolls.
-     Mobile page-view padding is 16px (not 28px) — match it so the bleed is
-     symmetric and the image doesn't get cropped on the right. */
+  /* Hero bleeds edge-to-edge under the top bar — simple stacked layout,
+     image on top, form scrolls below. No sticky parallax (it was visually
+     unstable on iOS). Mobile .page-view pads 16px so we pull back by -16px. */
   .reserve-hero {
     height: 290px;
     border-radius: 0;
     box-shadow: none;
-    margin: -16px -16px 0;
-    position: sticky;
-    top: 0;
-    z-index: 0;
+    margin: -16px -16px 16px;
   }
 
-  /* The form rises up over the pinned hero like a sheet. Edge-to-edge bleed,
-     soft rounded top, top shadow + hairline to lift it off the image. */
-  .builder-form { gap: 0; }
+  /* Sheet is just a normal flex column on mobile now — same gap behavior as
+     the rest of the form, no parallax shadow / grabber / negative margin. */
   .reserve-sheet {
-    position: relative;
-    z-index: 1;
     display: flex;
     flex-direction: column;
     gap: 18px;
-    background: var(--bg);
-    margin: -28px -16px 0;
-    padding: 24px 16px 0;
-    border-radius: 24px 24px 0 0;
-    box-shadow:
-      0 -1px 0 rgba(255, 255, 255, 0.7) inset,
-      0 -12px 30px -10px rgba(13, 51, 64, 0.22);
-  }
-  /* Tiny grabber at the top, like an iOS sheet handle, to telegraph the layering. */
-  .reserve-sheet::before {
-    content: "";
-    position: absolute;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 40px;
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(13, 51, 64, 0.16);
-    pointer-events: none;
   }
 
   /* Mobile only: hide the inline submit (sticky bar takes over). */

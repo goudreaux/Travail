@@ -560,6 +560,17 @@ export default function ReservePage() {
               return (
                 <div className="reserve-hero">
                   <img src={heroSrc} alt="" />
+                  <button
+                    type="button"
+                    className="reserve-hero__back"
+                    aria-label="Back"
+                    onClick={() => router.back()}
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="19" y1="12" x2="5" y2="12" />
+                      <polyline points="12 19 5 12 12 5" />
+                    </svg>
+                  </button>
                 </div>
               )
             })()}
@@ -567,21 +578,6 @@ export default function ReservePage() {
             <div className="reserve-sheet">
             {/* Back link + header */}
             <div style={{ marginBottom: 4 }}>
-              <Link
-                href="/seats"
-                className="mono"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 10,
-                  color: 'var(--ink-mid)',
-                  marginBottom: 16,
-                  transition: 'color 0.12s',
-                }}
-              >
-                ← OPEN SEATS
-              </Link>
               <h1 style={{
                 fontFamily: 'var(--display)',
                 fontStyle: 'italic',
