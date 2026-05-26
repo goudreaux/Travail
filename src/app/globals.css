@@ -531,6 +531,16 @@ body::before {
 }
 .cta-go:active { transform: translateY(0) scale(0.98); }
 
+/* Responsive label — desktop reads 'Go somewhere cool', mobile cuts
+   to a single 'Cool' so the top bar stays uncluttered. */
+.cta-go__long { display: inline; }
+.cta-go__short { display: none; }
+@media (max-width: 768px) {
+  .cta-go__long { display: none; }
+  .cta-go__short { display: inline; }
+  .cta-go { padding: 0 14px 0 14px; gap: 7px; }
+}
+
 /* Trailing arrow drifts a few pixels right and back on a slow loop.
    Reads as a quiet 'go' nudge rather than a notification pulse — no
    competing with the live dots elsewhere on the page. */
