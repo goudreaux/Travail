@@ -54,7 +54,7 @@ function CtaButton({ available, waitlisted, onBook, onWaitlist, label, accent }:
 }) {
   if (available > 0) {
     return (
-      <button className="btn-primary" style={{ height: 30, padding: '0 14px', fontSize: 12, background: accent }} onClick={e => { e.stopPropagation(); onBook() }}>
+      <button className="cta-outline" style={{ color: accent }} onClick={e => { e.stopPropagation(); onBook() }}>
         {label}
       </button>
     )
