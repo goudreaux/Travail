@@ -307,12 +307,12 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
           )}
         </div>
 
-        {/* Concierge CTA — quietly invites the member to start a brief.
-            Leading dot pulses on the same cadence as the feed brief's
-            live indicator, so the visual vocabulary ties together. */}
-        <Link href="/plan" className="cta-go" aria-label="Plan somewhere to go">
-          <span className="cta-go__dot" aria-hidden />
-          <span>Go somewhere</span>
+        {/* Concierge CTA. The trailing arrow drifts a few pixels right and
+            back on a slow loop — quietly reinforces 'go somewhere' as a
+            forward motion without competing with the live dots elsewhere. */}
+        <Link href="/plan" className="cta-go" aria-label="Plan somewhere cool to go">
+          <span>Go somewhere cool</span>
+          <span className="cta-go__arrow" aria-hidden>→</span>
         </Link>
 
         {/* Sign out — visible in every member window (desktop + mobile top bar) */}
