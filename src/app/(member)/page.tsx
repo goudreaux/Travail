@@ -313,19 +313,6 @@ export default function FeedPage() {
           </span>
         </div>
 
-        {/* Compact next-up rail at the bottom */}
-        {nextTrip && nextDate && (
-          <a
-            href={nextTrip.kind === 'flight' ? `/boarding-pass/${nextTrip.booking.id}` : `/trip/${nextTrip.booking.id}`}
-            className="feed-hero__next"
-          >
-            <span className="feed-hero__next-label">Next</span>
-            <span className="feed-hero__next-sep" aria-hidden />
-            <span className="feed-hero__next-name">{nextLabel}</span>
-            <span className="feed-hero__next-when">{nextDate.dow}, {nextDate.mo} {nextDate.day}</span>
-            <span className="feed-hero__next-arrow" aria-hidden>→</span>
-          </a>
-        )}
       </section>
 
       <div className="page-view" style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1400, width: '100%' }}>
