@@ -530,22 +530,28 @@ body::before {
     0 10px 24px -6px rgba(244, 167, 44, 0.48);
 }
 .cta-go:active { transform: translateY(0) scale(0.98); }
-.cta-go__dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--sun-d);
-  flex-shrink: 0;
-  box-shadow: 0 0 0 0 rgba(244, 167, 44, 0.55);
-  animation: cta-go-pulse 2.4s ease-out infinite;
+
+/* Trailing arrow drifts a few pixels right and back on a slow loop.
+   Reads as a quiet 'go' nudge rather than a notification pulse — no
+   competing with the live dots elsewhere on the page. */
+.cta-go__arrow {
+  display: inline-flex;
+  color: var(--sun-d);
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  margin-left: -2px;
+  animation: cta-go-drift 3.4s ease-in-out infinite;
 }
-@keyframes cta-go-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(244, 167, 44, 0.55); }
-  70%  { box-shadow: 0 0 0 8px rgba(244, 167, 44, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(244, 167, 44, 0); }
+.cta-go:hover .cta-go__arrow {
+  animation-duration: 1.2s;
+}
+@keyframes cta-go-drift {
+  0%, 100% { transform: translateX(0); opacity: 0.85; }
+  50%      { transform: translateX(4px); opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .cta-go__dot { animation: none; }
+  .cta-go__arrow { animation: none; }
 }
 
 /* ─── Page ───────────────────────────────────────────────── */
