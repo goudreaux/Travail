@@ -4016,13 +4016,48 @@ textarea.input {
     0 1px 2px rgba(13, 51, 64, 0.08),
     0 14px 28px -8px rgba(13, 51, 64, 0.20);
   margin-bottom: 8px;
+  background: #0a3340;
 }
 .reserve-hero img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
   display: block;
+  /* Sharper bilinear path on WebKit when downscaling; GPU-promote so iOS
+     doesn't fall back to a lower-quality CPU scale path. */
+  image-rendering: -webkit-optimize-contrast;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+/* Cinematic transition: the bottom ~30% of the image dissolves into the
+   page background so the seam between hero and form reads as designed,
+   not as a hard cut. */
+.reserve-hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 38%;
+  background: linear-gradient(180deg, transparent 0%, rgba(251, 246, 236, 0.0) 22%, rgba(251, 246, 236, 0.55) 68%, var(--bg) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+/* Premium hairline accent at the seam — a fine teal sweep that anchors
+   the transition. */
+.reserve-hero::before {
+  content: "";
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 179, 199, 0.55) 50%, transparent 100%);
+  z-index: 2;
+  pointer-events: none;
 }
 /* Floating back button on the hero (Airbnb-style). Frosted glass over the
    image, navigates to the previous page. */
@@ -4043,7 +4078,7 @@ textarea.input {
   color: var(--ink);
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(13, 51, 64, 0.22);
-  z-index: 2;
+  z-index: 3;
   transition: background 0.12s, transform 0.12s;
 }
 .reserve-hero__back:hover { background: #fff; }
