@@ -46,14 +46,23 @@ function statusLabel(status: Booking['status']): string {
   return (status as string).toUpperCase()
 }
 
+// Filter chips → matching icons. The auto-suggest helper drives both
+// directions: when a new excursion is named, its icon is derived from the
+// name; here we use the icon (the source of truth on the row) to decide
+// which chip claims it. Name substring matches are a backstop for legacy
+// rows that pre-date the auto-suggest.
+const FISH_ICONS = new Set(['fish', 'lobster', 'snorkel'])
+const HUNT_ICONS = new Set(['rifle', 'bow', 'quail', 'hog', 'antlers', 'croc'])
+const GOLF_ICONS = new Set(['golf'])
+
 function excursionMatchesFilter(e: DisplayExcursion, filter: TypeFilter): boolean {
   if (filter === 'all') return true
   const icon = e.templateMeta?.icon ?? ''
   const name = (e.name ?? '').toLowerCase()
   const tplName = (e.templateMeta?.name ?? '').toLowerCase()
-  if (filter === 'fish') return icon === 'fish' || name.includes('fish') || tplName.includes('fish')
-  if (filter === 'golf') return icon === 'golf' || name.includes('golf') || tplName.includes('golf')
-  if (filter === 'hunt') return icon === 'quail' || icon === 'hog' || name.includes('hunt') || name.includes('shoot') || tplName.includes('hunt') || tplName.includes('shoot') || tplName.includes('quail')
+  if (filter === 'fish') return FISH_ICONS.has(icon) || name.includes('fish') || name.includes('lobster') || tplName.includes('fish') || tplName.includes('lobster')
+  if (filter === 'golf') return GOLF_ICONS.has(icon) || name.includes('golf') || tplName.includes('golf')
+  if (filter === 'hunt') return HUNT_ICONS.has(icon) || name.includes('hunt') || name.includes('shoot') || tplName.includes('hunt') || tplName.includes('shoot') || tplName.includes('quail')
   return true
 }
 
