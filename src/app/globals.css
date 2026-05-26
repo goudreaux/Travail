@@ -3734,14 +3734,52 @@ textarea.input {
 .reserve-cta-bar { display: none; }
 .reserve-page-pad { display: none; }
 .reserve-inline-submit { display: inline-flex; }
+/* Default: the sheet is transparent — its children sit as direct flex
+   children of .builder-form. The parallax effect only kicks in on mobile. */
+.reserve-sheet { display: contents; }
 
 @media (max-width: 768px) {
-  /* Bleed the hero edge-to-edge under the top bar (counteract page-view padding). */
+  /* Bleed the hero edge-to-edge under the top bar (counteract page-view padding)
+     AND pin it in place so the form sheet slides up over it as the page scrolls. */
   .reserve-hero {
     height: 290px;
     border-radius: 0;
     box-shadow: none;
-    margin: -24px -28px 16px;
+    margin: -24px -28px 0;
+    position: sticky;
+    top: 0;
+    z-index: 0;
+  }
+
+  /* The form rises up over the pinned hero like a sheet. Edge-to-edge bleed,
+     soft rounded top, top shadow + hairline to lift it off the image. */
+  .builder-form { gap: 0; }
+  .reserve-sheet {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    background: var(--bg);
+    margin: -28px -28px 0;
+    padding: 24px 28px 0;
+    border-radius: 24px 24px 0 0;
+    box-shadow:
+      0 -1px 0 rgba(255, 255, 255, 0.7) inset,
+      0 -12px 30px -10px rgba(13, 51, 64, 0.22);
+  }
+  /* Tiny grabber at the top, like an iOS sheet handle, to telegraph the layering. */
+  .reserve-sheet::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(13, 51, 64, 0.16);
+    pointer-events: none;
   }
 
   /* Mobile only: hide the inline submit (sticky bar takes over). */

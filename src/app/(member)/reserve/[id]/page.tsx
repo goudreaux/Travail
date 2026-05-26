@@ -561,6 +561,7 @@ export default function ReservePage() {
               )
             })()}
 
+            <div className="reserve-sheet">
             {/* Back link + header */}
             <div style={{ marginBottom: 4 }}>
               <Link
@@ -947,6 +948,7 @@ export default function ReservePage() {
                 {error}
               </div>
             )}
+            </div>
           </div>
 
           {/* ── RIGHT: Preview / Confirm ── */}
@@ -1006,7 +1008,7 @@ export default function ReservePage() {
                   alignItems: 'center',
                 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Total</span>
-                  <span style={{ fontFamily: 'var(--display)', fontSize: 28, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
+                  <span style={{ fontFamily: 'var(--ui)', fontSize: 22, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
                     {fmtMoney(total)}
                   </span>
                 </div>
