@@ -50,9 +50,11 @@ export default function ContactPage() {
   return (
     <div className="page">
       <PageHero
+        accent="signal"
         eyebrow="Concierge"
         title="Contact ops."
         sub="Save our number and reach us any time — text, call, or email. A member of the team will take care of it."
+        metric={{ value: '~4', label: 'Min avg reply', sub: '7am · 9pm ET' }}
       />
       <div className="page-view" style={{ maxWidth: 620 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

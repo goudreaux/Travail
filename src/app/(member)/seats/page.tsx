@@ -447,9 +447,11 @@ export default function SeatsPage() {
     <div className="page">
       {toast && <div className="toast success">{toast}</div>}
       <PageHero
+        accent="sun"
         eyebrow="DEPARTURES BOARD"
         title="Open seats & spots."
         sub={loading ? 'Loading available departures…' : `${totalOpen} departure${totalOpen !== 1 ? 's' : ''} with open availability`}
+        metric={loading ? undefined : { value: totalOpen, label: 'Live', sub: 'Departures' }}
       />
 
       <div className="page-view" style={{ maxWidth: 716 }}>

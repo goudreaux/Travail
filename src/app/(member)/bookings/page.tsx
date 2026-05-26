@@ -367,11 +367,17 @@ export default function BookingsPage() {
   return (
     <div className="page">
       <PageHero
+        accent="moss"
         eyebrow="YOUR ACTIVITY"
         title="Bookings & anchors."
         sub={loading
           ? 'Loading your activity…'
           : `${activeBookings.length} active booking${activeBookings.length !== 1 ? 's' : ''}${confirmedCount > 0 ? ` · ${confirmedCount} confirmed` : ''}${pendingCount > 0 ? ` · ${pendingCount} pending` : ''}${activeAnchors.length > 0 ? ` · ${activeAnchors.length} active anchor${activeAnchors.length !== 1 ? 's' : ''}` : ''}`}
+        metric={loading ? undefined : {
+          value: activeBookings.length,
+          label: activeAnchors.length > 0 ? `Active · ${activeAnchors.length} anchored` : 'Active trips',
+          sub: 'On the board',
+        }}
       />
 
       <div className="page-view">

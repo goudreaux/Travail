@@ -187,9 +187,15 @@ export default function MembershipPage() {
   return (
     <div className="page">
       <PageHero
+        accent="sun"
         eyebrow={member.tier === 'administrator' ? tierLabel(member.tier) : `${memberCode(member)} · ${tierLabel(member.tier)}`}
         title="Membership."
         sub="Your account, history, and settings."
+        metric={{
+          value: memberCode(member).replace('#', ''),
+          label: tierLabel(member.tier),
+          sub: dp && member.joined_at ? `Since ${dp.mo} ${member.joined_at.slice(0, 4)}` : undefined,
+        }}
       />
 
       <div className="page-view">
