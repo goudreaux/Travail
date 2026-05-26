@@ -688,10 +688,8 @@ body::before {
    both caps and lets the page scroll instead. */
 .dash-cols {
   display: grid;
-  /* My Trips on the left (one boarding-pass column) gets a comfortable but
-     compact lane; Open Seats on the right gets the lion's share so its
-     ticket-style cards don't feel cramped. */
-  grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.7fr);
+  /* Equal columns — My Trips matches the Open Seats lane width. */
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
   align-items: stretch;
   height: clamp(520px, calc(100vh - 240px), 760px);

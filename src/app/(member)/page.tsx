@@ -328,7 +328,7 @@ export default function FeedPage() {
         )}
       </section>
 
-      <div className="page-view" style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1240, width: '100%' }}>
+      <div className="page-view" style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1400, width: '100%' }}>
       {/* My trips (left/top) + open seats (right/bottom) */}
       <div className="dash-cols">
         {/* My Trips */}
