@@ -559,7 +559,13 @@ export default function ReservePage() {
               const heroSrc = (kind === 'flight' ? flight?.image_url : excursion?.image_url) || '/trip-default.jpeg'
               return (
                 <div className="reserve-hero">
-                  <img src={heroSrc} alt="" />
+                  <img
+                    src={heroSrc}
+                    alt=""
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                  />
                   <button
                     type="button"
                     className="reserve-hero__back"
