@@ -2019,18 +2019,10 @@ body::before {
 }
 
 /* Perforated divider with side notches and a dashed line.
-   Positioned right beneath the image (via flex order) so the cutouts bite
-   into the bottom of the photo — the photo becomes a tear-off stub above
-   the ticket body. The notches are large semicircles painted in the page
-   bg colour so the card reads as a real torn-edge ticket. A subtle
-   hairline + inset shadow on each notch echoes the card border curving
-   around the cutout. */
-.my-trip-card__img { order: 1; }
-.my-trip-card__perf { order: 2; }
-.my-trip-card__top { order: 3; }
-.my-trip-card__body { order: 4; }
-.my-trip-card__footer { order: 5; }
-.my-trip-card__stub { order: 6; }
+   Sits between the title/meta section and the stub (the boarding pass
+   button row). Large semicircles painted in the page bg colour so the
+   card reads as a real torn-edge ticket; a subtle hairline + inset
+   shadow on each notch echoes the card border curving around the cutout. */
 
 .my-trip-card__perf {
   position: relative;
