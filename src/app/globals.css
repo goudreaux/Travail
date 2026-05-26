@@ -3519,3 +3519,22 @@ textarea.input {
     pointer-events: none;
   }
 }
+
+/* ─── Top bar brand lockup ─────────────────────────────────── */
+
+.topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  text-decoration: none;
+  margin-right: auto;
+}
+.topbar-brand img {
+  display: block;
+  height: 28px;
+  width: auto;
+}
+
+@media (max-width: 768px) {
+  .topbar-brand img { height: 24px; }
+}
