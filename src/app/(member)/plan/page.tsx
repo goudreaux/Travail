@@ -21,7 +21,7 @@ export default function PlanPage() {
   if (isAdmin === null) return null
   if (!isAdmin) return (
     <div className="page">
-      <PageHero eyebrow="PLAN A TRIP" title="Coming soon." sub="This feature is under development. Check back soon." />
+      <PageHero accent="sun" eyebrow="PLAN A TRIP" title="Coming soon." sub="This feature is under development. Check back soon." />
     </div>
   )
 
@@ -48,7 +48,7 @@ export default function PlanPage() {
 
   return (
     <div className="page">
-      <PageHero eyebrow="PLAN A TRIP" title="What are you planning?" sub="Choose a trip type to get started — we'll walk you through the rest." />
+      <PageHero accent="sun" eyebrow="PLAN A TRIP" title="What are you planning?" sub="Choose a trip type to get started — we'll walk you through the rest." />
       <div className="page-view">
         <div className="wiz">
           <div className="plan-choices">

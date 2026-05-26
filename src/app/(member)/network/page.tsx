@@ -102,9 +102,11 @@ export default function NetworkPage() {
   return (
     <div className="page">
       <PageHero
+        accent="teal"
         eyebrow="The Network"
         title="Members."
         sub={loading ? 'Loading…' : `The ${members.length} founding members.`}
+        metric={loading ? undefined : { value: members.length, label: 'Founding members', sub: 'In the wire' }}
         actions={
           <div className="search" style={{ maxWidth: 240 }}>
             <svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
