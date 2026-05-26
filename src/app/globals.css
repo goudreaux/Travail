@@ -2020,19 +2020,37 @@ body::before {
 
 /* Collapsed: only the top strip (route + meta + status pill) is visible. */
 .my-trip-card[data-expanded="0"] {
-  max-height: 96px;
+  max-height: 72px;
   overflow: hidden;
 }
 .my-trip-card[data-expanded="0"] .my-trip-card__img,
 .my-trip-card[data-expanded="0"] .my-trip-card__perf,
 .my-trip-card[data-expanded="0"] .my-trip-card__stub,
 .my-trip-card[data-expanded="0"] .my-trip-card__body,
-.my-trip-card[data-expanded="0"] .my-trip-card__footer {
+.my-trip-card[data-expanded="0"] .my-trip-card__footer,
+/* Hide the busy meta line on retracted cards — title-only keeps the
+   wallet stack clean. The meta returns the moment the card expands. */
+.my-trip-card[data-expanded="0"] .my-trip-card__meta {
   display: none;
 }
 .my-trip-card[data-expanded="0"] .my-trip-card__top {
-  padding-top: 14px;
-  padding-bottom: 14px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+/* Truncate the title to a single line so a long destination
+   ("Lochloosa Golf Club · Winter Haven") doesn't wrap into the
+   neighbor card. */
+.my-trip-card[data-expanded="0"] .my-trip-card__route {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.my-trip-card[data-expanded="0"] .my-trip-card__route-cities {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 /* Collapsed cards peek under each other for the wallet stack look. */
