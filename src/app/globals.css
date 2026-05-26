@@ -1846,20 +1846,34 @@ body::before {
 }
 
 /* Hero image: cropped to the card's fixed height, fading into the card on the
-   left so it blends in rather than sitting as a hard block. */
+   left so it blends in rather than sitting as a hard block. The gradient is
+   stretched over ~60% of the image width with a soft midpoint so the fade
+   reads as a long feathered edge instead of a quick wipe. */
 .trip-card__img {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
-  width: 58%;
+  width: 62%;
   height: 100%;
   object-fit: cover;
   pointer-events: none;
   z-index: 1;
   opacity: 1;
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 30%);
-  mask-image: linear-gradient(to right, transparent 0%, #000 30%);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(0, 0, 0, 0.35) 30%,
+    rgba(0, 0, 0, 0.75) 50%,
+    #000 70%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(0, 0, 0, 0.35) 30%,
+    rgba(0, 0, 0, 0.75) 50%,
+    #000 70%
+  );
 }
 
 .trip-card__title {
