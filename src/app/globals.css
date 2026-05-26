@@ -1714,6 +1714,62 @@ body::before {
   text-transform: uppercase;
 }
 
+/* Top row holding the route + the status pill (so the pill stays visible when
+   the card is collapsed in the wallet stack). */
+.my-trip-card__top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.my-trip-card__top-row .pill { flex-shrink: 0; margin-top: 3px; }
+
+/* iOS Wallet-style stack: one card expanded, the rest collapsed to peeking
+   header strips beneath. Tap a strip to bring it forward. */
+.my-trips-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.my-trip-card {
+  transition:
+    max-height 0.36s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-top 0.36s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.18s ease,
+    transform 0.18s ease,
+    border-color 0.18s ease;
+  max-height: 1600px;
+}
+
+.my-trips-stack > .my-trip-card + .my-trip-card { margin-top: 12px; }
+
+/* Collapsed: only the top strip (route + meta + status pill) is visible. */
+.my-trip-card[data-expanded="0"] {
+  max-height: 96px;
+  overflow: hidden;
+}
+.my-trip-card[data-expanded="0"] .my-trip-card__img,
+.my-trip-card[data-expanded="0"] .my-trip-card__perf,
+.my-trip-card[data-expanded="0"] .my-trip-card__stub {
+  display: none;
+}
+.my-trip-card[data-expanded="0"] .my-trip-card__top {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+/* Collapsed cards peek under each other for the wallet stack look. */
+.my-trips-stack > .my-trip-card[data-expanded="0"] + .my-trip-card[data-expanded="0"] {
+  margin-top: -28px;
+}
+.my-trips-stack > .my-trip-card[data-expanded="1"] + .my-trip-card[data-expanded="0"] {
+  margin-top: -4px;
+}
+
+.my-trip-card[data-expanded="0"] { opacity: 0.96; }
+.my-trip-card[data-expanded="0"]:hover { opacity: 1; }
+
 /* ─── Builder / Forms ────────────────────────────────────── */
 
 .builder {
