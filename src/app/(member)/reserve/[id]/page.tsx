@@ -985,6 +985,7 @@ export default function ReservePage() {
                   <div key={label} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderBottom: i === arr.length - 1 ? 'none' : '1px dashed var(--hair-2)' }}>
                     <div className="mono" style={{ flexShrink: 0 }}>{label}</div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', textAlign: 'right' }}>{value}</div>
+                  </div>
                 ))}
               </div>
 
