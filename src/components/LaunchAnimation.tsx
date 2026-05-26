@@ -37,7 +37,7 @@ export default function LaunchAnimation() {
       if (done) return
       done = true
       setLeaving(true)
-      timers.push(setTimeout(() => setShow(false), 260))
+      timers.push(setTimeout(() => setShow(false), 720))
     }
     // Autoplay blocked or video failed to load: show the poster, then fade out.
     const fail = () => {
@@ -68,10 +68,11 @@ export default function LaunchAnimation() {
     if (p && typeof p.then === 'function') {
       p.then(() => {
         settled = true
-        // Start the crossfade in tandem with the clip's built-in fade-out so the
-        // whole splash lands at ~1.5s total.
-        const dur = isFinite(v.duration) && v.duration > 0 ? v.duration * 1000 : 1500
-        timers.push(setTimeout(finish, Math.max(300, dur - 250)))
+        // Begin the CSS crossfade ~700ms before the clip ends so it overlaps
+        // the clip's own gradual fade-out — gives a single long, gradual fade
+        // into the feed instead of an abrupt cut.
+        const dur = isFinite(v.duration) && v.duration > 0 ? v.duration * 1000 : 2000
+        timers.push(setTimeout(finish, Math.max(300, dur - 700)))
       }).catch(fail)
     } else {
       timers.push(setTimeout(finish, 1500))

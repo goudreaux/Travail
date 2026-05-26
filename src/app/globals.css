@@ -2745,7 +2745,7 @@ textarea.input {
   align-items: center;
   justify-content: center;
   background: #065465;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.7s ease;
   will-change: opacity;
 }
 
