@@ -148,11 +148,11 @@ function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect, a
         </span>
         {isBoarding && (
           <button
-            className="btn-primary"
-            style={{ height: 30, padding: '0 12px', fontSize: 12 }}
+            className="btn-ghost-quiet"
+            style={{ height: 28, padding: '0 12px', fontSize: 11.5 }}
             onClick={ev => { ev.stopPropagation(); onNavigate() }}
           >
-            Boarding pass
+            Boarding pass →
           </button>
         )}
       </div>
