@@ -575,16 +575,102 @@ body::before {
   gap: 16px;
   flex-wrap: wrap;
 }
-.page-hero__glow { position: absolute; border-radius: 50%; pointer-events: none; }
-.page-hero__glow--teal { top: -90px; right: -70px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(0,179,199,0.30), transparent 68%); }
-.page-hero__glow--sun { bottom: -110px; left: 38%; width: 260px; height: 260px; background: radial-gradient(circle, rgba(244,167,44,0.12), transparent 70%); }
-.page-hero__eyebrow { font-size: 10px; letter-spacing: 0.2em; color: var(--tropic); margin-bottom: 12px; }
-.page-hero__title { font-family: var(--display); font-style: italic; font-weight: 500; color: #fff; margin: 0; line-height: 1.04; letter-spacing: -0.01em; font-size: clamp(28px, 5vw, 42px); }
+.page-hero__glow { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(2px); }
+.page-hero__glow--primary { top: -90px; right: -70px; width: 320px; height: 320px; }
+.page-hero__glow--secondary { bottom: -110px; left: 38%; width: 260px; height: 260px; }
+
+/* Accent palettes — each page picks one so the navigation has color memory. */
+.page-hero--teal .page-hero__glow--primary { background: radial-gradient(circle, rgba(0,179,199,0.32), transparent 68%); }
+.page-hero--teal .page-hero__glow--secondary { background: radial-gradient(circle, rgba(244,167,44,0.12), transparent 70%); }
+.page-hero--teal .page-hero__eyebrow,
+.page-hero--teal .page-hero__metric-value { color: var(--tropic); }
+
+.page-hero--sun .page-hero__glow--primary { background: radial-gradient(circle, rgba(244,167,44,0.30), transparent 68%); }
+.page-hero--sun .page-hero__glow--secondary { background: radial-gradient(circle, rgba(0,179,199,0.10), transparent 70%); }
+.page-hero--sun .page-hero__eyebrow,
+.page-hero--sun .page-hero__metric-value { color: var(--sun); }
+
+.page-hero--moss .page-hero__glow--primary { background: radial-gradient(circle, rgba(62,140,109,0.34), transparent 68%); }
+.page-hero--moss .page-hero__glow--secondary { background: radial-gradient(circle, rgba(0,179,199,0.10), transparent 70%); }
+.page-hero--moss .page-hero__eyebrow,
+.page-hero--moss .page-hero__metric-value { color: var(--moss); }
+
+.page-hero--signal .page-hero__glow--primary { background: radial-gradient(circle, rgba(217,78,42,0.26), transparent 68%); }
+.page-hero--signal .page-hero__glow--secondary { background: radial-gradient(circle, rgba(244,167,44,0.10), transparent 70%); }
+.page-hero--signal .page-hero__eyebrow,
+.page-hero--signal .page-hero__metric-value { color: var(--signal); }
+
+.page-hero__eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+/* Bumped from clamp(28,5vw,42) so the title actually commands the block. */
+.page-hero__title {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  color: #fff;
+  margin: 0;
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  font-size: clamp(34px, 6vw, 48px);
+}
 .page-hero__sub { font-size: 14px; color: rgba(255,255,255,0.62); margin-top: 10px; }
 .page-hero__actions { position: relative; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
+/* Right-side metric block: anchors the empty space, gives each page a
+   live data point. Big italic Cormorant number, small mono label/sub. */
+.page-hero__metric {
+  position: relative;
+  flex-shrink: 0;
+  text-align: right;
+  padding-left: 18px;
+  min-width: 90px;
+  animation: page-hero-metric-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s both;
+}
+.page-hero__metric-value {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(40px, 6.5vw, 60px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.page-hero__metric-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+  margin-top: 8px;
+  font-weight: 600;
+}
+.page-hero__metric-sub {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 4px;
+}
+@keyframes page-hero-metric-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (max-width: 768px) {
-  .page-hero { margin: 16px 16px 0; border-radius: 16px; }
+  .page-hero { margin: 16px 16px 0; border-radius: 16px; padding: 22px 20px; }
+  .page-hero__inner { gap: 12px; flex-wrap: nowrap; align-items: center; }
+  .page-hero__metric { padding-left: 12px; min-width: 70px; }
+  .page-hero__metric-value { font-size: 38px; }
+  .page-hero__metric-label { font-size: 9px; margin-top: 6px; }
+  .page-hero__metric-sub { font-size: 8.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-hero__metric { animation: none; }
 }
 
 /* ─── Panel ──────────────────────────────────────────────── */
@@ -2020,8 +2106,8 @@ body::before {
 
 /* Collapsed: only the top strip (route + meta + status pill) is visible. */
 .my-trip-card[data-expanded="0"] {
-  /* Tall enough for a 2-line title without clipping the second city. */
-  max-height: 104px;
+  /* Tall enough for a 2-line title + the date teaser pill. */
+  max-height: 132px;
   overflow: hidden;
 }
 .my-trip-card[data-expanded="0"] .my-trip-card__img,
@@ -2029,8 +2115,8 @@ body::before {
 .my-trip-card[data-expanded="0"] .my-trip-card__stub,
 .my-trip-card[data-expanded="0"] .my-trip-card__body,
 .my-trip-card[data-expanded="0"] .my-trip-card__footer,
-/* Hide the busy meta line on retracted cards — title-only keeps the
-   wallet stack clean. The meta returns the moment the card expands. */
+/* Hide the busy full meta line on retracted cards — title + date teaser
+   only. The meta returns the moment the card expands. */
 .my-trip-card[data-expanded="0"] .my-trip-card__meta {
   display: none;
 }
@@ -2049,6 +2135,19 @@ body::before {
   -webkit-box-orient: vertical;
   overflow: hidden;
   min-width: 0;
+}
+/* Date teaser: only visible when retracted, so the user gets a glance
+   at the trip date without the rest of the meta noise. */
+.my-trip-card__when { display: none; }
+.my-trip-card[data-expanded="0"] .my-trip-card__when {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  font-weight: 600;
 }
 
 /* Collapsed cards peek under each other for the wallet stack look. */
