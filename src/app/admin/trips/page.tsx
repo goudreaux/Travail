@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { returnLegIds } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
+import { ALL_ICONS, suggestIconForActivity } from '@/lib/icons'
 import type { Flight, Excursion, Aircraft, Member, Airport, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 
 type FlightRow = Flight
@@ -102,6 +103,7 @@ type ExcForm = {
   stay_type: Excursion['stay_type']
   pitch: string
   icon: string
+  iconTouched: boolean
   visibility: 'members' | 'public'
   spots_total: number
   spots_anchor: number
@@ -125,12 +127,13 @@ const defaultExcForm: ExcForm = {
   originSel: '', originCustomCode: '', originCustomName: '', originCustomRegion: '',
   date: '', aircraft_id: '',
   start_time: '', depart_time: '', arrive_time: '', return_time: '',
-  stay_type: 'day_trip', pitch: '', icon: 'fish', visibility: 'members',
+  stay_type: 'day_trip', pitch: '', icon: 'fish', iconTouched: false, visibility: 'members',
   spots_total: 8, spots_anchor: 0, total_cost: 0, status: 'draft',
   anchor_member_id: '', image_url: '',
 }
 
-const TEMPLATE_ICONS = ['fish', 'sail', 'wave', 'snorkel', 'golf', 'quail', 'hog', 'sun', 'compass', 'flight'] as const
+// All marks in the library — the icon picker stays in sync with KIND_ICONS.
+const TEMPLATE_ICONS = ALL_ICONS
 
 type TemplateForm = {
   name: string
@@ -141,11 +144,12 @@ type TemplateForm = {
   operator: string
   price_per_pax: number
   icon: string
+  iconTouched: boolean
   description: string
 }
 const defaultTemplateForm: TemplateForm = {
   name: '', destSel: '', destCustomCode: '', destCustomName: '', destCustomRegion: '',
-  operator: '', price_per_pax: 0, icon: 'fish', description: '',
+  operator: '', price_per_pax: 0, icon: 'fish', iconTouched: false, description: '',
 }
 
 const sectionLabelStyle: React.CSSProperties = {
@@ -350,6 +354,7 @@ export default function TripsPage() {
       arrive_time: e.arrive_time ?? '', return_time: e.return_time ?? '',
       stay_type: e.stay_type, pitch: e.pitch ?? '', visibility: e.visibility,
       icon: e.icon ?? templates.find(t => t.id === e.template_id)?.icon ?? 'fish',
+      iconTouched: true,
       spots_total: e.spots_total, spots_anchor: e.spots_anchor,
       total_cost: e.price_per_pax * e.spots_total, status: e.status,
       anchor_member_id: e.anchor_member_id ?? '',
@@ -499,6 +504,7 @@ export default function TripsPage() {
       name: t.name, destSel: t.dest_code,
       operator: t.operator ?? '',
       price_per_pax: t.price_per_pax, icon: t.icon ?? 'fish',
+      iconTouched: true,
       description: t.description ?? '',
     })
   }
@@ -943,7 +949,14 @@ export default function TripsPage() {
               <input
                 className="input"
                 value={EF.name}
-                onChange={e => setExcForm(f => ({ ...f, name: e.target.value, nameTouched: true }))}
+                onChange={e => setExcForm(f => {
+                  const newName = e.target.value
+                  // Auto-suggest the icon from the name unless the admin has
+                  // explicitly picked one — gives instant "Lobster Mini
+                  // Season" → lobster, "Tarpon Run" → fish, etc.
+                  const suggested = f.iconTouched ? f.icon : (suggestIconForActivity(newName) ?? f.icon)
+                  return { ...f, name: newName, nameTouched: true, icon: suggested }
+                })}
                 placeholder="Auto-fills from the catalog experience"
               />
               <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>
@@ -992,8 +1005,15 @@ export default function TripsPage() {
               </select>
             </div>
             <div className="field">
-              <label className="field-lab">Type (icon)</label>
-              <select className="select" value={EF.icon} onChange={e => setExcForm(f => ({ ...f, icon: e.target.value }))}>
+              <label className="field-lab">
+                Type (icon)
+                {!EF.iconTouched && EF.name.trim() && suggestIconForActivity(EF.name) && (
+                  <span style={{ fontSize: 10, color: 'var(--ink-light)', fontWeight: 400, marginLeft: 8 }}>
+                    auto-derived · <button type="button" onClick={() => setExcForm(f => ({ ...f, iconTouched: true }))} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--tropic-d)', cursor: 'pointer', fontSize: 10, textDecoration: 'underline' }}>override</button>
+                  </span>
+                )}
+              </label>
+              <select className="select" value={EF.icon} onChange={e => setExcForm(f => ({ ...f, icon: e.target.value, iconTouched: true }))}>
                 {TEMPLATE_ICONS.map(i => <option key={i} value={i}>{i}</option>)}
               </select>
             </div>
@@ -1098,7 +1118,11 @@ export default function TripsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label className="field-lab">Template Name <span className="req">*</span></label>
-              <input className="input" value={TF.name} onChange={e => setTemplateForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Lobster Mini Season" />
+              <input className="input" value={TF.name} onChange={e => setTemplateForm(f => {
+                const newName = e.target.value
+                const suggested = f.iconTouched ? f.icon : (suggestIconForActivity(newName) ?? f.icon)
+                return { ...f, name: newName, icon: suggested }
+              })} placeholder="e.g. Lobster Mini Season" />
             </div>
             <div className="field">
               <label className="field-lab">Destination <span className="req">*</span></label>
@@ -1113,8 +1137,15 @@ export default function TripsPage() {
               <input className="input" value={TF.operator} onChange={e => setTemplateForm(f => ({ ...f, operator: e.target.value }))} placeholder="e.g. Bud N' Mary's × Field & Stream" />
             </div>
             <div className="field">
-              <label className="field-lab">Icon</label>
-              <select className="select" value={TF.icon} onChange={e => setTemplateForm(f => ({ ...f, icon: e.target.value }))}>
+              <label className="field-lab">
+                Icon
+                {!TF.iconTouched && TF.name.trim() && suggestIconForActivity(TF.name) && (
+                  <span style={{ fontSize: 10, color: 'var(--ink-light)', fontWeight: 400, marginLeft: 8 }}>
+                    auto-derived · <button type="button" onClick={() => setTemplateForm(f => ({ ...f, iconTouched: true }))} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--tropic-d)', cursor: 'pointer', fontSize: 10, textDecoration: 'underline' }}>override</button>
+                  </span>
+                )}
+              </label>
+              <select className="select" value={TF.icon} onChange={e => setTemplateForm(f => ({ ...f, icon: e.target.value, iconTouched: true }))}>
                 {TEMPLATE_ICONS.map(i => <option key={i} value={i}>{i}</option>)}
               </select>
             </div>
