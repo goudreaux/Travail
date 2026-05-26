@@ -158,19 +158,11 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
 
   return (
     <div className="topbar">
-      {/* Mobile: show brand wordmark (hidden on desktop via CSS) */}
-      <div style={{
-        fontFamily: 'var(--display)',
-        fontStyle: 'italic',
-        fontSize: 22,
-        fontWeight: 500,
-        color: 'var(--ink)',
-        letterSpacing: '0.04em',
-        display: 'none', // shown via media query in globals.css if needed
-        flexShrink: 0,
-      }}>
-        Travail
-      </div>
+      {/* Co-brand lockup. Today: just the Travail cursive wordmark; the Tropic
+          Air mark will sit next to it once we have the asset. */}
+      <Link href="/" className="topbar-brand" aria-label="Travail home">
+        <img src="/travail-wordmark.png" alt="Travail" />
+      </Link>
 
       {/* Right-side actions */}
       <div className="top-actions" style={{ marginLeft: 'auto' }}>

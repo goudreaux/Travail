@@ -26,6 +26,11 @@ export interface Database {
           interests: string[] | null
           avatar_url: string | null
           is_admin: boolean
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
+          trial_ends_at: string | null
+          current_period_end: string | null
           created_at: string
         }
         Insert: {
@@ -44,6 +49,11 @@ export interface Database {
           interests?: string[] | null
           avatar_url?: string | null
           is_admin?: boolean
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          trial_ends_at?: string | null
+          current_period_end?: string | null
           created_at?: string
         }
         Update: {
@@ -62,6 +72,11 @@ export interface Database {
           interests?: string[] | null
           avatar_url?: string | null
           is_admin?: boolean
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
+          trial_ends_at?: string | null
+          current_period_end?: string | null
           created_at?: string
         }
         Relationships: []
@@ -320,6 +335,10 @@ export interface Database {
           show_on_roster: boolean
           submitted_at: string
           decided_at: string | null
+          stripe_payment_intent_id: string | null
+          paid_amount_cents: number | null
+          paid_at: string | null
+          payment_status: string | null
         }
         Insert: {
           id?: string
@@ -337,6 +356,10 @@ export interface Database {
           show_on_roster?: boolean
           submitted_at?: string
           decided_at?: string | null
+          stripe_payment_intent_id?: string | null
+          paid_amount_cents?: number | null
+          paid_at?: string | null
+          payment_status?: string | null
         }
         Update: {
           id?: string
@@ -354,6 +377,10 @@ export interface Database {
           show_on_roster?: boolean
           submitted_at?: string
           decided_at?: string | null
+          stripe_payment_intent_id?: string | null
+          paid_amount_cents?: number | null
+          paid_at?: string | null
+          payment_status?: string | null
         }
         Relationships: []
       }
