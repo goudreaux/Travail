@@ -497,9 +497,8 @@ body::before {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
   height: 36px;
-  padding: 0 16px 0 14px;
+  padding: 0 16px;
   border: 1px solid rgba(244, 167, 44, 0.38);
   border-radius: 999px;
   background:
@@ -530,38 +529,8 @@ body::before {
     0 10px 24px -6px rgba(244, 167, 44, 0.48);
 }
 .cta-go:active { transform: translateY(0) scale(0.98); }
-
-/* Responsive label — desktop reads 'Go somewhere cool', mobile cuts
-   to a single 'Cool' so the top bar stays uncluttered. */
-.cta-go__long { display: inline; }
-.cta-go__short { display: none; }
 @media (max-width: 768px) {
-  .cta-go__long { display: none; }
-  .cta-go__short { display: inline; }
-  .cta-go { padding: 0 14px 0 14px; gap: 7px; }
-}
-
-/* Trailing arrow drifts a few pixels right and back on a slow loop.
-   Reads as a quiet 'go' nudge rather than a notification pulse — no
-   competing with the live dots elsewhere on the page. */
-.cta-go__arrow {
-  display: inline-flex;
-  color: var(--sun-d);
-  font-weight: 700;
-  font-size: 14px;
-  line-height: 1;
-  margin-left: -2px;
-  animation: cta-go-drift 3.4s ease-in-out infinite;
-}
-.cta-go:hover .cta-go__arrow {
-  animation-duration: 1.2s;
-}
-@keyframes cta-go-drift {
-  0%, 100% { transform: translateX(0); opacity: 0.85; }
-  50%      { transform: translateX(4px); opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .cta-go__arrow { animation: none; }
+  .cta-go { padding: 0 14px; }
 }
 
 /* ─── Page ───────────────────────────────────────────────── */
