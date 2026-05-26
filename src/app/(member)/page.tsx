@@ -280,7 +280,7 @@ export default function FeedPage() {
   // never feels dead.
   const totalOpen = openFlights.length + openExcursions.length
   const briefLines: string[] = []
-  if (totalOpen > 0) briefLines.push(`${totalOpen} ${totalOpen === 1 ? 'seat' : 'seats'} open across the network`)
+  if (totalOpen > 0) briefLines.push(`${totalOpen} active ${totalOpen === 1 ? 'departure' : 'departures'} with open seats across the network`)
   if (nextTrip && daysUntilNext !== null) {
     briefLines.push(
       daysUntilNext === 0
@@ -289,6 +289,17 @@ export default function FeedPage() {
         ? `Tomorrow — ${nextLabel}`
         : `${daysUntilNext} days out — ${nextLabel}`,
     )
+  } else {
+    // Cheeky nudge for members with an empty itinerary — picked once per
+    // render so it doesn't feel scripted.
+    const nudges = [
+      'Your calendar looks suspiciously open.',
+      'Pilots are caffeinated. Where to?',
+      'A blank itinerary is a kind of invitation.',
+      'The cabin’s prepped — just missing a passenger.',
+      'Founders fly first. Pick a date.',
+    ]
+    briefLines.push(nudges[Math.floor(Math.random() * nudges.length)])
   }
   briefLines.push('Tomorrow’s brief lands at 6:00 a.m.')
   if (briefLines.length < 3) briefLines.push('Ops watching the wires for you')
