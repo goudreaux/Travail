@@ -347,7 +347,7 @@ export default function FeedPage() {
               </div>
             </div>
             <div className="section-head__actions">
-              <span className="pill sun pill-pulse">
+              <span className="pill moss pill-pulse">
                 <span className="pill-pulse__dot" aria-hidden />
                 {tripItems.length} UPCOMING
               </span>
@@ -422,11 +422,11 @@ export default function FeedPage() {
                             <div className="my-trip-card__stub">
                               <span className="my-trip-card__conf">{booking.confirmation_code ?? '—'}</span>
                               <button
-                                className="btn-primary"
-                                style={{ height: 30, padding: '0 12px', fontSize: 12 }}
+                                className="btn-ghost-quiet"
+                                style={{ height: 28, padding: '0 12px', fontSize: 11.5 }}
                                 onClick={e => { e.stopPropagation(); router.push(`/boarding-pass/${booking.id}`) }}
                               >
-                                Boarding pass
+                                Boarding pass →
                               </button>
                             </div>
                           </div>
@@ -463,11 +463,11 @@ export default function FeedPage() {
                             <div className="my-trip-card__stub">
                               <span className="my-trip-card__conf">{booking.confirmation_code ?? '—'}</span>
                               <button
-                                className="btn-primary"
-                                style={{ height: 30, padding: '0 12px', fontSize: 12 }}
+                                className="btn-ghost-quiet"
+                                style={{ height: 28, padding: '0 12px', fontSize: 11.5 }}
                                 onClick={e => { e.stopPropagation(); router.push(`/boarding-pass/${booking.id}`) }}
                               >
-                                Boarding pass
+                                Boarding pass →
                               </button>
                             </div>
                           </div>

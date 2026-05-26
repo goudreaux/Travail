@@ -400,6 +400,34 @@ body::before {
   box-shadow: 0 2px 8px rgba(13, 51, 64, 0.07);
 }
 
+/* Quiet text-link button — used for in-card secondary actions (e.g.
+   'Boarding pass →' on trip cards) where the primary teal CTA was
+   shouting too loud. Reads as a refined link, not a button. */
+.btn-ghost-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--tropic-d);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+  white-space: nowrap;
+}
+.btn-ghost-quiet:hover {
+  color: var(--ink);
+  background: rgba(0, 179, 199, 0.08);
+  border-color: rgba(0, 179, 199, 0.20);
+}
+
 .btn-sun {
   display: inline-flex;
   align-items: center;
@@ -773,9 +801,9 @@ body::before {
   flex-shrink: 0;
 }
 @keyframes pill-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(244, 167, 44, 0.55); }
-  70%  { box-shadow: 0 0 0 6px rgba(244, 167, 44, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(244, 167, 44, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(62, 140, 109, 0.55); }
+  70%  { box-shadow: 0 0 0 6px rgba(62, 140, 109, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(62, 140, 109, 0); }
 }
 @media (prefers-reduced-motion: reduce) {
   .pill-pulse__dot { animation: none; }
@@ -3462,6 +3490,12 @@ textarea.input {
     -webkit-mask-image: none;
     mask-image: none;
   }
+  /* Date pill on mobile cards: cream ticket-stub with a 3D treatment so it
+     reads as a stamped tag on top of the photo rather than a flat block.
+     Vertical paper gradient + top-edge highlight + bottom inner shadow +
+     a layered drop shadow give the pill physical weight against any
+     background image. Day number gets a touch of sun-gold so the date
+     pops without breaking the warm palette. */
   .trip-card__date {
     position: absolute;
     top: 12px;
@@ -3471,24 +3505,37 @@ textarea.input {
     height: auto;
     flex-direction: row;
     align-items: baseline;
-    gap: 7px;
-    padding: 6px 11px;
-    border-radius: 7px;
-    background: rgba(6, 56, 71, 0.94);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    gap: 8px;
+    padding: 7px 12px 8px;
+    border-radius: 6px;
+    background: linear-gradient(180deg, #fffbf0 0%, #f3ead4 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.94),
+      inset 0 -1px 0 rgba(13, 51, 64, 0.10),
+      0 1px 2px rgba(13, 51, 64, 0.35),
+      0 6px 18px -2px rgba(13, 51, 64, 0.45);
     text-shadow: none;
   }
   .trip-card__date-mo,
-  .trip-card__date-day,
   .trip-card__date-dow {
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.1em;
-    color: #fff;
+    letter-spacing: 0.14em;
+    color: var(--ink-mid);
     line-height: 1;
     margin: 0;
     text-transform: uppercase;
+  }
+  .trip-card__date-day {
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    line-height: 1;
+    margin: 0;
   }
   .trip-card__content {
     padding: 13px 16px 15px;
