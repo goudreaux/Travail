@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { adaptFlight, adaptExcursion, returnLegIds, fmtMoney, airportCity, DisplayFlight, DisplayExcursion } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
-import PageHero from '@/components/PageHero'
 import { SeatMeter } from '@/components/SeatMeter'
 import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'
 import { useRouter } from 'next/navigation'
@@ -247,23 +246,49 @@ export default function FeedPage() {
     : null
   const nextDate = nextTrip ? (nextTrip.kind === 'flight' ? nextTrip.flight.dateParts : nextTrip.excursion.dateParts) : null
 
+  const firstName = member ? member.name.split(' ')[0] : null
+  const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+
   return (
     <div className="page">
-      <PageHero
-        eyebrow="TRAVAIL × TROPIC AIR · TAMPA BAY"
-        title={`${greeting}${member ? `, ${member.name.split(' ')[0]}.` : '.'}`}
-        sub="Your trips, what's open, and the latest from the network."
-      >
-        {nextTrip && nextDate && (
-          <div className="next-up">
-            <span className="next-up__label">NEXT UP</span>
-            <span className="next-up__name">{nextLabel}</span>
-            <span className="next-up__date">{nextDate.dow}, {nextDate.mo} {nextDate.day}</span>
-          </div>
-        )}
-      </PageHero>
+      <section className="feed-hero">
+        <div className="feed-hero__glow feed-hero__glow--teal" aria-hidden />
+        <div className="feed-hero__glow feed-hero__glow--sun" aria-hidden />
 
-      <div className="page-view" style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1080, width: '100%' }}>
+        <div className="feed-hero__content">
+          <div className="feed-hero__eyebrow">
+            <span className="feed-hero__live" aria-hidden />
+            <span>{todayLabel}</span>
+            <span className="feed-hero__sep" aria-hidden>·</span>
+            <span>Tampa Bay concierge</span>
+          </div>
+          <h1 className="feed-hero__greet">
+            <span className="feed-hero__greet-time">{greeting},</span>
+            {firstName && <span className="feed-hero__greet-name">{firstName}.</span>}
+          </h1>
+          <p className="feed-hero__sub">
+            A curated read of what&rsquo;s yours, what&rsquo;s open, and what&rsquo;s worth your time today.
+          </p>
+        </div>
+
+        {nextTrip && nextDate && (
+          <a
+            href={nextTrip.kind === 'flight' ? `/boarding-pass/${nextTrip.booking.id}` : `/trip/${nextTrip.booking.id}`}
+            className="feed-hero__next"
+          >
+            <div className="feed-hero__next-meta">
+              <span className="feed-hero__next-eyebrow">Next up</span>
+              <span className="feed-hero__next-date">{nextDate.dow} · {nextDate.mo} {nextDate.day}</span>
+            </div>
+            <div className="feed-hero__next-name">{nextLabel}</div>
+            <div className="feed-hero__next-cta">
+              {nextTrip.kind === 'flight' ? 'View boarding pass' : 'View trip details'} →
+            </div>
+          </a>
+        )}
+      </section>
+
+      <div className="page-view" style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1240, width: '100%' }}>
       {/* My trips (left/top) + open seats (right/bottom) */}
       <div className="dash-cols">
         {/* My Trips */}
