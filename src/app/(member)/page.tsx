@@ -452,7 +452,21 @@ export default function FeedPage() {
                           <div className="trip-card__icon" style={{ background: colors.bg }}><span style={{ color: colors.dot }}>{KIND_ICONS['flight']}</span></div>
                           <div className="trip-card__content">
                             <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · PRIVATE AVIATION</div>
-                            <div className="trip-card__name">{placeName(f.origin_code, airportName)}<span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span>{placeName(f.dest_code, airportName)}</div>
+                            <div className="trip-card__name">{f.origin_code}<span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span>{f.dest_code}</div>
+                            {(() => {
+                              const o = airportName[f.origin_code]
+                              const d = airportName[f.dest_code]
+                              const oHas = o && o !== f.origin_code
+                              const dHas = d && d !== f.dest_code
+                              if (!oHas && !dHas) return null
+                              return (
+                                <div className="trip-card__route-cities">
+                                  {oHas ? o : f.origin_code}
+                                  <span style={{ margin: '0 6px', color: 'var(--ink-faint)' }}>→</span>
+                                  {dHas ? d : f.dest_code}
+                                </div>
+                              )
+                            })()}
                             <div className="trip-card__meta">{f.departTimeStr}{f.durationStr ? ` · ${f.durationStr}` : ''}</div>
                             <SeatMeter total={f.seats_total} available={f.seatsAvailable} accent={colors.dot} unit="seats" />
                             <RosterStack entries={flightRosters[f.id] ?? []} occupied={f.seats_total - f.seatsAvailable} />
