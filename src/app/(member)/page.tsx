@@ -247,7 +247,39 @@ export default function FeedPage() {
   const nextDate = nextTrip ? (nextTrip.kind === 'flight' ? nextTrip.flight.dateParts : nextTrip.excursion.dateParts) : null
 
   const firstName = member ? member.name.split(' ')[0] : null
-  const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const now = new Date()
+  const dateLabel = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()
+  const timeLabel = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase()
+
+  // Days until the next trip — drives one of the brief lines.
+  const daysUntilNext = nextTrip
+    ? Math.max(0, Math.round((new Date(nextTrip.kind === 'flight' ? nextTrip.flight.date : nextTrip.excursion.date).getTime() - now.getTime()) / 86400000))
+    : null
+
+  // Live concierge "brief" — a small wire that ticks through 3–4 curated lines
+  // every 4s. Mix of computed (open seats, days out) and editorial copy so it
+  // never feels dead.
+  const totalOpen = openFlights.length + openExcursions.length
+  const briefLines: string[] = []
+  if (totalOpen > 0) briefLines.push(`${totalOpen} ${totalOpen === 1 ? 'seat' : 'seats'} open across the network`)
+  if (nextTrip && daysUntilNext !== null) {
+    briefLines.push(
+      daysUntilNext === 0
+        ? `Wheels up today — ${nextLabel}`
+        : daysUntilNext === 1
+        ? `Tomorrow — ${nextLabel}`
+        : `${daysUntilNext} days out — ${nextLabel}`,
+    )
+  }
+  briefLines.push('Tomorrow’s brief lands at 6:00 a.m.')
+  if (briefLines.length < 3) briefLines.push('Ops watching the wires for you')
+
+  const [briefIdx, setBriefIdx] = useState(0)
+  useEffect(() => {
+    if (briefLines.length <= 1) return
+    const i = setInterval(() => setBriefIdx(x => (x + 1) % briefLines.length), 4200)
+    return () => clearInterval(i)
+  }, [briefLines.length])
 
   return (
     <div className="page">
@@ -255,35 +287,43 @@ export default function FeedPage() {
         <div className="feed-hero__glow feed-hero__glow--teal" aria-hidden />
         <div className="feed-hero__glow feed-hero__glow--sun" aria-hidden />
 
-        <div className="feed-hero__content">
-          <div className="feed-hero__eyebrow">
-            <span className="feed-hero__live" aria-hidden />
-            <span>{todayLabel}</span>
-            <span className="feed-hero__sep" aria-hidden>·</span>
-            <span>Tampa Bay concierge</span>
+        {/* Top row: live status (left) + date (right) */}
+        <div className="feed-hero__topline">
+          <div className="feed-hero__live-chip">
+            <span className="feed-hero__live-dot" aria-hidden />
+            <span className="feed-hero__live-text">Live · {timeLabel} · Tampa Bay</span>
           </div>
-          <h1 className="feed-hero__greet">
-            <span className="feed-hero__greet-time">{greeting},</span>
-            {firstName && <span className="feed-hero__greet-name">{firstName}.</span>}
-          </h1>
-          <p className="feed-hero__sub">
-            A curated read of what&rsquo;s yours, what&rsquo;s open, and what&rsquo;s worth your time today.
-          </p>
+          <div className="feed-hero__date">{dateLabel}</div>
         </div>
 
+        {/* Refined italic greeting — smaller, single line */}
+        <h1 className="feed-hero__welcome">
+          <span className="feed-hero__welcome-pre">{greeting},</span>{' '}
+          {firstName && <span className="feed-hero__welcome-name">{firstName}.</span>}
+        </h1>
+
+        {/* Hairline that grows in on mount */}
+        <div className="feed-hero__rule" aria-hidden />
+
+        {/* Live "brief" wire — rotating concierge lines */}
+        <div className="feed-hero__brief" aria-live="polite">
+          <span className="feed-hero__brief-label">The brief</span>
+          <span key={briefIdx} className="feed-hero__brief-text">
+            {briefLines[briefIdx]}
+          </span>
+        </div>
+
+        {/* Compact next-up rail at the bottom */}
         {nextTrip && nextDate && (
           <a
             href={nextTrip.kind === 'flight' ? `/boarding-pass/${nextTrip.booking.id}` : `/trip/${nextTrip.booking.id}`}
             className="feed-hero__next"
           >
-            <div className="feed-hero__next-meta">
-              <span className="feed-hero__next-eyebrow">Next up</span>
-              <span className="feed-hero__next-date">{nextDate.dow} · {nextDate.mo} {nextDate.day}</span>
-            </div>
-            <div className="feed-hero__next-name">{nextLabel}</div>
-            <div className="feed-hero__next-cta">
-              {nextTrip.kind === 'flight' ? 'View boarding pass' : 'View trip details'} →
-            </div>
+            <span className="feed-hero__next-label">Next</span>
+            <span className="feed-hero__next-sep" aria-hidden />
+            <span className="feed-hero__next-name">{nextLabel}</span>
+            <span className="feed-hero__next-when">{nextDate.dow}, {nextDate.mo} {nextDate.day}</span>
+            <span className="feed-hero__next-arrow" aria-hidden>→</span>
           </a>
         )}
       </section>
