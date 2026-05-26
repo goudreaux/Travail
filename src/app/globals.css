@@ -3553,18 +3553,34 @@ textarea.input {
 .topbar-brand {
   display: inline-flex;
   align-items: center;
+  gap: 10px;
   flex-shrink: 0;
   text-decoration: none;
   margin-right: auto;
 }
 .topbar-brand img {
   display: block;
-  height: 28px;
   width: auto;
+}
+.topbar-brand__travail { height: 28px; }
+/* Tropic logo is a square mark — make it match the wordmark cap-height optically. */
+.topbar-brand__tropic { height: 26px; }
+.topbar-brand__x {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--ink-light);
+  font-weight: 400;
+  margin: 0 -1px;
+  user-select: none;
 }
 
 @media (max-width: 768px) {
-  .topbar-brand img { height: 24px; }
+  .topbar-brand { gap: 8px; }
+  .topbar-brand__travail { height: 22px; }
+  .topbar-brand__tropic { height: 22px; }
+  .topbar-brand__x { font-size: 15px; }
 }
 
 /* ─── Legacy my-trip-card sub-classes (still used by the Trips page) ─── */

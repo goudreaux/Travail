@@ -158,10 +158,11 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
 
   return (
     <div className="topbar">
-      {/* Co-brand lockup. Today: just the Travail cursive wordmark; the Tropic
-          Air mark will sit next to it once we have the asset. */}
-      <Link href="/" className="topbar-brand" aria-label="Travail home">
-        <img src="/travail-wordmark.png" alt="Travail" />
+      {/* Co-brand lockup: Travail wordmark × Tropic Ocean Air frigate mark. */}
+      <Link href="/" className="topbar-brand" aria-label="Travail × Tropic Ocean Air home">
+        <img className="topbar-brand__travail" src="/travail-wordmark.png" alt="Travail" />
+        <span className="topbar-brand__x" aria-hidden>×</span>
+        <img className="topbar-brand__tropic" src="/tropic-logo.png" alt="Tropic Ocean Air" />
       </Link>
 
       {/* Right-side actions */}
