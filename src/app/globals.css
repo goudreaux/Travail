@@ -598,11 +598,20 @@ body::before {
 .page-hero {
   position: relative;
   overflow: hidden;
-  border-radius: 20px;
+  border-radius: 22px;
   margin: 28px 28px 0;
   background: linear-gradient(135deg, #052a35 0%, #0d3340 52%, #0a4a55 100%);
   padding: clamp(24px, 3.5vw, 38px) clamp(20px, 3.5vw, 36px);
-  box-shadow: 0 16px 48px rgba(13, 51, 64, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  /* Matches the .panel lift recipe: a subtle inset top highlight catching
+     light + a faint inset bottom shadow tracing the lower edge + a three-
+     layer drop shadow (close, mid, deep diffuse) so the hero reads as
+     lifted off the cream page instead of flat. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 1px 2px rgba(13, 51, 64, 0.10),
+    0 14px 28px -10px rgba(13, 51, 64, 0.24),
+    0 36px 64px -20px rgba(13, 51, 64, 0.32);
 }
 .page-hero::before {
   content: "";
@@ -883,9 +892,14 @@ body::before {
   background:
     radial-gradient(900px 280px at 90% 110%, rgba(0, 179, 199, 0.14), transparent 60%),
     linear-gradient(135deg, #042128 0%, #0a3340 52%, #073744 100%);
+  /* Same lift recipe as .page-hero / .panel — inset top highlight, inset
+     bottom shadow tracing the lower edge, three-layer drop shadow. */
   box-shadow:
-    0 16px 44px rgba(13, 51, 64, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.20),
+    0 1px 2px rgba(13, 51, 64, 0.10),
+    0 14px 28px -10px rgba(13, 51, 64, 0.24),
+    0 36px 64px -20px rgba(13, 51, 64, 0.32);
 }
 .feed-hero::after {
   /* Editorial hairline texture, very subtle. */
