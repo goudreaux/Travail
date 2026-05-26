@@ -3697,43 +3697,31 @@ textarea.input {
     mask-image: none;
   }
 
-  /* Activity-icon stamp on the photo (mobile open-seat cards). Bottom-
-     right of the photo banner, white at 36% opacity with a soft drop
-     shadow, slightly counter-rotated — a quiet field-guide mark on the
-     hero image. */
-  .trip-card__stamp {
-    display: block;
-    position: absolute;
-    bottom: 10px;
-    right: 12px;
-    width: 46px;
-    height: 46px;
-    color: rgba(255, 255, 255, 0.86);
-    opacity: 0.62;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
-    transform: rotate(-7deg);
-    pointer-events: none;
-    z-index: 3;
-  }
-
-  /* Same treatment for the wallet-stack hero on mobile. .my-trip-card
-     is position:relative + overflow:hidden, so we anchor the stamp to
-     the bottom of the image area via top + margin-top math. */
+  /* Activity-icon stamp on the photo — passport / customs-stamp feel.
+     Small (32px), circled, cocked at a hurried angle, faded ivory ink
+     that overlay-blends with the photograph so it reads as printed
+     rather than overlaid. No drop shadow — stamps don't float. */
+  .trip-card__stamp,
   .my-trip-card__stamp {
     display: block;
     position: absolute;
-    top: 168px;
-    margin-top: -56px;
-    right: 14px;
-    width: 46px;
-    height: 46px;
-    color: rgba(255, 255, 255, 0.86);
-    opacity: 0.62;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
-    transform: rotate(-7deg);
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    border: 1.4px solid currentColor;
+    border-radius: 50%;
+    color: rgba(255, 250, 232, 0.78);
+    opacity: 0.78;
+    transform: rotate(-14deg);
+    mix-blend-mode: overlay;
     pointer-events: none;
     z-index: 3;
   }
+  .trip-card__stamp { bottom: 10px; }
+  /* Wallet-stack hero on mobile: anchor stamp at the bottom-right of the
+     168px image area. */
+  .my-trip-card__stamp { top: calc(168px - 42px); }
   /* Hide the stamp on retracted wallet cards (the image is gone). */
   .my-trip-card[data-expanded="0"] .my-trip-card__stamp { display: none; }
 
