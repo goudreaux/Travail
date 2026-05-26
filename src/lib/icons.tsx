@@ -25,9 +25,10 @@ export const Icons = {
 // stroke width (1.5), round caps / joins, and currentColor stroke — so they
 // inherit theme color and feel like one coherent set.
 export const KIND_ICONS: Record<string, React.ReactElement> = {
-  // Three-blade aircraft propeller — single airfoil teardrop blade rotated
-  // at 120° intervals around a central spinner hub. Cleanest aviation mark.
-  flight: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><g fill="currentColor" stroke="none"><path d="M9.5 11 L12.5 11 C13.5 8 13 4 11.5 1.5 L10.5 1.5 C9 4 8.5 8 9.5 11 Z"/><path d="M9.5 11 L12.5 11 C13.5 8 13 4 11.5 1.5 L10.5 1.5 C9 4 8.5 8 9.5 11 Z" transform="rotate(120 11 11)"/><path d="M9.5 11 L12.5 11 C13.5 8 13 4 11.5 1.5 L10.5 1.5 C9 4 8.5 8 9.5 11 Z" transform="rotate(240 11 11)"/></g><circle cx="11" cy="11" r="2.2"/><circle cx="11" cy="11" r="0.7" fill="currentColor"/></svg>),
+  // Four-blade aircraft propeller — outlined airfoil teardrop blade rotated
+  // at 90° intervals around a small filled spinner hub. Stroke-only blades
+  // so it doesn't read as a solid block of color.
+  flight: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><g><path d="M9.5 11 L12.5 11 C13.5 8 13 4 11.5 1.5 L10.5 1.5 C9 4 8.5 8 9.5 11 Z"/><path d="M9.5 11 L12.5 11 C13.5 8 13 4 11.5 1.5 L10.5 1.5 C9 4 8.5 8 9.5 11 Z" transform="rotate(90 11 11)"/><path d="M9.5 11 L12.5 11 C13.5 8 13 4 11.5 1.5 L10.5 1.5 C9 4 8.5 8 9.5 11 Z" transform="rotate(180 11 11)"/><path d="M9.5 11 L12.5 11 C13.5 8 13 4 11.5 1.5 L10.5 1.5 C9 4 8.5 8 9.5 11 Z" transform="rotate(270 11 11)"/></g><circle cx="11" cy="11" r="1.6" fill="currentColor"/></svg>),
 
   // Sailfish / billfish — long pointed bill out front, S-curved body, tall
   // sail-like dorsal fin, forked tail, eye.
