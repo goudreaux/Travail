@@ -41,11 +41,28 @@ export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsC
 
   return (
     <aside className="side">
-      {/* Brand */}
-      <div className="brand">
-        <div className="brand-name">Travail</div>
-        <div className="brand-tag">× Tropic Air</div>
-      </div>
+      {/* Member identity occupies the brand slot — tap to open membership. */}
+      {member ? (
+        <Link href="/membership" className="side-brand-member" aria-label="Open membership">
+          <div className="side-brand-member__av" style={{ background: TIER_COLOR[member.tier] ?? 'var(--tropic-d)' }}>
+            {member.initials}
+          </div>
+          <div className="side-brand-member__body">
+            <div className="side-brand-member__name">{member.name}</div>
+            <div className="side-brand-member__tier" style={{ color: TIER_COLOR[member.tier] ?? 'var(--tropic)' }}>
+              {tierLabel(member.tier).toUpperCase()}{member.tier === 'administrator' ? '' : ` · ${memberCode(member)}`}
+            </div>
+          </div>
+        </Link>
+      ) : (
+        <div className="side-brand-member" aria-hidden>
+          <div className="side-brand-member__av" style={{ background: 'rgba(255,255,255,0.10)' }} />
+          <div className="side-brand-member__body">
+            <div style={{ height: 11, width: 110, background: 'rgba(255,255,255,0.10)', borderRadius: 4 }} />
+            <div style={{ height: 8, width: 70, background: 'rgba(255,255,255,0.07)', borderRadius: 4, marginTop: 6 }} />
+          </div>
+        </div>
+      )}
 
       {/* Primary navigation */}
       <div className="nav">
@@ -129,43 +146,6 @@ export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsC
         </Link>
       )}
 
-      {/* Member identity footer */}
-      {member ? (
-        <Link href="/membership" className="side-footer" style={{ display: 'block', textDecoration: 'none' }}>
-          <div className="side-member">
-            <div className="side-av" style={{ background: TIER_COLOR[member.tier] ?? 'var(--tropic-d)' }}>
-              {member.initials}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="side-member-name" style={{
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}>
-                {member.name}
-              </div>
-              <div className="side-member-tier" style={{ color: TIER_COLOR[member.tier] ?? 'var(--tropic)' }}>
-                {tierLabel(member.tier).toUpperCase()}{member.tier === 'administrator' ? '' : ` · ${memberCode(member)}`}
-              </div>
-            </div>
-            {/* Subtle chevron hint */}
-            <svg width="12" height="12" viewBox="0 0 22 22" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.8" strokeLinecap="round">
-              <path d="M8 5l6 6-6 6" />
-            </svg>
-          </div>
-        </Link>
-      ) : (
-        /* Loading skeleton */
-        <div className="side-footer">
-          <div className="side-member" style={{ opacity: 0.35 }}>
-            <div className="side-av" style={{ background: 'rgba(255,255,255,0.12)' }} />
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <div style={{ height: 10, width: 100, background: 'rgba(255,255,255,0.12)', borderRadius: 4 }} />
-              <div style={{ height: 8, width: 66, background: 'rgba(255,255,255,0.08)', borderRadius: 4 }} />
-            </div>
-          </div>
-        </div>
-      )}
     </aside>
   )
 }

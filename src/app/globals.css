@@ -118,28 +118,64 @@ body::before {
   overflow-x: hidden;
 }
 
-.brand {
-  padding: 28px 24px 20px;
+/* Sidebar member-as-brand card. Occupies the top slot (where the
+   Travail × Tropic wordmark used to live) — tapping it opens the
+   member's profile. Footer member card is gone. */
+.side-brand-member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 18px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
 }
-
-.brand-name {
+.side-brand-member:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.side-brand-member__av {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--tropic-d);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  font-family: var(--ui);
+}
+.side-brand-member__body {
+  min-width: 0;
+  flex: 1;
+}
+.side-brand-member__name {
   font-family: var(--display);
-  font-size: 22px;
+  font-style: italic;
+  font-size: 18px;
   font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
   color: #ffffff;
-  line-height: 1;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-.brand-tag {
-  font-size: 10px;
+.side-brand-member__tier {
+  font-family: var(--mono);
+  font-size: 9.5px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  font-weight: 600;
   color: var(--tropic);
-  margin-top: 4px;
-  font-family: var(--mono);
+  margin-top: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .nav {
