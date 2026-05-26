@@ -4064,6 +4064,10 @@ textarea.input {
     height: 290px;
     border-radius: 0;
     box-shadow: none;
+    /* Negative margins shift the left edge to the viewport but don't grow
+       the box, so width has to be bumped by 2× the padding (16+16 = 32px)
+       or the right edge stops short of the viewport. */
+    width: calc(100% + 32px);
     margin: -16px -16px 16px;
   }
 
