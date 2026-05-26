@@ -25,11 +25,10 @@ export const Icons = {
 // stroke width (1.5), round caps / joins, and currentColor stroke — so they
 // inherit theme color and feel like one coherent set.
 export const KIND_ICONS: Record<string, React.ReactElement> = {
-  // Face-on seaplane silhouette — high wings with dihedral, round fuselage
-  // nose with a 4-blade propeller cross, small vertical tail fin behind the
-  // wings, twin pontoons with V-struts. Reads as 'small aircraft coming
-  // toward you' at icon size.
-  flight: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M11 2.5 L11 5"/><path d="M1 10 L11 8.5 L21 10"/><circle cx="11" cy="13" r="2.2"/><line x1="11" y1="13" x2="11" y2="11.2"/><line x1="11" y1="13" x2="11" y2="14.8"/><line x1="11" y1="13" x2="9.2" y2="13"/><line x1="11" y1="13" x2="12.8" y2="13"/><circle cx="11" cy="13" r="0.5" fill="currentColor"/><line x1="2" y1="18.5" x2="9" y2="18.5"/><line x1="13" y1="18.5" x2="20" y2="18.5"/><line x1="5" y1="18.5" x2="9.5" y2="15"/><line x1="17" y1="18.5" x2="12.5" y2="15"/></svg>),
+  // Private jet, side profile — Gulfstream-style silhouette as an outlined
+  // line drawing. Tapered fuselage with a small cockpit window, vertical
+  // tail fin at the back, swept-back wing underneath.
+  flight: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 11 L18 10 L21 11 L18 12 L2 12 Z"/><path d="M3 11 L5 7 L8 11"/><path d="M9 12 L6 15.5 L13 12.5"/><line x1="17.5" y1="11" x2="19.5" y2="11"/></svg>),
 
   // Sailfish / billfish — long pointed bill out front, S-curved body, tall
   // sail-like dorsal fin, forked tail, eye.
