@@ -347,7 +347,10 @@ export default function FeedPage() {
               </div>
             </div>
             <div className="section-head__actions">
-              <span className="pill ink">{tripItems.length} UPCOMING</span>
+              <span className="pill sun pill-pulse">
+                <span className="pill-pulse__dot" aria-hidden />
+                {tripItems.length} UPCOMING
+              </span>
               <span className="section-chev" aria-hidden>›</span>
             </div>
           </button>
