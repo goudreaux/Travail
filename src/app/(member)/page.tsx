@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { adaptFlight, adaptExcursion, returnLegIds, fmtMoney, DisplayFlight, DisplayExcursion } from '@/lib/data'
+import { adaptFlight, adaptExcursion, returnLegIds, fmtMoney, airportCity, DisplayFlight, DisplayExcursion } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
 import { SeatMeter } from '@/components/SeatMeter'
@@ -71,6 +71,9 @@ export default function FeedPage() {
   // iOS Wallet-style stack: only one trip is expanded at a time. Null = "use
   // the first trip" (so the most-recent is open by default).
   const [expandedTripId, setExpandedTripId] = useState<string | null>(null)
+  // Mobile-friendly collapsible sections on the feed.
+  const [myTripsOpen, setMyTripsOpen] = useState(true)
+  const [openSeatsOpen, setOpenSeatsOpen] = useState(true)
   const supabase = createClient()
   const router = useRouter()
 
@@ -239,7 +242,7 @@ export default function FeedPage() {
   const nextTrip = tripItems[0]
   const nextLabel = nextTrip
     ? (nextTrip.kind === 'flight'
-        ? `${placeName(nextTrip.flight.origin_code, airportName)} ${nextTrip.roundReturn ? '⇄' : '→'} ${placeName(nextTrip.flight.dest_code, airportName)}`
+        ? `${airportCity(nextTrip.flight.origin_code, airportName)} ${nextTrip.roundReturn ? '⇄' : '→'} ${airportCity(nextTrip.flight.dest_code, airportName)}`
         : nextTrip.excursion.name)
     : null
   const nextDate = nextTrip ? (nextTrip.kind === 'flight' ? nextTrip.flight.dateParts : nextTrip.excursion.dateParts) : null
@@ -264,13 +267,16 @@ export default function FeedPage() {
       {/* My trips (left/top) + open seats (right/bottom) */}
       <div className="dash-cols">
         {/* My Trips */}
-        <div className="panel" style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
-          <div className="panel-head">
-            <div className="ttl" style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 500, color: 'var(--ink)' }}>
+        <div className="panel section-panel" data-collapsed={!myTripsOpen} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
+          <button type="button" className="panel-head section-head" onClick={() => setMyTripsOpen(o => !o)} aria-expanded={myTripsOpen}>
+            <div className="ttl section-ttl">
               My <em>trips</em>
             </div>
-            <span className="pill ink">{tripItems.length} UPCOMING</span>
-          </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="pill ink">{tripItems.length} UPCOMING</span>
+              <span className="section-chev" aria-hidden>›</span>
+            </div>
+          </button>
 
           <div className="scroll-y" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minHeight: 0, overflowY: 'auto' }}>
             {loading ? (
@@ -318,26 +324,12 @@ export default function FeedPage() {
                             <div className="my-trip-card__top">
                               <div className="my-trip-card__top-row">
                                 <h3 className="my-trip-card__route">
-                                  <span>{flight.origin_code}</span>
+                                  <span>{airportCity(flight.origin_code, airportName)}</span>
                                   <span className="my-trip-card__route-arrow">{trip.roundReturn ? '⇄' : '→'}</span>
-                                  <span>{flight.dest_code}</span>
+                                  <span>{airportCity(flight.dest_code, airportName)}</span>
                                 </h3>
                                 <span className={statusPillClass(booking.status)}>{statusLabel(booking.status)}</span>
                               </div>
-                              {(() => {
-                                const o = airportName[flight.origin_code]
-                                const d = airportName[flight.dest_code]
-                                const oHas = o && o !== flight.origin_code
-                                const dHas = d && d !== flight.dest_code
-                                if (!oHas && !dHas) return null
-                                return (
-                                  <div className="my-trip-card__route-cities">
-                                    {oHas ? o : flight.origin_code}
-                                    <span style={{ margin: '0 6px', color: 'var(--ink-faint)' }}>{trip.roundReturn ? '⇄' : '→'}</span>
-                                    {dHas ? d : flight.dest_code}
-                                  </div>
-                                )
-                              })()}
                               <div className="my-trip-card__meta">
                                 {`${dp.dow} ${dp.mo} ${dp.day}`}
                                 {flight.departTimeStr ? ` · ${flight.departTimeStr}` : ''}
@@ -411,19 +403,22 @@ export default function FeedPage() {
         </div>
 
         {/* Open seats */}
-        <div className="panel" style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
-            <div className="panel-head">
-              <div className="ttl" style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 500, color: 'var(--ink)' }}>
+        <div className="panel section-panel" data-collapsed={!openSeatsOpen} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
+            <button type="button" className="panel-head section-head" onClick={() => setOpenSeatsOpen(o => !o)} aria-expanded={openSeatsOpen}>
+              <div className="ttl section-ttl">
                 Open <em>seats</em>
               </div>
-              <span
-                className="pill tropic"
-                onClick={() => router.push('/seats')}
-                style={{ cursor: 'pointer' }}
-              >
-                VIEW ALL →
-              </span>
-            </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span
+                  className="pill tropic"
+                  onClick={(e) => { e.stopPropagation(); router.push('/seats') }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  VIEW ALL →
+                </span>
+                <span className="section-chev" aria-hidden>›</span>
+              </div>
+            </button>
 
             {/* Filter chips */}
             <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--hair)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -466,21 +461,7 @@ export default function FeedPage() {
                           <div className="trip-card__icon" style={{ background: colors.bg }}><span style={{ color: colors.dot }}>{KIND_ICONS['flight']}</span></div>
                           <div className="trip-card__content">
                             <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · PRIVATE AVIATION</div>
-                            <div className="trip-card__name">{f.origin_code}<span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span>{f.dest_code}</div>
-                            {(() => {
-                              const o = airportName[f.origin_code]
-                              const d = airportName[f.dest_code]
-                              const oHas = o && o !== f.origin_code
-                              const dHas = d && d !== f.dest_code
-                              if (!oHas && !dHas) return null
-                              return (
-                                <div className="trip-card__route-cities">
-                                  {oHas ? o : f.origin_code}
-                                  <span style={{ margin: '0 6px', color: 'var(--ink-faint)' }}>→</span>
-                                  {dHas ? d : f.dest_code}
-                                </div>
-                              )
-                            })()}
+                            <div className="trip-card__name">{airportCity(f.origin_code, airportName)}<span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span>{airportCity(f.dest_code, airportName)}</div>
                             <div className="trip-card__meta">{f.departTimeStr}{f.durationStr ? ` · ${f.durationStr}` : ''}</div>
                             <SeatMeter total={f.seats_total} available={f.seatsAvailable} accent={colors.dot} unit="seats" />
                             <RosterStack entries={flightRosters[f.id] ?? []} occupied={f.seats_total - f.seatsAvailable} />
