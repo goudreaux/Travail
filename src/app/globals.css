@@ -3694,8 +3694,12 @@ textarea.input {
   }
 
   /* Activity-icon watermark on the open-seat photo. Top-right, no ring,
-     no rotation — just a faded ivory mark that overlay-blends with the
-     image so it reads as printed signage rather than UI. */
+     no rotation. Two filters stacked so the mark stays visible no matter
+     how light or dark the photo's top-right corner is:
+       - A soft black drop-shadow halo behind the icon (readable on light
+         sky / water / sand).
+       - A soft white drop-shadow halo (readable on dark foliage / water).
+     The icon itself is a faded ivory tint so it never reads as full UI. */
   .trip-card__stamp {
     display: block;
     position: absolute;
@@ -3703,9 +3707,11 @@ textarea.input {
     right: 12px;
     width: 30px;
     height: 30px;
-    color: rgba(255, 250, 232, 0.85);
-    opacity: 0.55;
-    mix-blend-mode: overlay;
+    color: rgba(255, 250, 232, 0.92);
+    opacity: 0.72;
+    filter:
+      drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.45))
+      drop-shadow(0 0 4px rgba(0, 0, 0, 0.25));
     pointer-events: none;
     z-index: 3;
   }
