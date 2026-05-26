@@ -4066,14 +4066,48 @@ textarea.input {
   cursor: pointer;
   font: inherit;
   color: inherit;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
+
+.section-head__main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.section-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: 14px;
+}
+
+/* Small mono eyebrow above each title. Per-section tint so the colour
+   memory matches the page-hero accents. */
+.section-head__eyebrow {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  font-weight: 600;
+}
+.section-head__eyebrow--tropic { color: var(--tropic-d); }
+.section-head__eyebrow--sun    { color: var(--sun-d); }
+.section-head__eyebrow--moss   { color: var(--moss); }
 
 .section-ttl {
   font-family: var(--display);
   font-weight: 500;
-  font-size: 19px;
+  font-size: 28px;
   color: var(--ink);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.018em;
+  line-height: 1.02;
 }
 
 .section-chev {
@@ -4095,8 +4129,9 @@ textarea.input {
 
 /* Bigger, bolder headers on mobile so the sections stand out. */
 @media (max-width: 768px) {
-  .section-ttl { font-size: 24px; }
+  .section-ttl { font-size: 30px; }
   .section-head { padding: 18px 18px 14px; }
+  .section-head__actions { margin-top: 16px; }
   .section-chev { width: 26px; height: 26px; font-size: 20px; }
 }
 

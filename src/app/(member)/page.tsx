@@ -340,10 +340,13 @@ export default function FeedPage() {
         {/* My Trips */}
         <div className="panel section-panel" data-collapsed={!myTripsOpen} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
           <button type="button" className="panel-head section-head" onClick={() => setMyTripsOpen(o => !o)} aria-expanded={myTripsOpen}>
-            <div className="ttl section-ttl">
-              My <em>trips</em>
+            <div className="section-head__main">
+              <div className="section-head__eyebrow section-head__eyebrow--tropic">On the board</div>
+              <div className="ttl section-ttl">
+                My <em>trips</em>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="section-head__actions">
               <span className="pill ink">{tripItems.length} UPCOMING</span>
               <span className="section-chev" aria-hidden>›</span>
             </div>
@@ -478,10 +481,13 @@ export default function FeedPage() {
         {/* Open seats */}
         <div className="panel section-panel" data-collapsed={!openSeatsOpen} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
             <button type="button" className="panel-head section-head" onClick={() => setOpenSeatsOpen(o => !o)} aria-expanded={openSeatsOpen}>
-              <div className="ttl section-ttl">
-                Open <em>seats</em>
+              <div className="section-head__main">
+                <div className="section-head__eyebrow section-head__eyebrow--sun">Live departures</div>
+                <div className="ttl section-ttl">
+                  Open <em>seats</em>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="section-head__actions">
                 <span
                   className="pill tropic"
                   onClick={(e) => { e.stopPropagation(); router.push('/seats') }}
