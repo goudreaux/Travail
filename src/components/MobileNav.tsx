@@ -4,7 +4,7 @@ import { Icons } from '@/lib/icons'
 
 const MEMBER_ITEMS = [
   { href: '/', label: 'Feed', icon: Icons.feed, exact: true },
-  { href: '/seats', label: 'Seats', icon: Icons.seat },
+  { href: '/seats', label: 'Seats', icon: Icons.compass },
   { href: '/bookings', label: 'Trips', icon: Icons.paper },
   { href: '/contact', label: 'Contact', icon: Icons.phone },
   { href: '/membership', label: 'Account', icon: Icons.member },

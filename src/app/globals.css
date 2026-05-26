@@ -4477,3 +4477,265 @@ textarea.input {
     to { transform: translateY(0); }
   }
 }
+
+/* ─── Contact page ────────────────────────────────────────────── */
+/* Form-first concierge page. Member is signed in, so we never ask
+   for their name/email — just stamp it on top, then a subject picker
+   and a message field. Call / text live as small text-links beneath. */
+
+.contact-page {
+  max-width: 580px;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: 16px;
+  padding: 24px 24px 22px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 1px 2px rgba(13, 51, 64, 0.05),
+    0 14px 32px -10px rgba(13, 51, 64, 0.14);
+}
+
+.contact-sender {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--hair-2);
+}
+.contact-sender__label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.contact-sender__name {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.contact-sender__email {
+  font-family: var(--mono);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-light);
+  margin-left: 8px;
+}
+
+.contact-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.contact-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  font-weight: 600;
+}
+
+.contact-subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.contact-subject {
+  appearance: none;
+  border: 1px solid var(--hair-2);
+  background: var(--bg);
+  color: var(--ink-mid);
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s, box-shadow 0.14s;
+  -webkit-tap-highlight-color: transparent;
+}
+.contact-subject:hover {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+.contact-subject.active {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+  box-shadow: 0 2px 6px rgba(13, 51, 64, 0.18);
+}
+
+.contact-textarea {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  border: 1px solid var(--hair-2);
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-family: var(--ui);
+  font-size: 16px; /* prevents iOS zoom on focus */
+  line-height: 1.5;
+  color: var(--ink);
+  resize: vertical;
+  min-height: 130px;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.contact-textarea::placeholder {
+  color: var(--ink-faint);
+}
+.contact-textarea:focus {
+  outline: none;
+  border-color: var(--tropic);
+  background: var(--paper);
+  box-shadow: 0 0 0 3px rgba(0, 179, 199, 0.14);
+}
+
+.contact-error {
+  font-size: 13px;
+  color: var(--signal);
+  background: rgba(217, 78, 42, 0.08);
+  border: 1px solid rgba(217, 78, 42, 0.18);
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+.contact-submit {
+  appearance: none;
+  border: none;
+  height: 50px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--tropic) 0%, var(--tropic-d) 100%);
+  color: #fff;
+  font-family: var(--ui);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.20),
+    0 1px 2px rgba(0, 122, 140, 0.30),
+    0 8px 22px -4px rgba(0, 179, 199, 0.40);
+  transition: filter 0.14s, transform 0.08s, box-shadow 0.14s;
+  -webkit-tap-highlight-color: transparent;
+}
+.contact-submit:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.contact-submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.contact-submit:disabled {
+  background: var(--hair);
+  color: var(--ink-faint);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.contact-altline {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-light);
+  margin-top: 4px;
+}
+.contact-altlink {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--tropic-d);
+  text-decoration: none;
+  border-bottom: 1px dotted rgba(0, 179, 199, 0.5);
+  cursor: pointer;
+  transition: color 0.14s, border-color 0.14s;
+}
+.contact-altlink:hover {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+/* Sent confirmation state — replaces the form */
+.contact-sent {
+  text-align: center;
+  padding: 36px 20px 40px;
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: 16px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 14px 32px -10px rgba(13, 51, 64, 0.14);
+  animation: contact-sent-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.contact-sent__check {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(62, 140, 109, 0.14);
+  color: var(--moss);
+  box-shadow: inset 0 0 0 1px rgba(62, 140, 109, 0.32);
+}
+.contact-sent__title {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 0 0 6px;
+  line-height: 1.1;
+}
+.contact-sent__body {
+  font-size: 14.5px;
+  color: var(--ink-mid);
+  margin: 0;
+  line-height: 1.55;
+}
+@keyframes contact-sent-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile / iOS polish */
+@media (max-width: 768px) {
+  .contact-page { max-width: 100%; padding-bottom: env(safe-area-inset-bottom); }
+  .contact-form {
+    border-radius: 14px;
+    padding: 20px 18px 22px;
+    gap: 20px;
+  }
+  .contact-sender__name { font-size: 16px; }
+  .contact-sender__email { display: block; margin-left: 0; margin-top: 2px; }
+  .contact-sender { flex-direction: column; gap: 4px; align-items: flex-start; }
+  .contact-subject { font-size: 13.5px; padding: 9px 14px; }
+  .contact-textarea { min-height: 150px; }
+  .contact-submit { height: 52px; font-size: 15.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-sent { animation: none; }
+}

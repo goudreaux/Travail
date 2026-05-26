@@ -1,92 +1,168 @@
 'use client'
+import { useEffect, useState } from 'react'
 import PageHero from '@/components/PageHero'
-import { OPS_PHONE, OPS_PHONE_DISPLAY, OPS_EMAIL, OPS_HOURS } from '@/lib/contact'
+import { createClient } from '@/lib/supabase/client'
+import { OPS_PHONE, OPS_PHONE_DISPLAY, OPS_HOURS } from '@/lib/contact'
 
-function ContactCard({
-  href, accent, label, value, sub, icon,
-}: {
-  href: string; accent: string; label: string; value: string; sub: string; icon: React.ReactNode
-}) {
-  return (
-    <a
-      href={href}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 16,
-        background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 14,
-        padding: '20px 22px', textDecoration: 'none',
-        transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
-      }}
-      onMouseEnter={e => { const el = e.currentTarget; el.style.borderColor = accent; el.style.boxShadow = '0 4px 20px rgba(0,0,0,0.06)'; el.style.transform = 'translateY(-2px)' }}
-      onMouseLeave={e => { const el = e.currentTarget; el.style.borderColor = ''; el.style.boxShadow = ''; el.style.transform = '' }}
-    >
-      <div style={{
-        width: 48, height: 48, borderRadius: 12, flexShrink: 0,
-        background: accent, color: '#fff',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {icon}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', marginBottom: 4 }}>{label}</div>
-        <div className="display-i" style={{ fontSize: 22, color: 'var(--ink)', lineHeight: 1.1 }}>{value}</div>
-        <div style={{ fontSize: 12.5, color: 'var(--ink-light)', marginTop: 4 }}>{sub}</div>
-      </div>
-      <span style={{ flexShrink: 0, color: accent, fontSize: 13, fontWeight: 600 }}>→</span>
-    </a>
-  )
-}
+const SUBJECTS = [
+  'Booking change',
+  'Trip request',
+  'Membership question',
+  'Something else',
+] as const
 
-const sms = (
-  <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5h14v10H9l-4 3v-3H4z" /></svg>
-)
-const call = (
-  <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3.5c.5 2 .5 3 1.5 4-.5 1-1.5 2-2 2.5 1 2 2.5 3.5 4.5 4.5.5-.5 1.5-1.5 2.5-2 1 1 2 1 4 1.5v3c0 .8-.7 1.5-1.5 1.4C9.5 17.5 4.5 12.5 3.6 5 3.5 4.2 4.2 3.5 5 3.5z" /></svg>
-)
-const mail = (
-  <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="16" height="12" rx="1.5" /><path d="M3 6l8 6 8-6" /></svg>
-)
+type Subject = typeof SUBJECTS[number]
 
 export default function ContactPage() {
+  const supabase = createClient()
+  const [memberName, setMemberName] = useState<string | null>(null)
+  const [memberEmail, setMemberEmail] = useState<string | null>(null)
+  const [subject, setSubject] = useState<Subject>(SUBJECTS[0])
+  const [message, setMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Pull the signed-in member's identity so we can stamp the sender block.
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (cancelled || !user) return
+      setMemberEmail(user.email ?? null)
+      const { data: member } = await supabase
+        .from('members')
+        .select('name')
+        .eq('user_id', user.id)
+        .single()
+      if (cancelled) return
+      setMemberName(member?.name ?? null)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [supabase])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!message.trim() || sending) return
+    setSending(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/contact/send', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ subject, message: message.trim() }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Could not send')
+      }
+      setSent(true)
+      setMessage('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send')
+    } finally {
+      setSending(false)
+    }
+  }
+
   return (
     <div className="page">
       <PageHero
         accent="signal"
         eyebrow="Concierge"
-        title="Contact ops."
-        sub="Save our number and reach us any time — text, call, or email. A member of the team will take care of it."
+        title="A note to ops."
+        sub="Drop us a line — we'll take care of the rest. Replies usually within minutes during desk hours."
         metric={{ value: '~4', label: 'Min avg reply', sub: '7am · 9pm ET' }}
       />
-      <div className="page-view" style={{ maxWidth: 620 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <ContactCard
-            href={`sms:${OPS_PHONE}`}
-            accent="var(--tropic-d)"
-            label="Text us"
-            value={OPS_PHONE_DISPLAY}
-            sub="Fastest way to reach the team."
-            icon={sms}
-          />
-          <ContactCard
-            href={`tel:${OPS_PHONE}`}
-            accent="var(--sun-d)"
-            label="Call us"
-            value={OPS_PHONE_DISPLAY}
-            sub={OPS_HOURS}
-            icon={call}
-          />
-          <ContactCard
-            href={`mailto:${OPS_EMAIL}`}
-            accent="var(--moss)"
-            label="Email us"
-            value={OPS_EMAIL}
-            sub="For anything that isn't time-sensitive."
-            icon={mail}
-          />
-        </div>
-        <p style={{ fontSize: 12.5, color: 'var(--ink-light)', marginTop: 20, lineHeight: 1.6 }}>
-          For booking changes or cancellations, text us your confirmation code and we&rsquo;ll handle the rest.
-        </p>
+
+      <div className="page-view contact-page">
+        {sent ? (
+          <SentState memberName={memberName} onAgain={() => setSent(false)} />
+        ) : (
+          <form className="contact-form" onSubmit={handleSubmit}>
+            {/* Identity badge: ops will know exactly who's writing */}
+            <div className="contact-sender">
+              <div className="contact-sender__label">Sending as</div>
+              <div className="contact-sender__name">
+                {memberName ?? 'You'}
+                {memberEmail && <span className="contact-sender__email">{memberEmail}</span>}
+              </div>
+            </div>
+
+            {/* Subject — pill picker rather than a dropdown for iOS feel */}
+            <div className="contact-field">
+              <label className="contact-label">What's this about?</label>
+              <div className="contact-subjects">
+                {SUBJECTS.map(s => (
+                  <button
+                    type="button"
+                    key={s}
+                    className={`contact-subject${s === subject ? ' active' : ''}`}
+                    onClick={() => setSubject(s)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Message — autogrow textarea, iOS-friendly */}
+            <div className="contact-field">
+              <label className="contact-label" htmlFor="contact-message">Message</label>
+              <textarea
+                id="contact-message"
+                className="contact-textarea"
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                placeholder="Tell us what you need…"
+                rows={6}
+                maxLength={6000}
+                autoComplete="off"
+              />
+            </div>
+
+            {error && <div className="contact-error">{error}</div>}
+
+            <button
+              type="submit"
+              className="contact-submit"
+              disabled={!message.trim() || sending}
+            >
+              {sending ? 'Sending…' : 'Send to ops →'}
+            </button>
+
+            {/* Subtle text-links for call/text — no big CTA cards */}
+            <div className="contact-altline">
+              or{' '}
+              <a className="contact-altlink" href={`sms:${OPS_PHONE}`}>text {OPS_PHONE_DISPLAY}</a>
+              {' · '}
+              <a className="contact-altlink" href={`tel:${OPS_PHONE}`}>call {OPS_HOURS.replace('Daily · ', '')}</a>
+            </div>
+          </form>
+        )}
       </div>
+    </div>
+  )
+}
+
+function SentState({ memberName, onAgain }: { memberName: string | null; onAgain: () => void }) {
+  return (
+    <div className="contact-sent">
+      <div className="contact-sent__check" aria-hidden>
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </div>
+      <h2 className="contact-sent__title">
+        Got it{memberName ? `, ${memberName.split(' ')[0]}.` : '.'}
+      </h2>
+      <p className="contact-sent__body">
+        Ops has your note. Expect a reply within minutes during desk hours.
+      </p>
+      <button type="button" className="contact-altlink" onClick={onAgain} style={{ marginTop: 18 }}>
+        Send another →
+      </button>
     </div>
   )
 }
