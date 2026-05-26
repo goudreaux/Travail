@@ -318,12 +318,26 @@ export default function FeedPage() {
                             <div className="my-trip-card__top">
                               <div className="my-trip-card__top-row">
                                 <h3 className="my-trip-card__route">
-                                  <span>{placeName(flight.origin_code, airportName)}</span>
+                                  <span>{flight.origin_code}</span>
                                   <span className="my-trip-card__route-arrow">{trip.roundReturn ? '⇄' : '→'}</span>
-                                  <span>{placeName(flight.dest_code, airportName)}</span>
+                                  <span>{flight.dest_code}</span>
                                 </h3>
                                 <span className={statusPillClass(booking.status)}>{statusLabel(booking.status)}</span>
                               </div>
+                              {(() => {
+                                const o = airportName[flight.origin_code]
+                                const d = airportName[flight.dest_code]
+                                const oHas = o && o !== flight.origin_code
+                                const dHas = d && d !== flight.dest_code
+                                if (!oHas && !dHas) return null
+                                return (
+                                  <div className="my-trip-card__route-cities">
+                                    {oHas ? o : flight.origin_code}
+                                    <span style={{ margin: '0 6px', color: 'var(--ink-faint)' }}>{trip.roundReturn ? '⇄' : '→'}</span>
+                                    {dHas ? d : flight.dest_code}
+                                  </div>
+                                )
+                              })()}
                               <div className="my-trip-card__meta">
                                 {`${dp.dow} ${dp.mo} ${dp.day}`}
                                 {flight.departTimeStr ? ` · ${flight.departTimeStr}` : ''}
