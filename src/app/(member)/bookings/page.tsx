@@ -86,7 +86,7 @@ interface EnrichedSubmission extends AnchorSubmission {
 
 // ─── Booking card ──────────────────────────────────────────────────────────────
 
-function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect }: { booking: EnrichedBooking; onNavigate: () => void; roundReturn?: Flight; isExpanded: boolean; onSelect: () => void }) {
+function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect, airportName }: { booking: EnrichedBooking; onNavigate: () => void; roundReturn?: Flight; isExpanded: boolean; onSelect: () => void; airportName: Record<string, string> }) {
   const isBoarding = booking.status === 'approved'
   const isFlight = booking.item_kind === 'flight'
   const f = booking.flight
@@ -135,6 +135,20 @@ function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect }:
           </h3>
           <span className={`pill${statusCls ? ' ' + statusCls : ''}`}>{statusLabel}</span>
         </div>
+        {isFlight && f && (() => {
+          const o = airportName[f.origin_code]
+          const d = airportName[f.dest_code]
+          const oHas = o && o !== f.origin_code
+          const dHas = d && d !== f.dest_code
+          if (!oHas && !dHas) return null
+          return (
+            <div className="my-trip-card__route-cities">
+              {oHas ? o : f.origin_code}
+              <span style={{ margin: '0 6px', color: 'var(--ink-faint)' }}>{roundReturn ? '⇄' : '→'}</span>
+              {dHas ? d : f.dest_code}
+            </div>
+          )
+        })()}
         <div className="my-trip-card__meta">
           {[dateLabel, timeLabel, seatsLabel, fmtMoney(booking.total).toUpperCase()].filter(Boolean).join(' · ')}
         </div>
@@ -246,6 +260,7 @@ export default function BookingsPage() {
 
   const [bookings, setBookings] = useState<EnrichedBooking[]>([])
   const [anchors, setAnchors] = useState<EnrichedSubmission[]>([])
+  const [airportName, setAirportName] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [showHistory, setShowHistory] = useState(false)
   // iOS Wallet-style stack: one card expanded at a time across the whole page.
@@ -276,6 +291,7 @@ export default function BookingsPage() {
         { data: rawFlights },
         { data: rawExcursions },
         { data: rawTemplates },
+        { data: rawAirports },
       ] = await Promise.all([
         supabase
           .from('bookings')
@@ -290,11 +306,15 @@ export default function BookingsPage() {
         supabase.from('flights').select('*'),
         supabase.from('excursions').select('*'),
         supabase.from('excursion_templates').select('*'),
-      ])
+        supabase.from('airports').select('code, name'),
+      ] as const)
 
       const flights: Flight[] = (rawFlights ?? []) as Flight[]
       const excursions: Excursion[] = (rawExcursions ?? []) as Excursion[]
       const templates: ExcursionTemplate[] = (rawTemplates ?? []) as ExcursionTemplate[]
+      const am: Record<string, string> = {}
+      for (const a of (rawAirports ?? []) as { code: string; name: string }[]) am[a.code] = a.name
+      setAirportName(am)
 
       // Enrich bookings
       const enrichedBookings: EnrichedBooking[] = (rawBookings ?? []).map(b => {
@@ -402,6 +422,7 @@ export default function BookingsPage() {
                       roundReturn={b.item_kind === 'flight' ? flightById.get(`${b.item_id}R`) : undefined}
                       isExpanded={effectiveExpanded === b.id}
                       onSelect={() => setExpandedId(b.id)}
+                      airportName={airportName}
                     />
                   ))}
                 </div>
@@ -470,6 +491,7 @@ export default function BookingsPage() {
                         roundReturn={b.item_kind === 'flight' ? flightById.get(`${b.item_id}R`) : undefined}
                         isExpanded={effectiveExpanded === b.id}
                         onSelect={() => setExpandedId(b.id)}
+                        airportName={airportName}
                       />
                     ))}
                     {closedAnchors.map(a => (
