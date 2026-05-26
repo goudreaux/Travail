@@ -155,6 +155,7 @@ function FlightCard({
           <div onClick={e => e.stopPropagation()}><RosterStack entries={roster ?? []} occupied={flight.seats_total - flight.seatsAvailable} /></div>
         </div>
         <img className="trip-card__img" src={flight.image_url || '/trip-default.jpeg'} alt="" />
+        <span className="trip-card__stamp" aria-hidden>{KIND_ICONS.flight}</span>
       </div>
       <div className="trip-card__cta">
         <span style={{ color: 'var(--ink-light)', fontSize: 12 }}>
@@ -219,6 +220,7 @@ function RoundTripCard({
           <div onClick={e => e.stopPropagation()}><RosterStack entries={roster ?? []} occupied={outbound.seats_total - seatsLeft} /></div>
         </div>
         <img className="trip-card__img" src={outbound.image_url || '/trip-default.jpeg'} alt="" />
+        <span className="trip-card__stamp" aria-hidden>{KIND_ICONS.flight}</span>
       </div>
       <div className="trip-card__cta">
         <span style={{ color: 'var(--ink-light)', fontSize: 12 }}>
@@ -282,6 +284,7 @@ function ExcursionCard({
           <div onClick={e => e.stopPropagation()}><RosterStack entries={roster ?? []} occupied={excursion.spots_total - excursion.spotsAvailable} /></div>
         </div>
         <img className="trip-card__img" src={excursion.image_url || '/trip-default.jpeg'} alt="" />
+        <span className="trip-card__stamp" aria-hidden>{KIND_ICONS[excursion.templateMeta?.icon ?? 'fish'] ?? KIND_ICONS.fish}</span>
       </div>
       <div className="trip-card__cta">
         <span style={{ color: 'var(--ink-light)', fontSize: 12 }}>

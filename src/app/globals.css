@@ -2085,6 +2085,16 @@ body::before {
   display: block;
 }
 
+/* Activity-icon stamp on the photo. Sits at the bottom-right corner of
+   the hero image — large, white, low-opacity, slightly rotated so it
+   reads as a stationery / luggage-tag mark rather than a UI element.
+   Mobile only; on desktop the kind already shows in the icon column or
+   eyebrow. */
+.my-trip-card__stamp,
+.trip-card__stamp { display: none; }
+.my-trip-card__stamp svg,
+.trip-card__stamp svg { width: 100%; height: 100%; }
+
 @media (max-width: 768px) {
   .my-trip-card__img { height: 168px; }
 }
@@ -3686,6 +3696,47 @@ textarea.input {
     -webkit-mask-image: none;
     mask-image: none;
   }
+
+  /* Activity-icon stamp on the photo (mobile open-seat cards). Bottom-
+     right of the photo banner, white at 36% opacity with a soft drop
+     shadow, slightly counter-rotated — a quiet field-guide mark on the
+     hero image. */
+  .trip-card__stamp {
+    display: block;
+    position: absolute;
+    bottom: 10px;
+    right: 12px;
+    width: 46px;
+    height: 46px;
+    color: rgba(255, 255, 255, 0.86);
+    opacity: 0.62;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+    transform: rotate(-7deg);
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  /* Same treatment for the wallet-stack hero on mobile. .my-trip-card
+     is position:relative + overflow:hidden, so we anchor the stamp to
+     the bottom of the image area via top + margin-top math. */
+  .my-trip-card__stamp {
+    display: block;
+    position: absolute;
+    top: 168px;
+    margin-top: -56px;
+    right: 14px;
+    width: 46px;
+    height: 46px;
+    color: rgba(255, 255, 255, 0.86);
+    opacity: 0.62;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+    transform: rotate(-7deg);
+    pointer-events: none;
+    z-index: 3;
+  }
+  /* Hide the stamp on retracted wallet cards (the image is gone). */
+  .my-trip-card[data-expanded="0"] .my-trip-card__stamp { display: none; }
+
   /* Date chip on mobile cards: Airbnb-style white pill. Pure white,
      rounded rectangle, bold Inter Tight sans, soft drop shadow. Reads
      as a quiet informational tag — never competes with the photo. */
