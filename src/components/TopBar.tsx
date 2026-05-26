@@ -307,11 +307,12 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
           )}
         </div>
 
-        {/* Concierge CTA. The trailing arrow drifts a few pixels right and
-            back on a slow loop — quietly reinforces 'go somewhere' as a
-            forward motion without competing with the live dots elsewhere. */}
+        {/* Concierge CTA. Full label on desktop, terse 'Cool' on mobile so
+            the top bar doesn't get crowded. Trailing arrow drifts right
+            and back on a slow loop — a quiet forward-motion nudge. */}
         <Link href="/plan" className="cta-go" aria-label="Plan somewhere cool to go">
-          <span>Go somewhere cool</span>
+          <span className="cta-go__long">Go somewhere cool</span>
+          <span className="cta-go__short">Cool</span>
           <span className="cta-go__arrow" aria-hidden>→</span>
         </Link>
 
