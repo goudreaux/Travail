@@ -30,6 +30,16 @@ type TripItem =
 const TYPE_FILTERS = ['all', 'fish', 'golf', 'hunt'] as const
 type TypeFilter = typeof TYPE_FILTERS[number]
 
+// Filter chip catalogue — mirrors the Seats page so the two feels are
+// identical (icon + label + tint). All four chips coexist visually; the
+// match logic in `excursionMatchesFilter` decides what each one claims.
+const FEED_FILTERS: { key: TypeFilter; label: string; icon?: string; tint?: string }[] = [
+  { key: 'all',  label: 'All' },
+  { key: 'fish', label: 'Fishing', icon: 'fish',  tint: 'var(--sun-d)' },
+  { key: 'golf', label: 'Golf',    icon: 'golf',  tint: 'var(--moss)' },
+  { key: 'hunt', label: 'Hunt',    icon: 'quail', tint: 'var(--signal)' },
+]
+
 function statusPillClass(status: Booking['status']): string {
   if (status === 'approved') return 'pill moss'
   if (status === 'pending') return 'pill sun'
@@ -483,16 +493,26 @@ export default function FeedPage() {
               </div>
             </button>
 
-            {/* Filter chips */}
-            <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--hair)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {TYPE_FILTERS.map(f => (
+            {/* Filter chips — matches the Seats page: icon + label, with
+                colour-tinted icons that go ink when the chip is active. */}
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--hair)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {FEED_FILTERS.map(f => (
                 <button
-                  key={f}
-                  className={`chip${typeFilter === f ? ' active' : ''}`}
-                  onClick={() => setTypeFilter(f)}
-                  style={{ height: 26, padding: '0 10px', fontSize: 11.5 }}
+                  key={f.key}
+                  className={`chip${typeFilter === f.key ? ' active' : ''}`}
+                  onClick={() => setTypeFilter(f.key)}
+                  style={{ height: 32, padding: '0 14px' }}
                 >
-                  {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+                  {f.icon && (
+                    <span style={{
+                      color: typeFilter === f.key ? undefined : f.tint,
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}>
+                      {KIND_ICONS[f.icon]}
+                    </span>
+                  )}
+                  {f.label}
                 </button>
               ))}
             </div>
