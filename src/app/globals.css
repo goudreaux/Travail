@@ -810,7 +810,7 @@ body::before {
   animation: feed-hero-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s forwards;
 }
 .feed-hero__welcome-pre {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--tropic);
 }
 .feed-hero__welcome-name {
   color: #fff;
