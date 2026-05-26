@@ -96,20 +96,22 @@ function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect }:
   const icon = isFlight ? 'flight' : (tpl?.icon ?? 'fish')
   const name = isFlight ? (f?.name ?? `Flight ${booking.item_id.slice(0, 6)}`) : (e?.name ?? `Excursion`)
 
-  let dateStr = ''
-  let routeMeta = ''
+  let dateLabel = ''
   if (isFlight && f) {
     const dp = fmtDate(f.date)
-    dateStr = dp.full + (roundReturn ? ` · returns ${fmtDate(roundReturn.date).full}` : '')
-    routeMeta = `${f.origin_code} ${roundReturn ? '⇄' : '→'} ${f.dest_code}${roundReturn ? ' · round trip' : ''}`
+    dateLabel = dp.full.toUpperCase()
   } else if (e) {
     const dp = fmtDate(e.date)
-    dateStr = dp.full
-    routeMeta = e.origin_code + (e.start_time ? ` · ${fmtTime(e.start_time)}` : '')
+    dateLabel = dp.full.toUpperCase()
   }
+  const timeLabel = isFlight && f
+    ? (roundReturn ? 'ROUND TRIP' : '')
+    : (e?.start_time ? fmtTime(e.start_time).toUpperCase() : '')
+  const seatsLabel = booking.seats === 1 ? '1 SEAT' : `${booking.seats} SEATS`
 
   const statusCls = bookingStatusClass(booking.status)
   const statusLabel = bookingStatusLabel(booking.status)
+  const imageUrl = isFlight ? f?.image_url : e?.image_url
 
   return (
     <div
@@ -117,87 +119,48 @@ function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect }:
       data-expanded={isExpanded ? '1' : '0'}
       onClick={() => (isExpanded ? onNavigate() : onSelect())}
     >
-      <div className="my-trip-card__header">
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: isFlight ? 'var(--tropic-glow)' : 'var(--sun-glow)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: isFlight ? 'var(--tropic)' : 'var(--sun-d)',
-              flexShrink: 0,
-            }}
+      {imageUrl && <img className="my-trip-card__img" src={imageUrl} alt="" />}
+      <div className="my-trip-card__top">
+        <div className="my-trip-card__top-row">
+          <h3 className="my-trip-card__route">
+            {isFlight && f ? (
+              <>
+                <span>{f.origin_code}</span>
+                <span className="my-trip-card__route-arrow">{roundReturn ? '⇄' : '→'}</span>
+                <span>{f.dest_code}</span>
+              </>
+            ) : (
+              <span>{name}</span>
+            )}
+          </h3>
+          <span className={`pill${statusCls ? ' ' + statusCls : ''}`}>{statusLabel}</span>
+        </div>
+        <div className="my-trip-card__meta">
+          {[dateLabel, timeLabel, seatsLabel, fmtMoney(booking.total).toUpperCase()].filter(Boolean).join(' · ')}
+        </div>
+      </div>
+      <div className="my-trip-card__perf" aria-hidden>
+        <span className="my-trip-card__perf-dash" />
+      </div>
+      <div className="my-trip-card__stub">
+        <span className="my-trip-card__conf">
+          {booking.confirmation_code ?? (booking.status === 'pending' ? 'PENDING REVIEW' : '—')}
+        </span>
+        {isBoarding && (
+          <button
+            className="btn-primary"
+            style={{ height: 30, padding: '0 12px', fontSize: 12 }}
+            onClick={ev => { ev.stopPropagation(); onNavigate() }}
           >
-            {KIND_ICONS[icon] ?? KIND_ICONS['fish']}
-          </div>
-          <div>
-            <div className="my-trip-card__title" style={{ fontStyle: 'italic' }}>{name}</div>
-            <div className="my-trip-card__sub">
-              {isFlight ? 'Flight' : 'Excursion'}
-              {booking.seats > 1 ? ` · ${booking.seats} seats` : ' · 1 seat'}
-            </div>
-          </div>
-        </div>
-        <span className={`pill${statusCls ? ' ' + statusCls : ''}`}>{statusLabel}</span>
-      </div>
-
-      <div className="my-trip-card__body">
-        {dateStr && (
-          <div className="my-trip-card__row">
-            <span className="label">Date</span>
-            <span>{dateStr}</span>
-          </div>
-        )}
-        {routeMeta && (
-          <div className="my-trip-card__row">
-            <span className="label">{isFlight ? 'Route' : 'Departure'}</span>
-            <span>{routeMeta}</span>
-          </div>
-        )}
-        <div className="my-trip-card__row">
-          <span className="label">Total</span>
-          <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{fmtMoney(booking.total)}</span>
-        </div>
-        {booking.status === 'declined' && booking.decline_reason && (
-          <div className="my-trip-card__row">
-            <span className="label">Reason</span>
-            <span style={{ color: 'var(--signal)', fontSize: 13 }}>{booking.decline_reason}</span>
-          </div>
+            Boarding pass
+          </button>
         )}
       </div>
-
-      <div className="my-trip-card__footer">
-        <div>
-          {booking.confirmation_code ? (
-            <>
-              <div style={{ fontSize: 10, fontFamily: 'var(--mono)', letterSpacing: '0.08em', color: 'var(--ink-faint)', textTransform: 'uppercase', marginBottom: 2 }}>Confirmation</div>
-              <div className="my-trip-card__conf">{booking.confirmation_code}</div>
-            </>
-          ) : (
-            <span style={{ fontSize: 12, color: 'var(--ink-faint)', fontFamily: 'var(--mono)', letterSpacing: '0.06em' }}>
-              {booking.status === 'pending' ? 'PENDING REVIEW' : 'NO CODE'}
-            </span>
-          )}
+      {booking.status === 'declined' && booking.decline_reason && (
+        <div style={{ padding: '0 18px 12px', position: 'relative', zIndex: 1, fontSize: 12.5, color: 'var(--signal)' }}>
+          {booking.decline_reason}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{
-            fontSize: 12,
-            color: 'var(--ink-light)',
-            fontFamily: 'var(--mono)',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-          }}>
-            {new Date(booking.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-          </span>
-          {isBoarding && (
-            <span className="pill tropic">View pass →</span>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -231,6 +194,8 @@ function AnchorCard({ submission, isExpanded, onSelect }: { submission: Enriched
   const effStatus = effectiveAnchorStatus(submission)
   const statusCls = submissionStatusClass(effStatus)
   const statusLabel = submissionStatusLabel(effStatus)
+  const imageUrl = isFlight ? f?.image_url : e?.image_url
+  const submittedLabel = `SUBMITTED ${new Date(submission.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()}`
 
   return (
     <div
@@ -238,57 +203,37 @@ function AnchorCard({ submission, isExpanded, onSelect }: { submission: Enriched
       data-expanded={isExpanded ? '1' : '0'}
       onClick={onSelect}
     >
-      <div className="my-trip-card__header">
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: isFlight ? 'var(--tropic-glow)' : 'var(--sun-glow)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: isFlight ? 'var(--tropic)' : 'var(--sun-d)',
-              flexShrink: 0,
-            }}
-          >
-            {KIND_ICONS[icon] ?? KIND_ICONS['fish']}
-          </div>
-          <div>
-            <div className="my-trip-card__title" style={{ fontStyle: 'italic' }}>{name}</div>
-            <div className="my-trip-card__sub">{isFlight ? 'Anchor flight' : 'Anchor excursion'} submission</div>
-          </div>
+      {imageUrl && <img className="my-trip-card__img" src={imageUrl} alt="" />}
+      <div className="my-trip-card__top">
+        <div className="my-trip-card__top-row">
+          <h3 className="my-trip-card__route"><span>{name}</span></h3>
+          <span className={`pill${statusCls ? ' ' + statusCls : ''}`}>{statusLabel}</span>
         </div>
-        <span className={`pill${statusCls ? ' ' + statusCls : ''}`}>{statusLabel}</span>
+        <div className="my-trip-card__meta">
+          {[
+            isFlight ? 'ANCHOR FLIGHT' : 'ANCHOR EXCURSION',
+            routeOrDate ? routeOrDate.toUpperCase() : '',
+            submittedLabel,
+          ].filter(Boolean).join(' · ')}
+        </div>
       </div>
-
-      <div className="my-trip-card__body">
-        {routeOrDate && (
-          <div className="my-trip-card__row">
-            <span className="label">{isFlight ? 'Route' : 'Departure'}</span>
-            <span>{routeOrDate}</span>
-          </div>
-        )}
-        <div className="my-trip-card__row">
-          <span className="label">Submitted</span>
-          <span>{new Date(submission.submitted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-        </div>
-        {submission.status === 'declined' && submission.decline_reason && (
-          <div className="my-trip-card__row">
-            <span className="label">Reason</span>
-            <span style={{ color: 'var(--signal)', fontSize: 13 }}>{submission.decline_reason}</span>
-          </div>
-        )}
-        {submission.status === 'published' && submission.published_item_id && (
-          <div className="my-trip-card__row">
-            <span className="label">Status</span>
-            {effStatus === 'cancelled'
-              ? <span style={{ color: 'var(--signal)', fontWeight: 600 }}>Cancelled by Ops</span>
-              : <span style={{ color: 'var(--moss)', fontWeight: 600 }}>Live and accepting bookings</span>}
-          </div>
+      <div className="my-trip-card__perf" aria-hidden>
+        <span className="my-trip-card__perf-dash" />
+      </div>
+      <div className="my-trip-card__stub">
+        {submission.status === 'published' && submission.published_item_id ? (
+          <span className="my-trip-card__conf" style={{ color: effStatus === 'cancelled' ? 'var(--signal)' : 'var(--moss)' }}>
+            {effStatus === 'cancelled' ? 'CANCELLED BY OPS' : 'LIVE & ACCEPTING BOOKINGS'}
+          </span>
+        ) : (
+          <span className="my-trip-card__conf">{statusLabel}</span>
         )}
       </div>
+      {submission.status === 'declined' && submission.decline_reason && (
+        <div style={{ padding: '0 18px 12px', position: 'relative', zIndex: 1, fontSize: 12.5, color: 'var(--signal)' }}>
+          {submission.decline_reason}
+        </div>
+      )}
     </div>
   )
 }
