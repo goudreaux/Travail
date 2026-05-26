@@ -111,7 +111,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
         />
         {children}
       </main>
-      <MobileNav pathname={pathname} isAdmin={!!member?.is_admin} />
+      <MobileNav pathname={pathname} isAdmin={!!member?.is_admin} openSeatsCount={openSeatsCount} />
       <PullToRefresh />
       <ToastHost />
     </div>

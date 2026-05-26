@@ -3480,6 +3480,151 @@ textarea.input {
     color: var(--tropic);
   }
 
+  /* Button-as-tab needs to look identical to the Link tabs. */
+  .mobile-nav .m-item[type="button"] {
+    appearance: none;
+    border: none;
+    background: none;
+  }
+
+  /* Wrapper around the tab icon — lets us anchor the alert dot. */
+  .mobile-nav .m-item__icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Signal-coloured alert dot (e.g. Seats has open seats > 0). Sits at
+     the icon's top-right, ~7px diameter, with a soft pulse ring. */
+  .mobile-nav .m-item__alert {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--signal);
+    box-shadow:
+      0 0 0 1.5px var(--night),
+      0 0 0 1.5px var(--night),
+      0 0 0 0 rgba(217, 78, 42, 0.6);
+    animation: m-item-alert 2s ease-out infinite;
+  }
+  @keyframes m-item-alert {
+    0%   { box-shadow: 0 0 0 1.5px var(--night), 0 0 0 0 rgba(217, 78, 42, 0.55); }
+    70%  { box-shadow: 0 0 0 1.5px var(--night), 0 0 0 7px rgba(217, 78, 42, 0); }
+    100% { box-shadow: 0 0 0 1.5px var(--night), 0 0 0 0 rgba(217, 78, 42, 0); }
+  }
+
+  /* "More" bottom sheet */
+  .m-more {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .m-more__scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 33, 40, 0.55);
+    backdrop-filter: saturate(140%) blur(4px);
+    -webkit-backdrop-filter: saturate(140%) blur(4px);
+    animation: m-more-scrim 0.22s ease both;
+  }
+  .m-more__sheet {
+    position: relative;
+    background: var(--paper);
+    border-radius: 18px 18px 0 0;
+    padding: 14px 18px calc(20px + env(safe-area-inset-bottom));
+    margin-bottom: calc(64px + env(safe-area-inset-bottom));
+    box-shadow: 0 -16px 40px -8px rgba(4, 33, 40, 0.4);
+    animation: m-more-rise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .m-more__handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(13, 51, 64, 0.18);
+    margin: 0 auto 12px;
+  }
+  .m-more__title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--ink-light);
+    margin-bottom: 8px;
+    padding: 0 4px;
+  }
+  .m-more__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .m-more__row {
+    appearance: none;
+    background: none;
+    border: none;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 8px;
+    text-decoration: none;
+    color: var(--ink);
+    font-family: var(--ui);
+    font-size: 15.5px;
+    font-weight: 500;
+    border-radius: 12px;
+    transition: background 0.12s;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .m-more__row:hover { background: rgba(0, 179, 199, 0.06); }
+  .m-more__row.active { background: rgba(0, 179, 199, 0.10); color: var(--tropic-d); }
+  .m-more__row--admin { color: var(--sun-d); }
+  .m-more__row--admin .m-more__icon { color: var(--sun-d); }
+  .m-more__row--signout { color: var(--signal); }
+  .m-more__row--signout .m-more__icon { color: var(--signal); }
+  .m-more__icon {
+    width: 28px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-mid);
+  }
+  .m-more__row.active .m-more__icon { color: var(--tropic-d); }
+  .m-more__row > span:nth-child(2) {
+    flex: 1;
+    text-align: left;
+  }
+  .m-more__chev {
+    color: var(--ink-faint);
+    font-size: 18px;
+    line-height: 1;
+  }
+  @keyframes m-more-scrim {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes m-more-rise {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .m-more__scrim, .m-more__sheet { animation: none; }
+    .mobile-nav .m-item__alert { animation: none; }
+  }
+
   .stat-grid {
     grid-template-columns: repeat(2, 1fr);
   }
