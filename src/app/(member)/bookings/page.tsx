@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { fmtDate, fmtTime, fmtMoney, returnLegIds } from '@/lib/data'
+import { fmtDate, fmtTime, fmtMoney, returnLegIds, airportCity } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import { KIND_ICONS } from '@/lib/icons'
 import type {
@@ -125,9 +125,9 @@ function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect, a
           <h3 className="my-trip-card__route">
             {isFlight && f ? (
               <>
-                <span>{f.origin_code}</span>
+                <span>{airportCity(f.origin_code, airportName)}</span>
                 <span className="my-trip-card__route-arrow">{roundReturn ? '⇄' : '→'}</span>
-                <span>{f.dest_code}</span>
+                <span>{airportCity(f.dest_code, airportName)}</span>
               </>
             ) : (
               <span>{name}</span>
@@ -135,20 +135,6 @@ function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect, a
           </h3>
           <span className={`pill${statusCls ? ' ' + statusCls : ''}`}>{statusLabel}</span>
         </div>
-        {isFlight && f && (() => {
-          const o = airportName[f.origin_code]
-          const d = airportName[f.dest_code]
-          const oHas = o && o !== f.origin_code
-          const dHas = d && d !== f.dest_code
-          if (!oHas && !dHas) return null
-          return (
-            <div className="my-trip-card__route-cities">
-              {oHas ? o : f.origin_code}
-              <span style={{ margin: '0 6px', color: 'var(--ink-faint)' }}>{roundReturn ? '⇄' : '→'}</span>
-              {dHas ? d : f.dest_code}
-            </div>
-          )
-        })()}
         <div className="my-trip-card__meta">
           {[dateLabel, timeLabel, seatsLabel, fmtMoney(booking.total).toUpperCase()].filter(Boolean).join(' · ')}
         </div>
@@ -181,7 +167,7 @@ function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect, a
 
 // ─── Anchor card ───────────────────────────────────────────────────────────────
 
-function AnchorCard({ submission, isExpanded, onSelect }: { submission: EnrichedSubmission; isExpanded: boolean; onSelect: () => void }) {
+function AnchorCard({ submission, isExpanded, onSelect, airportName }: { submission: EnrichedSubmission; isExpanded: boolean; onSelect: () => void; airportName: Record<string, string> }) {
   const isFlight = submission.kind === 'flight'
   const f = submission.flight
   const e = submission.excursion
@@ -195,14 +181,14 @@ function AnchorCard({ submission, isExpanded, onSelect }: { submission: Enriched
 
   if (isFlight && f) {
     const dp = fmtDate(f.date)
-    routeOrDate = `${f.origin_code} → ${f.dest_code} · ${dp.full}`
+    routeOrDate = `${airportCity(f.origin_code, airportName)} → ${airportCity(f.dest_code, airportName)} · ${dp.full}`
   } else if (isFlight && payload) {
-    routeOrDate = [payload.origin_code, payload.dest_code, payload.date].filter(Boolean).join(' · ')
+    routeOrDate = [payload.origin_code ? airportCity(String(payload.origin_code), airportName) : null, payload.dest_code ? airportCity(String(payload.dest_code), airportName) : null, payload.date].filter(Boolean).join(' · ')
   } else if (e) {
     const dp = fmtDate(e.date)
-    routeOrDate = `${e.origin_code} · ${dp.full}`
+    routeOrDate = `${airportCity(e.origin_code, airportName)} · ${dp.full}`
   } else if (payload) {
-    routeOrDate = [payload.origin_code, payload.date].filter(Boolean).join(' · ')
+    routeOrDate = [payload.origin_code ? airportCity(String(payload.origin_code), airportName) : null, payload.date].filter(Boolean).join(' · ')
   }
 
   const effStatus = effectiveAnchorStatus(submission)
@@ -459,7 +445,7 @@ export default function BookingsPage() {
                       key={a.id}
                       submission={a}
                       isExpanded={true}
-                      onSelect={() => {}}
+                      onSelect={() => {}} airportName={airportName}
                     />
                   ))}
                 </div>
@@ -499,7 +485,7 @@ export default function BookingsPage() {
                         key={a.id}
                         submission={a}
                         isExpanded={effectiveExpanded === a.id}
-                        onSelect={() => setExpandedId(a.id)}
+                        onSelect={() => setExpandedId(a.id)} airportName={airportName}
                       />
                     ))}
                   </div>

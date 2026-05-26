@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { fmtDate, fmtDur, fmtMoney, fmtTime, fmtHomeBase, memberCode } from '@/lib/data'
+import { fmtDate, fmtDur, fmtMoney, fmtTime, fmtHomeBase, memberCode, airportCity } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
 import { fetchRosters, type RosterEntry } from '@/components/Roster'
 
@@ -47,13 +47,10 @@ function addMins(t: string | null, mins: number): string {
 }
 
 function Endpoint({ code, names }: { code: string; names: Record<string, string> }) {
-  const name = names[code] ?? code
+  const name = airportCity(code, names)
   return (
     <div style={{ textAlign: 'center', minWidth: 0, flex: 1 }}>
       <div style={{ fontFamily: 'var(--display)', fontSize: 21, fontWeight: 500, color: '#fff', lineHeight: 1.15 }}>{name}</div>
-      {name !== code && (
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.12em', marginTop: 5 }}>({code})</div>
-      )}
     </div>
   )
 }
@@ -583,12 +580,12 @@ export default function ReservePage() {
               </h1>
               {kind === 'flight' && flight ? (
                 <p style={{ fontSize: 13, color: 'var(--ink-light)', margin: 0 }}>
-                  {flight.origin_code} {isRoundTrip ? '⇄' : '→'} {flight.dest_code}{isRoundTrip ? ' · round trip' : ''} · {dp.dow}, {dp.mo} {dp.day} · Hosted by{' '}
+                  {airportCity(flight.origin_code, airportNames)} {isRoundTrip ? '⇄' : '→'} {airportCity(flight.dest_code, airportNames)}{isRoundTrip ? ' · round trip' : ''} · {dp.dow}, {dp.mo} {dp.day} · Hosted by{' '}
                   <span style={{ color: 'var(--ink)' }}>Travail Ops</span>
                 </p>
               ) : excursion ? (
                 <p style={{ fontSize: 13, color: 'var(--ink-light)', margin: 0 }}>
-                  {excursion.origin_code} · {dp.dow}, {dp.mo} {dp.day}
+                  {airportCity(excursion.origin_code, airportNames)} · {dp.dow}, {dp.mo} {dp.day}
                   {template?.operator ? ` · ${template.operator}` : ''}
                 </p>
               ) : null}

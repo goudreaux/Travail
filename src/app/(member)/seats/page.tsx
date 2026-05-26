@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { adaptFlight, adaptExcursion, fmtDate, fmtMoney } from '@/lib/data'
+import { adaptFlight, adaptExcursion, fmtDate, fmtMoney, airportCity } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
 import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'
@@ -143,24 +143,10 @@ function FlightCard({
         <div className="trip-card__content">
           <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · PRIVATE AVIATION</div>
           <div className="trip-card__name">
-            {flight.origin_code}
+            {airportCity(flight.origin_code, names)}
             <span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span>
-            {flight.dest_code}
+            {airportCity(flight.dest_code, names)}
           </div>
-          {(() => {
-            const o = names[flight.origin_code]
-            const d = names[flight.dest_code]
-            const oHas = o && o !== flight.origin_code
-            const dHas = d && d !== flight.dest_code
-            if (!oHas && !dHas) return null
-            return (
-              <div className="trip-card__route-cities">
-                {oHas ? o : flight.origin_code}
-                <span style={{ margin: '0 6px', color: 'var(--ink-faint)' }}>→</span>
-                {dHas ? d : flight.dest_code}
-              </div>
-            )
-          })()}
           <div className="trip-card__meta">
             {flight.departTimeStr}
             {flight.durationStr ? ` · ${flight.durationStr}` : ''}
@@ -220,24 +206,10 @@ function RoundTripCard({
         <div className="trip-card__content">
           <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · ROUND TRIP</div>
           <div className="trip-card__name">
-            {outbound.origin_code}
+            {airportCity(outbound.origin_code, names)}
             <span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>⇄</span>
-            {outbound.dest_code}
+            {airportCity(outbound.dest_code, names)}
           </div>
-          {(() => {
-            const o = names[outbound.origin_code]
-            const d = names[outbound.dest_code]
-            const oHas = o && o !== outbound.origin_code
-            const dHas = d && d !== outbound.dest_code
-            if (!oHas && !dHas) return null
-            return (
-              <div className="trip-card__route-cities">
-                {oHas ? o : outbound.origin_code}
-                <span style={{ margin: '0 6px', color: 'var(--ink-faint)' }}>⇄</span>
-                {dHas ? d : outbound.dest_code}
-              </div>
-            )
-          })()}
           <div className="trip-card__meta">
             Out {dpOut.mo} {dpOut.day} · {outbound.departTimeStr}
             <span style={{ color: 'var(--ink-faint)', margin: '0 6px' }}>|</span>

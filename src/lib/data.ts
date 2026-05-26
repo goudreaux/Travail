@@ -144,6 +144,50 @@ const HOME_BASE_MAP: Record<string, string> = {
   OPF: 'SFL', KOPF: 'SFL', PBI: 'SFL', KPBI: 'SFL', TMB: 'SFL', KTMB: 'SFL',
 }
 
+// City/region label for an airport code. Used on every user-facing main page —
+// IATA / ICAO codes are reserved for the boarding pass. The DB airports table
+// stores K-prefixed ICAO names ("Davis Island"), but trip records use both
+// IATA (TPF) and ICAO (KTPF) interchangeably; this map normalises them to a
+// clean city name and falls back to the DB-loaded name if a code isn't here.
+const AIRPORT_CITY: Record<string, string> = {
+  // West Florida (home bases + nearby)
+  TPF: 'Tampa', KTPF: 'Tampa',
+  TPA: 'Tampa', KTPA: 'Tampa',
+  SPG: 'St. Petersburg', KSPG: 'St. Petersburg',
+  PIE: 'St. Petersburg', KPIE: 'St. Petersburg',
+  SRS: 'Sarasota',
+  SRQ: 'Sarasota', KSRQ: 'Sarasota',
+  // South Florida
+  FXE: 'Fort Lauderdale', KFXE: 'Fort Lauderdale',
+  FLL: 'Fort Lauderdale', KFLL: 'Fort Lauderdale',
+  OPF: 'Miami', KOPF: 'Miami',
+  MIA: 'Miami', KMIA: 'Miami',
+  TMB: 'Miami', KTMB: 'Miami',
+  PBI: 'West Palm Beach', KPBI: 'West Palm Beach',
+  // Florida Keys
+  EYW: 'Key West', KEYW: 'Key West',
+  MTH: 'Marathon', KMTH: 'Marathon',
+  X07: 'Islamorada',
+  // Central Florida
+  GIF: 'Winter Haven', KGIF: 'Winter Haven',
+  // Bahamas
+  MYBS: 'South Bimini',
+  MYEF: 'Exuma',
+  MYAM: 'Marsh Harbour',
+  MYAN: 'Andros Town',
+  NAS: 'Nassau', MYNN: 'Nassau',
+}
+
+export function airportCity(code: string, names?: Record<string, string>): string {
+  if (AIRPORT_CITY[code]) return AIRPORT_CITY[code]
+  if (AIRPORT_CITY['K' + code]) return AIRPORT_CITY['K' + code]
+  if (names) {
+    const n = names[code] ?? names['K' + code]
+    if (n && n !== code && n !== 'K' + code) return n
+  }
+  return code
+}
+
 export function fmtHomeBase(code: string | null | undefined): string | null {
   if (!code) return null
   return HOME_BASE_MAP[code] ?? code
