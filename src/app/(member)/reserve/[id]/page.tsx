@@ -550,19 +550,13 @@ export default function ReservePage() {
         <div className="builder">
           {/* ── LEFT: Form ── */}
           <div className="builder-form">
-            {/* Trip hero image — matches the open-seats card it was tapped from */}
+            {/* Trip hero image — matches the open-seats card it was tapped from.
+                On mobile this bleeds edge-to-edge under the top bar (Airbnb-style). */}
             {(() => {
               const heroSrc = (kind === 'flight' ? flight?.image_url : excursion?.image_url) || '/trip-default.jpeg'
               return (
-                <div style={{
-                  width: '100%',
-                  height: 200,
-                  borderRadius: 16,
-                  overflow: 'hidden',
-                  boxShadow: '0 1px 2px rgba(13,51,64,0.08), 0 14px 28px -8px rgba(13,51,64,0.18)',
-                  marginBottom: 6,
-                }}>
-                  <img src={heroSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <div className="reserve-hero">
+                  <img src={heroSrc} alt="" />
                 </div>
               )
             })()}
@@ -1052,7 +1046,7 @@ export default function ReservePage() {
 
               {/* Submit button */}
               <button
-                className="btn-primary"
+                className="btn-primary reserve-inline-submit"
                 style={{ width: '100%', height: 46, fontSize: 14, justifyContent: 'center' }}
                 onClick={handleSubmit}
                 disabled={submitting || maxSeats === 0 || !guestsComplete}
@@ -1068,6 +1062,8 @@ export default function ReservePage() {
                   'Submit to Ops →'
                 )}
               </button>
+              {/* Bottom-pad on mobile so the sticky CTA bar doesn't cover anything. */}
+              <div className="reserve-page-pad" aria-hidden />
 
               {/* Hold notice */}
               <div style={{ textAlign: 'center' }}>
@@ -1078,6 +1074,25 @@ export default function ReservePage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Sticky CTA bar (mobile) — fixed above the bottom nav. */}
+      <div className="reserve-cta-bar">
+        <div className="reserve-cta-bar__price">
+          <div className="reserve-cta-bar__total">{fmtMoney(total)}</div>
+          <div className="reserve-cta-bar__sub">
+            {seats} {kind === 'flight' ? (seats === 1 ? 'seat' : 'seats') : (seats === 1 ? 'spot' : 'spots')}
+            {' · '}fees incl.
+          </div>
+        </div>
+        <button
+          className="btn-primary"
+          style={{ height: 46, padding: '0 22px', fontSize: 14, fontWeight: 600 }}
+          onClick={handleSubmit}
+          disabled={submitting || maxSeats === 0 || !guestsComplete}
+        >
+          {submitting ? 'Submitting…' : maxSeats === 0 ? 'Fully booked' : 'Reserve →'}
+        </button>
       </div>
     </div>
   )
