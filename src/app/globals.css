@@ -688,8 +688,11 @@ body::before {
    both caps and lets the page scroll instead. */
 .dash-cols {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  /* My Trips on the left (one boarding-pass column) gets a comfortable but
+     compact lane; Open Seats on the right gets the lion's share so its
+     ticket-style cards don't feel cramped. */
+  grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.7fr);
+  gap: 20px;
   align-items: stretch;
   height: clamp(520px, calc(100vh - 240px), 760px);
   max-width: 1400px;
@@ -698,6 +701,229 @@ body::before {
   min-height: 0;
 }
 
+/* ─── Feed hero (boutique/concierge greeting) ────────────────── */
+/* A single editorial block: massive italic greeting on the left, frosted
+   "next up" card on the right. Replaces the generic PageHero on the feed
+   only so the rest of the app keeps the standard hero. */
+.feed-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  margin: 28px 28px 0;
+  padding: clamp(36px, 5vw, 64px) clamp(28px, 4vw, 56px);
+  background:
+    radial-gradient(900px 360px at 8% -10%, rgba(0, 179, 199, 0.18), transparent 62%),
+    linear-gradient(135deg, #042128 0%, #0a3340 48%, #0a4a55 100%);
+  box-shadow:
+    0 18px 56px rgba(13, 51, 64, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 48px;
+  align-items: end;
+}
+.feed-hero::after {
+  /* Subtle diagonal hairline texture — the same passport-paper trick as
+     the boarding-pass cards, but bright on dark. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 18px);
+}
+.feed-hero__glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(2px);
+}
+.feed-hero__glow--teal {
+  top: -160px;
+  right: -120px;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(0, 179, 199, 0.30), transparent 68%);
+  animation: feed-hero-pulse 7s ease-in-out infinite;
+}
+.feed-hero__glow--sun {
+  bottom: -160px;
+  left: 32%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(244, 167, 44, 0.14), transparent 72%);
+  animation: feed-hero-pulse 9s ease-in-out 1.5s infinite;
+}
+@keyframes feed-hero-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.72; }
+}
+
+.feed-hero__content {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.feed-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 26px;
+  opacity: 0;
+  animation: feed-hero-rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.05s forwards;
+}
+.feed-hero__live {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tropic);
+  box-shadow: 0 0 0 0 rgba(0, 179, 199, 0.6);
+  animation: feed-hero-live 2.4s ease-out infinite;
+}
+@keyframes feed-hero-live {
+  0% { box-shadow: 0 0 0 0 rgba(0, 179, 199, 0.55); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 179, 199, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 179, 199, 0); }
+}
+.feed-hero__sep { color: rgba(255, 255, 255, 0.3); }
+
+.feed-hero__greet {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  color: #fff;
+  margin: 0;
+  line-height: 0.96;
+  letter-spacing: -0.02em;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.feed-hero__greet-time {
+  font-size: clamp(34px, 5vw, 58px);
+  color: rgba(255, 255, 255, 0.62);
+  opacity: 0;
+  animation: feed-hero-rise 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) 0.18s forwards;
+}
+.feed-hero__greet-name {
+  font-size: clamp(52px, 8vw, 92px);
+  color: #fff;
+  opacity: 0;
+  animation: feed-hero-rise 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) 0.32s forwards;
+}
+
+.feed-hero__sub {
+  font-size: clamp(14px, 1.3vw, 16px);
+  color: rgba(255, 255, 255, 0.58);
+  margin: 24px 0 0;
+  max-width: 520px;
+  line-height: 1.55;
+  opacity: 0;
+  animation: feed-hero-rise 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) 0.48s forwards;
+}
+
+.feed-hero__next {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 24px 22px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.06) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  text-decoration: none;
+  color: #fff;
+  width: 320px;
+  max-width: 100%;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  opacity: 0;
+  animation: feed-hero-rise 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) 0.6s forwards;
+}
+.feed-hero__next:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.09) 100%);
+  border-color: rgba(0, 179, 199, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -8px rgba(0, 179, 199, 0.25);
+}
+.feed-hero__next-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.feed-hero__next-eyebrow {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--tropic);
+  font-weight: 600;
+}
+.feed-hero__next-date {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.feed-hero__next-name {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.18;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+.feed-hero__next-cta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tropic);
+  margin-top: 6px;
+}
+
+@keyframes feed-hero-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+  .feed-hero {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    margin: 16px 16px 0;
+    padding: 32px 22px 28px;
+    border-radius: 20px;
+    align-items: stretch;
+  }
+  .feed-hero__eyebrow { margin-bottom: 18px; font-size: 9.5px; }
+  .feed-hero__sub { margin-top: 18px; }
+  .feed-hero__next { width: 100%; padding: 16px 18px 18px; }
+  .feed-hero__next-name { font-size: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feed-hero__eyebrow,
+  .feed-hero__greet-time,
+  .feed-hero__greet-name,
+  .feed-hero__sub,
+  .feed-hero__next { opacity: 1; animation: none; }
+  .feed-hero__live { animation: none; }
+  .feed-hero__glow--teal,
+  .feed-hero__glow--sun { animation: none; }
+}
+
+/* ─── (Legacy) Next-up chip — only used by other pages still rendering PageHero ─── */
 /* "Next up" chip in the dashboard hero: a single-line pill on desktop, a clean
    stacked block on mobile (the pill wraps badly on narrow screens). */
 .next-up {
