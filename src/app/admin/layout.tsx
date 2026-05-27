@@ -68,6 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/members', label: 'People' },
     { href: '/admin/activity', label: 'Activity' },
     { href: '/admin/posts', label: 'Feed' },
+    { href: '/admin/developer', label: 'Developer' },
   ]
 
   const isActive = (item: typeof nav[0]) => item.exact ? pathname === item.href : pathname.startsWith(item.href)
