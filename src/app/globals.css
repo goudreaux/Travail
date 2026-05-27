@@ -5376,3 +5376,221 @@ textarea.input {
     max-width: 100%;
   }
 }
+
+/* ─── Boarding pass ───────────────────────────────────────────── */
+/* The hero in this card is the marquee moment of the member's trip —
+   lifted with the same recipe as .panel + a glow blob, with the
+   Travail × Tropic co-brand and the route in italic Cormorant city
+   names over mono airport codes. */
+
+.boarding-pass {
+  background: var(--card);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--hair);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    inset 0 -1px 0 rgba(13, 51, 64, 0.04),
+    0 1px 2px rgba(13, 51, 64, 0.06),
+    0 14px 28px -10px rgba(13, 51, 64, 0.16),
+    0 36px 64px -20px rgba(13, 51, 64, 0.22);
+}
+
+/* ── Hero block ── */
+.boarding-pass__hero {
+  position: relative;
+  overflow: hidden;
+  padding: 22px 26px 26px;
+  background:
+    radial-gradient(700px 240px at 80% 110%, rgba(0, 179, 199, 0.18), transparent 60%),
+    linear-gradient(135deg, #042128 0%, #0a3340 52%, #073744 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.20);
+}
+.boarding-pass__hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 20px);
+}
+.boarding-pass__hero > * { position: relative; z-index: 1; }
+
+.boarding-pass__hero-glow {
+  position: absolute;
+  top: -120px;
+  right: -100px;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 179, 199, 0.30), transparent 70%);
+  filter: blur(2px);
+  pointer-events: none;
+  z-index: 0;
+  animation: bp-glow-pulse 8s ease-in-out infinite;
+}
+@keyframes bp-glow-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.08); opacity: 0.72; }
+}
+
+.boarding-pass__hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Brand co-lockup: white-inverted Travail wordmark × Tropic frigate mark */
+.boarding-pass__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.boarding-pass__brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.boarding-pass__brand-wordmark {
+  height: 26px !important;
+  width: auto !important;
+  filter: brightness(0) invert(1) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+}
+.boarding-pass__brand-x {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 400;
+}
+.boarding-pass__brand-tropic {
+  height: 24px !important;
+  width: auto !important;
+  filter: brightness(0) invert(1);
+  opacity: 0.88;
+}
+.boarding-pass__brand-tag {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--tropic);
+  font-weight: 600;
+}
+
+/* Status pill with leading colored dot */
+.boarding-pass__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  padding: 5px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.boarding-pass__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Route — italic Cormorant city names on top, mono airport codes under */
+.boarding-pass__route {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 22px;
+}
+.boarding-pass__endpoint { min-width: 0; max-width: 45%; }
+.boarding-pass__endpoint--right { text-align: right; }
+.boarding-pass__endpoint-city {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(26px, 5.4vw, 36px);
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.boarding-pass__endpoint-code {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 6px;
+}
+.boarding-pass__endpoint-code > span:first-child {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.20em;
+  color: var(--tropic);
+}
+.boarding-pass__endpoint-sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+.boarding-pass__endpoint--right .boarding-pass__endpoint-code { align-items: flex-end; }
+.boarding-pass__arrow {
+  color: var(--tropic);
+  font-size: 26px;
+  font-weight: 300;
+  line-height: 1;
+  align-self: center;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+.boarding-pass__excursion-title {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(24px, 5vw, 30px);
+  letter-spacing: -0.015em;
+  color: #fff;
+  line-height: 1.15;
+}
+
+/* Detail grid */
+.boarding-pass__grid {
+  padding: 22px 26px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px 16px;
+}
+
+@media (max-width: 520px) {
+  .boarding-pass__hero { padding: 20px 20px 24px; }
+  .boarding-pass__hero-top { flex-direction: column; align-items: stretch; }
+  .boarding-pass__status { align-self: flex-start; }
+  .boarding-pass__brand-wordmark { height: 22px !important; }
+  .boarding-pass__brand-tropic { height: 20px !important; }
+  .boarding-pass__route { gap: 10px; margin-top: 18px; }
+  .boarding-pass__endpoint-city { font-size: clamp(22px, 6.5vw, 28px); }
+  .boarding-pass__endpoint-code > span:first-child { font-size: 11.5px; }
+  .boarding-pass__arrow { font-size: 22px; }
+  .boarding-pass__grid {
+    padding: 18px 20px;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boarding-pass__hero-glow { animation: none; }
+}

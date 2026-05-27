@@ -24,7 +24,7 @@ export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsC
     { href: '/notifications',      label: 'Notifications',       icon: Icons.bell,   badge: unreadCount > 0 ? String(unreadCount) : undefined },
     { href: '/calendar',           label: 'Calendar',            icon: Icons.cal },
     { href: '/seats',              label: 'Open Seats',          icon: Icons.compass, badge: openSeatsCount > 0 ? `${openSeatsCount} LIVE` : undefined, badgeColor: 'var(--tropic)' },
-    { href: '/bookings',           label: 'My Trips',            icon: Icons.paper,  badge: pendingCount > 0 ? `${pendingCount} PENDING` : undefined, badgeColor: 'var(--signal)' },
+    { href: '/bookings',           label: 'My Trips',            icon: Icons.luggage, badge: pendingCount > 0 ? `${pendingCount} PENDING` : undefined, badgeColor: 'var(--signal)' },
     { href: '/plan',               label: 'Plan a trip',         icon: Icons.build },
     { href: '/contact',            label: 'Contact us',          icon: Icons.phone },
   ]

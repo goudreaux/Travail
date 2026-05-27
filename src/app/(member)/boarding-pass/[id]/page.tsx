@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { fmtDate, fmtTime, fmtDur, fmtMoney, airportSub } from '@/lib/data'
+import Image from 'next/image'
+import { fmtDate, fmtTime, fmtDur, fmtMoney, airportCity, airportSub } from '@/lib/data'
 import { fetchRosters, RosterList, type RosterEntry } from '@/components/Roster'
 import type { Member, Booking, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 
@@ -44,6 +45,7 @@ export default function BoardingPassPage() {
   const [template, setTemplate] = useState<ExcursionTemplate | null>(null)
   const [passengers, setPassengers] = useState<Passenger[]>([])
   const [roster, setRoster] = useState<RosterEntry[]>([])
+  const [airportNames, setAirportNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [cancelRequested, setCancelRequested] = useState(false)
@@ -87,6 +89,13 @@ export default function BoardingPassPage() {
 
       const { data: pax } = await db.from('booking_passengers').select('*').eq('booking_id', bookingId).order('is_host', { ascending: false })
       setPassengers((pax ?? []) as Passenger[])
+
+      // Airport code → readable city name (passed to airportCity()).
+      const { data: airportData } = await supabase.from('airports').select('code, name')
+      const am: Record<string, string> = {}
+      for (const a of (airportData ?? [])) am[(a as { code: string }).code] = (a as { name: string }).name
+      setAirportNames(am)
+
       setLoading(false)
     }
     load()
@@ -145,43 +154,68 @@ export default function BoardingPassPage() {
   return (
     <div className="page">
       <div className="page-view" style={{ maxWidth: 640, margin: '0 auto' }}>
-        <Link href="/bookings" className="mono" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--ink-mid)', marginBottom: 16 }}>
-          ← BOOKINGS
+        <Link href="/bookings" className="mono" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--ink-mid)', marginBottom: 16, letterSpacing: '0.14em' }}>
+          ← MY TRIPS
         </Link>
 
-        <div style={{ background: 'var(--card)', borderRadius: 18, overflow: 'hidden', border: '1px solid var(--hair)', boxShadow: '0 12px 48px rgba(13,51,64,0.10)' }}>
-          {/* Header */}
-          <div style={{ background: 'var(--night)', padding: '22px 26px', color: '#fff' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 22 }}>Travail</div>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.2em', color: 'var(--tropic)', marginTop: 2 }}>BOARDING PASS</div>
+        <div className="boarding-pass">
+          {/* Header — lifted editorial route block */}
+          <div className="boarding-pass__hero">
+            <div className="boarding-pass__hero-glow" aria-hidden />
+            <div className="boarding-pass__hero-top">
+              <div className="boarding-pass__brand">
+                <div className="boarding-pass__brand-lockup">
+                  <Image
+                    src="/travail-wordmark.png"
+                    alt="Travail"
+                    width={140}
+                    height={50}
+                    className="boarding-pass__brand-wordmark"
+                    priority
+                  />
+                  <span className="boarding-pass__brand-x" aria-hidden>×</span>
+                  <Image
+                    src="/tropic-logo.png"
+                    alt="Tropic Ocean Air"
+                    width={36}
+                    height={36}
+                    className="boarding-pass__brand-tropic"
+                  />
+                </div>
+                <div className="boarding-pass__brand-tag">BOARDING PASS</div>
               </div>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: statusColor, background: 'rgba(255,255,255,0.08)', padding: '4px 10px', borderRadius: 20 }}>
+              <span className="boarding-pass__status" style={{ color: statusColor }}>
+                <span className="boarding-pass__status-dot" style={{ background: statusColor }} aria-hidden />
                 {statusLabel}
               </span>
             </div>
-            <div style={{ marginTop: 18 }}>
+            <div className="boarding-pass__route">
               {isFlight && flight ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div>
-                    <div style={{ fontFamily: 'var(--display)', fontSize: 38, fontWeight: 500, lineHeight: 1 }}>{flight.origin_code}</div>
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.5)', marginTop: 4, textTransform: 'uppercase' }}>{airportSub(flight.origin_code)}</div>
+                <>
+                  <div className="boarding-pass__endpoint">
+                    <div className="boarding-pass__endpoint-city">{airportCity(flight.origin_code, airportNames)}</div>
+                    <div className="boarding-pass__endpoint-code">
+                      <span>{flight.origin_code}</span>
+                      <span className="boarding-pass__endpoint-sub">{airportSub(flight.origin_code)}</span>
+                    </div>
                   </div>
-                  <div style={{ color: 'var(--tropic)', fontSize: 22 }}>→</div>
-                  <div>
-                    <div style={{ fontFamily: 'var(--display)', fontSize: 38, fontWeight: 500, lineHeight: 1 }}>{flight.dest_code}</div>
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'rgba(255,255,255,0.5)', marginTop: 4, textTransform: 'uppercase' }}>{airportSub(flight.dest_code)}</div>
+                  <div className="boarding-pass__arrow" aria-hidden>→</div>
+                  <div className="boarding-pass__endpoint boarding-pass__endpoint--right">
+                    <div className="boarding-pass__endpoint-city">{airportCity(flight.dest_code, airportNames)}</div>
+                    <div className="boarding-pass__endpoint-code">
+                      <span>{flight.dest_code}</span>
+                      <span className="boarding-pass__endpoint-sub">{airportSub(flight.dest_code)}</span>
+                    </div>
                   </div>
-                </div>
+                </>
               ) : (
-                <div style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 26 }}>{title}</div>
+                <div className="boarding-pass__excursion-title">{title}</div>
               )}
             </div>
           </div>
 
           {/* Detail grid */}
-          <div style={{ padding: '22px 26px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px 16px' }}>
+          <div className="boarding-pass__grid">
             {[
               { label: 'Passenger', value: member?.name ?? '—' },
               { label: 'Date', value: dateStr },
