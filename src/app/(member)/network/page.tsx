@@ -165,11 +165,10 @@ export default function NetworkPage() {
                 style={{ textDecoration: 'none', display: 'block' }}
               >
                 <div
-                  className="panel"
+                  className="panel network-card"
                   style={{
                     padding: 22,
                     cursor: 'pointer',
-                    height: 272,
                     display: 'flex',
                     flexDirection: 'column',
                     transition: 'border-color 0.15s, box-shadow 0.15s, transform 0.15s',
