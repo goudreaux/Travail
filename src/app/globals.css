@@ -5846,6 +5846,11 @@ textarea.input {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 18px;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  box-shadow: 0 1px 0 rgba(13,51,64,0.02);
   /* Without this, a long horizontal chip row inside a flex parent can
      stretch the page wider than the viewport on mobile. */
   min-width: 0;
@@ -5859,32 +5864,76 @@ textarea.input {
   min-width: 0;
   max-width: 100%;
 }
+.network-filters__row + .network-filters__row {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--hair);
+}
+.network-filters__label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-right: 4px;
+  min-width: 52px;
+  flex-shrink: 0;
+}
 .network-filters .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 11px;
+  padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid var(--hair);
   background: var(--paper);
   color: var(--ink-mid);
   font-family: var(--ui);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
   letter-spacing: 0.01em;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.14s ease;
+  transition: background 0.14s, border-color 0.14s, color 0.14s, transform 0.08s;
 }
 .network-filters .chip:hover {
-  border-color: var(--tropic);
+  border-color: rgba(0,179,199,0.45);
   color: var(--ink);
+  background: var(--tropic-glow);
+}
+.network-filters .chip:active {
+  transform: scale(0.97);
 }
 .network-filters .chip.active {
   background: var(--night);
   color: var(--tropic);
   border-color: var(--night);
+  box-shadow: inset 0 0 0 1px rgba(0,179,199,0.4);
 }
+.network-filters__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px 5px 8px;
+  margin-left: auto;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-light);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.14s, background 0.14s, border-color 0.14s;
+}
+.network-filters__clear:hover {
+  color: var(--signal);
+  border-color: rgba(217,78,42,0.25);
+  background: rgba(217,78,42,0.06);
+}
+.network-filters__clear svg { display: block; }
 
 .network-list {
   display: grid;
@@ -6033,15 +6082,17 @@ textarea.input {
   .network-card__chev { display: block; }
 
   /* Filter rows scroll horizontally instead of wrapping so the bar
-     stays one line each. */
+     stays one line each. The label + Clear button stay sticky-ish at the
+     row edges; the chips between them scroll. */
+  .network-filters { padding: 12px 14px; }
   .network-filters__row {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
     padding-bottom: 2px;
-    margin-left: -4px;
-    padding-left: 4px;
   }
   .network-filters__row::-webkit-scrollbar { display: none; }
+  .network-filters__label { min-width: 44px; font-size: 9px; margin-right: 2px; }
   .network-filters .chip { font-size: 11.5px; padding: 5px 10px; }
+  .network-filters__clear { font-size: 9.5px; padding: 4px 9px 4px 7px; }
 }
