@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import { withSentryConfig } from '@sentry/nextjs'
 
 // Security headers — applied on every response from Next so the entire
 // app sits behind a baseline of browser-level protections (clickjacking,
@@ -65,4 +66,23 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+// Wrap with Sentry — uploads source maps + tunnels events through a
+// Next route to dodge ad blockers, while keeping our security headers
+// (set above) on every response.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG ?? 'travail-3g',
+  project: process.env.SENTRY_PROJECT ?? 'javascript-nextjs',
+  // Auth token only needed at build time to upload source maps. Local
+  // builds without the token silently skip the upload.
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  // Route Sentry events through a same-origin /monitoring path so that
+  // ad blockers / CSP can't blackhole them. Keeps the CSP we configured
+  // intact — no need to allowlist sentry.io connect-src.
+  tunnelRoute: '/monitoring',
+  // Sentry v10 deletes uploaded source maps from the public bundle by
+  // default, so we don't need to set hideSourceMaps explicitly.
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+  },
+})
