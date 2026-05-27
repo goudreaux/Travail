@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Icons } from '@/lib/icons'
 import { createClient } from '@/lib/supabase/client'
+import { usePendingFriendCount } from '@/lib/use-pending-friend-count'
 
 // Bottom bar slot: 4 visible items max. "More" opens a bottom sheet
 // with the secondary destinations so the bar stays uncluttered.
@@ -56,6 +57,7 @@ export default function MobileNav({
   const [moreOpen, setMoreOpen] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const friendRequestCount = usePendingFriendCount()
 
   // Close the sheet on route change.
   useEffect(() => { setMoreOpen(false) }, [pathname])
@@ -127,9 +129,12 @@ export default function MobileNav({
           onClick={() => setMoreOpen(v => !v)}
           aria-haspopup="dialog"
           aria-expanded={moreOpen}
-          aria-label="More options"
+          aria-label={`More options${friendRequestCount > 0 ? ` — ${friendRequestCount} pending friend request${friendRequestCount === 1 ? '' : 's'}` : ''}`}
         >
-          {iconWrap(MoreIcon)}
+          <span className="m-item__icon">
+            {iconWrap(MoreIcon)}
+            {friendRequestCount > 0 && <span className="m-item__alert" aria-hidden />}
+          </span>
           <span>More</span>
         </button>
       </nav>
@@ -141,15 +146,23 @@ export default function MobileNav({
             <div className="m-more__handle" aria-hidden />
             <div className="m-more__title">More</div>
             <ul className="m-more__list">
-              {MEMBER_SECONDARY.map(it => (
-                <li key={it.href}>
-                  <Link href={it.href} className={`m-more__row${isActive(it.href) ? ' active' : ''}`}>
-                    <span className="m-more__icon">{iconWrap(it.icon)}</span>
-                    <span>{it.label}</span>
-                    <span className="m-more__chev" aria-hidden>›</span>
-                  </Link>
-                </li>
-              ))}
+              {MEMBER_SECONDARY.map(it => {
+                const showFriendAlert = it.href === '/network' && friendRequestCount > 0
+                return (
+                  <li key={it.href}>
+                    <Link href={it.href} className={`m-more__row${isActive(it.href) ? ' active' : ''}`}>
+                      <span className="m-more__icon">{iconWrap(it.icon)}</span>
+                      <span style={{ flex: 1 }}>{it.label}</span>
+                      {showFriendAlert && (
+                        <span className="m-more__alert" aria-label={`${friendRequestCount} pending friend request${friendRequestCount === 1 ? '' : 's'}`}>
+                          {friendRequestCount}
+                        </span>
+                      )}
+                      <span className="m-more__chev" aria-hidden>›</span>
+                    </Link>
+                  </li>
+                )
+              })}
               {isAdmin && (
                 <li>
                   <Link href="/admin" className="m-more__row m-more__row--admin">

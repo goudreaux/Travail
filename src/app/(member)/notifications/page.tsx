@@ -61,6 +61,13 @@ export default function NotificationsPage() {
       await (supabase.from('notifications') as any).update({ read: true }).eq('id', n.id)
     }
     const ref = (n.ref ?? {}) as Record<string, unknown>
+    // Friend + contact notifications deep-link to the requester's profile,
+    // where Accept / Decline already live.
+    const requesterId = ref.requester_id as string | undefined
+    if ((n.kind === 'friend' || n.kind === 'contact') && requesterId) {
+      router.push(`/network/${requesterId}`)
+      return
+    }
     const itemKind = ref.item_kind as string | undefined
     const itemId = ref.item_id as string | undefined
     if (itemKind && itemId) router.push(`/reserve/${itemId}?kind=${itemKind}`)
