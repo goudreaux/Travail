@@ -468,10 +468,13 @@ export default function QueuePage() {
   async function publishAnchor(anchor: AnchorRow) {
     if (working) return
     const p = anchor.payload as Record<string, unknown>
-    // Edited values from the expanded review form; fall back to the submission.
+    // Edited values from the expanded review form override the submission's payload.
     const d = expanded === anchor.id ? draft : {}
-    const val = (key: string, fb: unknown) => (d[key] !== undefined && d[key] !== '' ? d[key] : (fb ?? '')) as string
-    const num = (key: string, fb: unknown) => { const n = Number(val(key, fb)); return Number.isFinite(n) ? n : 0 }
+    const num = (key: string, fb: unknown) => {
+      const raw = d[key] !== undefined && d[key] !== '' ? d[key] : (fb ?? 0)
+      const n = Number(raw)
+      return Number.isFinite(n) ? n : 0
+    }
 
     const price = num('price', p.pricePerSeat ?? p.price_per_seat ?? p.pricePerPax ?? p.price_per_pax ?? 0)
     if (price <= 0) {
@@ -483,128 +486,30 @@ export default function QueuePage() {
 
     setWorking(anchor.id)
     try {
-      const code = genConfirmationCode()
-      const stamp = Date.now().toString(36).toUpperCase()
-      let publishedItemId: string | null = null
-
-      const originCode = String(p.originCode ?? p.origin_code ?? '')
-      const destCode = val('destCode', p.destCode ?? p.dest_code)
-      const date = val('date', p.date)
-      const departTime = to24h(val('departTime', p.departTime ?? p.depart_time)) || null
-      const aircraftId = resolveAircraftId((p.aircraftId ?? p.aircraft_id ?? null) as string | null)
-      const name = val('name', p.name)
-      const pitch = val('pitch', p.pitch) || null
-
-      if (anchor.kind === 'flight') {
-        const seatsTotal = num('seatsTotal', p.seatsTotal ?? p.seats_total ?? 8)
-        const seatsAnchor = num('seatsAnchor', p.seatsAnchor ?? p.seats_anchor ?? 1)
-
-        const { data: flight, error } = await supabase.from('flights').insert({
-          id: `F-${stamp}`,
-          anchor_member_id: anchor.member_id,
-          origin_code: originCode,
-          dest_code: destCode,
-          date,
-          depart_time: departTime,
-          duration_mins: (p.duration_mins as number) ?? 0,
-          aircraft_id: aircraftId,
-          name,
-          pitch,
-          visibility: 'members',
-          seats_total: seatsTotal,
-          seats_anchor: seatsAnchor,
+      // Hand off to the server. The endpoint reads the submission, captures
+      // the anchor's saved card for the full charter, creates the trip row
+      // with all anchor-state columns populated, creates the anchor's own
+      // booking, and marks the submission published. If the card declines
+      // (402) we surface the message and leave the submission pending so
+      // Ops can retry after talking to the anchor.
+      const res = await fetch('/api/admin/publish-anchor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          anchor_submission_id: anchor.id,
           price_per_seat: price,
-          status: 'open',
-        } as never).select().single()
-        if (error) throw error
-        publishedItemId = flight.id
-
-        // Auto-approve anchor member's own seats
-        await supabase.from('bookings').insert({
-          id: `B-${stamp}`,
-          member_id: anchor.member_id,
-          item_kind: 'flight',
-          item_id: flight.id,
-          seats: seatsAnchor,
-          price_per_seat: price,
-          fees: 0,
-          total: price * seatsAnchor,
-          payment_method: 'credits',
-          status: 'approved',
-          confirmation_code: code,
-          decided_at: new Date().toISOString(),
-        } as never)
-      } else {
-        // Excursion
-        const spotsTotal = num('spotsTotal', p.spotsTotal ?? p.spots_total ?? 8)
-        const spotsAnchor = num('spotsAnchor', p.spotsAnchor ?? p.spots_anchor ?? 1)
-        const tripType = p.tripType as string | undefined
-        const stayType = tripType === 'overnight' ? 'overnight' : 'day_trip'
-
-        const { data: exc, error } = await supabase.from('excursions').insert({
-          id: `E-${stamp}`,
-          anchor_member_id: anchor.member_id,
-          template_id: null,
-          origin_code: originCode,
-          aircraft_id: aircraftId,
-          date,
-          start_time: to24h(val('startTime', p.startTime ?? p.start_time)) || null,
-          depart_time: departTime,
-          arrive_time: to24h((p.arriveTime ?? p.arrive_time ?? '') as string) || null,
-          return_time: to24h(val('returnTime', p.returnTime ?? p.return_time)) || null,
-          stay_type: stayType as 'day_trip' | 'overnight' | 'multi_night',
-          name,
-          pitch,
-          visibility: 'members',
-          spots_total: spotsTotal,
-          spots_anchor: spotsAnchor,
-          price_per_pax: price,
-          status: 'open',
-        } as never).select().single()
-        if (error) throw error
-        publishedItemId = exc.id
-
-        await supabase.from('bookings').insert({
-          id: `B-${stamp}`,
-          member_id: anchor.member_id,
-          item_kind: 'excursion',
-          item_id: exc.id,
-          seats: spotsAnchor,
-          price_per_seat: price,
-          fees: 0,
-          total: price * spotsAnchor,
-          payment_method: 'credits',
-          status: 'approved',
-          confirmation_code: code,
-          decided_at: new Date().toISOString(),
-        } as never)
+        }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        const code = json.decline_code ? ` (${json.decline_code})` : ''
+        showToast(`Publish failed: ${json.error ?? 'Unknown error'}${code}`, 'error')
+        return
       }
 
-      await supabase.from('anchor_submissions').update({
-        status: 'published',
-        decided_at: new Date().toISOString(),
-        published_item_id: publishedItemId,
-      }).eq('id', anchor.id)
-
-      await supabase.from('notifications').insert({
-        member_id: anchor.member_id,
-        kind: 'approval',
-        title: anchor.kind === 'flight' ? 'Flight Published' : 'Excursion Published',
-        body: `Your ${anchor.kind} "${name}" is now live and open for bookings.`,
-        ref: { anchor_id: anchor.id, item_id: publishedItemId, kind: anchor.kind },
-        read: false,
-      } as never)
-
-      logActivity({
-        action: 'anchor_published', actor_kind: 'admin', actor_member_id: meId,
-        subject_member_id: anchor.member_id, item_kind: anchor.kind, item_id: publishedItemId,
-        summary: `Published ${anchor.kind} "${name}" by ${anchor.member?.name ?? 'member'}`,
-        meta: { anchor_id: anchor.id, code },
-      })
-
-      showToast(`Published — ${anchor.kind === 'flight' ? 'Flight' : 'Excursion'} is now live`)
-      // Remove it from the queue immediately so it can't be published twice
-      // (don't rely on the realtime refetch, which may not be enabled).
+      const totalDollars = (json.charter_total_cents ?? 0) / 100
+      showToast(`Published — captured $${totalDollars.toFixed(2)} from anchor's card`, 'success')
+      // Remove from queue (realtime will reconcile but this is instant).
       setAnchors(prev => prev.filter(a => a.id !== anchor.id))
       if (expanded === anchor.id) setExpanded(null)
     } catch (e: unknown) {
