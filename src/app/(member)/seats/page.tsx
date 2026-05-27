@@ -18,7 +18,7 @@ function placeName(code: string, names: Record<string, string>): string {
 
 // ─── Color helpers ─────────────────────────────────────────────────────────────
 
-type ActivityFilter = 'all' | 'fish' | 'golf' | 'hunt' | 'flight'
+type ActivityFilter = 'all' | 'flight' | 'fish' | 'sail' | 'surf' | 'snorkel' | 'golf' | 'hunt' | 'wildlife' | 'leisure'
 
 function getFlightColors() {
   return { accent: 'var(--tropic-d)', bg: 'var(--tropic-glow)', dot: 'var(--tropic)' }
@@ -26,25 +26,52 @@ function getFlightColors() {
 
 function getExcursionColors(icon: string) {
   if (icon === 'golf') return { accent: 'var(--moss)', bg: 'rgba(62,140,109,0.10)', dot: 'var(--moss)' }
-  if (icon === 'quail' || icon === 'hog') return { accent: 'var(--signal)', bg: 'rgba(217,78,42,0.10)', dot: 'var(--signal)' }
-  // fish / snorkel / sail / wave → sun
+  if (icon === 'quail' || icon === 'hog' || icon === 'rifle' || icon === 'bow' || icon === 'antlers') {
+    return { accent: 'var(--signal)', bg: 'rgba(217,78,42,0.10)', dot: 'var(--signal)' }
+  }
+  // fish / snorkel / sail / wave / surfboard / sun / croc / lobster → sun
   return { accent: 'var(--sun-d)', bg: 'var(--sun-glow)', dot: 'var(--sun)' }
 }
 
+// Map every excursion icon to its filter category. New icons that don't
+// fit cleanly land in 'leisure' so they're still surfaced under a generic
+// label rather than mis-categorized.
 function excursionFilter(icon: string): ActivityFilter {
-  if (icon === 'golf') return 'golf'
-  if (icon === 'quail' || icon === 'hog') return 'hunt'
-  return 'fish'
+  switch (icon) {
+    case 'fish':
+    case 'lobster':       return 'fish'
+    case 'sail':          return 'sail'
+    case 'wave':
+    case 'surfboard':     return 'surf'
+    case 'snorkel':       return 'snorkel'
+    case 'golf':          return 'golf'
+    case 'quail':
+    case 'hog':
+    case 'rifle':
+    case 'bow':
+    case 'antlers':       return 'hunt'
+    case 'croc':          return 'wildlife'
+    case 'sun':           return 'leisure'
+    default:              return 'leisure'
+  }
 }
 
 // ─── Filter bar ────────────────────────────────────────────────────────────────
 
+// Master list, in display order. Filters that don't match any active
+// flight/excursion at the moment are filtered out before render — so
+// the bar always reflects what's actually bookable.
 const FILTERS: { key: ActivityFilter; label: string; icon?: string }[] = [
-  { key: 'all',    label: 'All' },
-  { key: 'flight', label: 'Flights',     icon: 'flight' },
-  { key: 'fish',   label: 'Fishing',     icon: 'fish' },
-  { key: 'golf',   label: 'Golf',        icon: 'golf' },
-  { key: 'hunt',   label: 'Hunt',        icon: 'quail' },
+  { key: 'all',      label: 'All' },
+  { key: 'flight',   label: 'Flights',  icon: 'flight' },
+  { key: 'fish',     label: 'Fishing',  icon: 'fish' },
+  { key: 'sail',     label: 'Sailing',  icon: 'sail' },
+  { key: 'surf',     label: 'Surfing',  icon: 'surfboard' },
+  { key: 'snorkel',  label: 'Snorkel',  icon: 'snorkel' },
+  { key: 'golf',     label: 'Golf',     icon: 'golf' },
+  { key: 'hunt',     label: 'Hunting',  icon: 'quail' },
+  { key: 'wildlife', label: 'Wildlife', icon: 'croc' },
+  { key: 'leisure',  label: 'Leisure',  icon: 'sun' },
 ]
 
 // ─── Book / Waitlist CTA ─────────────────────────────────────────────────────
@@ -446,6 +473,28 @@ export default function SeatsPage() {
 
   const totalOpen = visibleFlightEntries.length + visibleExcursions.length
 
+  // Filter bar only surfaces filters that match at least one active
+  // item. "All" is always present. "Flights" appears if there's any
+  // flight; activity filters appear only if at least one published
+  // excursion maps to that category.
+  const activeFilterKeys: ActivityFilter[] = ['all']
+  if (flightEntries.length > 0) activeFilterKeys.push('flight')
+  const seen = new Set<ActivityFilter>()
+  for (const e of excursions) {
+    const icon = e.templateMeta?.icon ?? 'fish'
+    const k = excursionFilter(icon)
+    if (!seen.has(k)) { seen.add(k); activeFilterKeys.push(k) }
+  }
+  const activeFilterStr = activeFilterKeys.join(',')  // stable dep
+  const availableFilters = FILTERS.filter(f => activeFilterKeys.includes(f.key))
+
+  // If the user had a filter selected that's no longer represented (the
+  // last matching trip filled or expired), fall back to "All". Keyed on
+  // a stable string so it only fires when the active set actually changes.
+  useEffect(() => {
+    if (!activeFilterStr.split(',').includes(filter)) setFilter('all')
+  }, [filter, activeFilterStr])
+
   return (
     <div className="page">
       {toast && <div className="toast success">{toast}</div>}
@@ -458,9 +507,10 @@ export default function SeatsPage() {
       />
 
       <div className="page-view" style={{ maxWidth: 716 }}>
-        {/* Filter bar */}
+        {/* Filter bar — only renders the categories that have at least
+            one active item. Empty filter = no chip. */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-          {FILTERS.map(f => (
+          {availableFilters.map(f => (
             <button
               key={f.key}
               className={`chip${filter === f.key ? ' active' : ''}`}
@@ -471,9 +521,9 @@ export default function SeatsPage() {
                 <span style={{
                   color: filter === f.key ? undefined : (
                     f.icon === 'flight' ? 'var(--tropic)' :
-                    f.icon === 'fish' ? 'var(--sun-d)' :
                     f.icon === 'golf' ? 'var(--moss)' :
-                    'var(--signal)'
+                    (f.icon === 'quail' || f.icon === 'rifle' || f.icon === 'hog') ? 'var(--signal)' :
+                    'var(--sun-d)'
                   ),
                   display: 'flex',
                   alignItems: 'center',
