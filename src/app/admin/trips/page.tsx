@@ -180,6 +180,7 @@ export default function TripsPage() {
   const [templateForm, setTemplateForm] = useState<TemplateForm>(defaultTemplateForm)
   const [saving, setSaving] = useState(false)
   const [cancelling, setCancelling] = useState<string | null>(null)
+  const [settling, setSettling] = useState<string | null>(null)
   const [uploadingImg, setUploadingImg] = useState<'flight' | 'excursion' | null>(null)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' | 'info' } | null>(null)
 
@@ -617,6 +618,40 @@ export default function TripsPage() {
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Cancel failed', 'error')
     } finally { setCancelling(null) }
+  }
+
+  // Run the trip-departure settlement. Refunds the anchor for whatever
+  // pax revenue covered, writes a trip_settlements row, marks the trip
+  // anchor_settled_at. Idempotent — safe to click twice (the endpoint
+  // returns the existing settlement on the second call).
+  async function settleTrip(kind: 'flight' | 'excursion', id: string, name: string) {
+    if (settling) return
+    if (!confirm(`Settle "${name}"? This refunds the anchor for whatever the pax pool covered and finalizes the trip's books. Cannot be undone.`)) return
+    setSettling(id)
+    try {
+      const res = await fetch('/api/admin/settle-trip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_kind: kind, item_id: id }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showToast(`Settlement failed: ${json.error ?? 'Unknown error'}`, 'error')
+        return
+      }
+      if (json.already_settled) {
+        showToast('Already settled — no changes.', 'info')
+        return
+      }
+      const s = json.settlement
+      const dollars = (c: number) => `$${(c / 100).toFixed(2)}`
+      showToast(
+        `Settled — anchor refunded ${dollars(s.anchor_refund_cents)}, net ${dollars(s.anchor_net_paid_cents)}.`,
+        'success',
+      )
+    } catch (e: unknown) {
+      showToast((e as Error).message ?? 'Settlement failed', 'error')
+    } finally { setSettling(null) }
   }
 
   async function deleteTemplate(id: string, name: string) {
@@ -1237,6 +1272,17 @@ export default function TripsPage() {
                   <td><span className={`pill ${statusColor[it.status]}`}>{it.status}</span></td>
                   <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                     <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={it.onEdit}>Edit</button>
+                    {(it.status === 'departed' || it.status === 'completed') && (
+                      <button
+                        className="btn-ghost"
+                        style={{ height: 28, padding: '0 10px', fontSize: 12, marginLeft: 6, color: 'var(--moss)', borderColor: 'rgba(62,140,109,0.35)' }}
+                        disabled={settling === it.key}
+                        onClick={() => settleTrip(it.kind, it.key, it.name)}
+                        title="Refund the anchor for whatever the pax pool covered"
+                      >
+                        {settling === it.key ? '…' : 'Settle'}
+                      </button>
+                    )}
                     <button
                       className="btn-ghost"
                       style={{ height: 28, padding: '0 10px', fontSize: 12, marginLeft: 6, color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.3)' }}
