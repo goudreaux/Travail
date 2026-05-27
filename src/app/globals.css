@@ -5974,6 +5974,113 @@ textarea.input {
 }
 .roster-friend-flag svg { color: #b5933a; }
 
+/* Anchor liability — live readout on the trip page, visible only to
+   the trip's anchor. Big number = what they'll owe at settlement if
+   no more seats sell; floor = the unreachable best case (their own
+   seats only). Progress bar shows how full the trip is. */
+.anchor-liability {
+  background: linear-gradient(180deg, var(--card) 0%, var(--paper) 100%);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  padding: 16px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 0 rgba(13,51,64,0.03), 0 6px 20px rgba(13,51,64,0.04);
+}
+.anchor-liability__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.anchor-liability__eyebrow {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--tropic-d);
+  margin-bottom: 6px;
+}
+.anchor-liability__current { display: flex; flex-direction: column; gap: 2px; }
+.anchor-liability__amount {
+  font-family: var(--ui);
+  font-weight: 700;
+  font-size: clamp(28px, 7vw, 40px);
+  letter-spacing: -0.022em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+.anchor-liability__caption {
+  font-size: 12px;
+  color: var(--ink-mid);
+  font-family: var(--mono);
+  letter-spacing: 0.06em;
+}
+.anchor-liability__floor {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.anchor-liability__floor-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 700;
+}
+.anchor-liability__floor-amount {
+  font-family: var(--ui);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.014em;
+  color: var(--moss);
+}
+.anchor-liability__floor-caption {
+  font-size: 10.5px;
+  color: var(--ink-light);
+}
+.anchor-liability__bar {
+  height: 6px;
+  background: var(--warm);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.anchor-liability__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--tropic-d), var(--moss));
+  transition: width 0.6s ease;
+}
+.anchor-liability__legend {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--ink-mid);
+  flex-wrap: wrap;
+}
+.anchor-liability__legend-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.anchor-liability__legend-perseat {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-light);
+  text-transform: uppercase;
+}
+
 /* Anchor card-on-file widget — sits in the anchor wizard near the
    submit button. Three states: loading, card-on-file summary, and
    PaymentElement form for adding a new card. */

@@ -194,14 +194,19 @@ export async function POST(req: NextRequest) {
   // ─── Notify the anchor + activity log ──────────────────────────────────────
   if (trip.anchor_member_id) {
     const dollars = (n: number) => `$${(n / 100).toFixed(2)}`
+    // Honest, structural copy: the anchor always pays for their own
+    // seats; the rebate only covers what the network filled.
+    const body = anchorRefundCents === 0
+      ? `${trip.name ?? 'Your trip'} settled. No other members booked, so you paid the full charter (${dollars(anchorNetPaidCents)}). The hold on your card has been released.`
+      : paidRevenueCents === (charterTotalCents - anchorNetPaidCents)
+        ? `${trip.name ?? 'Your trip'} settled. You paid ${dollars(anchorNetPaidCents)} for your party's seats — ${dollars(anchorRefundCents)} is being refunded from the seats other members covered.`
+        : `${trip.name ?? 'Your trip'} settled. You paid ${dollars(anchorNetPaidCents)} (your seats plus any that didn't fill). ${dollars(anchorRefundCents)} is being refunded to your card.`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (db.from('notifications') as any).insert({
       member_id: trip.anchor_member_id,
       kind: 'approval',
       title: `Settlement · ${trip.name ?? 'your trip'}`,
-      body: anchorNetPaidCents === 0
-        ? `${trip.name ?? 'Your trip'} filled — you've been fully rebated ${dollars(anchorRefundCents)} to your card on file.`
-        : `${trip.name ?? 'Your trip'} settled. Final charter cost to you: ${dollars(anchorNetPaidCents)}. Rebate of ${dollars(anchorRefundCents)} returning to your card.`,
+      body,
       ref: { item_kind: itemKind, item_id: itemId, settlement_id: settlementRow.id },
     })
   }

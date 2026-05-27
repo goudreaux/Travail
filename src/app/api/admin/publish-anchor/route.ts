@@ -260,12 +260,17 @@ export async function POST(req: NextRequest) {
 
   // Notify the anchor — uses the friend_anchor_published trigger to also
   // fan out to friends; here we send a direct confirmation to the anchor.
+  const seatCostDollars = pricePerSeat.toFixed(2)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db.from('notifications') as any).insert({
     member_id: sub.member_id,
     kind: 'approval',
     title: `Your ${sub.kind} is live`,
-    body: `Ops published "${body.name ?? sub.kind}" and captured $${(charterTotalCents / 100).toFixed(2)} on your card on file. As members book seats, you'll be rebated dollar-for-dollar at trip departure.`,
+    body:
+      `Ops published "${body.name ?? sub.kind}" and held $${(charterTotalCents / 100).toFixed(2)} on your card — the full charter cost. ` +
+      `At trip departure you'll be rebated for every seat the network books at $${seatCostDollars} each. ` +
+      `You'll always pay for your own ${seatsAnchor} seat${seatsAnchor === 1 ? '' : 's'} ` +
+      `plus any seats that don't sell.`,
     ref: { item_kind: sub.kind, item_id: publishedItemId, anchor_submission_id: submissionId },
   })
 
