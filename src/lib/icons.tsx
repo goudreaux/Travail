@@ -6,6 +6,10 @@ export const Icons = {
   seat: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M5 11h12M5 11a3 3 0 0 1 0-6h12a3 3 0 0 1 0 6M5 11v6h12v-6M9 17v3M13 17v3"/></svg>),
   build: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 13l7-1 3-7h2l-1 7 5-1 1 1.5-5 3-1 4-2 0.5-1-3.5-3 0-1 0.5z"/></svg>),
   compass: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M14.5 7.5L12.5 12.5L7.5 14.5L9.5 9.5z"/></svg>),
+  // Delta-style filled airplane silhouette — tilted up-right (~35°) so it
+  // reads as 'in flight' rather than static. Used for the Open Seats /
+  // Live Departures slot.
+  plane: (<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><g transform="rotate(35 12 12)"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></g></svg>),
   inbox: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6l8 6 8-6M3 6v11h16V6M3 6h16"/></svg>),
   network: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="8"/><ellipse cx="11" cy="11" rx="3.2" ry="8"/><line x1="3" y1="11" x2="19" y2="11"/></svg>),
   member: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="11" cy="8" r="3.5"/><path d="M4 18Q4 13 11 13Q18 13 18 18" strokeLinecap="round"/></svg>),
