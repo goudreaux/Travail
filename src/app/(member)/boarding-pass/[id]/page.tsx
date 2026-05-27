@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { fmtDate, fmtTime, fmtDur, fmtMoney, airportCity, airportSub } from '@/lib/data'
-import { fetchRosters, RosterList, type RosterEntry } from '@/components/Roster'
+import { fetchRosters, CoPassengerList, type RosterEntry } from '@/components/Roster'
 import type { Member, Booking, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 
 type Passenger = {
@@ -218,7 +218,7 @@ export default function BoardingPassPage() {
               <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', color: 'var(--ink-faint)', textTransform: 'uppercase', marginBottom: 10 }}>
                 Also going · {roster.reduce((s, e) => s + e.seats, 0)}
               </div>
-              <RosterList entries={roster} />
+              <CoPassengerList entries={roster} meId={member?.id ?? null} />
             </div>
           )}
 

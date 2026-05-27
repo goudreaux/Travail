@@ -1,6 +1,9 @@
 'use client'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Friendship, ContactRequest } from '@/lib/supabase/types'
 
 export type RosterEntry = {
   item_id: string
@@ -103,6 +106,175 @@ export function RosterStack({ entries, max = 4, occupied }: { entries: RosterEnt
           +{others} other{others !== 1 ? 's' : ''}
         </span>
       )}
+    </div>
+  )
+}
+
+// Co-passenger list with quick-connect actions — friend status pill +
+// contact request affordance per row. Lighter than the full profile UI;
+// the row links through to the profile for the full experience.
+export function CoPassengerList({ entries, meId }: { entries: RosterEntry[]; meId: string | null }) {
+  const others = entries.filter(e => e.member_id !== meId)
+  const [friendships, setFriendships] = useState<Friendship[]>([])
+  const [contacts, setContacts] = useState<ContactRequest[]>([])
+  const [acceptsContact, setAcceptsContact] = useState<Record<string, boolean>>({})
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    if (!meId || others.length === 0) return
+    const supabase = createClient()
+    const ids = others.map(o => o.member_id)
+
+    const orFs = ids.map(id => `and(requester_id.eq.${meId},addressee_id.eq.${id}),and(requester_id.eq.${id},addressee_id.eq.${meId})`).join(',')
+    const [{ data: fs }, { data: cr }, { data: members }] = await Promise.all([
+      supabase.from('friendships').select('*').or(orFs),
+      supabase
+        .from('contact_requests')
+        .select('*')
+        .or(`and(requester_id.eq.${meId},addressee_id.in.(${ids.join(',')})),and(addressee_id.eq.${meId},requester_id.in.(${ids.join(',')}))`),
+      supabase.from('members').select('id,accepts_contact_requests').in('id', ids),
+    ])
+    setFriendships((fs as Friendship[]) ?? [])
+    setContacts((cr as ContactRequest[]) ?? [])
+    const acc: Record<string, boolean> = {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const m of ((members ?? []) as any[])) acc[m.id] = m.accepts_contact_requests !== false
+    setAcceptsContact(acc)
+  }, [meId, others])
+
+  useEffect(() => { load() }, [load])
+
+  if (others.length === 0) {
+    return <div style={{ fontSize: 13, color: 'var(--ink-light)' }}>No one else has shared their spot yet.</div>
+  }
+
+  async function addFriend(otherId: string) {
+    if (!meId || busyId) return
+    setBusyId(otherId)
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase.from('friendships') as any)
+      .insert({ requester_id: meId, addressee_id: otherId, status: 'pending' })
+      .select()
+      .single()
+    if (data) setFriendships(prev => [...prev, data as Friendship])
+    setBusyId(null)
+  }
+
+  async function requestContact(otherId: string) {
+    if (!meId || busyId) return
+    setBusyId(otherId)
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase.from('contact_requests') as any)
+      .insert({ requester_id: meId, addressee_id: otherId, status: 'pending' })
+      .select()
+      .single()
+    if (data) setContacts(prev => [...prev, data as ContactRequest])
+    setBusyId(null)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {others.map(e => {
+        const fs = friendships.find(f =>
+          (f.requester_id === meId && f.addressee_id === e.member_id) ||
+          (f.requester_id === e.member_id && f.addressee_id === meId)
+        )
+        const cr = contacts.find(c =>
+          c.requester_id === meId && c.addressee_id === e.member_id
+        )
+        const isPrivate = acceptsContact[e.member_id] === false
+        const isFriend = fs?.status === 'accepted'
+        const friendPending = fs?.status === 'pending' && fs.requester_id === meId
+        const friendIncoming = fs?.status === 'pending' && fs.addressee_id === meId
+        const contactGranted = cr?.status === 'granted'
+        const contactPending = cr?.status === 'pending'
+
+        return (
+          <div
+            key={e.member_id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '8px 0',
+              borderBottom: '1px solid var(--hair)',
+            }}
+          >
+            <Link
+              href={`/network/${e.member_id}`}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flex: 1, minWidth: 0 }}
+            >
+              <AvatarDot entry={e} size={36} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {e.name}{e.seats > 1 ? <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}> +{e.seats - 1}</span> : null}
+                </div>
+              </div>
+            </Link>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+              {/* Friend chip */}
+              {isFriend ? (
+                <span className="copax-chip copax-chip--friend" title="Friends">
+                  <svg width="11" height="11" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="4 11 9 16 18 6" />
+                  </svg>
+                </span>
+              ) : friendPending ? (
+                <span className="copax-chip copax-chip--muted" title="Friend request pending">…</span>
+              ) : friendIncoming ? (
+                <Link href={`/network/${e.member_id}`} className="copax-chip copax-chip--action" title="Respond to friend request">
+                  Respond
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="copax-chip copax-chip--action"
+                  onClick={() => addFriend(e.member_id)}
+                  disabled={busyId === e.member_id}
+                  title="Add friend"
+                  aria-label={`Add ${e.name} as friend`}
+                >
+                  +
+                </button>
+              )}
+              {/* Contact chip */}
+              {contactGranted ? (
+                <Link href={`/network/${e.member_id}`} className="copax-chip copax-chip--friend" title="Contact shared">
+                  <svg width="11" height="11" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="5" width="16" height="13" rx="2" />
+                    <path d="M3 6l8 6 8-6" />
+                  </svg>
+                </Link>
+              ) : contactPending ? (
+                <span className="copax-chip copax-chip--muted" title="Contact request pending">…</span>
+              ) : isPrivate ? (
+                <span className="copax-chip copax-chip--quiet" title="Private — connect through Ops">
+                  <svg width="11" height="11" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="5" y="10" width="12" height="9" rx="1.5" />
+                    <path d="M7.5 10V7a3.5 3.5 0 0 1 7 0v3" />
+                  </svg>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="copax-chip copax-chip--action"
+                  onClick={() => requestContact(e.member_id)}
+                  disabled={busyId === e.member_id}
+                  title="Request contact info"
+                  aria-label={`Request contact info from ${e.name}`}
+                >
+                  <svg width="11" height="11" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="5" width="16" height="13" rx="2" />
+                    <path d="M3 6l8 6 8-6" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

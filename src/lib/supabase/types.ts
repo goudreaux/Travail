@@ -26,6 +26,7 @@ export interface Database {
           interests: string[] | null
           avatar_url: string | null
           is_admin: boolean
+          accepts_contact_requests: boolean
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
@@ -49,6 +50,7 @@ export interface Database {
           interests?: string[] | null
           avatar_url?: string | null
           is_admin?: boolean
+          accepts_contact_requests?: boolean
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
@@ -72,6 +74,7 @@ export interface Database {
           interests?: string[] | null
           avatar_url?: string | null
           is_admin?: boolean
+          accepts_contact_requests?: boolean
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
@@ -424,7 +427,7 @@ export interface Database {
         Row: {
           id: string
           member_id: string
-          kind: 'booking' | 'flight' | 'excursion' | 'message' | 'system' | 'approval'
+          kind: 'booking' | 'flight' | 'excursion' | 'message' | 'system' | 'approval' | 'friend' | 'contact'
           title: string
           body: string
           ref: Json | null
@@ -434,7 +437,7 @@ export interface Database {
         Insert: {
           id?: string
           member_id: string
-          kind: 'booking' | 'flight' | 'excursion' | 'message' | 'system' | 'approval'
+          kind: 'booking' | 'flight' | 'excursion' | 'message' | 'system' | 'approval' | 'friend' | 'contact'
           title: string
           body: string
           ref?: Json | null
@@ -444,12 +447,69 @@ export interface Database {
         Update: {
           id?: string
           member_id?: string
-          kind?: 'booking' | 'flight' | 'excursion' | 'message' | 'system' | 'approval'
+          kind?: 'booking' | 'flight' | 'excursion' | 'message' | 'system' | 'approval' | 'friend' | 'contact'
           title?: string
           body?: string
           ref?: Json | null
           created_at?: string
           read?: boolean
+        }
+        Relationships: []
+      }
+      contact_requests: {
+        Row: {
+          id: string
+          requester_id: string
+          addressee_id: string
+          status: 'pending' | 'granted' | 'declined' | 'revoked'
+          note: string | null
+          created_at: string
+          decided_at: string | null
+        }
+        Insert: {
+          id?: string
+          requester_id: string
+          addressee_id: string
+          status?: 'pending' | 'granted' | 'declined' | 'revoked'
+          note?: string | null
+          created_at?: string
+          decided_at?: string | null
+        }
+        Update: {
+          id?: string
+          requester_id?: string
+          addressee_id?: string
+          status?: 'pending' | 'granted' | 'declined' | 'revoked'
+          note?: string | null
+          created_at?: string
+          decided_at?: string | null
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          id: string
+          requester_id: string
+          addressee_id: string
+          status: 'pending' | 'accepted' | 'declined'
+          created_at: string
+          decided_at: string | null
+        }
+        Insert: {
+          id?: string
+          requester_id: string
+          addressee_id: string
+          status?: 'pending' | 'accepted' | 'declined'
+          created_at?: string
+          decided_at?: string | null
+        }
+        Update: {
+          id?: string
+          requester_id?: string
+          addressee_id?: string
+          status?: 'pending' | 'accepted' | 'declined'
+          created_at?: string
+          decided_at?: string | null
         }
         Relationships: []
       }
@@ -536,6 +596,10 @@ export type AnchorSubmission = Database['public']['Tables']['anchor_submissions'
 export type Notification = Database['public']['Tables']['notifications']['Row']
 export type Post = Database['public']['Tables']['posts']['Row']
 export type Comment = Database['public']['Tables']['comments']['Row']
+export type Friendship = Database['public']['Tables']['friendships']['Row']
+export type FriendshipStatus = Friendship['status']
+export type ContactRequest = Database['public']['Tables']['contact_requests']['Row']
+export type ContactRequestStatus = ContactRequest['status']
 
 export type MemberTier = Member['tier']
 export type MemberSensitive = Database['public']['Tables']['member_sensitive']['Row']

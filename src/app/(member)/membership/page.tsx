@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { fmtDate, fmtHomeBase, memberCode, tierLabel, tierPill, TRIP_TYPES, canonicalInterests } from '@/lib/data'
+import { safeError } from '@/lib/pii-scrub'
 import PageHero from '@/components/PageHero'
 import type { Member, Booking, AnchorSubmission, MemberSensitive } from '@/lib/supabase/types'
 
@@ -35,6 +36,7 @@ export default function MembershipPage() {
   const [name, setName] = useState('')
   const [bio, setBio] = useState('')
   const [interests, setInterests] = useState<string[]>([])
+  const [acceptsContact, setAcceptsContact] = useState(true)
 
   const toggleInterest = (t: string) =>
     setInterests(prev => (prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]))
@@ -56,6 +58,8 @@ export default function MembershipPage() {
         // Pre-select canonical trip types from whatever's stored (older free-text
         // interests like "deep sea fishing" still light up the matching type).
         setInterests(canonicalInterests(m.interests))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setAcceptsContact(((m as any).accepts_contact_requests ?? true) === true)
 
         const [{ data: bookingData }, { data: submissionData }, { data: sensitiveData }] = await Promise.all([
           supabase.from('bookings').select('*').eq('member_id', m.id).order('submitted_at', { ascending: false }),
@@ -80,7 +84,7 @@ export default function MembershipPage() {
         for (const e of (exRes.data ?? []) as { id: string; date: string }[]) dates[e.id] = e.date
         setTripDates(dates)
       } catch (e) {
-        console.error('Membership load failed:', e)
+        safeError('Membership load failed:', e)
       } finally {
         setLoading(false)
       }
@@ -97,14 +101,25 @@ export default function MembershipPage() {
 
     const { error: updateError } = await supabase
       .from('members')
-      .update({ name, bio: bio || null, interests: interestArr.length > 0 ? interestArr : null } as never)
+      .update({
+        name,
+        bio: bio || null,
+        interests: interestArr.length > 0 ? interestArr : null,
+        accepts_contact_requests: acceptsContact,
+      } as never)
       .eq('id', member.id)
 
     setSaving(false)
     if (updateError) {
       setError(updateError.message)
     } else {
-      setMember(prev => prev ? { ...prev, name, bio: bio || null, interests: interestArr.length > 0 ? interestArr : null } : prev)
+      setMember(prev => prev ? {
+        ...prev,
+        name,
+        bio: bio || null,
+        interests: interestArr.length > 0 ? interestArr : null,
+        accepts_contact_requests: acceptsContact,
+      } : prev)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     }
@@ -344,6 +359,24 @@ export default function MembershipPage() {
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  <div className="field">
+                    <label className="field-lab">Privacy</label>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={acceptsContact}
+                        onChange={e => setAcceptsContact(e.target.checked)}
+                        style={{ marginTop: 3, accentColor: 'var(--tropic)' }}
+                      />
+                      <span style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.45 }}>
+                        Accept contact info requests
+                        <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-light)', marginTop: 2 }}>
+                          When off, other members can&rsquo;t ask for your email or phone. They&rsquo;ll see a &ldquo;private&rdquo; cue and be told to coordinate through Ops.
+                        </span>
+                      </span>
+                    </label>
                   </div>
 
                   {error && (

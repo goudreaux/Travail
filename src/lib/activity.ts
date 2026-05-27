@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { safeError } from '@/lib/pii-scrub'
 
 // Append-only audit chain. Logging is best-effort — it must never block or fail
 // the action it records.
@@ -30,6 +31,6 @@ export async function logActivity(entry: ActivityEntry): Promise<void> {
       meta: entry.meta ?? {},
     })
   } catch (e) {
-    console.error('activity log failed', e)
+    safeError('activity log failed', e)
   }
 }
