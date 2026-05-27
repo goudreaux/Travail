@@ -5738,6 +5738,62 @@ textarea.input {
 }
 .roster-friend-flag svg { color: #b5933a; }
 
+/* Admin icon picker — visual grid of activity icons used in the trip /
+   excursion / template editors. Each tile shows the SVG mark + the icon
+   name, with a tropic-tinted active state. Wraps responsively. */
+.icon-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+  gap: 8px;
+  padding: 10px;
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+}
+.icon-picker__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px 8px;
+  background: var(--card);
+  border: 1.5px solid var(--hair);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, transform 0.06s;
+  color: var(--ink-mid);
+  font: inherit;
+}
+.icon-picker__tile:hover {
+  border-color: rgba(0,179,199,0.45);
+  background: var(--tropic-glow);
+  color: var(--ink);
+}
+.icon-picker__tile:active { transform: scale(0.97); }
+.icon-picker__tile.active {
+  border-color: var(--tropic);
+  background: var(--tropic-glow);
+  color: var(--tropic-d);
+  box-shadow: inset 0 0 0 1px var(--tropic);
+}
+.icon-picker__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+.icon-picker__icon svg { width: 22px; height: 22px; }
+.icon-picker__label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
 /* Co-passenger chip — small round action button next to each roster row
    for quick add-friend / request-contact. Mirrors pill sizing but tighter. */
 .copax-chip {
