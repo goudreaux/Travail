@@ -189,22 +189,19 @@ export default function NetworkPage() {
         )}
 
         {loading ? (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-            gap: 16,
-          }}>
+          // Mirror the real .network-list layout so the page doesn't jump
+          // scale on hand-off from skeleton to data (especially on mobile,
+          // where the list collapses to skinny rows).
+          <div className="network-list" aria-hidden>
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="panel" style={{ padding: 24, opacity: 0.4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
-                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--warm)' }} />
-                  <div>
-                    <div style={{ width: 120, height: 14, background: 'var(--warm)', borderRadius: 4, marginBottom: 6 }} />
-                    <div style={{ width: 80, height: 10, background: 'var(--warm)', borderRadius: 4 }} />
-                  </div>
+              <div key={i} className="network-card panel" style={{ opacity: 0.5, pointerEvents: 'none' }}>
+                <div className="network-card__avatar">
+                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--warm)', flexShrink: 0 }} />
                 </div>
-                <div style={{ width: '100%', height: 10, background: 'var(--warm)', borderRadius: 4, marginBottom: 6 }} />
-                <div style={{ width: '80%', height: 10, background: 'var(--warm)', borderRadius: 4 }} />
+                <div className="network-card__body">
+                  <div style={{ width: '60%', height: 12, background: 'var(--warm)', borderRadius: 4 }} />
+                  <div style={{ width: '40%', height: 9, background: 'var(--warm)', borderRadius: 4 }} />
+                </div>
               </div>
             ))}
           </div>
