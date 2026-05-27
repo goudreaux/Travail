@@ -533,12 +533,16 @@ body::before {
   border-radius: 999px;
   background:
     linear-gradient(180deg, #ffc658 0%, #f4a72c 60%, #e8950f 100%);
-  color: #3a2a08;
-  font-family: var(--ui);
-  font-size: 13.5px;
-  font-weight: 700;
-  letter-spacing: 0.005em;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.32);
+  color: #ffffff;
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-shadow:
+    0 1px 0 rgba(146, 80, 0, 0.45),
+    0 0 6px rgba(255, 255, 255, 0.50),
+    0 0 14px rgba(255, 240, 200, 0.65);
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
