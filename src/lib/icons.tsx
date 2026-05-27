@@ -46,7 +46,10 @@ export const KIND_ICONS: Record<string, React.ReactElement> = {
   sail: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="11" y1="2.5" x2="11" y2="15"/><path d="M11 4 L17 14 L11 14 Z" fill="currentColor"/><path d="M11 6 L7 14 L11 14"/><path d="M3 15 Q11 18 19 15 L17.5 17.5 Q11 18.5 4.5 17.5 Z"/><path d="M1 20 Q5 19 9 20 T 17 20 T 21 20"/></svg>),
 
   // Curling wave — a single iconic break filling the frame, water line beneath.
-  wave: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 14 Q5 12 8 13 Q11 11 13 8 Q16 4 20 5.5 Q19 8.5 16 9.5 Q13 10.5 12 14 Q10 17 6 17 Q3 17 2 14 Z"/><path d="M1 19.5 Q11 18 21 19.5"/></svg>),
+  // Surf curl — rising face on the right that curls back to the left
+  // with a small inner barrel, plus a water-surface line below. Reads
+  // as "breaking wave" at every size we use it (12–22px).
+  wave: (<svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 14 C 5 10, 9 8, 13 9 C 17 10, 19 13, 18 15 C 17 17, 13 17, 11 15 C 9 13, 10 11, 12 11 C 13 11, 13.5 12, 13 13"/><path d="M1 19.5 Q 11 18, 21 19.5"/></svg>),
 
   // Snorkel mask — two-lens rectangle with a strap break + tube going up,
   // water line below to set the scene.
@@ -103,7 +106,7 @@ export const TRIP_TYPE_ICONS: Record<string, React.ReactElement> = {
   Hunting: KIND_ICONS.rifle,
   Golf: KIND_ICONS.golf,
   Leisure: KIND_ICONS.sun,
-  Surfing: KIND_ICONS.surfboard,
+  Surfing: KIND_ICONS.wave,
 }
 
 // Ordered list of every available mark — used by the admin form's icon
@@ -125,9 +128,11 @@ const ICON_KEYWORDS: Array<readonly [string, RegExp]> = [
   ['lobster',   /\b(lobster|crawfish|crayfish|shrimp|crab)\b/i],
   ['fish',      /\b(tarpon|snook|red\s*fish|redfish|bass|trout|grouper|snapper|sailfish|marlin|mahi|cobia|permit|swordfish|tuna|fly\s*fish|fish(?:ing|erman|er|es)?|catch|angler|angling|fly\s*rod|inshore|offshore)\b/i],
   ['snorkel',   /\b(snorkel(?:ing)?|scuba|dive|diving|reef|coral)\b/i],
-  ['surfboard', /\b(surf(?:ing|board)?|swell|wakeboard|paddle\s*board)\b/i],
+  // 'wave' now claims surf-related names too — the redrawn curl icon
+  // reads better at small sizes than the board silhouette. 'surfboard'
+  // stays in the catalog for legacy rows but is no longer suggested.
+  ['wave',      /\b(surf(?:ing|board)?|swell|wakeboard|paddle\s*board|beach|wave|tide|ocean|cruise|swim)\b/i],
   ['sail',      /\b(sail(?:ing|boat)?|regatta|yacht|charter)\b/i],
-  ['wave',      /\b(beach|wave|tide|ocean|cruise|swim)\b/i],
   ['antlers',   /\b(deer|buck|stag|elk|antler|venison|whitetail)\b/i],
   ['hog',       /\b(hog|boar|pig|javelina)\b/i],
   ['croc',      /\b(croc|crocodile|alligator|gator)\b/i],
