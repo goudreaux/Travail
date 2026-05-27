@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { fmtHomeBase, memberCode, tierLabel, tierPill, canonicalInterests } from '@/lib/data'
 import { TRIP_TYPE_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
-import type { Member } from '@/lib/supabase/types'
+import type { Member, Friendship } from '@/lib/supabase/types'
 
 function Avatar({ member, size = 52 }: { member: Member; size?: number }) {
   if (member.avatar_url) {
@@ -54,16 +54,31 @@ interface MemberWithCount extends Member {
   tripCount?: number
 }
 
+interface PendingRequest {
+  friendshipId: string
+  requester: Member
+}
+
 export default function NetworkPage() {
   const [members, setMembers] = useState<MemberWithCount[]>([])
   const [search, setSearch] = useState('')
   const [baseFilter, setBaseFilter] = useState<string>('all')
   const [interestFilter, setInterestFilter] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [meId, setMeId] = useState<string | null>(null)
+  const [pending, setPending] = useState<PendingRequest[]>([])
+  const [decidingId, setDecidingId] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
       const supabase = createClient()
+
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: meRow } = user
+        ? await supabase.from('members').select('id').eq('user_id', user.id).maybeSingle()
+        : { data: null }
+      const myId = meRow?.id ?? null
+      setMeId(myId)
 
       const { data: membersData } = await supabase
         .from('members')
@@ -88,11 +103,52 @@ export default function NetworkPage() {
         }
       }
 
-      setMembers(visible.map(m => ({ ...m, tripCount: countMap[m.id] || 0 })))
+      const list = visible.map(m => ({ ...m, tripCount: countMap[m.id] || 0 }))
+      setMembers(list)
+
+      // Pending friend requests addressed to me — used both for the
+      // inline accept panel and the badge-dot counts surfaced via storage.
+      if (myId) {
+        const { data: pendingRows } = await supabase
+          .from('friendships')
+          .select('*')
+          .eq('addressee_id', myId)
+          .eq('status', 'pending')
+        const requesterMap: Record<string, Member> = {}
+        for (const m of list) requesterMap[m.id] = m
+        const items: PendingRequest[] = ((pendingRows ?? []) as Friendship[])
+          .map(f => ({ friendshipId: f.id, requester: requesterMap[f.requester_id] }))
+          .filter(p => !!p.requester)
+        setPending(items)
+        // Broadcast count for nav badges via window event + localStorage.
+        try {
+          localStorage.setItem('travail.pending_friend_count', String(items.length))
+          window.dispatchEvent(new CustomEvent('travail:pending-friend-count', { detail: items.length }))
+        } catch { /* SSR / private browsing — best effort */ }
+      }
       setLoading(false)
     }
     load()
   }, [])
+
+  async function respondToRequest(friendshipId: string, action: 'accepted' | 'declined') {
+    if (decidingId) return
+    setDecidingId(friendshipId)
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('friendships') as any)
+      .update({ status: action })
+      .eq('id', friendshipId)
+    setPending(prev => {
+      const next = prev.filter(p => p.friendshipId !== friendshipId)
+      try {
+        localStorage.setItem('travail.pending_friend_count', String(next.length))
+        window.dispatchEvent(new CustomEvent('travail:pending-friend-count', { detail: next.length }))
+      } catch { /* ignore */ }
+      return next
+    })
+    setDecidingId(null)
+  }
 
   // Unique home bases for the filter chips
   const homeBases = Array.from(new Set(members.map(m => m.home_base_code).filter(Boolean) as string[]))
@@ -138,6 +194,78 @@ export default function NetworkPage() {
       />
 
       <div className="page-view">
+        {/* Inbound friend requests — surfaced at the top so the action
+            is one tap from the list. Each row mirrors the member-card row
+            shape so the page reads as continuous. */}
+        {!loading && pending.length > 0 && (
+          <div className="pending-friends panel" aria-label="Pending friend requests">
+            <div className="pending-friends__head">
+              <div>
+                <div className="pending-friends__title">Friend request{pending.length > 1 ? 's' : ''}</div>
+                <div className="pending-friends__sub">
+                  {pending.length === 1
+                    ? `${pending[0].requester.name.split(' ')[0]} wants to connect`
+                    : `${pending.length} members want to connect`}
+                </div>
+              </div>
+              <span className="pill signal" style={{ flexShrink: 0 }}>{pending.length}</span>
+            </div>
+            <div className="pending-friends__list">
+              {pending.map(p => (
+                <div key={p.friendshipId} className="pending-friends__row">
+                  <Link
+                    href={`/network/${p.requester.id}`}
+                    className="pending-friends__who"
+                  >
+                    {p.requester.avatar_url ? (
+                      <img
+                        src={p.requester.avatar_url}
+                        alt={p.requester.name}
+                        style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: 36, height: 36, borderRadius: '50%',
+                        background: 'var(--night)', color: 'var(--tropic)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,
+                        flexShrink: 0,
+                      }}>
+                        {p.requester.initials}
+                      </div>
+                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <div className="pending-friends__name">{p.requester.name}</div>
+                      {fmtHomeBase(p.requester.home_base_code) && (
+                        <div className="pending-friends__meta">{fmtHomeBase(p.requester.home_base_code)}</div>
+                      )}
+                    </div>
+                  </Link>
+                  <div className="pending-friends__actions">
+                    <button
+                      type="button"
+                      className="cta-outline"
+                      onClick={() => respondToRequest(p.friendshipId, 'accepted')}
+                      disabled={decidingId === p.friendshipId}
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => respondToRequest(p.friendshipId, 'declined')}
+                      disabled={decidingId === p.friendshipId}
+                      style={{ fontSize: 12, padding: '6px 12px' }}
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Filter bar — home base + interest chips. Always visible above
             the list, scrollable horizontally on mobile if there are many
             home bases. */}

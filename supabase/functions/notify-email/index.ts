@@ -16,6 +16,29 @@ interface NotificationRow {
   member_id: string
   title: string
   body: string
+  kind?: string
+  ref?: Record<string, unknown> | null
+}
+
+// Where the email's call-to-action should land, based on the notification.
+// Friend + contact requests deep-link to the requester's profile so the
+// recipient can act in one tap — the profile already has Accept/Decline.
+function ctaPath(record: NotificationRow): string {
+  const ref = (record.ref ?? {}) as Record<string, unknown>
+  const requesterId = ref.requester_id as string | undefined
+  if ((record.kind === 'friend' || record.kind === 'contact') && requesterId) {
+    return `/network/${requesterId}`
+  }
+  const itemKind = ref.item_kind as string | undefined
+  const itemId = ref.item_id as string | undefined
+  if (itemKind && itemId) return `/reserve/${itemId}?kind=${itemKind}`
+  return '/notifications'
+}
+
+function ctaLabel(record: NotificationRow): string {
+  if (record.kind === 'friend') return 'Review the request →'
+  if (record.kind === 'contact') return 'Review the request →'
+  return 'View in the app →'
 }
 
 Deno.serve(async (req) => {
@@ -62,7 +85,7 @@ Deno.serve(async (req) => {
         <div style="background:#fff;border:1px solid #e7ded0;border-top:none;padding:24px;border-radius:0 0 14px 14px">
           <p style="font-size:15px;line-height:1.6;margin:0 0 16px">Hi ${escapeHtml(firstName)},</p>
           <p style="font-size:15px;line-height:1.6;margin:0 0 22px">${escapeHtml(record.body)}</p>
-          <a href="https://travailclub.com/notifications" style="display:inline-block;background:#00b3c7;color:#fff;text-decoration:none;padding:11px 20px;border-radius:8px;font-size:14px">View in the app →</a>
+          <a href="https://travailclub.com${ctaPath(record)}" style="display:inline-block;background:#00b3c7;color:#fff;text-decoration:none;padding:11px 20px;border-radius:8px;font-size:14px">${ctaLabel(record)}</a>
         </div>
       </div>`
 

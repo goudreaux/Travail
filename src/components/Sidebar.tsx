@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { Icons } from '@/lib/icons'
 import { memberCode, tierLabel } from '@/lib/data'
+import { usePendingFriendCount } from '@/lib/use-pending-friend-count'
 import type { Member } from '@/lib/supabase/types'
 
 interface Props {
@@ -19,6 +20,7 @@ const TIER_COLOR: Record<string, string> = {
 }
 
 export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsCount = 0, unreadCount = 0 }: Props) {
+  const friendRequestCount = usePendingFriendCount()
   const nav = [
     { href: '/',                   label: 'Feed',                icon: Icons.feed },
     { href: '/notifications',      label: 'Notifications',       icon: Icons.bell,   badge: unreadCount > 0 ? String(unreadCount) : undefined },
@@ -102,16 +104,26 @@ export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsC
           <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
         </div>
 
-        {account.map(item => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`item${isActive(item.href) ? ' active' : ''}`}
-          >
-            {item.icon}
-            <span>{item.label}</span>
-          </Link>
-        ))}
+        {account.map(item => {
+          const showFriendAlert = item.href === '/network' && friendRequestCount > 0
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`item${isActive(item.href) ? ' active' : ''}`}
+            >
+              {item.icon}
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {showFriendAlert && (
+                <span
+                  className="side-alert-dot"
+                  aria-label={`${friendRequestCount} pending friend request${friendRequestCount === 1 ? '' : 's'}`}
+                  title={`${friendRequestCount} pending friend request${friendRequestCount === 1 ? '' : 's'}`}
+                />
+              )}
+            </Link>
+          )
+        })}
       </div>
 
       {/* Admin-only: switch into the ops dashboard. Hidden for regular members. */}

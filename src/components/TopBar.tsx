@@ -181,6 +181,20 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
       .eq('id', notif.id)
   }
 
+  function openNotif(notif: Notification) {
+    markOneRead(notif)
+    setDrawerOpen(false)
+    const ref = (notif.ref ?? {}) as Record<string, unknown>
+    const requesterId = ref.requester_id as string | undefined
+    if ((notif.kind === 'friend' || notif.kind === 'contact') && requesterId) {
+      router.push(`/network/${requesterId}`)
+      return
+    }
+    const itemKind = ref.item_kind as string | undefined
+    const itemId = ref.item_id as string | undefined
+    if (itemKind && itemId) router.push(`/reserve/${itemId}?kind=${itemKind}`)
+  }
+
   return (
     <div className="topbar">
       {/* Co-brand lockup: Travail wordmark × Tropic Ocean Air frigate mark. */}
@@ -268,10 +282,10 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
                       <div
                         key={notif.id}
                         className={`notif-item${!notif.read ? ' unread' : ''}`}
-                        onClick={() => markOneRead(notif)}
+                        onClick={() => openNotif(notif)}
                         role="button"
                         tabIndex={0}
-                        onKeyDown={e => e.key === 'Enter' && markOneRead(notif)}
+                        onKeyDown={e => e.key === 'Enter' && openNotif(notif)}
                       >
                         <div
                           className="notif-icon"
