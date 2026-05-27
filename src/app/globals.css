@@ -5975,6 +5975,99 @@ textarea.input {
 }
 .roster-friend-flag svg { color: #b5933a; }
 
+/* Booking success splash — full-screen overlay that plays the Tropic
+   Caravan landing clip after a successful reservation submit, then
+   fades and dismisses itself so the "you're in the queue" card
+   underneath becomes visible. */
+.booking-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #042128;
+  overflow: hidden;
+  animation: booking-splash-in 0.32s ease both;
+}
+.booking-splash.is-fading { animation: booking-splash-out 0.55s ease forwards; }
+
+.booking-splash__media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.booking-splash__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* Subtle dark vignette so the white copy reads cleanly. */
+.booking-splash__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 80% at 50% 100%, rgba(4,33,40,0.65), transparent 60%),
+    linear-gradient(180deg, rgba(4,33,40,0.18) 0%, rgba(4,33,40,0.40) 100%);
+  pointer-events: none;
+}
+
+.booking-splash__copy {
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
+  margin-bottom: 14vh;
+  padding: 0 24px;
+  text-align: center;
+  color: #fffbf0;
+  animation: booking-splash-copy 0.6s 0.4s ease both;
+}
+.booking-splash__eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--tropic);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.booking-splash__title {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(32px, 7vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.012em;
+  color: #fffbf0;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 18px rgba(0,0,0,0.45);
+}
+.booking-splash__sub {
+  font-family: var(--ui);
+  font-size: 14px;
+  color: rgba(255,251,240,0.82);
+  letter-spacing: 0.005em;
+}
+
+@keyframes booking-splash-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes booking-splash-out {
+  to { opacity: 0; visibility: hidden; }
+}
+@keyframes booking-splash-copy {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booking-splash,
+  .booking-splash__copy { animation: none; }
+}
+
 /* Field & Stream sponsor badge — cream italic-cursive wordmark on
    F&S forest green, set in Cormorant Garamond to evoke the actual
    brand mark. Three sizes share one visual language. */
