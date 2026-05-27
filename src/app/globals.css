@@ -2271,13 +2271,12 @@ body::before {
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
+  /* Same warm-cream as the Open Seats CTA strip so both cards share a
+     paper-stub footer. Status is already signaled by the left-edge
+     accent and the header pill — the stub color doesn't need to
+     repeat it. */
+  background: var(--warm);
 }
-
-.my-trip-card.s-approved .my-trip-card__stub { background: linear-gradient(180deg, rgba(62, 140, 109, 0.05), rgba(62, 140, 109, 0.12)); }
-.my-trip-card.s-pending  .my-trip-card__stub { background: linear-gradient(180deg, rgba(244, 167, 44, 0.05), rgba(244, 167, 44, 0.14)); }
-.my-trip-card.s-declined .my-trip-card__stub { background: linear-gradient(180deg, rgba(217, 78, 42, 0.04), rgba(217, 78, 42, 0.10)); }
-.my-trip-card.s-cancelled .my-trip-card__stub,
-.my-trip-card.s-refunded  .my-trip-card__stub { background: linear-gradient(180deg, rgba(13, 51, 64, 0.02), rgba(13, 51, 64, 0.06)); }
 
 .my-trip-card__conf {
   font-family: var(--mono);
