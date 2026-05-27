@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { fmtDate, fmtDur, fmtMoney, fmtTime, fmtHomeBase, memberCode, airportCity } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
 import { safeError } from '@/lib/pii-scrub'
+import { asItinerary, fmtItineraryTime, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
+import { KIND_ICONS } from '@/lib/icons'
 import { fetchRosters, type RosterEntry } from '@/components/Roster'
 
 // Roster avatar (image or initials) for the FOMO "who's going" block.
@@ -687,6 +689,62 @@ export default function ReservePage() {
                 ) : null}
               </div>
             </div>
+
+            {/* Day plan — excursions only. Bubble-down timeline of the
+                major stops. Falls back to a generated default when the
+                stored itinerary is null so members always see a plan;
+                Ops edits to confirm before publish. */}
+            {kind === 'excursion' && excursion && (() => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const stored = asItinerary((excursion as any).itinerary)
+              const steps: ItineraryStep[] = stored.length > 0
+                ? stored
+                : generateDefaultItinerary({
+                    originCode: excursion.origin_code,
+                    destCode: template?.dest_code ?? null,
+                    destName: template?.dest_code ? airportCity(template.dest_code, airportNames) : null,
+                    departTime: excursion.depart_time,
+                    arriveTime: excursion.arrive_time,
+                    startTime: excursion.start_time,
+                    returnTime: excursion.return_time,
+                    operator: template?.operator ?? null,
+                  })
+              if (steps.length === 0) return null
+              const allTBD = stored.length === 0 && steps.every(s => !s.time)
+              return (
+                <div>
+                  <div className="field-lab" style={{ marginBottom: 10 }}>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600 }}>
+                      2 — Day plan
+                    </span>
+                    {allTBD && (
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.10em', color: 'var(--sun-d)', marginLeft: 10, fontWeight: 700 }}>
+                        OPS CONFIRMS · TIMES MAY ADJUST
+                      </span>
+                    )}
+                  </div>
+                  <ol className="dayplan">
+                    {steps.map((s, i) => (
+                      <li
+                        key={i}
+                        className="dayplan__step"
+                        style={{ animationDelay: `${i * 90}ms` }}
+                      >
+                        <span className="dayplan__rail" aria-hidden />
+                        <span className="dayplan__dot" aria-hidden>
+                          {s.icon && KIND_ICONS[s.icon] ? KIND_ICONS[s.icon] : <span className="dayplan__num">{i + 1}</span>}
+                        </span>
+                        <div className="dayplan__body">
+                          <div className="dayplan__time">{s.time ? fmtItineraryTime(s.time) : <span className="dayplan__tbd">TBD</span>}</div>
+                          <div className="dayplan__label">{s.label}</div>
+                          {s.sub && <div className="dayplan__sub">{s.sub}</div>}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )
+            })()}
 
             {/* Who's going — FOMO */}
             {roster.length > 0 && (() => {

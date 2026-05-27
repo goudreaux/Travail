@@ -5967,6 +5967,103 @@ textarea.input {
 }
 .roster-friend-flag svg { color: #b5933a; }
 
+/* Day plan timeline (reserve page) — bubble-down list of the day's
+   major stops. Each step animates in with a staggered delay so it
+   reads as a sequence dropping into place. */
+.dayplan {
+  position: relative;
+  list-style: none;
+  padding: 4px 4px 4px 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.dayplan__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  column-gap: 16px;
+  padding: 0 0 18px 4px;
+  opacity: 0;
+  transform: translateY(-12px) scale(0.96);
+  animation: dayplan-pop 0.55s cubic-bezier(0.18, 0.92, 0.34, 1.18) forwards;
+}
+.dayplan__step:last-child { padding-bottom: 4px; }
+
+/* Vertical connector running between dots; stops short of the last. */
+.dayplan__rail {
+  position: absolute;
+  left: 22px;
+  top: 30px;
+  bottom: 8px;
+  width: 2px;
+  background: linear-gradient(180deg, var(--hair-2) 0%, var(--hair-2) 80%, transparent 100%);
+  pointer-events: none;
+}
+.dayplan__step:last-child .dayplan__rail { display: none; }
+
+/* Stop dot — circle with the icon mark or the step number. */
+.dayplan__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--tropic-glow);
+  color: var(--tropic-d);
+  border: 1.5px solid var(--card);
+  box-shadow: 0 0 0 1px var(--tropic), 0 4px 12px rgba(0,179,199,0.18);
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+.dayplan__dot svg { width: 18px; height: 18px; }
+.dayplan__num {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tropic-d);
+  line-height: 1;
+}
+
+.dayplan__body { min-width: 0; padding-top: 4px; }
+.dayplan__time {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--tropic-d);
+  margin-bottom: 3px;
+}
+.dayplan__tbd { color: var(--sun-d); letter-spacing: 0.14em; }
+.dayplan__label {
+  font-family: var(--ui);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+}
+.dayplan__sub {
+  font-family: var(--ui);
+  font-size: 12.5px;
+  color: var(--ink-light);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+@keyframes dayplan-pop {
+  0%   { opacity: 0; transform: translateY(-14px) scale(0.94); }
+  60%  { opacity: 1; transform: translateY(2px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dayplan__step { animation: none; opacity: 1; transform: none; }
+}
+
 /* Admin icon picker — visual grid of activity icons used in the trip /
    excursion / template editors. Each tile shows the SVG mark + the icon
    name, with a tropic-tinted active state. Wraps responsively. */
@@ -6697,18 +6794,26 @@ textarea.input {
    becomes a left-edge ribbon. */
 @media (max-width: 640px) {
   .biz-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
+    /* minmax(0, 1fr) instead of plain 1fr — without the minmax, a grid
+       track expands to fit min-content of its children, which here is
+       avatar + body + action and that can blow past the viewport. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
   }
   .biz-card {
     flex-direction: row;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px 10px 14px;
-    border-radius: 12px;
-    /* Make sure the row never extends past its container, regardless of
-       how wide the action area wants to be. NOTE: don't use overflow:
-       hidden here — it would clip the friend gold-halo on the monogram. */
+    padding: 8px 10px 8px 12px;
+    border-radius: 10px;
+    /* Pin to grid width — never let the row push past the parent. The
+       card is the whole tap target now (no inline action button on
+       mobile), so the page can stay narrower and breathe. */
+    width: 100%;
+    box-sizing: border-box;
     max-width: 100%;
     min-width: 0;
   }
@@ -6717,62 +6822,78 @@ textarea.input {
     bottom: 0;
     right: auto;
     height: auto;
-    width: 4px;
+    width: 3px;
   }
   .biz-card__stamps,
   .biz-card__bio,
   .biz-card__rule,
   .biz-card__ints,
-  .biz-card__trips {
+  .biz-card__trips,
+  .biz-card__foot {
     display: none;
   }
   .biz-card__head {
     flex-direction: row;
     align-items: center;
     text-align: left;
-    gap: 12px;
+    gap: 10px;
     padding-bottom: 0;
     flex: 1;
     min-width: 0;
   }
   .biz-card__monogram > div,
   .biz-card__monogram > img {
-    width: 44px !important;
-    height: 44px !important;
-    font-size: 14px !important;
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 12px !important;
   }
   .biz-card__seal {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
+    right: -1px;
+    bottom: -1px;
   }
-  .biz-card__seal svg { width: 8px; height: 8px; }
-  .biz-card__id { align-items: flex-start; gap: 3px; min-width: 0; max-width: 100%; }
-  .biz-card__name { font-size: 16px; }
+  .biz-card__seal svg { width: 7px; height: 7px; }
+  .biz-card__id { align-items: flex-start; gap: 2px; min-width: 0; max-width: 100%; }
+  .biz-card__name { font-size: 15px; line-height: 1.2; }
   .biz-card__title { font-size: 9px; letter-spacing: 0.10em; }
-  .biz-card__foot { display: none; }
+
+  /* Mobile drops the full action band entirely — the whole card is the
+     tap target, and any Connect/Accept happens on the profile. A tiny
+     static state badge in the corner is enough signal. */
   .biz-card__action {
     margin: 0;
     padding: 0;
     background: transparent;
     border-top: none;
     flex-shrink: 0;
-    gap: 6px;
-    /* Hard cap so the action never pushes the identity content too tight. */
-    max-width: 110px;
-    overflow: hidden;
+    gap: 0;
+    max-width: 28px;
   }
-  .biz-card__connect {
-    font-size: 11px;
-    padding: 5px 11px;
-    white-space: nowrap;
-  }
-  .biz-card__state { font-size: 9px; padding: 4px 8px; white-space: nowrap; }
-  /* The connect button / state pill is the affordance on mobile —
-     drop the redundant chev so the action area stays compact. */
+  .biz-card__connect,
   .biz-card__chev { display: none; }
-  /* Extra room around the avatar so the gold halo and wax-seal aren't
-     visually crowded by the card edge. */
-  .biz-card__monogram { padding: 3px; }
+  /* State pill shrinks to icon-only on mobile — text disappears,
+     leaving a small badge in the row's right edge. */
+  .biz-card__state {
+    font-size: 0;
+    padding: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .biz-card__state svg { width: 11px; height: 11px; }
+
+  /* Smaller halo footprint so it doesn't visually crowd the trimmed row. */
+  .biz-card__monogram { padding: 2px; }
+  .biz-card.is-friend .biz-card__monogram > div,
+  .biz-card.is-friend .biz-card__monogram > img {
+    box-shadow:
+      0 0 0 2px #d4b66a,
+      0 0 8px 1px rgba(212,182,106,0.45);
+  }
   .biz-card--skeleton {
     min-height: 64px;
     border-radius: 12px;

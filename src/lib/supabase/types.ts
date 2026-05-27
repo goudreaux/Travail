@@ -269,6 +269,7 @@ export interface Database {
           price_per_pax: number
           status: 'draft' | 'open' | 'full' | 'completed' | 'cancelled'
           image_url: string | null
+          itinerary: Json | null
           created_at: string
         }
         Insert: {
@@ -293,6 +294,7 @@ export interface Database {
           price_per_pax?: number
           status?: 'draft' | 'open' | 'full' | 'completed' | 'cancelled'
           image_url?: string | null
+          itinerary?: Json | null
           created_at?: string
         }
         Update: {
@@ -317,6 +319,7 @@ export interface Database {
           price_per_pax?: number
           status?: 'draft' | 'open' | 'full' | 'completed' | 'cancelled'
           image_url?: string | null
+          itinerary?: Json | null
           created_at?: string
         }
         Relationships: []
