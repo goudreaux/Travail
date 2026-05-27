@@ -542,17 +542,13 @@ body::before {
   background:
     linear-gradient(180deg, #ffc658 0%, #f4a72c 60%, #e8950f 100%);
   color: #ffffff;
-  /* Yellowtail — bold brush script in the Kleenex-logo lineage. Single
-     weight (400) but it carries naturally thanks to the heavy
-     downstrokes. */
-  font-family: 'Yellowtail', cursive;
-  font-weight: 400;
-  font-size: 22px;
-  letter-spacing: 0;
+  font-family: var(--ui);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   line-height: 1;
-  /* Layered shadow: a thin dark edge around the white type gives the
-     cursive an outline against the saturated gold; a cream halo
-     OUTSIDE provides the soft glow without washing into the strokes. */
+  /* Thin dark outline keeps the white type legible on the saturated
+     gold; cream halo OUTSIDE the strokes only, for the glow effect. */
   text-shadow:
     0 1px 0 rgba(58, 28, 0, 0.55),
     0 -0.5px 0 rgba(58, 28, 0, 0.30),
