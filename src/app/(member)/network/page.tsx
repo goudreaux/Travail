@@ -150,8 +150,19 @@ export default function NetworkPage() {
     setDecidingId(null)
   }
 
-  // Unique home bases for the filter chips
-  const homeBases = Array.from(new Set(members.map(m => m.home_base_code).filter(Boolean) as string[]))
+  // Canonical home base regions — show every base as an option even when
+  // no members are currently based there, so the filter reads as deliberate
+  // rather than data-driven. Order is meaningful (Tampa Bay is the founding
+  // home base, SFL is the second region).
+  const HOME_BASES = ['Tampa Bay', 'SFL'] as const
+  const TRIP_KINDS = ['Fishing', 'Hunting', 'Golf', 'Leisure', 'Surfing'] as const
+
+  const filtersActive = baseFilter !== 'all' || interestFilter.size > 0 || search.trim().length > 0
+  function clearFilters() {
+    setSearch('')
+    setBaseFilter('all')
+    setInterestFilter(new Set())
+  }
 
   const q = search.trim().toLowerCase()
   const filtered = members.filter(m => {
@@ -266,32 +277,48 @@ export default function NetworkPage() {
           </div>
         )}
 
-        {/* Filter bar — home base + interest chips. Always visible above
-            the list, scrollable horizontally on mobile if there are many
-            home bases. */}
+        {/* Filter bar — home base + interest chips. Two labeled rows, the
+            second a horizontal scroll on mobile. Clear control fades in
+            once any filter (search included) is active. */}
         {!loading && members.length > 0 && (
-          <div className="network-filters">
+          <div className="network-filters" role="group" aria-label="Member filters">
             <div className="network-filters__row" aria-label="Filter by home base">
+              <span className="network-filters__label">Base</span>
               <button
                 type="button"
                 className={`chip${baseFilter === 'all' ? ' active' : ''}`}
                 onClick={() => setBaseFilter('all')}
               >
-                All bases
+                All
               </button>
-              {homeBases.map(code => (
+              {HOME_BASES.map(base => (
                 <button
-                  key={code}
+                  key={base}
                   type="button"
-                  className={`chip${baseFilter === code ? ' active' : ''}`}
-                  onClick={() => setBaseFilter(code)}
+                  className={`chip${baseFilter === base ? ' active' : ''}`}
+                  onClick={() => setBaseFilter(base)}
                 >
-                  {fmtHomeBase(code) ?? code}
+                  {fmtHomeBase(base) ?? base}
                 </button>
               ))}
+              {filtersActive && (
+                <button
+                  type="button"
+                  className="network-filters__clear"
+                  onClick={clearFilters}
+                  aria-label="Clear all filters"
+                >
+                  <svg width="10" height="10" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                    <line x1="5" y1="5" x2="17" y2="17" />
+                    <line x1="17" y1="5" x2="5" y2="17" />
+                  </svg>
+                  Clear
+                </button>
+              )}
             </div>
             <div className="network-filters__row" aria-label="Filter by interest">
-              {(['Fishing', 'Hunting', 'Golf', 'Leisure', 'Surfing'] as const).map(t => {
+              <span className="network-filters__label">Interest</span>
+              {TRIP_KINDS.map(t => {
                 const active = interestFilter.has(t)
                 return (
                   <button
@@ -305,7 +332,7 @@ export default function NetworkPage() {
                       return next
                     })}
                   >
-                    <span style={{ display: 'inline-flex', width: 14, height: 14, alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ display: 'inline-flex', width: 13, height: 13, alignItems: 'center', justifyContent: 'center' }}>
                       {TRIP_TYPE_ICONS[t]}
                     </span>
                     {t}
