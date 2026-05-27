@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 // with the secondary destinations so the bar stays uncluttered.
 const MEMBER_PRIMARY = [
   { href: '/', label: 'Feed', icon: Icons.feed, exact: true },
-  { href: '/seats', label: 'Seats', icon: Icons.plane, badgeKey: 'seats' as const },
+  { href: '/seats', label: 'Seats', icon: Icons.compass, badgeKey: 'seats' as const },
   { href: '/bookings', label: 'My Trips', icon: Icons.luggage },
 ] as const
 
@@ -17,7 +17,7 @@ const MEMBER_SECONDARY = [
   { href: '/calendar', label: 'Calendar', icon: Icons.cal },
   { href: '/notifications', label: 'Notifications', icon: Icons.bell },
   { href: '/network', label: 'Network', icon: Icons.network },
-  { href: '/plan', label: 'Plan a Trip', icon: Icons.build },
+  { href: '/plan', label: 'Plan a Trip', icon: Icons.plane },
   { href: '/contact', label: 'Contact us', icon: Icons.phone },
   { href: '/membership', label: 'Account', icon: Icons.member },
 ] as const
