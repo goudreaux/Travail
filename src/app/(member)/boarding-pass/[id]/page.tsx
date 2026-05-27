@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import Image from 'next/image'
 import { fmtDate, fmtTime, fmtDur, fmtMoney, airportCity, airportSub } from '@/lib/data'
 import { fetchRosters, RosterList, type RosterEntry } from '@/components/Roster'
 import type { Member, Booking, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
@@ -159,59 +158,37 @@ export default function BoardingPassPage() {
         </Link>
 
         <div className="boarding-pass">
-          {/* Header — lifted editorial route block */}
+          {/* Header — route IS the hero. Bold sans like the My Trips card
+              type ramp, with a quiet eyebrow + status pill above. */}
           <div className="boarding-pass__hero">
             <div className="boarding-pass__hero-glow" aria-hidden />
             <div className="boarding-pass__hero-top">
-              <div className="boarding-pass__brand">
-                <div className="boarding-pass__brand-lockup">
-                  <Image
-                    src="/travail-wordmark.png"
-                    alt="Travail"
-                    width={140}
-                    height={50}
-                    className="boarding-pass__brand-wordmark"
-                    priority
-                  />
-                  <span className="boarding-pass__brand-x" aria-hidden>×</span>
-                  <Image
-                    src="/tropic-logo.png"
-                    alt="Tropic Ocean Air"
-                    width={36}
-                    height={36}
-                    className="boarding-pass__brand-tropic"
-                  />
-                </div>
-                <div className="boarding-pass__brand-tag">BOARDING PASS</div>
-              </div>
+              <div className="boarding-pass__eyebrow">Travail · Boarding pass</div>
               <span className="boarding-pass__status" style={{ color: statusColor }}>
                 <span className="boarding-pass__status-dot" style={{ background: statusColor }} aria-hidden />
                 {statusLabel}
               </span>
             </div>
-            <div className="boarding-pass__route">
-              {isFlight && flight ? (
-                <>
-                  <div className="boarding-pass__endpoint">
-                    <div className="boarding-pass__endpoint-city">{airportCity(flight.origin_code, airportNames)}</div>
-                    <div className="boarding-pass__endpoint-code">
-                      <span>{flight.origin_code}</span>
-                      <span className="boarding-pass__endpoint-sub">{airportSub(flight.origin_code)}</span>
-                    </div>
-                  </div>
-                  <div className="boarding-pass__arrow" aria-hidden>→</div>
-                  <div className="boarding-pass__endpoint boarding-pass__endpoint--right">
-                    <div className="boarding-pass__endpoint-city">{airportCity(flight.dest_code, airportNames)}</div>
-                    <div className="boarding-pass__endpoint-code">
-                      <span>{flight.dest_code}</span>
-                      <span className="boarding-pass__endpoint-sub">{airportSub(flight.dest_code)}</span>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="boarding-pass__excursion-title">{title}</div>
-              )}
-            </div>
+            {isFlight && flight ? (
+              <>
+                <h1 className="boarding-pass__route-title">
+                  {airportCity(flight.origin_code, airportNames)}
+                  <span className="boarding-pass__route-arrow" aria-hidden>→</span>
+                  {airportCity(flight.dest_code, airportNames)}
+                </h1>
+                <div className="boarding-pass__route-meta">
+                  {dateStr} · {departTime}{flight.duration_mins ? ` · ${fmtDur(flight.duration_mins)}` : ''} · {booking.seats === 1 ? '1 SEAT' : `${booking.seats} SEATS`}
+                </div>
+                <div className="boarding-pass__route-codes">{flight.origin_code} → {flight.dest_code}</div>
+              </>
+            ) : (
+              <>
+                <h1 className="boarding-pass__route-title">{title}</h1>
+                <div className="boarding-pass__route-meta">
+                  {dateStr} · {departTime} · {booking.seats === 1 ? '1 SPOT' : `${booking.seats} SPOTS`}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Detail grid */}
