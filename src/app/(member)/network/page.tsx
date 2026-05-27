@@ -64,10 +64,19 @@ export default function NetworkPage() {
   const [search, setSearch] = useState('')
   const [baseFilter, setBaseFilter] = useState<string>('all')
   const [interestFilter, setInterestFilter] = useState<Set<string>>(new Set())
+  const [statusFilter, setStatusFilter] = useState<'all' | 'friends' | 'pending' | 'unconnected'>('all')
   const [loading, setLoading] = useState(true)
   const [meId, setMeId] = useState<string | null>(null)
   const [pending, setPending] = useState<PendingRequest[]>([])
   const [decidingId, setDecidingId] = useState<string | null>(null)
+  // Friend relationship maps, keyed by counterparty member id.
+  //   friendSet:           accepted friendships
+  //   pendingFromMeSet:    I've sent them a request, awaiting their response
+  //   pendingToMeSet:      they've sent me a request, awaiting my response
+  const [friendSet, setFriendSet] = useState<Set<string>>(new Set())
+  const [pendingFromMeSet, setPendingFromMeSet] = useState<Set<string>>(new Set())
+  const [pendingToMeSet, setPendingToMeSet] = useState<Set<string>>(new Set())
+  const [connectBusy, setConnectBusy] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -106,21 +115,39 @@ export default function NetworkPage() {
       const list = visible.map(m => ({ ...m, tripCount: countMap[m.id] || 0 }))
       setMembers(list)
 
-      // Pending friend requests addressed to me — used both for the
-      // inline accept panel and the badge-dot counts surfaced via storage.
+      // All friendships involving me — derive three sets used to power
+      // the filter, the per-card state badge, and the pending-requests
+      // panel above. One query for everything.
       if (myId) {
-        const { data: pendingRows } = await supabase
+        const { data: allFs } = await supabase
           .from('friendships')
           .select('*')
-          .eq('addressee_id', myId)
-          .eq('status', 'pending')
+          .or(`requester_id.eq.${myId},addressee_id.eq.${myId}`)
+        const rows = (allFs ?? []) as Friendship[]
+        const acc = new Set<string>()
+        const fromMe = new Set<string>()
+        const toMe = new Set<string>()
+        for (const f of rows) {
+          const other = f.requester_id === myId ? f.addressee_id : f.requester_id
+          if (f.status === 'accepted') acc.add(other)
+          else if (f.status === 'pending') {
+            if (f.requester_id === myId) fromMe.add(other)
+            else toMe.add(other)
+          }
+        }
+        setFriendSet(acc)
+        setPendingFromMeSet(fromMe)
+        setPendingToMeSet(toMe)
+
+        // Pending requests addressed to me — feeds the friend-request panel
+        // at the top of the page and the badge-dot counts.
         const requesterMap: Record<string, Member> = {}
         for (const m of list) requesterMap[m.id] = m
-        const items: PendingRequest[] = ((pendingRows ?? []) as Friendship[])
+        const items: PendingRequest[] = rows
+          .filter(f => f.status === 'pending' && f.addressee_id === myId)
           .map(f => ({ friendshipId: f.id, requester: requesterMap[f.requester_id] }))
           .filter(p => !!p.requester)
         setPending(items)
-        // Broadcast count for nav badges via window event + localStorage.
         try {
           localStorage.setItem('travail.pending_friend_count', String(items.length))
           window.dispatchEvent(new CustomEvent('travail:pending-friend-count', { detail: items.length }))
@@ -130,6 +157,23 @@ export default function NetworkPage() {
     }
     load()
   }, [])
+
+  async function sendFriendRequest(otherId: string) {
+    if (!meId || connectBusy) return
+    setConnectBusy(otherId)
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('friendships') as any)
+      .insert({ requester_id: meId, addressee_id: otherId, status: 'pending' })
+    if (!error) {
+      setPendingFromMeSet(prev => {
+        const next = new Set(prev)
+        next.add(otherId)
+        return next
+      })
+    }
+    setConnectBusy(null)
+  }
 
   async function respondToRequest(friendshipId: string, action: 'accepted' | 'declined') {
     if (decidingId) return
@@ -157,15 +201,17 @@ export default function NetworkPage() {
   const HOME_BASES = ['Tampa Bay', 'SFL'] as const
   const TRIP_KINDS = ['Fishing', 'Hunting', 'Golf', 'Leisure', 'Surfing'] as const
 
-  const filtersActive = baseFilter !== 'all' || interestFilter.size > 0 || search.trim().length > 0
+  const filtersActive = baseFilter !== 'all' || interestFilter.size > 0 || search.trim().length > 0 || statusFilter !== 'all'
   function clearFilters() {
     setSearch('')
     setBaseFilter('all')
     setInterestFilter(new Set())
+    setStatusFilter('all')
   }
 
   const q = search.trim().toLowerCase()
   const filtered = members.filter(m => {
+    if (meId && m.id === meId) return false  // hide self from the directory
     if (q && !(
       m.name.toLowerCase().includes(q) ||
       (m.home_base_code && m.home_base_code.toLowerCase().includes(q)) ||
@@ -177,6 +223,13 @@ export default function NetworkPage() {
       let any = false
       for (const i of interestFilter) if (ints.has(i as 'Fishing' | 'Hunting' | 'Golf' | 'Leisure' | 'Surfing')) { any = true; break }
       if (!any) return false
+    }
+    if (statusFilter !== 'all') {
+      const isFriend = friendSet.has(m.id)
+      const isPending = pendingFromMeSet.has(m.id) || pendingToMeSet.has(m.id)
+      if (statusFilter === 'friends' && !isFriend) return false
+      if (statusFilter === 'pending' && !isPending) return false
+      if (statusFilter === 'unconnected' && (isFriend || isPending)) return false
     }
     return true
   })
@@ -333,6 +386,29 @@ export default function NetworkPage() {
                 </button>
               )}
             </div>
+            <div className="network-filters__row" aria-label="Filter by connection">
+              <span className="network-filters__label">Status</span>
+              {([
+                ['all', 'All'],
+                ['friends', 'Friends'],
+                ['pending', 'Pending'],
+                ['unconnected', 'Not yet'],
+              ] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`chip${statusFilter === key ? ' active' : ''}`}
+                  onClick={() => setStatusFilter(key)}
+                >
+                  {key === 'friends' && (
+                    <svg width="11" height="11" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="4 11 9 16 18 6" />
+                    </svg>
+                  )}
+                  {label}
+                </button>
+              ))}
+            </div>
             <div className="network-filters__row" aria-label="Filter by interest">
               <span className="network-filters__label">Interest</span>
               {TRIP_KINDS.map(t => {
@@ -361,20 +437,11 @@ export default function NetworkPage() {
         )}
 
         {loading ? (
-          // Mirror the real .network-list layout so the page doesn't jump
-          // scale on hand-off from skeleton to data (especially on mobile,
-          // where the list collapses to skinny rows).
-          <div className="network-list" aria-hidden>
+          // Skeleton uses the same .biz-card shell so the layout is right
+          // from the first paint — no scale jump on data hand-off.
+          <div className="biz-grid" aria-hidden>
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="network-card panel" style={{ opacity: 0.5, pointerEvents: 'none' }}>
-                <div className="network-card__avatar">
-                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--warm)', flexShrink: 0 }} />
-                </div>
-                <div className="network-card__body">
-                  <div style={{ width: '60%', height: 12, background: 'var(--warm)', borderRadius: 4 }} />
-                  <div style={{ width: '40%', height: 9, background: 'var(--warm)', borderRadius: 4 }} />
-                </div>
-              </div>
+              <div key={i} className="biz-card biz-card--skeleton" data-tier="founding_member" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -383,57 +450,115 @@ export default function NetworkPage() {
               <circle cx="11" cy="11" r="8" /><circle cx="11" cy="11" rx="3.2" ry="8" />
               <line x1="3" y1="11" x2="19" y2="11" />
             </svg>
-            <h3>No members found.</h3>
-            <p>{search ? `No members matching "${search}".` : 'No members yet.'}</p>
+            <h3>No members match.</h3>
+            <p>{search ? `Nothing matching "${search}".` : 'Adjust your filters to widen the search.'}</p>
+            {filtersActive && (
+              <button type="button" className="cta-outline" onClick={clearFilters} style={{ marginTop: 12 }}>
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
-          <div className="network-list">
+          <div className="biz-grid">
             {filtered.map(member => {
               const ints = canonicalInterests(member.interests)
               const home = fmtHomeBase(member.home_base_code)
+              const isFriend = friendSet.has(member.id)
+              const sentByMe = pendingFromMeSet.has(member.id)
+              const sentToMe = pendingToMeSet.has(member.id)
+              const trips = (member as MemberWithCount).tripCount ?? 0
+              const tierLabelStr = tierLabel(member.tier)
               return (
-                <Link key={member.id} href={`/network/${member.id}`} className="network-card panel">
-                  <div className="network-card__avatar">
-                    <Avatar member={member} size={52} />
+                <Link
+                  key={member.id}
+                  href={`/network/${member.id}`}
+                  className={`biz-card${isFriend ? ' is-friend' : ''}`}
+                  data-tier={member.tier}
+                  aria-label={`${member.name}, ${tierLabelStr}`}
+                >
+                  {/* Foil edge strip — color from data-tier */}
+                  <span className="biz-card__foil" aria-hidden />
+
+                  {/* Top stamps: Travail mark on the left, member number on the right */}
+                  <div className="biz-card__stamps">
+                    <span className="biz-card__mark">TRAVAIL · MEMBER</span>
+                    <span className="biz-card__no">
+                      {member.member_no != null ? `№ ${String(member.member_no).padStart(3, '0')}` : memberCode(member)}
+                    </span>
                   </div>
-                  <div className="network-card__body">
-                    <div className="network-card__name-row">
-                      <div className="network-card__name">{member.name}</div>
-                      <TierBadge tier={member.tier} />
-                    </div>
-                    <div className="network-card__meta">
-                      {home && (
-                        <span className="network-card__home">
-                          <svg width="11" height="11" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-                            <path d="M11 3a6 6 0 0 1 6 6c0 4-6 10-6 10S5 13 5 9a6 6 0 0 1 6-6z" />
-                            <circle cx="11" cy="9" r="2" />
+
+                  {/* Centered monogram + identity block */}
+                  <div className="biz-card__head">
+                    <div className="biz-card__monogram">
+                      <Avatar member={member} size={64} />
+                      {isFriend && (
+                        <span className="biz-card__seal" title="Connected" aria-label="Connected">
+                          <svg width="11" height="11" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="4 11 9 16 18 6" />
                           </svg>
-                          {home}
                         </span>
                       )}
-                      <span className="network-card__code">{memberCode(member)}</span>
                     </div>
-                    {member.bio && (
-                      <p className="network-card__bio">{member.bio}</p>
-                    )}
-                    <div className="network-card__footer">
-                      {ints.length > 0 && (
-                        <div className="network-card__interests">
-                          {ints.map(t => (
-                            <span key={t} className="network-card__interest" title={t}>
-                              <span style={{ display: 'flex', width: 13, height: 13 }}>{TRIP_TYPE_ICONS[t]}</span>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <span className="network-card__trips">
-                        {(member as MemberWithCount).tripCount
-                          ? `${(member as MemberWithCount).tripCount} trip${(member as MemberWithCount).tripCount === 1 ? '' : 's'}`
-                          : '—'}
-                      </span>
+                    <div className="biz-card__id">
+                      <div className="biz-card__name">{member.name}</div>
+                      <div className="biz-card__title">
+                        <span className="biz-card__tier">{tierLabelStr}</span>
+                        {home && <>
+                          <span className="biz-card__dot" aria-hidden>·</span>
+                          <span className="biz-card__base">{home}</span>
+                        </>}
+                      </div>
                     </div>
                   </div>
-                  <span className="network-card__chev" aria-hidden>›</span>
+
+                  {member.bio && (
+                    <p className="biz-card__bio">&ldquo;{member.bio}&rdquo;</p>
+                  )}
+
+                  <div className="biz-card__rule" aria-hidden />
+
+                  {/* Footer — interests + trip count */}
+                  <div className="biz-card__foot">
+                    <div className="biz-card__ints">
+                      {ints.length > 0
+                        ? ints.map(t => (
+                            <span key={t} className="biz-card__int" title={t}>
+                              <span style={{ display: 'inline-flex', width: 13, height: 13 }}>{TRIP_TYPE_ICONS[t]}</span>
+                            </span>
+                          ))
+                        : <span className="biz-card__ints-empty">No interests listed</span>}
+                    </div>
+                    <span className="biz-card__trips">
+                      {trips > 0 ? `${trips} trip${trips === 1 ? '' : 's'}` : '— trips'}
+                    </span>
+                  </div>
+
+                  {/* Connection action — bottom band */}
+                  <div className="biz-card__action">
+                    {isFriend ? (
+                      <span className="biz-card__state biz-card__state--friend">
+                        <svg width="10" height="10" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="4 11 9 16 18 6" />
+                        </svg>
+                        Connected
+                      </span>
+                    ) : sentByMe ? (
+                      <span className="biz-card__state biz-card__state--pending">Request sent</span>
+                    ) : sentToMe ? (
+                      <span className="biz-card__state biz-card__state--respond">Respond →</span>
+                    ) : meId ? (
+                      <button
+                        type="button"
+                        className="biz-card__connect"
+                        onClick={e => { e.preventDefault(); e.stopPropagation(); sendFriendRequest(member.id) }}
+                        disabled={connectBusy === member.id}
+                        aria-label={`Connect with ${member.name}`}
+                      >
+                        {connectBusy === member.id ? 'Sending…' : '+ Connect'}
+                      </button>
+                    ) : null}
+                    <span className="biz-card__chev" aria-hidden>→</span>
+                  </div>
                 </Link>
               )
             })}

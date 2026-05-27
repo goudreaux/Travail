@@ -4769,7 +4769,9 @@ textarea.input {
   transition: transform 0.22s ease, background 0.18s ease;
 }
 .section-panel[data-collapsed="true"] .section-chev { transform: rotate(0deg); }
-.section-panel[data-collapsed="true"] > *:not(.section-head) { display: none; }
+/* Force-hide collapsed content; needs !important because the content
+   divs carry inline `display: flex` styles that would otherwise win. */
+.section-panel[data-collapsed="true"] > *:not(.section-head) { display: none !important; }
 
 /* Bigger, bolder headers on mobile so the sections stand out. */
 @media (max-width: 768px) {
@@ -5996,97 +5998,182 @@ textarea.input {
 }
 .network-filters__clear svg { display: block; }
 
-.network-list {
+/* Business-card grid — premium directory tiles. Each card is a sleek
+   keepsake: tier-foil top edge, Travail × member-number stamps, centered
+   monogram, italic display name, interests pill row, and a connect/state
+   band at the bottom. Hover lifts and saturates the foil. */
+.biz-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 16px;
 }
 
-.network-card {
+.biz-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 18px 18px 16px;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  padding: 24px 22px 0;
   text-decoration: none;
   color: inherit;
-  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(13,51,64,0.03), 0 8px 24px rgba(13,51,64,0.04);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
-.network-card:hover {
-  transform: translateY(-1px);
-  border-color: rgba(0,179,199,0.35);
+.biz-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 1px 0 rgba(13,51,64,0.04), 0 16px 36px rgba(13,51,64,0.10);
+  border-color: rgba(0,179,199,0.40);
 }
-.network-card__avatar {
+
+/* Tier-foil top edge — single colored strip + a subtle gradient bleed
+   into the card so it reads as embossed rather than slapped on. Color
+   keyed to the member's tier. */
+.biz-card__foil {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--tropic);
+  background-image: linear-gradient(90deg, var(--tropic) 0%, var(--tropic-d) 50%, var(--tropic) 100%);
+}
+.biz-card[data-tier="founder"] .biz-card__foil {
+  background: #c9a84c;
+  background-image: linear-gradient(90deg, #d4b66a 0%, #c9a84c 35%, #b5933a 60%, #d4b66a 100%);
+}
+.biz-card[data-tier="administrator"] .biz-card__foil {
+  background-image: linear-gradient(90deg, var(--sun) 0%, var(--sun-d) 100%);
+}
+.biz-card[data-tier="founder"] {
+  background:
+    radial-gradient(120% 60% at 50% -20%, rgba(201,168,76,0.10), transparent 60%),
+    var(--card);
+}
+.biz-card[data-tier="founder"]:hover {
+  border-color: rgba(201,168,76,0.55);
+}
+
+/* Stamps row — Travail brand mark on the left, member number on the
+   right. Both in mono, tight letter spacing — feels like a passport. */
+.biz-card__stamps {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 18px;
 }
-.network-card__body {
+.biz-card__mark { font-weight: 600; }
+.biz-card__no {
+  color: var(--tropic-d);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+.biz-card[data-tier="founder"] .biz-card__no { color: #9c7e2e; }
+
+/* Centered identity block — monogram (avatar) over name + meta. */
+.biz-card__head {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-  flex: 1;
-}
-.network-card__name-row {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  justify-content: space-between;
+  text-align: center;
+  gap: 14px;
+  padding-bottom: 16px;
 }
-.network-card__name {
-  font-family: var(--ui);
-  font-size: 15px;
-  font-weight: 600;
+.biz-card__monogram {
+  position: relative;
+}
+.biz-card__monogram > div,
+.biz-card__monogram > img {
+  box-shadow: 0 0 0 1px rgba(0,179,199,0.10), 0 8px 22px rgba(13,51,64,0.10);
+}
+.biz-card[data-tier="founder"] .biz-card__monogram > div,
+.biz-card[data-tier="founder"] .biz-card__monogram > img {
+  box-shadow: 0 0 0 1px rgba(201,168,76,0.45), 0 8px 22px rgba(201,168,76,0.18);
+}
+/* Wax-seal style connected indicator overlaying the bottom-right of
+   the monogram. */
+.biz-card__seal {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--tropic);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px var(--card), 0 2px 6px rgba(0,179,199,0.45);
+}
+
+.biz-card__id { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.biz-card__name {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 1.1;
   color: var(--ink);
   letter-spacing: -0.005em;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.network-card__meta {
-  display: flex;
+.biz-card__title {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ink-light);
 }
-.network-card__home {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--ink-mid);
-}
-.network-card__home svg { color: var(--tropic); }
-.network-card__code { color: var(--ink-faint); }
-.network-card__bio {
-  font-family: var(--ui);
-  font-size: 13px;
+.biz-card__tier { color: var(--tropic-d); font-weight: 600; }
+.biz-card[data-tier="founder"] .biz-card__tier { color: #9c7e2e; }
+.biz-card__dot { color: var(--ink-faint); }
+.biz-card__base { color: var(--ink-mid); font-weight: 500; }
+
+.biz-card__bio {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 14.5px;
   line-height: 1.45;
   color: var(--ink-mid);
-  margin: 0;
+  text-align: center;
+  margin: 0 0 14px;
+  padding: 0 6px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.network-card__footer {
+
+.biz-card__rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--hair-2) 18%, var(--hair-2) 82%, transparent 100%);
+  margin: 0 -6px;
+}
+
+.biz-card__foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--hair);
+  gap: 12px;
+  padding: 14px 0 16px;
+  min-height: 38px;
 }
-.network-card__interests {
-  display: flex;
-  gap: 5px;
-  align-items: center;
-}
-.network-card__interest {
+.biz-card__ints { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.biz-card__int {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -6096,51 +6183,170 @@ textarea.input {
   background: var(--tropic-glow);
   color: var(--tropic-d);
 }
-.network-card__trips {
+.biz-card__ints-empty {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.biz-card__trips {
   font-family: var(--mono);
   font-size: 9.5px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.10em;
   text-transform: uppercase;
   color: var(--ink-light);
-}
-.network-card__chev {
-  display: none;
-  font-size: 22px;
-  color: var(--ink-faint);
-  line-height: 1;
-  align-self: center;
-  flex-shrink: 0;
+  white-space: nowrap;
 }
 
-/* Mobile — collapse to skinny rows. Avatar on left, name + meta + chev
-   on the right. Hide bio and footer for density. */
+/* Bottom action band — connect button or state pill. Full-width strip
+   with a subtle warm-paper background and a chevron at the right edge. */
+.biz-card__action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 -22px;
+  padding: 12px 22px;
+  background: linear-gradient(180deg, rgba(13,51,64,0.025) 0%, rgba(13,51,64,0.05) 100%);
+  border-top: 1px solid var(--hair);
+}
+.biz-card__connect {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--tropic);
+  background: var(--card);
+  color: var(--tropic-d);
+  font-family: var(--ui);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, transform 0.08s;
+}
+.biz-card__connect:hover:not(:disabled) {
+  background: var(--tropic);
+  color: #fff;
+}
+.biz-card__connect:active:not(:disabled) { transform: scale(0.97); }
+.biz-card__connect:disabled { opacity: 0.6; cursor: default; }
+
+.biz-card__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 999px;
+}
+.biz-card__state--friend {
+  background: var(--tropic);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,179,199,0.30);
+}
+.biz-card__state--pending {
+  background: var(--warm);
+  color: var(--ink-light);
+  border: 1px dashed var(--hair-2);
+}
+.biz-card__state--respond {
+  background: var(--sun-glow);
+  color: var(--sun-d);
+}
+.biz-card__chev {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink-faint);
+  font-weight: 300;
+}
+.biz-card:hover .biz-card__chev { color: var(--tropic-d); transform: translateX(2px); }
+
+/* Skeleton — same outer shape so the page doesn't jump on load. */
+.biz-card--skeleton {
+  min-height: 280px;
+  background: linear-gradient(180deg, var(--card) 0%, var(--warm) 100%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Mobile — collapse to a sleek horizontal "name plate" row. Avatar on
+   left, name + meta in the middle, connect action on the right. Foil
+   becomes a left-edge ribbon. */
 @media (max-width: 640px) {
-  .network-list {
+  .biz-grid {
     grid-template-columns: 1fr;
     gap: 8px;
   }
-  .network-card {
+  .biz-card {
     flex-direction: row;
     align-items: center;
     gap: 12px;
-    padding: 12px 14px;
+    padding: 12px 14px 12px 18px;
+    border-radius: 12px;
   }
-  .network-card__avatar { gap: 0; }
-  .network-card__body { gap: 4px; }
-  .network-card__name { font-size: 14px; }
-  .network-card__name-row { gap: 6px; }
-  .network-card__meta { font-size: 9.5px; gap: 8px; }
-  .network-card__bio { display: none; }
-  .network-card__footer {
-    padding-top: 0;
+  .biz-card__foil {
+    top: 0;
+    bottom: 0;
+    right: auto;
+    height: auto;
+    width: 4px;
+  }
+  .biz-card__stamps,
+  .biz-card__bio,
+  .biz-card__rule,
+  .biz-card__ints,
+  .biz-card__trips {
+    display: none;
+  }
+  .biz-card__head {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 12px;
+    padding-bottom: 0;
+    flex: 1;
+    min-width: 0;
+  }
+  .biz-card__monogram > div,
+  .biz-card__monogram > img {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 14px !important;
+  }
+  .biz-card__seal {
+    width: 16px;
+    height: 16px;
+  }
+  .biz-card__seal svg { width: 8px; height: 8px; }
+  .biz-card__id { align-items: flex-start; gap: 3px; min-width: 0; max-width: 100%; }
+  .biz-card__name { font-size: 16px; }
+  .biz-card__title { font-size: 9px; letter-spacing: 0.10em; }
+  .biz-card__foot { display: none; }
+  .biz-card__action {
+    margin: 0;
+    padding: 0;
+    background: transparent;
     border-top: none;
-    justify-content: flex-start;
-    gap: 8px;
+    flex-shrink: 0;
+    gap: 6px;
   }
-  .network-card__interest { width: 18px; height: 18px; }
-  .network-card__interest svg { width: 10px; height: 10px; }
-  .network-card__trips { display: none; }
-  .network-card__chev { display: block; }
+  .biz-card__connect {
+    font-size: 11px;
+    padding: 5px 11px;
+  }
+  .biz-card__state { font-size: 9px; padding: 4px 8px; }
+  .biz-card__chev { font-size: 18px; }
+  .biz-card--skeleton {
+    min-height: 64px;
+    border-radius: 12px;
+  }
 
   /* Filter rows scroll horizontally instead of wrapping so the bar
      stays one line each. The label + Clear button stay sticky-ish at the
