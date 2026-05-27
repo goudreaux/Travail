@@ -82,6 +82,10 @@ interface EnrichedSubmission extends AnchorSubmission {
   flight?: Flight
   excursion?: Excursion
   excursionTemplate?: ExcursionTemplate
+  // The anchor's own booking on this trip — populated once Ops
+  // publishes (the publish endpoint auto-creates it). Used to route a
+  // click on the anchor card to the boarding pass.
+  anchorBookingId?: string
 }
 
 // ─── Booking card ──────────────────────────────────────────────────────────────
@@ -327,6 +331,12 @@ export default function BookingsPage() {
             enriched.excursionTemplate = templates.find(t => t.id === enriched.excursion?.template_id)
           }
         }
+        // Find the anchor's own booking on this published trip so a tap
+        // on the card can deep-link to its boarding pass.
+        if (a.published_item_id) {
+          const own = (rawBookings ?? []).find(b => b.item_id === a.published_item_id && b.item_kind === a.kind)
+          if (own) enriched.anchorBookingId = own.id
+        }
         return enriched
       })
 
@@ -451,7 +461,14 @@ export default function BookingsPage() {
                       key={a.id}
                       submission={a}
                       isExpanded={true}
-                      onSelect={() => {}} airportName={airportName}
+                      onSelect={() => {
+                        // Tap → anchor's own boarding pass for this
+                        // trip (auto-created at publish time).
+                        if (a.anchorBookingId) {
+                          router.push(`/boarding-pass/${a.anchorBookingId}`)
+                        }
+                      }}
+                      airportName={airportName}
                     />
                   ))}
                 </div>
