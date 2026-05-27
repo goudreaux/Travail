@@ -73,7 +73,6 @@ export default function ContactPage() {
         eyebrow="Concierge"
         title="A note to ops."
         sub="Drop us a line — we'll take care of the rest. Replies usually within minutes during desk hours."
-        metric={{ value: '~4', label: 'Min avg reply', sub: '7am · 9pm ET' }}
       />
 
       <div className="page-view contact-page">
