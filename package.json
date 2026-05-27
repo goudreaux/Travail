@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@sentry/nextjs": "^10.54.0",
+    "@stripe/react-stripe-js": "^6.4.0",
+    "@stripe/stripe-js": "^9.7.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.1",
     "next": "16.2.6",
