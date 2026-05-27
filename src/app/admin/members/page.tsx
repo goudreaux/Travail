@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { fmtHomeBase, memberCode, tierLabel, tierPill } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
+import { safeError } from '@/lib/pii-scrub'
 import GuestsPanel from '@/components/GuestsPanel'
 import type { Member } from '@/lib/supabase/types'
 import type { Guest } from '@/lib/guests'
@@ -328,7 +329,7 @@ export default function MembersPage() {
               read: false,
             } as never)
           } catch (welcomeErr) {
-            console.error('Welcome notification not recorded:', welcomeErr)
+            safeError('Welcome notification not recorded:', welcomeErr)
           }
         }
         if (convertGuestId && inserted) {

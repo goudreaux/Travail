@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { fmtDate, fmtHomeBase, memberCode, tierLabel, tierPill, TRIP_TYPES, canonicalInterests } from '@/lib/data'
+import { safeError } from '@/lib/pii-scrub'
 import PageHero from '@/components/PageHero'
 import type { Member, Booking, AnchorSubmission, MemberSensitive } from '@/lib/supabase/types'
 
@@ -83,7 +84,7 @@ export default function MembershipPage() {
         for (const e of (exRes.data ?? []) as { id: string; date: string }[]) dates[e.id] = e.date
         setTripDates(dates)
       } catch (e) {
-        console.error('Membership load failed:', e)
+        safeError('Membership load failed:', e)
       } finally {
         setLoading(false)
       }

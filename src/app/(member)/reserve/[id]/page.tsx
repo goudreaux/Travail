@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { fmtDate, fmtDur, fmtMoney, fmtTime, fmtHomeBase, memberCode, airportCity } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
+import { safeError } from '@/lib/pii-scrub'
 import { fetchRosters, type RosterEntry } from '@/components/Roster'
 
 // Roster avatar (image or initials) for the FOMO "who's going" block.
@@ -373,7 +374,7 @@ export default function ReservePage() {
         const { error: paxErr } = await db.from('booking_passengers').insert(paxRows)
         if (paxErr) throw paxErr
       } catch (paxErr) {
-        console.error('Passenger manifest not recorded:', paxErr)
+        safeError('Passenger manifest not recorded:', paxErr)
       }
 
       // 4. Notify (best-effort — booking already succeeded).
@@ -388,7 +389,7 @@ export default function ReservePage() {
         } as never)
         if (notifErr) throw notifErr
       } catch (notifErr) {
-        console.error('Booking notification not recorded:', notifErr)
+        safeError('Booking notification not recorded:', notifErr)
       }
 
       logActivity({
