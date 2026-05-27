@@ -5974,6 +5974,111 @@ textarea.input {
 }
 .roster-friend-flag svg { color: #b5933a; }
 
+/* Anchor card-on-file widget — sits in the anchor wizard near the
+   submit button. Three states: loading, card-on-file summary, and
+   PaymentElement form for adding a new card. */
+.anchor-card {
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 0 rgba(13,51,64,0.02);
+}
+.anchor-card--loading {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-light);
+  font-size: 13px;
+}
+.anchor-card--empty {
+  background: linear-gradient(180deg, var(--tropic-glow) 0%, var(--card) 80%);
+  border-color: rgba(0,179,199,0.30);
+}
+.anchor-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.anchor-card__eyebrow {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tropic-d);
+  font-weight: 700;
+}
+.anchor-card__copy {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+.anchor-card__body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.anchor-card__brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--night);
+  color: var(--tropic);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.anchor-card__num {
+  font-family: var(--ui);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.005em;
+}
+.anchor-card__exp {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.10em;
+  color: var(--ink-light);
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+.anchor-card__replace {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  cursor: pointer;
+  transition: color 0.14s;
+}
+.anchor-card__replace:hover:not(:disabled) { color: var(--tropic-d); }
+.anchor-card__replace:disabled { opacity: 0.5; cursor: default; }
+.anchor-card__elements {
+  margin-top: 4px;
+}
+.anchor-card__error {
+  font-size: 12.5px;
+  color: var(--signal);
+  background: rgba(217,78,42,0.07);
+  border: 1px solid rgba(217,78,42,0.22);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
 /* Booking success splash — full-screen overlay that plays the Tropic
    Caravan landing clip after a successful reservation submit, then
    fades and dismisses itself so the "you're in the queue" card
