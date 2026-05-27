@@ -3862,7 +3862,12 @@ textarea.input {
   }
 
   .app {
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr) is critical here — plain 1fr lets the column
+       expand to fit its children's min-content, which any wide flex
+       row (member card, filter chips, hero) can blow past the
+       viewport. minmax(0, ...) clamps the track to the available
+       width regardless of what's inside. */
+    grid-template-columns: minmax(0, 1fr);
     padding-bottom: calc(66px + env(safe-area-inset-bottom));
   }
 
@@ -4256,6 +4261,9 @@ textarea.input {
 
   .page-view {
     padding: 16px;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   .topbar {
