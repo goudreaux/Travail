@@ -229,6 +229,29 @@ export async function POST(req: NextRequest) {
     publishedItemId = ins.id
   }
 
+  // ─── Auto-create the anchor's own booking ──────────────────────────────────
+  // So the anchor sees the trip in My Trips with a boarding pass.
+  // Payment method 'credits' because the seats are already paid for
+  // via the full charter capture above — no separate Stripe charge.
+  const confirmationCode = Math.random().toString(36).slice(2, 9).toUpperCase()
+  if (seatsAnchor > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db.from('bookings') as any).insert({
+      id: `B-${Date.now().toString(36).toUpperCase()}`,
+      member_id: sub.member_id,
+      item_kind: sub.kind,
+      item_id: publishedItemId,
+      seats: seatsAnchor,
+      price_per_seat: pricePerSeat,
+      fees: 0,
+      total: pricePerSeat * seatsAnchor,
+      payment_method: 'credits',
+      status: 'approved',
+      confirmation_code: confirmationCode,
+      decided_at: new Date().toISOString(),
+    })
+  }
+
   // ─── Mark the submission published ─────────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db.from('anchor_submissions') as any)
