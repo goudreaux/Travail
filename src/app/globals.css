@@ -310,6 +310,9 @@ body::before {
   position: sticky;
   top: 0;
   z-index: 10;
+  /* Belt-and-braces: never let the bar push past viewport width on mobile. */
+  max-width: 100vw;
+  min-width: 0;
 }
 
 .search {
@@ -4592,10 +4595,20 @@ textarea.input {
 }
 
 @media (max-width: 768px) {
-  .topbar-brand { gap: 8px; }
+  /* Tight padding + tight gaps so the brand lockup + bell + CTA + sign-out
+     all fit on a 390px iPhone without forcing horizontal overflow. */
+  .topbar { padding: 0 12px; gap: 8px; }
+  .top-actions { gap: 6px; min-width: 0; }
+  .topbar-brand { gap: 8px; min-width: 0; flex-shrink: 1; }
   .topbar-brand__travail { height: 22px; }
   .topbar-brand__tropic { height: 22px; }
   .topbar-brand__x { font-size: 15px; }
+  /* Get Away pill scales down on small screens so it doesn't crowd the
+     sign-out icon off the edge. */
+  .cta-go { height: 32px; padding: 0 14px; font-size: 13px; }
+  /* Sign out reverts to icon-only on mobile (label already hidden) —
+     trim the button shell too. */
+  .signout-btn { padding: 0 8px !important; height: 32px !important; }
 }
 
 /* ─── Legacy my-trip-card sub-classes (still used by the Trips page) ─── */
