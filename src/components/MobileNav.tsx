@@ -172,6 +172,14 @@ export default function MobileNav({
                 </button>
               </li>
             </ul>
+            {/* Quiet utility footer — discoverable but never loud. */}
+            <a
+              href="/travail-company-policy.md"
+              download="travail-company-policy.md"
+              className="m-more__policy"
+            >
+              Company policy
+            </a>
           </div>
         </div>
       )}
