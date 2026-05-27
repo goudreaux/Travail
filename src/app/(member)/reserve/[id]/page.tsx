@@ -9,6 +9,7 @@ import { safeError } from '@/lib/pii-scrub'
 import { asItinerary, fmtItineraryTime, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
 import { KIND_ICONS } from '@/lib/icons'
 import { BookingSuccessSplash } from '@/components/BookingSuccessSplash'
+import { AnchorLiability } from '@/components/AnchorLiability'
 import { fetchRosters, type RosterEntry } from '@/components/Roster'
 
 // Roster avatar (image or initials) for the FOMO "who's going" block.
@@ -653,6 +654,40 @@ export default function ReservePage() {
                 </p>
               </div>
             )}
+
+            {/* Anchor liability ticker — visible only to the anchor.
+                Live readout of what they owe at settlement given current
+                bookings, plus the floor (their own seats only) if the
+                trip fills. */}
+            {member && anchorMemberId === member.id && (() => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const trip: any = flight ?? excursion
+              if (!trip || !trip.anchor_captured_cents) return null
+              const seatsTotal = (trip.seats_total ?? trip.spots_total ?? 0) as number
+              const seatsAnchor = (trip.seats_anchor ?? trip.spots_anchor ?? 0) as number
+              const seatsTaken = (trip.seats_taken ?? trip.spots_taken ?? 0) as number
+              // Paid revenue ≈ pax seats sold × per-seat price. We use
+              // the trip's published price_per_seat rather than summing
+              // bookings client-side (RLS doesn't let an anchor see
+              // others' booking rows directly). Forfeits are folded in
+              // because their booking row stays counted in seats_taken
+              // even when status=cancelled with was_forfeit=true (the
+              // capacity trigger only decrements active seats).
+              const perSeat = (trip.price_per_seat ?? trip.price_per_pax ?? 0) as number
+              const paidPaxSeats = Math.max(0, seatsTaken - seatsAnchor)
+              const paidRevenueCents = paidPaxSeats * perSeat * 100
+              return (
+                <div style={{ marginBottom: 18 }}>
+                  <AnchorLiability
+                    charterTotalCents={trip.anchor_captured_cents}
+                    paidRevenueCents={paidRevenueCents}
+                    seatsTotal={seatsTotal}
+                    seatsAnchor={seatsAnchor}
+                    seatsTaken={seatsTaken}
+                  />
+                </div>
+              )
+            })()}
 
             {/* 1. Itinerary display */}
             <div>
