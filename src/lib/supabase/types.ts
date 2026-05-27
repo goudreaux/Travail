@@ -202,6 +202,7 @@ export interface Database {
           price_per_seat: number
           status: 'draft' | 'open' | 'full' | 'departed' | 'cancelled'
           image_url: string | null
+          is_private: boolean
           created_at: string
         }
         Insert: {
@@ -222,6 +223,7 @@ export interface Database {
           price_per_seat: number
           status?: 'draft' | 'open' | 'full' | 'departed' | 'cancelled'
           image_url?: string | null
+          is_private?: boolean
           created_at?: string
         }
         Update: {
@@ -242,6 +244,7 @@ export interface Database {
           price_per_seat?: number
           status?: 'draft' | 'open' | 'full' | 'departed' | 'cancelled'
           image_url?: string | null
+          is_private?: boolean
           created_at?: string
         }
         Relationships: []
@@ -271,6 +274,7 @@ export interface Database {
           image_url: string | null
           itinerary: Json | null
           sponsor: string | null
+          is_private: boolean
           created_at: string
         }
         Insert: {
@@ -297,6 +301,7 @@ export interface Database {
           image_url?: string | null
           itinerary?: Json | null
           sponsor?: string | null
+          is_private?: boolean
           created_at?: string
         }
         Update: {
@@ -323,6 +328,7 @@ export interface Database {
           image_url?: string | null
           itinerary?: Json | null
           sponsor?: string | null
+          is_private?: boolean
           created_at?: string
         }
         Relationships: []
