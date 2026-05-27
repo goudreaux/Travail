@@ -5637,6 +5637,38 @@ textarea.input {
   .boarding-pass__hero-glow { animation: none; }
 }
 
+/* Contact row — email / phone link on a member profile after a granted
+   contact request. Subtle pill, tap target sized for mobile. */
+.contact-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--ui);
+  font-size: 13.5px;
+  text-decoration: none;
+  transition: border-color 0.14s, background 0.14s;
+}
+.contact-row:hover {
+  border-color: var(--tropic);
+  background: var(--tropic-glow);
+}
+.contact-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--tropic-glow);
+  color: var(--tropic-d);
+  flex-shrink: 0;
+}
+
 /* Network — social-network style member list. Card grid on desktop,
    skinny rows on mobile so 100+ members stay scannable. */
 .network-filters {
