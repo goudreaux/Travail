@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { useFriendIds } from '@/lib/use-friend-ids'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Friendship, ContactRequest } from '@/lib/supabase/types'
 
@@ -33,31 +34,40 @@ export async function fetchRosters(
   return out
 }
 
-function AvatarDot({ entry, size }: { entry: RosterEntry; size: number }) {
+function AvatarDot({ entry, size, isFriend = false }: { entry: RosterEntry; size: number; isFriend?: boolean }) {
+  // Wrap in a span so the friend ring + glow sit *outside* the avatar
+  // without offsetting layout; the inner avatar (img or initials) stays
+  // sized the same as before so stacks line up cleanly.
+  const wrapClass = isFriend ? 'roster-dot is-friend' : 'roster-dot'
   if (entry.avatar_url) {
     return (
-      <img
-        src={entry.avatar_url}
-        alt={entry.name}
-        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block', border: '2px solid var(--paper)' }}
-      />
+      <span className={wrapClass} title={isFriend ? `${entry.name} · Friend` : undefined}>
+        <img
+          src={entry.avatar_url}
+          alt={entry.name}
+          style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', display: 'block', border: '2px solid var(--paper)' }}
+        />
+      </span>
     )
   }
   return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%',
-      background: 'var(--night)', color: 'var(--tropic)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'var(--mono)', fontSize: size * 0.34, fontWeight: 700,
-      border: '2px solid var(--paper)',
-    }}>
-      {entry.initials}
-    </div>
+    <span className={wrapClass} title={isFriend ? `${entry.name} · Friend` : undefined}>
+      <span style={{
+        width: size, height: size, borderRadius: '50%',
+        background: 'var(--night)', color: 'var(--tropic)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--mono)', fontSize: size * 0.34, fontWeight: 700,
+        border: '2px solid var(--paper)',
+      }}>
+        {entry.initials}
+      </span>
+    </span>
   )
 }
 
 // Compact overlapping avatar stack for the board cards.
 export function RosterStack({ entries, max = 4, occupied }: { entries: RosterEntry[]; max?: number; occupied?: number }) {
+  const friendIds = useFriendIds()
   const shown = entries.slice(0, max)
   const extra = entries.length - shown.length
   const totalSeats = entries.reduce((s, e) => s + e.seats, 0)
@@ -69,12 +79,24 @@ export function RosterStack({ entries, max = 4, occupied }: { entries: RosterEnt
 
   if (!entries.length && others === 0) return null
 
+  // Surface a friend that's hiding past the `max` cutoff: if a friend is
+  // on the trip but not in the visible stack, swap them into the slot of
+  // the last shown non-friend so the gold ring is always visible.
+  const friendsInShown = shown.some(e => friendIds.has(e.member_id))
+  const hiddenFriend = !friendsInShown
+    ? entries.slice(max).find(e => friendIds.has(e.member_id))
+    : null
+  const display = hiddenFriend
+    ? [...shown.slice(0, -1), hiddenFriend]
+    : shown
+  const anyFriend = display.some(e => friendIds.has(e.member_id))
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }} title={entries.length ? `${entries.map(e => e.name).join(', ')} on this trip` : 'Members going'}>
       <div style={{ display: 'flex' }}>
-        {shown.map((e, i) => (
-          <div key={e.member_id} style={{ marginLeft: i === 0 ? 0 : -8, zIndex: shown.length - i }}>
-            <AvatarDot entry={e} size={24} />
+        {display.map((e, i) => (
+          <div key={e.member_id} style={{ marginLeft: i === 0 ? 0 : -8, zIndex: display.length - i }}>
+            <AvatarDot entry={e} size={24} isFriend={friendIds.has(e.member_id)} />
           </div>
         ))}
         {extra > 0 && (
@@ -104,6 +126,14 @@ export function RosterStack({ entries, max = 4, occupied }: { entries: RosterEnt
       {others > 0 && (
         <span style={{ fontSize: 11, color: 'var(--ink-light)', fontFamily: 'var(--mono)', letterSpacing: '0.03em' }}>
           +{others} other{others !== 1 ? 's' : ''}
+        </span>
+      )}
+      {anyFriend && (
+        <span className="roster-friend-flag" title="A friend is on this trip">
+          <svg width="9" height="9" viewBox="0 0 22 22" fill="currentColor" aria-hidden>
+            <path d="M11 2.5l2.6 5.3 5.9.9-4.3 4.2 1 5.8L11 16l-5.3 2.7 1-5.8L2.5 8.7l5.9-.9z" />
+          </svg>
+          Friend going
         </span>
       )}
     </div>
@@ -206,7 +236,7 @@ export function CoPassengerList({ entries, meId }: { entries: RosterEntry[]; meI
               href={`/network/${e.member_id}`}
               style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flex: 1, minWidth: 0 }}
             >
-              <AvatarDot entry={e} size={36} />
+              <AvatarDot entry={e} size={36} isFriend={isFriend} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {e.name}{e.seats > 1 ? <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}> +{e.seats - 1}</span> : null}
@@ -281,6 +311,7 @@ export function CoPassengerList({ entries, meId }: { entries: RosterEntry[]; meI
 
 // Full roster with names + links to member cards (trip detail page).
 export function RosterList({ entries }: { entries: RosterEntry[] }) {
+  const friendIds = useFriendIds()
   if (!entries.length) {
     return <div style={{ fontSize: 13, color: 'var(--ink-light)' }}>No one has shared their spot yet — be the first.</div>
   }
@@ -292,7 +323,7 @@ export function RosterList({ entries }: { entries: RosterEntry[] }) {
           href={`/network/${e.member_id}`}
           style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}
         >
-          <AvatarDot entry={e} size={34} />
+          <AvatarDot entry={e} size={34} isFriend={friendIds.has(e.member_id)} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>
               {e.name}{e.seats > 1 ? <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}> +{e.seats - 1}</span> : null}
