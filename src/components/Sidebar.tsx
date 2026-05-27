@@ -146,16 +146,6 @@ export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsC
         </Link>
       )}
 
-      {/* Tiny utility footer — the company-policy download is meant to
-          be quietly available, not advertised. */}
-      <a
-        href="/travail-company-policy.md"
-        download="travail-company-policy.md"
-        className="sidebar-footer-link"
-      >
-        Company policy
-      </a>
-
     </aside>
   )
 }

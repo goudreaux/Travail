@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node -e \"require('fs').copyFileSync('HANDBOOK.md', 'public/travail-company-policy.md')\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

@@ -5637,37 +5637,6 @@ textarea.input {
   .boarding-pass__hero-glow { animation: none; }
 }
 
-/* Quiet utility links — Company policy footer. Visible but never loud:
-   tiny monospace caps, low-contrast ink. Sits below the last nav row on
-   desktop sidebar and below Sign out in the mobile More sheet. */
-.sidebar-footer-link {
-  display: block;
-  margin: 18px 16px 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--hair);
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  text-decoration: none;
-  transition: color 0.14s;
-}
-.sidebar-footer-link:hover { color: var(--ink-mid); }
-.m-more__policy {
-  display: block;
-  margin: 16px 22px 6px;
-  padding-top: 14px;
-  border-top: 1px solid var(--hair);
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  text-decoration: none;
-  text-align: center;
-}
-
 /* Co-passenger chip — small round action button next to each roster row
    for quick add-friend / request-contact. Mirrors pill sizing but tighter. */
 .copax-chip {
