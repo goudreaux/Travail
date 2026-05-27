@@ -6420,10 +6420,10 @@ textarea.input {
     padding: 10px 12px 10px 14px;
     border-radius: 12px;
     /* Make sure the row never extends past its container, regardless of
-       how wide the action area wants to be. */
+       how wide the action area wants to be. NOTE: don't use overflow:
+       hidden here — it would clip the friend gold-halo on the monogram. */
     max-width: 100%;
     min-width: 0;
-    overflow: hidden;
   }
   .biz-card__foil {
     top: 0;
@@ -6470,13 +6470,22 @@ textarea.input {
     border-top: none;
     flex-shrink: 0;
     gap: 6px;
+    /* Hard cap so the action never pushes the identity content too tight. */
+    max-width: 110px;
+    overflow: hidden;
   }
   .biz-card__connect {
     font-size: 11px;
     padding: 5px 11px;
+    white-space: nowrap;
   }
-  .biz-card__state { font-size: 9px; padding: 4px 8px; }
-  .biz-card__chev { font-size: 18px; }
+  .biz-card__state { font-size: 9px; padding: 4px 8px; white-space: nowrap; }
+  /* The connect button / state pill is the affordance on mobile —
+     drop the redundant chev so the action area stays compact. */
+  .biz-card__chev { display: none; }
+  /* Extra room around the avatar so the gold halo and wax-seal aren't
+     visually crowded by the card edge. */
+  .biz-card__monogram { padding: 3px; }
   .biz-card--skeleton {
     min-height: 64px;
     border-radius: 12px;
