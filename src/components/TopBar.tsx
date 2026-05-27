@@ -308,8 +308,8 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
         </div>
 
         {/* Concierge CTA — quiet sun-warm pill, no flourishes. */}
-        <Link href="/plan" className="cta-go" aria-label="Plan a trip">
-          Plan a trip
+        <Link href="/plan" className="cta-go" aria-label="Get away">
+          Get Away
         </Link>
 
         {/* Sign out — visible in every member window (desktop + mobile top bar) */}
