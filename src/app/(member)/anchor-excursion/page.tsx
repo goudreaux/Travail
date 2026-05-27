@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import PageHero from '@/components/PageHero'
+import { AnchorCardSetup } from '@/components/AnchorCardSetup'
 import TimeInput from '@/components/TimeInput'
 import type { AirportMeta } from '@/lib/data'
 import type { ExcursionTemplate } from '@/lib/supabase/types'
@@ -83,6 +84,8 @@ export default function AnchorExcursionPage() {
   const [tripName, setTripName] = useState('')
   const [pitch, setPitch] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // Gate Submit on a saved card; Ops can't publish without one.
+  const [hasCard, setHasCard] = useState(false)
   const [submitted, setSubmitted] = useState<{ id: string } | null>(null)
   const [error, setError] = useState('')
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
@@ -460,6 +463,10 @@ export default function AnchorExcursionPage() {
                   Pricing is confirmed by the Travail team with the operator before your anchor goes live.
                 </p>
               </div>
+
+              <div style={{ marginTop: 14 }}>
+                <AnchorCardSetup onCardReady={() => setHasCard(true)} />
+              </div>
             </div>
           )}
 
@@ -474,8 +481,15 @@ export default function AnchorExcursionPage() {
             {step < STEPS.length ? (
               <button className="btn-primary" onClick={next}>Next →</button>
             ) : (
-              <button className="btn-primary" onClick={handleSubmit} disabled={submitting}>
-                {submitting ? (<><span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 2 }} /> Submitting…</>) : 'Submit to Ops →'}
+              <button
+                className="btn-primary"
+                onClick={handleSubmit}
+                disabled={submitting || !hasCard}
+                title={!hasCard ? 'Add a card on file above to submit.' : undefined}
+              >
+                {submitting ? (<><span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 2 }} /> Submitting…</>)
+                : !hasCard ? 'Add a card to submit'
+                : 'Submit to Ops →'}
               </button>
             )}
           </div>

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { fmtDur } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import TimeInput from '@/components/TimeInput'
+import { AnchorCardSetup } from '@/components/AnchorCardSetup'
 import type { AirportMeta } from '@/lib/data'
 
 const ANCHOR_ORIGINS: AirportMeta[] = [
@@ -116,6 +117,9 @@ export default function AnchorFlightPage() {
   const [pitch, setPitch] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState<{ id: string } | null>(null)
+  // Gate the Submit button on a saved card — Ops can't publish without
+  // one (they need it on file to capture the charter cost on approval).
+  const [hasCard, setHasCard] = useState(false)
   const [error, setError] = useState('')
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
 
@@ -466,6 +470,10 @@ export default function AnchorFlightPage() {
                   Seat pricing is confirmed by the Travail team. We&apos;ll check with Tropic for a quote and reach out before your anchor goes live.
                 </p>
               </div>
+
+              <div style={{ marginTop: 14 }}>
+                <AnchorCardSetup onCardReady={() => setHasCard(true)} />
+              </div>
             </div>
           )}
 
@@ -480,10 +488,16 @@ export default function AnchorFlightPage() {
             {step < 4 ? (
               <button className="btn-primary" onClick={next}>Next →</button>
             ) : (
-              <button className="btn-primary" onClick={handleSubmit} disabled={submitting}>
+              <button
+                className="btn-primary"
+                onClick={handleSubmit}
+                disabled={submitting || !hasCard}
+                title={!hasCard ? 'Add a card on file above to submit.' : undefined}
+              >
                 {submitting ? (
                   <><span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 2 }} /> Submitting…</>
-                ) : 'Submit to Ops →'}
+                ) : !hasCard ? 'Add a card to submit'
+                : 'Submit to Ops →'}
               </button>
             )}
           </div>
