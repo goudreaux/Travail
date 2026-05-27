@@ -3719,6 +3719,72 @@ textarea.input {
   opacity: 0.75;
 }
 
+/* Inline reset link — "Forgot?" beside the password label, and the
+   "Back to sign in" anchor in reset / reset-sent modes. */
+.login-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--tropic-d);
+  text-decoration: none;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: color 0.14s;
+  align-self: flex-start;
+}
+.login-link:hover { color: var(--tropic); text-decoration: underline; }
+
+.login-reset-hint {
+  margin: 0 0 4px;
+  padding: 12px 14px;
+  background: var(--tropic-glow);
+  border-left: 3px solid var(--tropic);
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+/* "Check your inbox" success card after sending the reset email. */
+.login-reset-done {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 22px 22px 24px;
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+}
+.login-reset-done__seal {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--tropic);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0,179,199,0.32);
+}
+.login-reset-done h3 {
+  margin: 6px 0 2px;
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 24px;
+  color: var(--ink);
+}
+.login-reset-done p {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
 .login-form-pane__footer {
   margin-top: 28px;
   padding-top: 20px;
@@ -4365,6 +4431,83 @@ textarea.input {
   text-transform: uppercase;
   color: var(--ink-light);
   animation: pulse 2.4s ease-in-out infinite;
+}
+
+/* ── Co-brand lockup at the top of the onboarding letter ── */
+.onboarding-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 0 0 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--hair);
+}
+.onboarding-brand__travail { height: 32px; width: auto; }
+.onboarding-brand__tropic { height: 30px; width: auto; }
+.onboarding-brand__x {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink-light);
+  font-weight: 400;
+  margin: 0 -2px;
+  user-select: none;
+}
+
+/* ── Home base chip row + interest icon picker ── */
+.onboarding-base-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.onboarding-interests {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
+  gap: 8px;
+}
+.onboarding-interest {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px 10px;
+  background: var(--paper);
+  border: 1.5px solid var(--hair);
+  border-radius: 11px;
+  font: inherit;
+  color: var(--ink-mid);
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, color 0.14s, transform 0.08s;
+}
+.onboarding-interest:hover {
+  border-color: rgba(0,179,199,0.45);
+  background: var(--tropic-glow);
+  color: var(--ink);
+}
+.onboarding-interest:active { transform: scale(0.97); }
+.onboarding-interest.active {
+  border-color: var(--tropic);
+  background: var(--tropic-glow);
+  color: var(--tropic-d);
+  box-shadow: inset 0 0 0 1px var(--tropic);
+}
+.onboarding-interest__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+.onboarding-interest__icon svg { width: 22px; height: 22px; }
+.onboarding-interest__label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-weight: 600;
+  text-align: center;
 }
 
 /* ── The letter / form card ── */

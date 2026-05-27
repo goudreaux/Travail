@@ -96,21 +96,27 @@ function brandedEmail(p: {
     <tr><td align="center" style="padding:36px 14px 24px;">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background:#fffbf0;border-radius:18px;overflow:hidden;box-shadow:0 18px 48px rgba(13,51,64,0.10),0 2px 6px rgba(13,51,64,0.04);">
 
-        <!-- Header band -->
-        <tr><td style="background:linear-gradient(135deg,#042128 0%,#0a3340 52%,#073744 100%);padding:30px 32px 26px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <!-- Header band with co-brand lockup -->
+        <tr><td style="background:linear-gradient(135deg,#042128 0%,#0a3340 52%,#073744 100%);padding:26px 32px 24px;">
+          <!-- Logo row: Travail wordmark × Tropic mark, with the
+               kind-eyebrow on the right. -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:18px;">
             <tr>
-              <td style="font-family:'JetBrains Mono','Courier New',monospace;font-size:10px;letter-spacing:0.24em;text-transform:uppercase;color:${p.accent};font-weight:700;line-height:1;padding-bottom:10px;">
+              <td align="left" valign="middle" style="line-height:0;">
+                <img src="https://travailclub.com/travail-wordmark.png" alt="Travail" width="116" height="28" style="display:inline-block;height:28px;width:auto;vertical-align:middle;filter:brightness(0) invert(1);" />
+                <span style="display:inline-block;color:rgba(251,246,236,0.45);font-family:Georgia,serif;font-style:italic;font-size:16px;margin:0 8px 0 10px;vertical-align:middle;line-height:1;">×</span>
+                <img src="https://travailclub.com/tropic-logo.png" alt="Tropic Ocean Air" width="24" height="24" style="display:inline-block;height:24px;width:24px;vertical-align:middle;filter:brightness(0) invert(1);" />
+              </td>
+              <td align="right" valign="middle" style="font-family:'JetBrains Mono','Courier New',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:${p.accent};font-weight:700;">
                 ${esc(p.eyebrow)}
               </td>
-              <td align="right" style="font-family:'JetBrains Mono','Courier New',monospace;font-size:9px;letter-spacing:0.20em;text-transform:uppercase;color:rgba(251,246,236,0.55);font-weight:600;">
-                Travail × Tropic
-              </td>
             </tr>
-            <tr><td colspan="2" style="font-family:Georgia,'Cormorant Garamond','Times New Roman',serif;font-style:italic;font-size:30px;line-height:1.12;color:#fffbf0;letter-spacing:-0.015em;padding-top:8px;">
-              ${esc(p.title)}
-            </td></tr>
           </table>
+
+          <!-- Headline -->
+          <div style="font-family:Georgia,'Cormorant Garamond','Times New Roman',serif;font-style:italic;font-size:30px;line-height:1.12;color:#fffbf0;letter-spacing:-0.015em;">
+            ${esc(p.title)}
+          </div>
         </td></tr>
 
         <!-- Body -->
