@@ -448,7 +448,10 @@ body::before {
   padding: 0 14px;
   border-radius: 999px;
   border: 1.5px solid currentColor;
-  background: transparent;
+  /* Near-white paper inset lifts the button off the warm cream cta strip
+     so the accent border + accent text pop against the surrounding bg
+     without going back to a saturated fill. */
+  background: rgba(255, 255, 255, 0.88);
   font-family: var(--ui);
   font-size: 12px;
   font-weight: 600;
@@ -457,12 +460,17 @@ body::before {
   cursor: pointer;
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 1px 2px rgba(13, 51, 64, 0.05);
   transition: background 0.16s, border-color 0.16s, transform 0.10s, box-shadow 0.16s;
 }
 .cta-outline:hover {
-  background: color-mix(in srgb, currentColor 12%, transparent);
+  background: #ffffff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px -4px color-mix(in srgb, currentColor 60%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 4px 12px -4px color-mix(in srgb, currentColor 55%, transparent);
 }
 .cta-outline:active { transform: translateY(0) scale(0.97); }
 
@@ -534,15 +542,23 @@ body::before {
   background:
     linear-gradient(180deg, #ffc658 0%, #f4a72c 60%, #e8950f 100%);
   color: #ffffff;
-  font-family: var(--display);
-  font-style: italic;
-  font-size: 18px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
+  /* Yellowtail — bold brush script in the Kleenex-logo lineage. Single
+     weight (400) but it carries naturally thanks to the heavy
+     downstrokes. */
+  font-family: 'Yellowtail', cursive;
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: 0;
+  line-height: 1;
+  /* Layered shadow: a thin dark edge around the white type gives the
+     cursive an outline against the saturated gold; a cream halo
+     OUTSIDE provides the soft glow without washing into the strokes. */
   text-shadow:
-    0 1px 0 rgba(146, 80, 0, 0.45),
-    0 0 6px rgba(255, 255, 255, 0.50),
-    0 0 14px rgba(255, 240, 200, 0.65);
+    0 1px 0 rgba(58, 28, 0, 0.55),
+    0 -0.5px 0 rgba(58, 28, 0, 0.30),
+    1px 0 0 rgba(58, 28, 0, 0.25),
+    -1px 0 0 rgba(58, 28, 0, 0.25),
+    0 0 10px rgba(255, 248, 220, 0.55);
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
