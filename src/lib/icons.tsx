@@ -15,8 +15,10 @@ export const Icons = {
   plus: (<svg width="14" height="14" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="11" y1="5" x2="11" y2="17"/><line x1="5" y1="11" x2="17" y2="11"/></svg>),
   send: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l16-7-7 16-2-7z"/></svg>),
   paper: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 4l4 4-9 9-5 1 1-5z"/></svg>),
-  // Suitcase / carry-on — used for the 'My Trips' nav slot.
-  luggage: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="7" width="12" height="11" rx="1.5"/><path d="M8.5 7V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2"/><line x1="8" y1="10.5" x2="8" y2="14.5"/><line x1="14" y1="10.5" x2="14" y2="14.5"/><line x1="7" y1="18" x2="7" y2="19.5"/><line x1="15" y1="18" x2="15" y2="19.5"/></svg>),
+  // Carry-on / suitcase — used for the 'My Trips' nav slot. Sized to
+  // match the visual mass of the other nav marks (~16×15 inside the
+  // 22×22 grid).
+  luggage: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><rect x="3" y="6" width="16" height="13" rx="2"/><line x1="11" y1="9" x2="11" y2="16"/></svg>),
   more: (<svg width="18" height="18" viewBox="0 0 22 22" fill="currentColor"><circle cx="6" cy="11" r="1.5"/><circle cx="11" cy="11" r="1.5"/><circle cx="16" cy="11" r="1.5"/></svg>),
   pin: (<svg width="14" height="14" viewBox="0 0 22 22" fill="currentColor"><path d="M11 3l2 5 5 .5-3.5 3.5 1 5L11 14.5 6.5 17l1-5L4 8.5 9 8z"/></svg>),
   chevL: (<svg width="14" height="14" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M14 5l-6 6 6 6"/></svg>),
