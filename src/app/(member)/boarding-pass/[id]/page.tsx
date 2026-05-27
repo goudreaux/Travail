@@ -177,35 +177,24 @@ export default function BoardingPassPage() {
                   {airportCity(flight.dest_code, airportNames)}
                 </h1>
                 <div className="boarding-pass__route-meta">
-                  {dateStr} · {departTime}{flight.duration_mins ? ` · ${fmtDur(flight.duration_mins)}` : ''} · {booking.seats === 1 ? '1 SEAT' : `${booking.seats} SEATS`}
+                  {dateStr} · {departTime}{flight.duration_mins ? ` · ${fmtDur(flight.duration_mins)} BLOCK` : ''} · {booking.seats === 1 ? '1 SEAT' : `${booking.seats} SEATS`}
                 </div>
-                <div className="boarding-pass__route-codes">{flight.origin_code} → {flight.dest_code}</div>
+                <div className="boarding-pass__route-codes">
+                  {flight.origin_code} → {flight.dest_code}
+                  {flight.aircraft_id ? ` · ${flight.aircraft_id}` : ''}
+                </div>
               </>
             ) : (
               <>
                 <h1 className="boarding-pass__route-title">{title}</h1>
                 <div className="boarding-pass__route-meta">
-                  {dateStr} · {departTime} · {booking.seats === 1 ? '1 SPOT' : `${booking.seats} SPOTS`}
+                  {dateStr} · {departTime}{excursion?.stay_type ? ` · ${excursion.stay_type.replace('_', ' ').toUpperCase()}` : ''} · {booking.seats === 1 ? '1 SPOT' : `${booking.seats} SPOTS`}
                 </div>
+                {template?.operator && (
+                  <div className="boarding-pass__route-codes">{template.operator}</div>
+                )}
               </>
             )}
-          </div>
-
-          {/* Detail grid */}
-          <div className="boarding-pass__grid">
-            {[
-              { label: 'Passenger', value: member?.name ?? '—' },
-              { label: 'Date', value: dateStr },
-              { label: 'Departs', value: departTime },
-              { label: isFlight ? 'Block time' : 'Type', value: isFlight ? fmtDur(flight?.duration_mins ?? 0) : (excursion?.stay_type.replace('_', ' ') ?? '—') },
-              { label: isFlight ? 'Aircraft' : 'Operator', value: isFlight ? '—' : (template?.operator ?? 'Travail Ops') },
-              { label: booking.seats > 1 ? 'Seats' : 'Seat', value: String(booking.seats) },
-            ].map(({ label, value }) => (
-              <div key={label}>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', color: 'var(--ink-faint)', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{value}</div>
-              </div>
-            ))}
           </div>
 
           {/* Manifest */}
@@ -233,8 +222,11 @@ export default function BoardingPassPage() {
             </div>
           )}
 
-          {/* Perforation */}
-          <div style={{ borderTop: '2px dashed var(--hair-2)', position: 'relative' }} />
+          {/* Perforation — semicircle cutouts on the left + right edges
+              with a dashed line between, matching the wallet stack. */}
+          <div className="boarding-pass__perf" aria-hidden>
+            <span className="boarding-pass__perf-dash" />
+          </div>
 
           {/* Stub */}
           <div style={{ padding: '20px 26px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
