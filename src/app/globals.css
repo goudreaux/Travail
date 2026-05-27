@@ -5637,11 +5637,203 @@ textarea.input {
   .boarding-pass__hero-glow { animation: none; }
 }
 
-/* Network member card — tighter padding on mobile so the list stays
-   scannable at 100+ members. Height is intrinsic now so cards don't
-   have empty whitespace when bios are short. */
-@media (max-width: 768px) {
-  .network-card {
-    padding: 16px 16px 18px !important;
+/* Network — social-network style member list. Card grid on desktop,
+   skinny rows on mobile so 100+ members stay scannable. */
+.network-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.network-filters__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.network-filters .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--hair);
+  background: var(--paper);
+  color: var(--ink-mid);
+  font-family: var(--ui);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.14s ease;
+}
+.network-filters .chip:hover {
+  border-color: var(--tropic);
+  color: var(--ink);
+}
+.network-filters .chip.active {
+  background: var(--night);
+  color: var(--tropic);
+  border-color: var(--night);
+}
+
+.network-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.network-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 18px 16px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+}
+.network-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0,179,199,0.35);
+}
+.network-card__avatar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.network-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.network-card__name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+.network-card__name {
+  font-family: var(--ui);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.network-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+}
+.network-card__home {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-mid);
+}
+.network-card__home svg { color: var(--tropic); }
+.network-card__code { color: var(--ink-faint); }
+.network-card__bio {
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-mid);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.network-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hair);
+}
+.network-card__interests {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.network-card__interest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--tropic-glow);
+  color: var(--tropic-d);
+}
+.network-card__trips {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+}
+.network-card__chev {
+  display: none;
+  font-size: 22px;
+  color: var(--ink-faint);
+  line-height: 1;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+/* Mobile — collapse to skinny rows. Avatar on left, name + meta + chev
+   on the right. Hide bio and footer for density. */
+@media (max-width: 640px) {
+  .network-list {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
+  .network-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+  .network-card__avatar { gap: 0; }
+  .network-card__body { gap: 4px; }
+  .network-card__name { font-size: 14px; }
+  .network-card__name-row { gap: 6px; }
+  .network-card__meta { font-size: 9.5px; gap: 8px; }
+  .network-card__bio { display: none; }
+  .network-card__footer {
+    padding-top: 0;
+    border-top: none;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .network-card__interest { width: 18px; height: 18px; }
+  .network-card__interest svg { width: 10px; height: 10px; }
+  .network-card__trips { display: none; }
+  .network-card__chev { display: block; }
+
+  /* Filter rows scroll horizontally instead of wrapping so the bar
+     stays one line each. */
+  .network-filters__row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    margin-left: -4px;
+    padding-left: 4px;
+  }
+  .network-filters__row::-webkit-scrollbar { display: none; }
+  .network-filters .chip { font-size: 11.5px; padding: 5px 10px; }
 }
