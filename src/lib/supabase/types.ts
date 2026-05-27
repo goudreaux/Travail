@@ -203,6 +203,12 @@ export interface Database {
           status: 'draft' | 'open' | 'full' | 'departed' | 'cancelled'
           image_url: string | null
           is_private: boolean
+          anchor_payment_intent_id: string | null
+          anchor_captured_cents: number
+          anchor_captured_at: string | null
+          anchor_refunded_cents: number
+          anchor_settled_at: string | null
+          cancellation_policy: Json
           created_at: string
         }
         Insert: {
@@ -275,6 +281,12 @@ export interface Database {
           itinerary: Json | null
           sponsor: string | null
           is_private: boolean
+          anchor_payment_intent_id: string | null
+          anchor_captured_cents: number
+          anchor_captured_at: string | null
+          anchor_refunded_cents: number
+          anchor_settled_at: string | null
+          cancellation_policy: Json
           created_at: string
         }
         Insert: {
@@ -354,6 +366,10 @@ export interface Database {
           paid_amount_cents: number | null
           paid_at: string | null
           payment_status: string | null
+          cancelled_at: string | null
+          refund_amount_cents: number | null
+          refund_id: string | null
+          was_forfeit: boolean
         }
         Insert: {
           id?: string
@@ -612,6 +628,23 @@ export type Friendship = Database['public']['Tables']['friendships']['Row']
 export type FriendshipStatus = Friendship['status']
 export type ContactRequest = Database['public']['Tables']['contact_requests']['Row']
 export type ContactRequestStatus = ContactRequest['status']
+
+// Settlement row written by the settlement job at trip-departure.
+// Not declared on the Database.Tables map yet because writes happen
+// only via service role; the app's only interaction is to render the
+// row to the anchor/admin who's reading it.
+export interface TripSettlement {
+  id: string
+  item_kind: 'flight' | 'excursion'
+  item_id: string
+  charter_total_cents: number
+  paid_revenue_cents: number
+  anchor_refund_cents: number
+  anchor_net_paid_cents: number
+  settled_at: string
+  settled_by: string | null
+  notes: string | null
+}
 
 export type MemberTier = Member['tier']
 export type MemberSensitive = Database['public']['Tables']['member_sensitive']['Row']
