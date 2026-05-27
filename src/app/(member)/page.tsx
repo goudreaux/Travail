@@ -27,17 +27,23 @@ type TripItem =
   | { kind: 'flight'; booking: Booking; flight: DisplayFlight; roundReturn?: DisplayFlight }
   | { kind: 'excursion'; booking: Booking; excursion: DisplayExcursion }
 
-const TYPE_FILTERS = ['all', 'fish', 'golf', 'hunt'] as const
+const TYPE_FILTERS = ['all', 'flight', 'fish', 'sail', 'surf', 'snorkel', 'golf', 'hunt', 'wildlife', 'leisure'] as const
 type TypeFilter = typeof TYPE_FILTERS[number]
 
-// Filter chip catalogue — mirrors the Seats page so the two feels are
-// identical (icon + label + tint). All four chips coexist visually; the
-// match logic in `excursionMatchesFilter` decides what each one claims.
+// Filter chip catalogue — matches the Seats page. Only chips with at
+// least one matching active item actually render (see availableFeedFilters
+// below), so the bar always reflects what's bookable.
 const FEED_FILTERS: { key: TypeFilter; label: string; icon?: string; tint?: string }[] = [
-  { key: 'all',  label: 'All' },
-  { key: 'fish', label: 'Fishing', icon: 'fish',  tint: 'var(--sun-d)' },
-  { key: 'golf', label: 'Golf',    icon: 'golf',  tint: 'var(--moss)' },
-  { key: 'hunt', label: 'Hunt',    icon: 'quail', tint: 'var(--signal)' },
+  { key: 'all',      label: 'All' },
+  { key: 'flight',   label: 'Flights',  icon: 'flight',    tint: 'var(--tropic-d)' },
+  { key: 'fish',     label: 'Fishing',  icon: 'fish',      tint: 'var(--sun-d)' },
+  { key: 'sail',     label: 'Sailing',  icon: 'sail',      tint: 'var(--sun-d)' },
+  { key: 'surf',     label: 'Surfing',  icon: 'surfboard', tint: 'var(--sun-d)' },
+  { key: 'snorkel',  label: 'Snorkel',  icon: 'snorkel',   tint: 'var(--sun-d)' },
+  { key: 'golf',     label: 'Golf',     icon: 'golf',      tint: 'var(--moss)' },
+  { key: 'hunt',     label: 'Hunting',  icon: 'quail',     tint: 'var(--signal)' },
+  { key: 'wildlife', label: 'Wildlife', icon: 'croc',      tint: 'var(--sun-d)' },
+  { key: 'leisure',  label: 'Leisure',  icon: 'sun',       tint: 'var(--sun-d)' },
 ]
 
 function statusPillClass(status: Booking['status']): string {
@@ -56,24 +62,33 @@ function statusLabel(status: Booking['status']): string {
   return (status as string).toUpperCase()
 }
 
-// Filter chips → matching icons. The auto-suggest helper drives both
-// directions: when a new excursion is named, its icon is derived from the
-// name; here we use the icon (the source of truth on the row) to decide
-// which chip claims it. Name substring matches are a backstop for legacy
-// rows that pre-date the auto-suggest.
-const FISH_ICONS = new Set(['fish', 'lobster', 'snorkel'])
-const HUNT_ICONS = new Set(['rifle', 'bow', 'quail', 'hog', 'antlers', 'croc'])
-const GOLF_ICONS = new Set(['golf'])
+// Map every excursion icon to its canonical filter category. New icons
+// land in 'leisure' so the chip set never silently mis-categorizes.
+function excursionCategory(icon: string): TypeFilter {
+  switch (icon) {
+    case 'fish':
+    case 'lobster':    return 'fish'
+    case 'sail':       return 'sail'
+    case 'wave':
+    case 'surfboard':  return 'surf'
+    case 'snorkel':    return 'snorkel'
+    case 'golf':       return 'golf'
+    case 'quail':
+    case 'hog':
+    case 'rifle':
+    case 'bow':
+    case 'antlers':    return 'hunt'
+    case 'croc':       return 'wildlife'
+    case 'sun':        return 'leisure'
+    default:           return 'leisure'
+  }
+}
 
 function excursionMatchesFilter(e: DisplayExcursion, filter: TypeFilter): boolean {
   if (filter === 'all') return true
+  if (filter === 'flight') return false  // flights handled separately
   const icon = e.templateMeta?.icon ?? ''
-  const name = (e.name ?? '').toLowerCase()
-  const tplName = (e.templateMeta?.name ?? '').toLowerCase()
-  if (filter === 'fish') return FISH_ICONS.has(icon) || name.includes('fish') || name.includes('lobster') || tplName.includes('fish') || tplName.includes('lobster')
-  if (filter === 'golf') return GOLF_ICONS.has(icon) || name.includes('golf') || tplName.includes('golf')
-  if (filter === 'hunt') return HUNT_ICONS.has(icon) || name.includes('hunt') || name.includes('shoot') || tplName.includes('hunt') || tplName.includes('shoot') || tplName.includes('quail')
-  return true
+  return excursionCategory(icon) === filter
 }
 
 export default function FeedPage() {
@@ -243,12 +258,29 @@ export default function FeedPage() {
   const openExcursions = excursions.filter(e => e.status === 'open' && e.date >= today && e.spotsAvailable > 0)
 
   const filteredOpenItems = [
-    ...openFlights.map(f => ({ type: 'flight' as const, item: f, date: f.date })),
-    ...(typeFilter === 'all'
+    ...((typeFilter === 'all' || typeFilter === 'flight') ? openFlights : [])
+      .map(f => ({ type: 'flight' as const, item: f, date: f.date })),
+    ...((typeFilter === 'all'
       ? openExcursions
-      : openExcursions.filter(e => excursionMatchesFilter(e, typeFilter))
-    ).map(e => ({ type: 'excursion' as const, item: e, date: e.date })),
+      : typeFilter === 'flight'
+        ? []
+        : openExcursions.filter(e => excursionMatchesFilter(e, typeFilter))
+    )).map(e => ({ type: 'excursion' as const, item: e, date: e.date })),
   ].sort((a, b) => a.date.localeCompare(b.date))
+
+  // Only render filter chips that match at least one active item. "All"
+  // is always present; "Flights" appears if there's a published flight;
+  // each excursion category appears if there's at least one excursion
+  // that maps to it.
+  const activeFeedFilters = new Set<TypeFilter>(['all'])
+  if (openFlights.length > 0) activeFeedFilters.add('flight')
+  for (const e of openExcursions) activeFeedFilters.add(excursionCategory(e.templateMeta?.icon ?? ''))
+  const availableFeedFilters = FEED_FILTERS.filter(f => activeFeedFilters.has(f.key))
+  // Reset the user's selection if the matching items disappear.
+  const activeFeedFilterStr = [...activeFeedFilters].join(',')
+  useEffect(() => {
+    if (!activeFeedFilterStr.split(',').includes(typeFilter)) setTypeFilter('all')
+  }, [typeFilter, activeFeedFilterStr])
 
   const greeting = (() => {
     const h = new Date().getHours()
@@ -516,7 +548,7 @@ export default function FeedPage() {
             {/* Filter chips — matches the Seats page: icon + label, with
                 colour-tinted icons that go ink when the chip is active. */}
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--hair)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {FEED_FILTERS.map(f => (
+              {availableFeedFilters.map(f => (
                 <button
                   key={f.key}
                   className={`chip${typeFilter === f.key ? ' active' : ''}`}
