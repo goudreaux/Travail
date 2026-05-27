@@ -198,9 +198,7 @@ export async function POST(req: NextRequest) {
     // seats; the rebate only covers what the network filled.
     const body = anchorRefundCents === 0
       ? `${trip.name ?? 'Your trip'} settled. No other members booked, so you paid the full charter (${dollars(anchorNetPaidCents)}). The hold on your card has been released.`
-      : paidRevenueCents === (charterTotalCents - anchorNetPaidCents)
-        ? `${trip.name ?? 'Your trip'} settled. You paid ${dollars(anchorNetPaidCents)} for your party's seats — ${dollars(anchorRefundCents)} is being refunded from the seats other members covered.`
-        : `${trip.name ?? 'Your trip'} settled. You paid ${dollars(anchorNetPaidCents)} (your seats plus any that didn't fill). ${dollars(anchorRefundCents)} is being refunded to your card.`
+      : `${trip.name ?? 'Your trip'} settled. You paid ${dollars(anchorNetPaidCents)} (your seats plus any that didn't fill). ${dollars(anchorRefundCents)} is being refunded to your card.`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (db.from('notifications') as any).insert({
       member_id: trip.anchor_member_id,
