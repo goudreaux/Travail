@@ -104,6 +104,7 @@ type ExcForm = {
   pitch: string
   icon: string
   iconTouched: boolean
+  sponsor: string  // '' | 'field_stream'
   visibility: 'members' | 'public'
   spots_total: number
   spots_anchor: number
@@ -127,7 +128,7 @@ const defaultExcForm: ExcForm = {
   originSel: '', originCustomCode: '', originCustomName: '', originCustomRegion: '',
   date: '', aircraft_id: '',
   start_time: '', depart_time: '', arrive_time: '', return_time: '',
-  stay_type: 'day_trip', pitch: '', icon: 'fish', iconTouched: false, visibility: 'members',
+  stay_type: 'day_trip', pitch: '', icon: 'fish', iconTouched: false, sponsor: '', visibility: 'members',
   spots_total: 8, spots_anchor: 0, total_cost: 0, status: 'draft',
   anchor_member_id: '', image_url: '',
 }
@@ -355,6 +356,8 @@ export default function TripsPage() {
       stay_type: e.stay_type, pitch: e.pitch ?? '', visibility: e.visibility,
       icon: e.icon ?? templates.find(t => t.id === e.template_id)?.icon ?? 'fish',
       iconTouched: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      sponsor: ((e as any).sponsor as string | null) ?? '',
       spots_total: e.spots_total, spots_anchor: e.spots_anchor,
       total_cost: e.price_per_pax * e.spots_total, status: e.status,
       anchor_member_id: e.anchor_member_id ?? '',
@@ -461,6 +464,7 @@ export default function TripsPage() {
         start_time: EF.start_time || null, depart_time: EF.depart_time || null,
         arrive_time: EF.arrive_time || null, return_time: EF.return_time || null,
         stay_type: EF.stay_type, pitch: EF.pitch || null, icon: EF.icon || null,
+        sponsor: EF.sponsor || null,
         visibility: EF.visibility, spots_total: EF.spots_total,
         spots_anchor: EF.spots_anchor, price_per_pax: perPax,
         status: EF.status, anchor_member_id: EF.anchor_member_id || null,

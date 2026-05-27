@@ -270,6 +270,7 @@ export interface Database {
           status: 'draft' | 'open' | 'full' | 'completed' | 'cancelled'
           image_url: string | null
           itinerary: Json | null
+          sponsor: string | null
           created_at: string
         }
         Insert: {
@@ -295,6 +296,7 @@ export interface Database {
           status?: 'draft' | 'open' | 'full' | 'completed' | 'cancelled'
           image_url?: string | null
           itinerary?: Json | null
+          sponsor?: string | null
           created_at?: string
         }
         Update: {
@@ -320,6 +322,7 @@ export interface Database {
           status?: 'draft' | 'open' | 'full' | 'completed' | 'cancelled'
           image_url?: string | null
           itinerary?: Json | null
+          sponsor?: string | null
           created_at?: string
         }
         Relationships: []
