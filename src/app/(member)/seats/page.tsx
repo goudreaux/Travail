@@ -66,7 +66,7 @@ const FILTERS: { key: ActivityFilter; label: string; icon?: string }[] = [
   { key: 'flight',   label: 'Flights',  icon: 'flight' },
   { key: 'fish',     label: 'Fishing',  icon: 'fish' },
   { key: 'sail',     label: 'Sailing',  icon: 'sail' },
-  { key: 'surf',     label: 'Surfing',  icon: 'surfboard' },
+  { key: 'surf',     label: 'Surfing',  icon: 'wave' },
   { key: 'snorkel',  label: 'Snorkel',  icon: 'snorkel' },
   { key: 'golf',     label: 'Golf',     icon: 'golf' },
   { key: 'hunt',     label: 'Hunting',  icon: 'quail' },

@@ -38,7 +38,7 @@ const FEED_FILTERS: { key: TypeFilter; label: string; icon?: string; tint?: stri
   { key: 'flight',   label: 'Flights',  icon: 'flight',    tint: 'var(--tropic-d)' },
   { key: 'fish',     label: 'Fishing',  icon: 'fish',      tint: 'var(--sun-d)' },
   { key: 'sail',     label: 'Sailing',  icon: 'sail',      tint: 'var(--sun-d)' },
-  { key: 'surf',     label: 'Surfing',  icon: 'surfboard', tint: 'var(--sun-d)' },
+  { key: 'surf',     label: 'Surfing',  icon: 'wave', tint: 'var(--sun-d)' },
   { key: 'snorkel',  label: 'Snorkel',  icon: 'snorkel',   tint: 'var(--sun-d)' },
   { key: 'golf',     label: 'Golf',     icon: 'golf',      tint: 'var(--moss)' },
   { key: 'hunt',     label: 'Hunting',  icon: 'quail',     tint: 'var(--signal)' },
