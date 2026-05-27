@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { returnLegIds } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
-import { ALL_ICONS, suggestIconForActivity } from '@/lib/icons'
+import { ALL_ICONS, KIND_ICONS, suggestIconForActivity } from '@/lib/icons'
 import type { Flight, Excursion, Aircraft, Member, Airport, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 
 type FlightRow = Flight
@@ -1013,9 +1013,22 @@ export default function TripsPage() {
                   </span>
                 )}
               </label>
-              <select className="select" value={EF.icon} onChange={e => setExcForm(f => ({ ...f, icon: e.target.value, iconTouched: true }))}>
-                {TEMPLATE_ICONS.map(i => <option key={i} value={i}>{i}</option>)}
-              </select>
+              <div className="icon-picker" role="radiogroup" aria-label="Activity icon">
+                {TEMPLATE_ICONS.map(i => (
+                  <button
+                    key={i}
+                    type="button"
+                    role="radio"
+                    aria-checked={EF.icon === i}
+                    className={`icon-picker__tile${EF.icon === i ? ' active' : ''}`}
+                    onClick={() => setExcForm(f => ({ ...f, icon: i, iconTouched: true }))}
+                    title={i}
+                  >
+                    <span className="icon-picker__icon">{KIND_ICONS[i]}</span>
+                    <span className="icon-picker__label">{i}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* ─── Day schedule ─── */}
@@ -1145,9 +1158,22 @@ export default function TripsPage() {
                   </span>
                 )}
               </label>
-              <select className="select" value={TF.icon} onChange={e => setTemplateForm(f => ({ ...f, icon: e.target.value, iconTouched: true }))}>
-                {TEMPLATE_ICONS.map(i => <option key={i} value={i}>{i}</option>)}
-              </select>
+              <div className="icon-picker" role="radiogroup" aria-label="Activity icon">
+                {TEMPLATE_ICONS.map(i => (
+                  <button
+                    key={i}
+                    type="button"
+                    role="radio"
+                    aria-checked={TF.icon === i}
+                    className={`icon-picker__tile${TF.icon === i ? ' active' : ''}`}
+                    onClick={() => setTemplateForm(f => ({ ...f, icon: i, iconTouched: true }))}
+                    title={i}
+                  >
+                    <span className="icon-picker__icon">{KIND_ICONS[i]}</span>
+                    <span className="icon-picker__label">{i}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {TF.destSel === CUSTOM && (
