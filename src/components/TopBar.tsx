@@ -74,6 +74,18 @@ const KIND_META: Record<string, { icon: React.ReactNode; color: string; bg: stri
     color: 'var(--ink-mid)',
     bg: 'var(--warm)',
   },
+  friend: {
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="8" cy="9" r="3" />
+        <path d="M2.5 18c.5-3 2.8-4.5 5.5-4.5s5 1.5 5.5 4.5" />
+        <circle cx="16" cy="8" r="2.2" />
+        <path d="M14 18c0-2.2 1.5-3.6 4-3.6" />
+      </svg>
+    ),
+    color: 'var(--tropic-d)',
+    bg: 'var(--tropic-glow)',
+  },
 }
 
 function timeAgo(dateStr: string): string {
