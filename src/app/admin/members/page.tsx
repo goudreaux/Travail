@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { fmtHomeBase, memberCode, tierLabel, tierPill } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
 import GuestsPanel from '@/components/GuestsPanel'
-import type { Member, MemberSensitive } from '@/lib/supabase/types'
+import type { Member } from '@/lib/supabase/types'
 import type { Guest } from '@/lib/guests'
 
 const HOME_BASES = ['Tampa Bay', 'SFL']
@@ -87,7 +87,9 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
 export default function MembersPage() {
   const supabase = createClient()
   const [members, setMembers] = useState<Member[]>([])
-  const [sensitiveData, setSensitiveData] = useState<Record<string, MemberSensitive>>({})
+  // Presence flags only — the full sensitive row is fetched per-member
+  // via admin_get_member_sensitive() (which writes an audit log entry).
+  const [contactPresence, setContactPresence] = useState<Record<string, { has_email: boolean; has_phone: boolean }>>({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [editId, setEditId] = useState<string | null>(null)
@@ -107,14 +109,18 @@ export default function MembersPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: memberData }, { data: sensitiveRows }] = await Promise.all([
+    const [{ data: memberData }, { data: presenceRows }] = await Promise.all([
       supabase.from('members').select('*').order('joined_at', { ascending: false }),
-      supabase.from('member_sensitive').select('*'),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from('members_has_contact' as any).select('member_id, has_email, has_phone')),
     ])
     setMembers(memberData ?? [])
-    const map: Record<string, MemberSensitive> = {}
-    for (const row of (sensitiveRows ?? [])) map[row.member_id] = row
-    setSensitiveData(map)
+    const map: Record<string, { has_email: boolean; has_phone: boolean }> = {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const row of ((presenceRows ?? []) as any[])) {
+      map[row.member_id] = { has_email: !!row.has_email, has_phone: !!row.has_phone }
+    }
+    setContactPresence(map)
     setLoading(false)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -145,9 +151,14 @@ export default function MembersPage() {
     m.tier.toLowerCase().includes(search.toLowerCase())
   )
 
-  function openEdit(m: Member) {
+  async function openEdit(m: Member) {
     setEditId(m.id)
     setShowAdd(false)
+    // Pull the sensitive row through the audited RPC — this writes an
+    // activity_log entry whenever an admin opens another member's editor.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: sens } = await (supabase as any).rpc('admin_get_member_sensitive', { target_id: m.id })
+    const s = Array.isArray(sens) && sens[0] ? sens[0] : null
     setForm({
       name: m.name,
       member_no: m.member_no != null ? String(m.member_no) : '',
@@ -156,9 +167,9 @@ export default function MembersPage() {
       home_base_code: m.home_base_code ?? 'Tampa Bay',
       bio: m.bio ?? '',
       interests: Array.isArray(m.interests) ? m.interests.join(', ') : (m.interests ?? ''),
-      email: sensitiveData[m.id]?.email ?? '',
-      phone: sensitiveData[m.id]?.phone ? formatPhone(sensitiveData[m.id].phone as string) : '',
-      date_of_birth: sensitiveData[m.id]?.date_of_birth ?? '',
+      email: s?.email ?? '',
+      phone: s?.phone ? formatPhone(s.phone as string) : '',
+      date_of_birth: s?.date_of_birth ?? '',
       joined_at: (m.joined_at || m.created_at || '').slice(0, 10),
       card_last4: m.card_last4 ?? '',
       user_id: m.user_id && m.user_id !== PLACEHOLDER_USER_ID ? m.user_id : '',
@@ -214,7 +225,9 @@ export default function MembersPage() {
   }
 
   async function inviteRow(m: Member) {
-    const email = sensitiveData[m.id]?.email
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: sens } = await (supabase as any).rpc('admin_get_member_sensitive', { target_id: m.id })
+    const email = Array.isArray(sens) && sens[0] ? sens[0].email : null
     if (!email) { showToast('Add an email for this member first', 'error'); return }
     const err = await sendInvite(m.id, email)
     showToast(err ? `Invite failed: ${err}` : `Invite emailed to ${email}`, err ? 'error' : 'success')
@@ -593,7 +606,7 @@ export default function MembersPage() {
                         {m.initials}
                       </div>
                       <span style={{ fontWeight: 500, color: 'var(--ink)' }}>{m.name}</span>
-                      {!sensitiveData[m.id]?.email && (
+                      {!contactPresence[m.id]?.has_email && (
                         <span
                           className="pill signal"
                           title="No email on file — this member won't receive notification emails or an invite"
@@ -618,7 +631,7 @@ export default function MembersPage() {
                   </td>
                   <td onClick={e => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'inline-flex', gap: 6 }}>
-                      {(!m.user_id || m.user_id === PLACEHOLDER_USER_ID) && sensitiveData[m.id]?.email && (
+                      {(!m.user_id || m.user_id === PLACEHOLDER_USER_ID) && contactPresence[m.id]?.has_email && (
                         <button
                           className="btn-ghost"
                           style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--tropic-d)', borderColor: 'rgba(0,179,199,0.3)' }}
