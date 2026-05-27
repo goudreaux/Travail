@@ -792,6 +792,19 @@ export default function MemberProfilePage() {
                         </button>
                       </div>
                     </div>
+                  ) : (member as Member & { accepts_contact_requests?: boolean }).accepts_contact_requests === false ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: '50%', background: 'var(--warm)', color: 'var(--ink-light)' }}>
+                        <svg width="13" height="13" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="5" y="10" width="12" height="9" rx="1.5" />
+                          <path d="M7.5 10V7a3.5 3.5 0 0 1 7 0v3" />
+                        </svg>
+                      </span>
+                      <p style={{ fontSize: 12.5, color: 'var(--ink-mid)', margin: 0, lineHeight: 1.5, flex: 1 }}>
+                        {member.name.split(' ')[0]} keeps contact private. Coordinate through{' '}
+                        <Link href="/contact" style={{ color: 'var(--tropic-d)', textDecoration: 'underline' }}>Ops</Link>.
+                      </p>
+                    </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                       <p style={{ fontSize: 12.5, color: 'var(--ink-mid)', margin: 0, lineHeight: 1.5 }}>

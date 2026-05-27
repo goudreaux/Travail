@@ -5637,6 +5637,55 @@ textarea.input {
   .boarding-pass__hero-glow { animation: none; }
 }
 
+/* Co-passenger chip — small round action button next to each roster row
+   for quick add-friend / request-contact. Mirrors pill sizing but tighter. */
+.copax-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-family: var(--ui);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid var(--hair);
+  background: var(--paper);
+  color: var(--ink-mid);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.14s, background 0.14s, color 0.14s;
+}
+.copax-chip:hover:not(:disabled) {
+  border-color: var(--tropic);
+  color: var(--tropic-d);
+  background: var(--tropic-glow);
+}
+.copax-chip:disabled { opacity: 0.5; cursor: default; }
+.copax-chip--friend {
+  background: var(--tropic-glow);
+  color: var(--tropic-d);
+  border-color: rgba(0,179,199,0.3);
+  cursor: default;
+}
+.copax-chip--muted {
+  background: var(--warm);
+  color: var(--ink-light);
+  border-color: var(--hair);
+  cursor: default;
+}
+.copax-chip--quiet {
+  background: var(--warm);
+  color: var(--ink-light);
+  border-style: dashed;
+  cursor: default;
+}
+.copax-chip--action {
+  padding: 0 10px;
+}
+
 /* Contact row — email / phone link on a member profile after a granted
    contact request. Subtle pill, tap target sized for mobile. */
 .contact-row {

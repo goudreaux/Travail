@@ -26,6 +26,7 @@ export interface Database {
           interests: string[] | null
           avatar_url: string | null
           is_admin: boolean
+          accepts_contact_requests: boolean
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
@@ -49,6 +50,7 @@ export interface Database {
           interests?: string[] | null
           avatar_url?: string | null
           is_admin?: boolean
+          accepts_contact_requests?: boolean
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
@@ -72,6 +74,7 @@ export interface Database {
           interests?: string[] | null
           avatar_url?: string | null
           is_admin?: boolean
+          accepts_contact_requests?: boolean
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
