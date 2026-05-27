@@ -48,15 +48,46 @@ export default function BoardingPassPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [cancelRequested, setCancelRequested] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
+  const [cancelResult, setCancelResult] = useState<{ wasForfeit: boolean; refundCents: number } | null>(null)
 
-  async function requestCancel() {
-    if (!member || !booking) return
+  // Policy-driven cancel — calls /api/booking/cancel which decides
+  // refund vs forfeit by how close we are to departure (72h gate).
+  async function cancelBooking() {
+    if (!booking) return
+    setCancelError(null)
+    // Read the cancellation window from the trip's frozen policy snapshot;
+    // fall back to 72h so the confirmation copy never lies even on
+    // legacy trips that pre-date the policy column.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any
-    // Surface it in the Ops Queue; ops follows up by text/phone.
-    const { error } = await db.from('cancellation_requests').insert({ booking_id: booking.id, member_id: member.id })
-    if (error && error.code !== '23505') return
-    setCancelRequested(true)
+    const policy = (flight ?? excursion ?? {}) as any
+    const windowHours = policy?.cancellation_policy?.window_hours ?? 72
+    const departAt = new Date(`${flight?.date ?? excursion?.date}T${flight?.depart_time ?? excursion?.depart_time ?? excursion?.start_time ?? '00:00'}`)
+    const hoursOut = (departAt.getTime() - Date.now()) / 3600000
+    const insideWindow = hoursOut < windowHours
+    const promptCopy = insideWindow
+      ? `You're within ${windowHours} hours of departure. Per Travail policy, this cancellation forfeits your seat — no refund. Continue?`
+      : `Cancel this reservation? You'll receive a full refund (5–10 business days). The seat returns to the open pool.`
+    if (!confirm(promptCopy)) return
+
+    setCancelling(true)
+    try {
+      const res = await fetch('/api/booking/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: booking.id }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setCancelError(json.error ?? 'Cancellation failed. Try again or contact Ops.')
+        return
+      }
+      setCancelResult({ wasForfeit: !!json.was_forfeit, refundCents: json.refund_amount_cents ?? 0 })
+      setCancelRequested(true)
+    } finally {
+      setCancelling(false)
+    }
   }
 
   useEffect(() => {
@@ -254,13 +285,29 @@ export default function BoardingPassPage() {
             Contact ops
           </Link>
           {(booking.status === 'pending' || booking.status === 'approved') && (
-            cancelRequested ? (
-              <span className="pill sun" style={{ height: 34, padding: '0 14px' }}>Cancellation requested</span>
+            cancelRequested && cancelResult ? (
+              <span
+                className={`pill ${cancelResult.wasForfeit ? 'signal' : 'moss'}`}
+                style={{ height: 34, padding: '0 14px' }}
+                title={cancelResult.wasForfeit ? 'Seat forfeited per policy' : `Refunded $${(cancelResult.refundCents / 100).toFixed(2)}`}
+              >
+                {cancelResult.wasForfeit ? 'Forfeited' : 'Cancelled & refunded'}
+              </span>
             ) : (
-              <button className="btn-ghost" style={{ height: 34, padding: '0 16px', fontSize: 12.5, color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.3)' }} onClick={requestCancel}>
-                Request cancellation
+              <button
+                className="btn-ghost"
+                style={{ height: 34, padding: '0 16px', fontSize: 12.5, color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.3)' }}
+                onClick={cancelBooking}
+                disabled={cancelling}
+              >
+                {cancelling ? 'Cancelling…' : 'Cancel reservation'}
               </button>
             )
+          )}
+          {cancelError && (
+            <div role="alert" style={{ width: '100%', textAlign: 'center', marginTop: 8, padding: '8px 12px', background: 'rgba(217,78,42,0.07)', border: '1px solid rgba(217,78,42,0.22)', borderRadius: 8, fontSize: 12.5, color: 'var(--signal)' }}>
+              {cancelError}
+            </div>
           )}
         </div>
 
