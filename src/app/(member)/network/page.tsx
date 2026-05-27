@@ -241,7 +241,6 @@ export default function NetworkPage() {
         eyebrow="The Network"
         title="Members."
         sub={loading ? 'Loading…' : `The ${members.length} founding members.`}
-        metric={loading ? undefined : { value: members.length, label: 'Founding members', sub: 'In the wire' }}
       />
 
       <div className="page-view">

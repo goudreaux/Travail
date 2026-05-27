@@ -6188,21 +6188,59 @@ textarea.input {
 .biz-card[data-tier="founder"] .biz-card__monogram > img {
   box-shadow: 0 0 0 1px rgba(201,168,76,0.45), 0 8px 22px rgba(201,168,76,0.18);
 }
-/* Wax-seal style connected indicator overlaying the bottom-right of
-   the monogram. */
+
+/* Friend card monogram — same brushed-gold halo + shimmer used in the
+   roster avatars, so a friend's card glows on the directory. Overrides
+   the tier-default monogram shadow when the card is .is-friend. */
+.biz-card.is-friend .biz-card__monogram > div,
+.biz-card.is-friend .biz-card__monogram > img {
+  box-shadow:
+    0 0 0 2px #d4b66a,
+    0 0 0 4px rgba(212,182,106,0.30),
+    0 0 14px 3px rgba(212,182,106,0.50);
+  animation: friend-shimmer 2.6s ease-in-out infinite;
+}
+.biz-card.is-friend .biz-card__monogram::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255,225,135,0) 0deg,
+    rgba(255,225,135,0.55) 90deg,
+    rgba(255,225,135,0) 180deg,
+    rgba(255,225,135,0) 360deg
+  );
+  mask: radial-gradient(circle at center, transparent calc(50% - 3px), #000 calc(50% - 2px));
+  -webkit-mask: radial-gradient(circle at center, transparent calc(50% - 3px), #000 calc(50% - 2px));
+  animation: friend-rotate 4.4s linear infinite;
+  opacity: 0.85;
+}
+@media (prefers-reduced-motion: reduce) {
+  .biz-card.is-friend .biz-card__monogram > div,
+  .biz-card.is-friend .biz-card__monogram > img { animation: none; }
+  .biz-card.is-friend .biz-card__monogram::after { animation: none; opacity: 0.5; }
+}
+
+/* Small wax-seal connected indicator overlaying the monogram corner —
+   kept as a secondary cue (especially on mobile rows where the halo
+   is partly clipped by the row's compactness). */
 .biz-card__seal {
   position: absolute;
   right: -2px;
   bottom: -2px;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: var(--tropic);
+  background: #d4b66a;
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 0 2px var(--card), 0 2px 6px rgba(0,179,199,0.45);
+  box-shadow: 0 0 0 2px var(--card), 0 2px 6px rgba(212,182,106,0.55);
+  z-index: 1;
 }
 
 .biz-card__id { display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -6378,9 +6416,14 @@ textarea.input {
   .biz-card {
     flex-direction: row;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px 12px 18px;
+    gap: 10px;
+    padding: 10px 12px 10px 14px;
     border-radius: 12px;
+    /* Make sure the row never extends past its container, regardless of
+       how wide the action area wants to be. */
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
   }
   .biz-card__foil {
     top: 0;
@@ -6439,18 +6482,26 @@ textarea.input {
     border-radius: 12px;
   }
 
-  /* Filter rows scroll horizontally instead of wrapping so the bar
-     stays one line each. The label + Clear button stay sticky-ish at the
-     row edges; the chips between them scroll. */
-  .network-filters { padding: 12px 14px; }
+  /* Search + filters tighten on mobile so the cards live above the
+     fold. Filter rows scroll horizontally instead of wrapping so each
+     row stays a single line. */
+  .network-search { height: 38px; padding: 0 10px; margin-bottom: 10px; gap: 8px; border-radius: 10px; }
+  .network-search input { font-size: 15px; }
+  .network-search__clear { width: 20px; height: 20px; }
+  .network-filters { padding: 8px 10px; gap: 4px; margin-bottom: 12px; border-radius: 10px; }
   .network-filters__row {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
-    padding-bottom: 2px;
+    padding-bottom: 1px;
+    gap: 4px;
+  }
+  .network-filters__row + .network-filters__row {
+    margin-top: 2px;
+    padding-top: 4px;
   }
   .network-filters__row::-webkit-scrollbar { display: none; }
-  .network-filters__label { min-width: 44px; font-size: 9px; margin-right: 2px; }
-  .network-filters .chip { font-size: 11.5px; padding: 5px 10px; }
-  .network-filters__clear { font-size: 9.5px; padding: 4px 9px 4px 7px; }
+  .network-filters__label { min-width: 38px; font-size: 8.5px; letter-spacing: 0.12em; margin-right: 0; }
+  .network-filters .chip { font-size: 11px; padding: 4px 9px; gap: 4px; }
+  .network-filters__clear { font-size: 9px; padding: 3px 7px 3px 5px; }
 }
