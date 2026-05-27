@@ -70,7 +70,7 @@ export default function LaunchAnimation() {
         // Begin the CSS crossfade ~700ms before the clip ends so it overlaps
         // the clip's own gradual fade-out — gives a single long, gradual fade
         // into the feed instead of an abrupt cut.
-        const dur = isFinite(v.duration) && v.duration > 0 ? v.duration * 1000 : 2500
+        const dur = isFinite(v.duration) && v.duration > 0 ? v.duration * 1000 : 3000
         timers.push(setTimeout(finish, Math.max(300, dur - 700)))
       }).catch(fail)
     } else {

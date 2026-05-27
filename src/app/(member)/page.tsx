@@ -307,7 +307,7 @@ export default function FeedPage() {
   const [briefIdx, setBriefIdx] = useState(0)
   useEffect(() => {
     if (briefLines.length <= 1) return
-    const i = setInterval(() => setBriefIdx(x => (x + 1) % briefLines.length), 4200)
+    const i = setInterval(() => setBriefIdx(x => (x + 1) % briefLines.length), 8000)
     return () => clearInterval(i)
   }, [briefLines.length])
 
