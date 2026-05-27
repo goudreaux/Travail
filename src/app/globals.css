@@ -4769,7 +4769,9 @@ textarea.input {
   transition: transform 0.22s ease, background 0.18s ease;
 }
 .section-panel[data-collapsed="true"] .section-chev { transform: rotate(0deg); }
-.section-panel[data-collapsed="true"] > *:not(.section-head) { display: none; }
+/* Force-hide collapsed content; needs !important because the content
+   divs carry inline `display: flex` styles that would otherwise win. */
+.section-panel[data-collapsed="true"] > *:not(.section-head) { display: none !important; }
 
 /* Bigger, bolder headers on mobile so the sections stand out. */
 @media (max-width: 768px) {
