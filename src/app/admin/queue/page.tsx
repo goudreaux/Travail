@@ -61,6 +61,40 @@ function Toast({ msg, kind }: { msg: string; kind: 'success' | 'error' | 'info' 
   return <div className={`toast ${kind}`}>{msg}</div>
 }
 
+// Total trip cost input — Ops enters the total, we render the implied
+// per-seat number below so they can sanity-check the math. The publish
+// handler divides by seats to compute the per-seat price the API wants.
+function TotalCostField({
+  draft, setDraft, seatsKey, perLabel,
+}: {
+  draft: Record<string, string>
+  setDraft: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  seatsKey: 'seatsTotal' | 'spotsTotal'
+  perLabel: 'seat' | 'person'
+}) {
+  const seats = Number(draft[seatsKey] ?? 0)
+  const total = Number(draft.totalCost ?? 0)
+  const perSeat = seats > 0 && total > 0 ? total / seats : 0
+  return (
+    <div className="field" style={{ marginBottom: 0 }}>
+      <label className="field-lab">Total trip cost (USD)</label>
+      <input
+        className="input"
+        type="number"
+        min={0}
+        value={draft.totalCost ?? ''}
+        placeholder="e.g. 6800"
+        onChange={e => setDraft(prev => ({ ...prev, totalCost: e.target.value }))}
+      />
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-light)', marginTop: 6, letterSpacing: '0.06em' }}>
+        {perSeat > 0
+          ? `≈ $${perSeat.toFixed(2)} / ${perLabel} · ${seats} ${perLabel}${seats === 1 ? '' : 's'}`
+          : 'Enter seats + total to see per-' + perLabel}
+      </div>
+    </div>
+  )
+}
+
 function SectionHead({ label, count, sub }: { label: string; count: number; sub?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
@@ -459,7 +493,16 @@ export default function QueuePage() {
       seatsAnchor: s(p.seatsAnchor ?? p.seats_anchor ?? 1),
       spotsTotal: s(p.spotsTotal ?? p.spots_total ?? 8),
       spotsAnchor: s(p.spotsAnchor ?? p.spots_anchor ?? 1),
-      price: s(p.pricePerSeat ?? p.price_per_seat ?? p.pricePerPax ?? p.price_per_pax ?? ''),
+      // Ops now enters total trip cost; pre-fill from any legacy
+      // per-seat × seats_total if that's what's in the submission.
+      totalCost: (() => {
+        const explicit = Number(p.totalCost ?? p.total_cost ?? 0)
+        if (explicit > 0) return String(explicit)
+        const perSeat = Number(p.pricePerSeat ?? p.price_per_seat ?? p.pricePerPax ?? p.price_per_pax ?? 0)
+        const seats = Number(p.seatsTotal ?? p.seats_total ?? p.spotsTotal ?? p.spots_total ?? 0)
+        if (perSeat > 0 && seats > 0) return String(perSeat * seats)
+        return ''
+      })(),
       pitch: s(p.pitch),
     })
     setExpanded(anchor.id)
@@ -476,13 +519,25 @@ export default function QueuePage() {
       return Number.isFinite(n) ? n : 0
     }
 
-    const price = num('price', p.pricePerSeat ?? p.price_per_seat ?? p.pricePerPax ?? p.price_per_pax ?? 0)
-    if (price <= 0) {
-      showToast('Set a price per seat/person before publishing', 'error')
+    // Ops enters the TOTAL trip cost; per-seat is derived. The API
+    // endpoint still wants price_per_seat (it computes charter_total
+    // back to cents internally), so we divide here.
+    const seatsTotal = num('seatsTotal', p.seatsTotal ?? p.seats_total ?? p.spotsTotal ?? p.spots_total ?? 0)
+    const totalCost = num('totalCost', (() => {
+      // Default fallback: legacy submissions store per-seat; derive total.
+      const legacyPerSeat = Number(p.pricePerSeat ?? p.price_per_seat ?? p.pricePerPax ?? p.price_per_pax ?? 0)
+      const legacyTotal = Number(p.totalCost ?? p.total_cost ?? 0)
+      if (legacyTotal > 0) return legacyTotal
+      if (legacyPerSeat > 0 && seatsTotal > 0) return legacyPerSeat * seatsTotal
+      return 0
+    })())
+    if (totalCost <= 0 || seatsTotal <= 0) {
+      showToast('Set seats + total trip cost before publishing', 'error')
       setExpanded(anchor.id)
       if (expanded !== anchor.id) openAnchor(anchor)
       return
     }
+    const price = totalCost / seatsTotal
 
     setWorking(anchor.id)
     try {
@@ -1015,7 +1070,7 @@ export default function QueuePage() {
                               {F({ label: 'Destination code', k: 'destCode' })}
                               {F({ label: 'Seats total', k: 'seatsTotal', type: 'number' })}
                               {F({ label: 'Anchor seats', k: 'seatsAnchor', type: 'number' })}
-                              {F({ label: 'Price / seat (USD)', k: 'price', type: 'number', placeholder: 'e.g. 850' })}
+                              <TotalCostField draft={draft} setDraft={setDraft} seatsKey="seatsTotal" perLabel="seat" />
                             </>
                           ) : (
                             <>
@@ -1023,7 +1078,7 @@ export default function QueuePage() {
                               {F({ label: 'Return time', k: 'returnTime', placeholder: '4:00 PM' })}
                               {F({ label: 'Spots total', k: 'spotsTotal', type: 'number' })}
                               {F({ label: 'Anchor spots', k: 'spotsAnchor', type: 'number' })}
-                              {F({ label: 'Price / person (USD)', k: 'price', type: 'number', placeholder: 'e.g. 450' })}
+                              <TotalCostField draft={draft} setDraft={setDraft} seatsKey="spotsTotal" perLabel="person" />
                             </>
                           )}
                         </div>
