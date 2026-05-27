@@ -767,11 +767,35 @@ body::before {
 
 @media (max-width: 768px) {
   .page-hero { margin: 16px 16px 0; border-radius: 16px; padding: 22px 20px; }
-  .page-hero__inner { gap: 12px; flex-wrap: nowrap; align-items: center; }
-  .page-hero__metric { padding-left: 12px; min-width: 70px; }
-  .page-hero__metric-value { font-size: 38px; }
-  .page-hero__metric-label { font-size: 9px; margin-top: 6px; }
-  .page-hero__metric-sub { font-size: 8.5px; }
+  /* Stack title / metric / actions on mobile so long labels or a search
+     input don't get crammed onto a single row with the title. */
+  .page-hero__inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .page-hero__metric {
+    text-align: left;
+    padding-left: 0;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    min-width: 0;
+  }
+  .page-hero__metric-value { font-size: 32px; }
+  .page-hero__metric-label,
+  .page-hero__metric-sub { margin-top: 0; }
+  .page-hero__actions {
+    width: 100%;
+  }
+  .page-hero__actions > * {
+    width: 100%;
+    max-width: none !important;
+  }
+  .page-hero__actions input { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5611,4 +5635,13 @@ textarea.input {
 
 @media (prefers-reduced-motion: reduce) {
   .boarding-pass__hero-glow { animation: none; }
+}
+
+/* Network member card — tighter padding on mobile so the list stays
+   scannable at 100+ members. Height is intrinsic now so cards don't
+   have empty whitespace when bios are short. */
+@media (max-width: 768px) {
+  .network-card {
+    padding: 16px 16px 18px !important;
+  }
 }
