@@ -3905,6 +3905,14 @@ textarea.input {
     justify-content: space-around;
   }
 
+  /* Ops mode bottom bar — charcoal background + signal-orange top
+     stripe so admins know they're in the back-of-house at a glance. */
+  .mobile-nav--admin {
+    background: #11181c;
+    border-top: 2px solid var(--signal);
+  }
+  .mobile-nav--admin .m-item.active { color: var(--signal); }
+
   .mobile-nav .m-item {
     flex: 1;
     display: flex;
@@ -5481,9 +5489,13 @@ textarea.input {
   background: var(--bg);
 }
 
+/* Ops mode color shift — admins should always know they're in the
+   back-of-house. The aside drops into a near-black slate-charcoal
+   (warmer than the member --night), with a thin signal-orange top
+   stripe so the switch is unmistakable. */
 .admin-aside {
-  background: var(--night);
-  padding: 24px 16px;
+  background: #11181c;
+  padding: 24px 16px 24px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -5491,6 +5503,36 @@ textarea.input {
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  box-shadow: inset 4px 0 0 var(--signal), inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+/* Brand block at the top of the Ops sidebar — wordmark + Ops tag, links
+   back to the member app. */
+.admin-brand {
+  display: block;
+  padding: 6px 4px 18px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  text-decoration: none;
+  transition: opacity 0.14s;
+}
+.admin-brand:hover { opacity: 0.85; }
+.admin-brand__wordmark {
+  display: block;
+  height: 28px;
+  width: auto;
+  /* Source PNG is dark teal; invert to white for the dark sidebar. */
+  filter: brightness(0) invert(1);
+  opacity: 0.95;
+}
+.admin-brand__tag {
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--signal);
 }
 
 .admin-main {
@@ -5513,8 +5555,11 @@ textarea.input {
     align-items: center;
     gap: 10px;
     padding: 12px 14px;
-    background: var(--night);
+    /* Same charcoal palette + signal stripe as the Ops sidebar /
+       bottom bar — admins instantly know they're back-of-house. */
+    background: #11181c;
     color: #fff;
+    border-top: 2px solid var(--signal);
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     position: sticky;
     top: 0;
@@ -6444,13 +6489,15 @@ textarea.input {
 
 .biz-card__id { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .biz-card__name {
-  font-family: var(--display);
-  font-style: italic;
-  font-weight: 500;
-  font-size: 22px;
-  line-height: 1.1;
+  /* Inter Tight, weight 700 — the same bold sans used by the
+     boarding-pass route title ("Tampa → St. Regis Hotel"). Tight
+     negative tracking pulls the letters into a confident headline. */
+  font-family: var(--ui);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.15;
   color: var(--ink);
-  letter-spacing: -0.005em;
+  letter-spacing: -0.022em;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;

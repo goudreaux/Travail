@@ -87,7 +87,7 @@ export default function MobileNav({
   // Admin dashboard: still uses the simpler 5-slot layout — no "More".
   if (adminMode) {
     return (
-      <nav className="mobile-nav">
+      <nav className="mobile-nav mobile-nav--admin">
         {ADMIN_ITEMS.map(it => (
           <Link key={it.href} href={it.href} className={`m-item${isActive(it.href, it.exact) ? ' active' : ''}`}>
             {iconWrap(it.icon)}
