@@ -122,19 +122,28 @@ function brandedEmail(p: {
 }): string {
   const messageHtml = escapeHtml(p.message).replace(/\n/g, '<br/>')
   const ts = new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })
+  const preheader = `${p.memberName} · ${p.subject}`
   return `<!doctype html>
-<html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light only"/>
+<meta name="supported-color-schemes" content="light"/>
 <title>${escapeHtml(p.subject)}</title>
 </head>
-<body style="margin:0;padding:0;background:#fbf6ec;font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;color:#0d3340;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fbf6ec;padding:32px 16px;">
+<body style="margin:0;padding:0;background:#fbf6ec;font-family:-apple-system,BlinkMacSystemFont,'Inter Tight','Inter','Segoe UI',sans-serif;color:#0d3340;-webkit-font-smoothing:antialiased;">
+  <div style="display:none;max-height:0;overflow:hidden;color:transparent;visibility:hidden;mso-hide:all;">${escapeHtml(preheader).slice(0, 140)}</div>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fbf6ec;padding:36px 14px 24px;">
     <tr><td align="center">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background:#fffbf0;border-radius:16px;overflow:hidden;box-shadow:0 16px 44px rgba(13,51,64,0.10);">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background:#fffbf0;border-radius:18px;overflow:hidden;box-shadow:0 18px 48px rgba(13,51,64,0.10),0 2px 6px rgba(13,51,64,0.04);">
 
         <!-- Header band -->
-        <tr><td style="background:linear-gradient(135deg,#042128 0%,#0a3340 52%,#073744 100%);padding:28px 32px;color:#fff;">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:#00b3c7;font-weight:600;margin-bottom:8px;">Travail Concierge</div>
-          <div style="font-family:Georgia,'Cormorant Garamond',serif;font-style:italic;font-size:26px;line-height:1.1;color:#fff;letter-spacing:-0.015em;">A note from a member.</div>
+        <tr><td style="background:linear-gradient(135deg,#042128 0%,#0a3340 52%,#073744 100%);padding:30px 32px 26px;color:#fff;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="font-family:'JetBrains Mono','Courier New',monospace;font-size:10px;letter-spacing:0.24em;text-transform:uppercase;color:#00b3c7;font-weight:700;line-height:1;padding-bottom:10px;">Travail Concierge</td>
+              <td align="right" style="font-family:'JetBrains Mono','Courier New',monospace;font-size:9px;letter-spacing:0.20em;text-transform:uppercase;color:rgba(251,246,236,0.55);font-weight:600;">Travail × Tropic</td>
+            </tr>
+            <tr><td colspan="2" style="font-family:Georgia,'Cormorant Garamond','Times New Roman',serif;font-style:italic;font-size:28px;line-height:1.12;color:#fffbf0;letter-spacing:-0.015em;padding-top:8px;">A note from a member.</td></tr>
+          </table>
         </td></tr>
 
         <!-- Member identity -->
@@ -156,9 +165,25 @@ function brandedEmail(p: {
           <div style="font-size:15px;color:#0d3340;line-height:1.6;white-space:pre-wrap;background:#fbf6ec;padding:18px 20px;border-radius:10px;border:1px solid rgba(13,51,64,0.08);">${messageHtml}</div>
         </td></tr>
 
+        <!-- Quick action hint -->
+        <tr><td style="padding:0 32px 22px;">
+          <div style="background:rgba(0,179,199,0.06);border-left:3px solid #00b3c7;border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:#1f4b5b;line-height:1.5;">
+            Reply directly to this email and ${escapeHtml(p.memberName.split(' ')[0])} will receive it at <span style="font-family:'JetBrains Mono','Courier New',monospace;font-size:12px;">${escapeHtml(p.memberEmail)}</span>.
+          </div>
+        </td></tr>
+
         <!-- Footer -->
-        <tr><td style="padding:16px 32px 24px;border-top:1px solid rgba(13,51,64,0.08);font-size:11px;color:#9aa7ab;font-family:'JetBrains Mono',monospace;letter-spacing:0.10em;">
-          Sent via travailclub.com · ${escapeHtml(ts)}
+        <tr><td style="padding:16px 32px 22px;border-top:1px solid rgba(13,51,64,0.08);">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="font-family:'JetBrains Mono','Courier New',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#7c9aa6;line-height:1.6;">
+                Sent via travailclub.com
+              </td>
+              <td align="right" style="font-family:'JetBrains Mono','Courier New',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#7c9aa6;">
+                ${escapeHtml(ts)}
+              </td>
+            </tr>
+          </table>
         </td></tr>
       </table>
     </td></tr>
