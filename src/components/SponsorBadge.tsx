@@ -1,0 +1,44 @@
+// Sponsor badges — used to mark excursions that are planned or
+// co-presented by a brand partner (Field & Stream first; the same
+// pattern handles future partners by adding a case here).
+//
+// Three size variants share one visual language:
+//   • 'ribbon' — corner stamp on a trip-card image
+//   • 'pill'   — inline mark below a title (default)
+//   • 'mark'   — large standalone wordmark for the reserve page hero
+
+import React from 'react'
+
+type Size = 'ribbon' | 'pill' | 'mark'
+
+export function SponsorBadge({ sponsor, size = 'pill' }: { sponsor: string | null | undefined; size?: Size }) {
+  if (!sponsor) return null
+  if (sponsor === 'field_stream') return <FieldStreamBadge size={size} />
+  return null
+}
+
+export function FieldStreamBadge({ size = 'pill' }: { size?: Size }) {
+  // Reuse one node + drive the visual weight by class so the wordmark
+  // looks identical (just bigger / smaller) across surfaces.
+  return (
+    <span className={`fs-badge fs-badge--${size}`} aria-label="Field & Stream sponsored excursion">
+      {size === 'ribbon' && (
+        <span className="fs-badge__eyebrow" aria-hidden>Planned by</span>
+      )}
+      <span className="fs-badge__mark" aria-hidden>
+        <i>Field</i>
+        <span className="fs-badge__amp">&amp;</span>
+        <i>Stream</i>
+      </span>
+      {size === 'mark' && (
+        <span className="fs-badge__tag" aria-hidden>Sponsored excursion</span>
+      )}
+    </span>
+  )
+}
+
+export const SPONSORS = [
+  { key: 'field_stream', label: 'Field & Stream' },
+] as const
+
+export type SponsorKey = typeof SPONSORS[number]['key']
