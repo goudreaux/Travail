@@ -1,0 +1,78 @@
+{
+  "generatedAt": "2026-05-27T17:31:37.836Z",
+  "branch": "claude/epic-ride-b6b4g",
+  "lastCommit": {
+    "hash": "6f5aada",
+    "message": "Remove in-app company-policy download",
+    "iso": "2026-05-27T13:43:44+00:00"
+  },
+  "totals": {
+    "totalLines": 23098,
+    "tsLines": 15490,
+    "tsFiles": 59,
+    "cssLines": 5921,
+    "migrationLines": 1687,
+    "migrations": 34,
+    "commits": 589,
+    "pages": 32,
+    "apiRoutes": 3,
+    "apiLines": 343,
+    "components": 12,
+    "componentLines": 1985,
+    "libFiles": 10,
+    "libLines": 1341
+  },
+  "firstCommitISO": "2026-05-22T15:26:49+00:00",
+  "recentCommits": [
+    {
+      "hash": "6f5aada",
+      "iso": "2026-05-27T13:43:44+00:00",
+      "message": "Remove in-app company-policy download"
+    },
+    {
+      "hash": "250b296",
+      "iso": "2026-05-27T13:39:26+00:00",
+      "message": "Quiet Company policy download link"
+    },
+    {
+      "hash": "df0e9e6",
+      "iso": "2026-05-27T13:33:04+00:00",
+      "message": "Add running handbook: protocols, runbooks, FAQs, investor talking points"
+    },
+    {
+      "hash": "8557072",
+      "iso": "2026-05-27T13:11:31+00:00",
+      "message": "Merge origin/main — resolve network page + globals.css overlap with PR #208"
+    },
+    {
+      "hash": "5fa97b8",
+      "iso": "2026-05-27T12:57:13+00:00",
+      "message": "Wire Sentry with PII-scrubbed beforeSend"
+    },
+    {
+      "hash": "23e1e90",
+      "iso": "2026-05-27T12:36:51+00:00",
+      "message": "PII scrubber for logs + Sentry-ready beforeSend"
+    },
+    {
+      "hash": "396ce3d",
+      "iso": "2026-05-27T12:28:10+00:00",
+      "message": "Security: HTTP headers + audited PII access"
+    },
+    {
+      "hash": "d730b7c",
+      "iso": "2026-05-27T12:11:13+00:00",
+      "message": "Co-passenger quick-connect + contact protections"
+    },
+    {
+      "hash": "ecc4dc3",
+      "iso": "2026-05-27T11:41:52+00:00",
+      "message": "Contact request flow: opt-in reveal of email + phone"
+    },
+    {
+      "hash": "bfe2600",
+      "iso": "2026-05-27T11:35:33+00:00",
+      "message": "Friends system: requests, accept/decline, profile UI"
+    }
+  ]
+}
