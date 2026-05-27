@@ -7060,30 +7060,11 @@ textarea.input {
   /* Mobile drops the full action band entirely — the whole card is the
      tap target, and any Connect/Accept happens on the profile. A tiny
      static state badge in the corner is enough signal. */
-  .biz-card__action {
-    margin: 0;
-    padding: 0;
-    background: transparent;
-    border-top: none;
-    flex-shrink: 0;
-    gap: 0;
-    max-width: 28px;
-  }
-  .biz-card__connect,
-  .biz-card__chev { display: none; }
-  /* State pill shrinks to icon-only on mobile — text disappears,
-     leaving a small badge in the row's right edge. */
-  .biz-card__state {
-    font-size: 0;
-    padding: 0;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .biz-card__state svg { width: 11px; height: 11px; }
+  /* On mobile the avatar already carries the friend signal (gold halo
+     + wax-seal). A right-side action bubble is redundant noise — hide
+     the whole action band; tap the card → profile, where all
+     connection actions live. */
+  .biz-card__action { display: none; }
 
   /* Smaller halo footprint so it doesn't visually crowd the trimmed row. */
   .biz-card__monogram { padding: 2px; }

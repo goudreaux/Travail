@@ -461,10 +461,17 @@ export default function SeatsPage() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  // Apply filter
-  const flightEntries = buildFlightEntries(flights)
+  // Apply filter. Private charters (anchor-only) are hidden from the
+  // visible board but still counted in liveCount — the "Live" pill in
+  // the hero reflects every active departure across the network, even
+  // the private ones members can't book.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isPrivate = (t: any) => Boolean(t?.is_private)
+  const publicFlights = flights.filter(f => !isPrivate(f))
+  const publicExcursions = excursions.filter(e => !isPrivate(e))
+  const flightEntries = buildFlightEntries(publicFlights)
   const visibleFlightEntries = (filter === 'all' || filter === 'flight') ? flightEntries : []
-  const visibleExcursions = excursions.filter(e => {
+  const visibleExcursions = publicExcursions.filter(e => {
     if (filter === 'all') return true
     if (filter === 'flight') return false
     const icon = e.templateMeta?.icon ?? 'fish'
@@ -472,6 +479,9 @@ export default function SeatsPage() {
   })
 
   const totalOpen = visibleFlightEntries.length + visibleExcursions.length
+  // Live count includes private charters so the pill reflects the full
+  // network activity, not just publicly bookable seats.
+  const liveCount = buildFlightEntries(flights).length + excursions.length
 
   // Filter bar only surfaces filters that match at least one active
   // item. "All" is always present. "Flights" appears if there's any

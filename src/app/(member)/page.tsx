@@ -254,8 +254,14 @@ export default function FeedPage() {
   // All open, upcoming trips with availability (matches the Open seats board).
   const today = new Date().toISOString().slice(0, 10)
   const openRetIds = returnLegIds(flights)
-  const openFlights = flights.filter(f => f.status === 'open' && f.date >= today && f.seatsAvailable > 0 && !openRetIds.has(f.id))
-  const openExcursions = excursions.filter(e => e.status === 'open' && e.date >= today && e.spotsAvailable > 0)
+  // Private charters (is_private = true) are hidden from the public
+  // Open Seats feed regardless of whether seats are technically
+  // available — the anchor still sees them in My Trips and on their
+  // boarding pass.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isPrivate = (t: any) => Boolean(t?.is_private)
+  const openFlights = flights.filter(f => f.status === 'open' && f.date >= today && f.seatsAvailable > 0 && !openRetIds.has(f.id) && !isPrivate(f))
+  const openExcursions = excursions.filter(e => e.status === 'open' && e.date >= today && e.spotsAvailable > 0 && !isPrivate(e))
 
   const filteredOpenItems = [
     ...((typeFilter === 'all' || typeFilter === 'flight') ? openFlights : [])
