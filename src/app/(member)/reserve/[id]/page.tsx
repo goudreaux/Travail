@@ -8,6 +8,7 @@ import { logActivity } from '@/lib/activity'
 import { safeError } from '@/lib/pii-scrub'
 import { asItinerary, fmtItineraryTime, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
 import { KIND_ICONS } from '@/lib/icons'
+import { BookingSuccessSplash } from '@/components/BookingSuccessSplash'
 import { fetchRosters, type RosterEntry } from '@/components/Roster'
 
 // Roster avatar (image or initials) for the FOMO "who's going" block.
@@ -121,6 +122,9 @@ export default function ReservePage() {
   // Submission state
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState<{ id: string; confirmationCode: string | null } | null>(null)
+  // While the seaplane splash plays after a successful booking, we
+  // hide the success card behind it. The splash dismisses itself.
+  const [showSplash, setShowSplash] = useState(false)
   const [error, setError] = useState('')
   const [rosterPublic, setRosterPublic] = useState(true)
   const [roster, setRoster] = useState<RosterEntry[]>([])
@@ -403,6 +407,9 @@ export default function ReservePage() {
       })
 
       setSubmitted({ id: primary.id, confirmationCode: primary.confirmation_code })
+      // Play the seaplane splash; the success card sits beneath and
+      // becomes visible when the splash dismisses itself.
+      setShowSplash(true)
     } catch (err: unknown) {
       const msg = err instanceof Error
         ? err.message
@@ -447,6 +454,13 @@ export default function ReservePage() {
   if (submitted) {
     return (
       <div className="page">
+        {showSplash && (
+          <BookingSuccessSplash
+            caption={kind === 'flight' ? 'Flight requested' : 'Excursion requested'}
+            sub="Ops will confirm shortly."
+            onDone={() => setShowSplash(false)}
+          />
+        )}
         <div className="page-view" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 500 }}>
           <div style={{
             background: 'var(--card)',
