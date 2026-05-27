@@ -4599,9 +4599,50 @@ textarea.input {
 }
 
 @media (max-width: 520px) {
-  .invite-card { padding: 30px 24px 24px; }
-  .invite-title { font-size: 30px; }
+  /* Tighter outer wrap + card on small phones so the form has every
+     pixel it can. Align top so a tall form doesn't get its head
+     scrolled off-screen by flexbox centering. */
+  .invite-wrap {
+    padding: 16px 12px 32px;
+    align-items: flex-start;
+    min-height: 100svh;
+  }
+  .invite-card { padding: 22px 18px 20px; border-radius: 16px; }
+  .invite-title { font-size: 26px; line-height: 1.1; }
+  .invite-sub { font-size: 13.5px; line-height: 1.5; }
   .envelope-headline { font-size: 28px; }
+
+  /* Brand lockup shrinks + tightens. */
+  .onboarding-brand {
+    gap: 10px;
+    margin: 0 0 18px;
+    padding-bottom: 14px;
+  }
+  .onboarding-brand__travail { height: 26px; }
+  .onboarding-brand__tropic { height: 24px; }
+  .onboarding-brand__x { font-size: 18px; }
+
+  /* Base chips: narrower, flexible wrap. */
+  .onboarding-base-row { gap: 6px; }
+  .onboarding-base-row .chip { font-size: 12px; padding: 6px 14px; }
+
+  /* Interest grid: 5 narrower tiles in two rows (3 + 2) rather than the
+     awkward 2/2/1 stack on SE. minmax 60px guarantees 3 tiles fit even
+     on a 320px viewport. */
+  .onboarding-interests {
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    gap: 6px;
+  }
+  .onboarding-interest { padding: 10px 4px 8px; border-radius: 10px; gap: 5px; }
+  .onboarding-interest__icon { width: 26px; height: 26px; }
+  .onboarding-interest__icon svg { width: 20px; height: 20px; }
+  .onboarding-interest__label { font-size: 9px; letter-spacing: 0.08em; }
+
+  /* Form fields: tighter vertical rhythm. */
+  .invite-card .field { margin-bottom: 14px; }
+  .invite-card .field-lab { margin-bottom: 5px; }
+  .invite-card .input,
+  .invite-card .select { font-size: 16px; padding: 10px 12px; }
 }
 
 /* ─── Step wizard (Anchor flows) ─────────────────────────── */
