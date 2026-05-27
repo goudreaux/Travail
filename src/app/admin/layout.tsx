@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import Image from 'next/image'
 import MobileNav from '@/components/MobileNav'
 import PullToRefresh from '@/components/PullToRefresh'
 
@@ -76,10 +77,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="admin-shell">
       <aside className="admin-aside">
-        <div style={{ padding: '6px 8px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 12 }}>
-          <div style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 22, color: '#fff' }}>Travail</div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.18em', color: 'var(--tropic)', marginTop: 3 }}>OPS DASHBOARD</div>
-        </div>
+        {/* Co-brand lockup — Travail wordmark (white-inverted) × Tropic
+            frigate over a thin tropic-tinted hairline. Doubles as a "back
+            to member app" link. */}
+        <Link
+          href="/"
+          aria-label="Travail Ops · back to the member app"
+          style={{
+            display: 'block',
+            padding: '4px 8px 18px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            marginBottom: 12,
+            textDecoration: 'none',
+          }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, lineHeight: 0 }}>
+            <Image
+              src="/travail-wordmark.png"
+              alt="Travail"
+              width={110}
+              height={28}
+              priority
+              style={{ height: 26, width: 'auto', filter: 'brightness(0) invert(1)' }}
+            />
+            <span aria-hidden style={{
+              fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 14,
+              color: 'rgba(255,255,255,0.4)', lineHeight: 1, margin: '0 -2px',
+            }}>×</span>
+            <Image
+              src="/tropic-logo.png"
+              alt="Tropic Ocean Air"
+              width={22}
+              height={22}
+              style={{ height: 22, width: 22, filter: 'brightness(0) invert(1)', opacity: 0.95 }}
+            />
+          </span>
+          <div style={{
+            fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.20em',
+            color: 'var(--tropic)', marginTop: 8, fontWeight: 700,
+          }}>
+            OPS DASHBOARD
+          </div>
+        </Link>
         {nav.map(item => (
           <Link key={item.href} href={item.href} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',

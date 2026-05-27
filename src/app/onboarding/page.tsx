@@ -2,7 +2,10 @@
 export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
+import { TRIP_TYPES, canonicalInterests } from '@/lib/data'
+import { TRIP_TYPE_ICONS } from '@/lib/icons'
 import type { Member } from '@/lib/supabase/types'
 
 const HOME_BASES = ['Tampa Bay', 'SFL']
@@ -18,9 +21,12 @@ export default function OnboardingPage() {
   const [member, setMember] = useState<Member | null>(null)
   const [name, setName] = useState('')
   const [homeBase, setHomeBase] = useState(HOME_BASES[0])
-  const [bio, setBio] = useState('')
+  const [interests, setInterests] = useState<string[]>([])
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+
+  const toggleInterest = (t: string) =>
+    setInterests(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -58,7 +64,7 @@ export default function OnboardingPage() {
         setMember(m as Member)
         setName((m as Member).name ?? '')
         if ((m as Member).home_base_code) setHomeBase((m as Member).home_base_code as string)
-        if ((m as Member).bio) setBio((m as Member).bio as string)
+        setInterests(canonicalInterests((m as Member).interests))
       }
       setStatus('ready')
     }
@@ -104,8 +110,14 @@ export default function OnboardingPage() {
 
       if (member) {
         const initials = name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 3)
-        const { error: upErr } = await supabase.from('members')
-          .update({ name: name.trim(), initials, home_base_code: homeBase, bio: bio.trim() || null })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: upErr } = await (supabase.from('members') as any)
+          .update({
+            name: name.trim(),
+            initials,
+            home_base_code: homeBase,
+            interests: interests.length > 0 ? interests : null,
+          })
           .eq('id', member.id)
         if (upErr) throw upErr
       }
@@ -160,9 +172,30 @@ export default function OnboardingPage() {
               </>
             ) : (
               <>
+                {/* Co-brand lockup — Travail wordmark × Tropic frigate.
+                    Sets the tone before any form fields appear. */}
+                <div className="onboarding-brand" aria-label="Travail × Tropic Ocean Air">
+                  <Image
+                    src="/travail-wordmark.png"
+                    alt="Travail"
+                    width={180}
+                    height={56}
+                    priority
+                    className="onboarding-brand__travail"
+                  />
+                  <span className="onboarding-brand__x" aria-hidden>×</span>
+                  <Image
+                    src="/tropic-logo.png"
+                    alt="Tropic Ocean Air"
+                    width={36}
+                    height={36}
+                    className="onboarding-brand__tropic"
+                  />
+                </div>
+
                 <div className="envelope-eyebrow">Your membership begins</div>
                 <h2 className="invite-title">Welcome to Travail.</h2>
-                <p className="invite-sub">Choose a password and finish your member profile. This is yours — make it feel like home.</p>
+                <p className="invite-sub">Choose a password and finish your profile. This is yours — make it feel like home.</p>
 
                 <div className="field">
                   <label className="field-lab">Full name <span className="req">*</span></label>
@@ -170,14 +203,44 @@ export default function OnboardingPage() {
                 </div>
                 <div className="field">
                   <label className="field-lab">Home base</label>
-                  <select className="select" value={homeBase} onChange={e => setHomeBase(e.target.value)}>
-                    {HOME_BASES.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
+                  <div className="onboarding-base-row">
+                    {HOME_BASES.map(b => (
+                      <button
+                        key={b}
+                        type="button"
+                        className={`chip${homeBase === b ? ' active' : ''}`}
+                        onClick={() => setHomeBase(b)}
+                      >
+                        {b}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
                 <div className="field">
-                  <label className="field-lab">Bio</label>
-                  <textarea className="input" value={bio} onChange={e => setBio(e.target.value)} placeholder="A short intro for the network…" rows={3} maxLength={400} />
+                  <label className="field-lab">
+                    What you&rsquo;re into
+                    <span style={{ fontWeight: 400, color: 'var(--ink-light)', marginLeft: 6, textTransform: 'none', letterSpacing: 0 }}>— pick any</span>
+                  </label>
+                  <div className="onboarding-interests" role="group" aria-label="Activity interests">
+                    {TRIP_TYPES.map(t => {
+                      const active = interests.includes(t)
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          className={`onboarding-interest${active ? ' active' : ''}`}
+                          onClick={() => toggleInterest(t)}
+                          aria-pressed={active}
+                        >
+                          <span className="onboarding-interest__icon">{TRIP_TYPE_ICONS[t]}</span>
+                          <span className="onboarding-interest__label">{t}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
+
                 <div className="field">
                   <label className="field-lab">Password <span className="req">*</span></label>
                   <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" />

@@ -4,7 +4,10 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 
+type Mode = 'signin' | 'reset' | 'reset-sent'
+
 export default function LoginPage() {
+  const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -22,6 +25,33 @@ export default function LoginPage() {
     } else {
       window.location.href = '/'
     }
+  }
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    // Supabase emails a magic link; the link returns to /reset-password
+    // where the user sets a new password and lands signed in.
+    const redirectTo = `${window.location.origin}/reset-password`
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    setLoading(false)
+    if (error) {
+      setError(error.message)
+      return
+    }
+    setMode('reset-sent')
+  }
+
+  function openReset() {
+    setError('')
+    setPassword('')
+    setMode('reset')
+  }
+
+  function backToSignIn() {
+    setError('')
+    setMode('signin')
   }
 
   return (
@@ -84,61 +114,102 @@ export default function LoginPage() {
             Use the email tied to your invitation.
           </p>
 
-          <form className="login-form" onSubmit={handleLogin}>
-            <div className="field">
-              <label className="field-lab" htmlFor="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                className="input"
-                placeholder="you@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
-            </div>
-
-            <div className="field">
-              <label className="field-lab" htmlFor="password">Password</label>
-              <input
-                id="password"
-                type="password"
-                className="input"
-                placeholder="••••••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-              />
-            </div>
-
-            {error && (
-              <div role="alert" className="login-error">
-                <svg width="14" height="14" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="11" y1="7" x2="11" y2="12" />
-                  <circle cx="11" cy="15.5" r="0.7" fill="currentColor" />
+          {mode === 'reset-sent' ? (
+            <div className="login-reset-done">
+              <div className="login-reset-done__seal" aria-hidden>
+                <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="4 11 9 16 18 6" />
                 </svg>
-                {error}
               </div>
-            )}
+              <h3>Check your inbox.</h3>
+              <p>
+                We sent a reset link to <strong>{email}</strong>. Tap it to set a new password —
+                the link is good for one hour.
+              </p>
+              <button type="button" className="login-link" onClick={backToSignIn}>← Back to sign in</button>
+            </div>
+          ) : (
+            <form className="login-form" onSubmit={mode === 'reset' ? handleReset : handleLogin}>
+              <div className="field">
+                <label className="field-lab" htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  className="input"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
 
-            <button
-              type="submit"
-              className="login-submit"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 1.5 }} />
-                  Signing in…
-                </>
-              ) : (
-                'Sign in →'
+              {mode === 'signin' && (
+                <div className="field">
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                    <label className="field-lab" htmlFor="password" style={{ marginBottom: 0 }}>Password</label>
+                    <button
+                      type="button"
+                      className="login-link"
+                      onClick={openReset}
+                      style={{ fontSize: 11 }}
+                    >
+                      Forgot?
+                    </button>
+                  </div>
+                  <input
+                    id="password"
+                    type="password"
+                    className="input"
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
               )}
-            </button>
-          </form>
+
+              {mode === 'reset' && (
+                <p className="login-reset-hint">
+                  Enter your email and we&rsquo;ll send a private link to set a new password.
+                  It expires in an hour.
+                </p>
+              )}
+
+              {error && (
+                <div role="alert" className="login-error">
+                  <svg width="14" height="14" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="11" y1="7" x2="11" y2="12" />
+                    <circle cx="11" cy="15.5" r="0.7" fill="currentColor" />
+                  </svg>
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="login-submit"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 1.5 }} />
+                    {mode === 'reset' ? 'Sending…' : 'Signing in…'}
+                  </>
+                ) : (
+                  mode === 'reset' ? 'Send reset link →' : 'Sign in →'
+                )}
+              </button>
+
+              {mode === 'reset' && (
+                <button type="button" className="login-link" onClick={backToSignIn} style={{ marginTop: 8 }}>
+                  ← Back to sign in
+                </button>
+              )}
+            </form>
+          )}
 
           <div className="login-form-pane__footer">
             <span>Members only · Private invitation</span>
