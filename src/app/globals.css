@@ -5841,6 +5841,67 @@ textarea.input {
 
 /* Network — social-network style member list. Card grid on desktop,
    skinny rows on mobile so 100+ members stay scannable. */
+/* Standalone search bar — its own band sitting between the hero and the
+   filter card on the Network page, so it reads as the primary find tool.
+   Wider + slightly taller than the in-hero .search variant to feel
+   editorial rather than utilitarian. */
+.network-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  margin-bottom: 14px;
+  background: var(--card);
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  height: 46px;
+  box-shadow: 0 1px 0 rgba(13,51,64,0.02);
+  transition: border-color 0.14s, box-shadow 0.14s;
+}
+.network-search:focus-within {
+  border-color: rgba(0,179,199,0.45);
+  box-shadow: 0 0 0 3px rgba(0,179,199,0.08);
+}
+.network-search > svg {
+  color: var(--ink-light);
+  flex-shrink: 0;
+}
+.network-search input {
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  font-family: var(--ui);
+  font-size: 15px;
+  color: var(--ink);
+  outline: none;
+  /* iOS Safari auto-zooms on inputs < 16px on focus — keep at 16 to
+     avoid the page rescaling when the keyboard opens. */
+  min-width: 0;
+}
+.network-search input::placeholder {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+.network-search__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: var(--warm);
+  color: var(--ink-mid);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+.network-search__clear:hover {
+  background: var(--signal);
+  color: #fff;
+}
+
 .network-filters {
   display: flex;
   flex-direction: column;

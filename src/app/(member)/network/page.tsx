@@ -189,22 +189,39 @@ export default function NetworkPage() {
         title="Members."
         sub={loading ? 'Loading…' : `The ${members.length} founding members.`}
         metric={loading ? undefined : { value: members.length, label: 'Founding members', sub: 'In the wire' }}
-        actions={
-          <div className="search" style={{ maxWidth: 240 }}>
+      />
+
+      <div className="page-view">
+        {/* Search — its own row under the hero so it reads as the primary
+            way to find a member, with the filter card sitting beneath. */}
+        {!loading && members.length > 0 && (
+          <div className="network-search">
             <svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
               <circle cx="9" cy="9" r="6" /><line x1="13.5" y1="13.5" x2="18" y2="18" />
             </svg>
             <input
               type="text"
-              placeholder="Search members..."
+              placeholder="Search members…"
               value={search}
               onChange={e => setSearch(e.target.value)}
+              aria-label="Search members"
             />
+            {search && (
+              <button
+                type="button"
+                className="network-search__clear"
+                onClick={() => setSearch('')}
+                aria-label="Clear search"
+              >
+                <svg width="11" height="11" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <line x1="5" y1="5" x2="17" y2="17" />
+                  <line x1="17" y1="5" x2="5" y2="17" />
+                </svg>
+              </button>
+            )}
           </div>
-        }
-      />
+        )}
 
-      <div className="page-view">
         {/* Inbound friend requests — surfaced at the top so the action
             is one tap from the list. Each row mirrors the member-card row
             shape so the page reads as continuous. */}
