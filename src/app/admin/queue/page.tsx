@@ -70,31 +70,45 @@ function Toast({ msg, kind }: { msg: string; kind: 'success' | 'error' | 'info' 
 // Total trip cost input — Ops enters the total, we render the implied
 // per-seat number below so they can sanity-check the math. The publish
 // handler divides by seats to compute the per-seat price the API wants.
+//
+// When `lockedCents` is set (status='quoted' or 'quote_accepted'), the
+// field renders read-only at the locked amount — the anchor has either
+// already been shown this number or already accepted it. Editing it
+// at publish time would create a member-vs-server price discrepancy.
 function TotalCostField({
-  draft, setDraft, seatsKey, perLabel,
+  draft, setDraft, seatsKey, perLabel, lockedCents,
 }: {
   draft: Record<string, string>
   setDraft: React.Dispatch<React.SetStateAction<Record<string, string>>>
   seatsKey: 'seatsTotal' | 'spotsTotal'
   perLabel: 'seat' | 'person'
+  lockedCents?: number | null
 }) {
   const seats = Number(draft[seatsKey] ?? 0)
-  const total = Number(draft.totalCost ?? 0)
+  const locked = typeof lockedCents === 'number' && lockedCents > 0
+  const total = locked ? lockedCents / 100 : Number(draft.totalCost ?? 0)
   const perSeat = seats > 0 && total > 0 ? total / seats : 0
   return (
     <div className="field" style={{ marginBottom: 0 }}>
-      <label className="field-lab">Total trip cost (USD)</label>
+      <label className="field-lab">
+        {locked
+          ? <>Total trip cost <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tropic-d)', fontWeight: 700, marginLeft: 8 }}>· locked by quote</span></>
+          : 'Total trip cost (USD)'}
+      </label>
       <input
         className="input"
         type="number"
         min={0}
-        value={draft.totalCost ?? ''}
+        value={locked ? total : (draft.totalCost ?? '')}
         placeholder="e.g. 6800"
-        onChange={e => setDraft(prev => ({ ...prev, totalCost: e.target.value }))}
+        readOnly={locked}
+        disabled={locked}
+        style={locked ? { background: 'var(--paper)', color: 'var(--tropic-d)', fontWeight: 700, cursor: 'not-allowed' } : undefined}
+        onChange={locked ? undefined : e => setDraft(prev => ({ ...prev, totalCost: e.target.value }))}
       />
       <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-light)', marginTop: 6, letterSpacing: '0.06em' }}>
         {perSeat > 0
-          ? `≈ $${perSeat.toFixed(2)} / ${perLabel} · ${seats} ${perLabel}${seats === 1 ? '' : 's'}`
+          ? `≈ $${perSeat.toFixed(2)} / ${perLabel} · ${seats} ${perLabel}${seats === 1 ? '' : 's'}${locked ? ' · authorized by anchor' : ''}`
           : 'Enter seats + total to see per-' + perLabel}
       </div>
     </div>
@@ -503,9 +517,14 @@ export default function QueuePage() {
       seatsAnchor: s(p.seatsAnchor ?? p.seats_anchor ?? 1),
       spotsTotal: s(p.spotsTotal ?? p.spots_total ?? 8),
       spotsAnchor: s(p.spotsAnchor ?? p.spots_anchor ?? 1),
-      // Ops now enters total trip cost; pre-fill from any legacy
-      // per-seat × seats_total if that's what's in the submission.
+      // Pre-fill totalCost: prefer the locked quoted amount (so the
+      // field shows the authoritative number after acceptance), then
+      // fall back to the submission's stored total or legacy per-seat
+      // × seats math.
       totalCost: (() => {
+        if (anchor.quoted_total_cents && anchor.quoted_total_cents > 0) {
+          return String(anchor.quoted_total_cents / 100)
+        }
         const explicit = Number(p.totalCost ?? p.total_cost ?? 0)
         if (explicit > 0) return String(explicit)
         const perSeat = Number(p.pricePerSeat ?? p.price_per_seat ?? p.pricePerPax ?? p.price_per_pax ?? 0)
@@ -1122,7 +1141,7 @@ export default function QueuePage() {
                               {F({ label: 'Destination code', k: 'destCode' })}
                               {F({ label: 'Seats total', k: 'seatsTotal', type: 'number' })}
                               {F({ label: 'Anchor seats', k: 'seatsAnchor', type: 'number' })}
-                              <TotalCostField draft={draft} setDraft={setDraft} seatsKey="seatsTotal" perLabel="seat" />
+                              <TotalCostField draft={draft} setDraft={setDraft} seatsKey="seatsTotal" perLabel="seat" lockedCents={a.quoted_total_cents ?? null} />
                             </>
                           ) : (
                             <>
@@ -1130,7 +1149,7 @@ export default function QueuePage() {
                               {F({ label: 'Return time', k: 'returnTime', placeholder: '4:00 PM' })}
                               {F({ label: 'Spots total', k: 'spotsTotal', type: 'number' })}
                               {F({ label: 'Anchor spots', k: 'spotsAnchor', type: 'number' })}
-                              <TotalCostField draft={draft} setDraft={setDraft} seatsKey="spotsTotal" perLabel="person" />
+                              <TotalCostField draft={draft} setDraft={setDraft} seatsKey="spotsTotal" perLabel="person" lockedCents={a.quoted_total_cents ?? null} />
                             </>
                           )}
                         </div>
