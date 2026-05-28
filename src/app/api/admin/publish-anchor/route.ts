@@ -270,6 +270,12 @@ export async function POST(req: NextRequest) {
       anchor_member_id: sub.member_id,
       template_id: body.templateId ?? null,
       origin_code: body.originCode,
+      // aircraft_id is NOT NULL in the excursions table (the original
+      // schema's FK to aircraft.id was never relaxed) — without this
+      // the insert violates the constraint and the capture has to
+      // roll back. Default to 'caravan' if the submission didn't pass
+      // one through.
+      aircraft_id: body.aircraftId ?? 'caravan',
       date: body.date,
       start_time: body.startTime ?? null,
       depart_time: body.departTime ?? null,
