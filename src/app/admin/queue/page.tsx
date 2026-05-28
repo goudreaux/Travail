@@ -1033,10 +1033,14 @@ export default function QueuePage() {
               const isOpen = expanded === a.id
               const originCode = String(p.originCode ?? p.origin_code ?? '')
               const destCode = String(p.destCode ?? p.dest_code ?? '')
+              const destName = String(p.destName ?? p.dest_name ?? '')
+              const isCustom = destCode === 'CUSTOM' || p.customDest === true
               const date = String(p.date ?? '')
               const name = String(p.name ?? '—')
               const routeStr = a.kind === 'flight'
-                ? `${originCode} → ${destCode}`
+                ? (isCustom
+                    ? `${originCode} → ${destName || 'Custom'} (custom)`
+                    : `${originCode} → ${destCode}`)
                 : originCode
 
               return (
