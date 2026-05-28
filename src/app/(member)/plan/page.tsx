@@ -21,7 +21,7 @@ export default function PlanPage() {
   if (isAdmin === null) return null
   if (!isAdmin) return (
     <div className="page">
-      <PageHero accent="sun" eyebrow="PLAN A TRIP" title="Coming soon." sub="This feature is under development. Check back soon." />
+      <PageHero accent="sun" eyebrow="PLAN A TRIP" title="Coming soon" sub="This feature is under development. Check back soon." />
     </div>
   )
 

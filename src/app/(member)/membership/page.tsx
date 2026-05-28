@@ -204,7 +204,7 @@ export default function MembershipPage() {
       <PageHero
         accent="sun"
         eyebrow={member.tier === 'administrator' ? tierLabel(member.tier) : `${memberCode(member)} · ${tierLabel(member.tier)}`}
-        title="Membership."
+        title="Membership"
         sub="Your account, history, and settings."
         metric={{
           value: memberCode(member).replace('#', ''),

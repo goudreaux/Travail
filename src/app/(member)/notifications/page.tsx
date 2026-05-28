@@ -79,7 +79,7 @@ export default function NotificationsPage() {
       <PageHero
         accent="signal"
         eyebrow="THE NETWORK"
-        title="Notifications."
+        title="Notifications"
         sub={loading ? 'Loading…' : unread > 0 ? `${unread} unread` : 'You’re all caught up.'}
         metric={loading ? undefined : { value: unread, label: 'Unread', sub: 'Latest first' }}
         actions={unread > 0 ? (

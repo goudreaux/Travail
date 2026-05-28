@@ -239,7 +239,7 @@ export default function NetworkPage() {
       <PageHero
         accent="teal"
         eyebrow="The Network"
-        title="Members."
+        title="Members"
         sub={loading ? 'Loading…' : `The ${members.length} founding members.`}
       />
 
