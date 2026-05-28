@@ -290,6 +290,10 @@ export default function MembersPage() {
         const { data: updated, error } = await supabase.from('members').update(updatePayload as never).eq('id', editId).select()
         if (error) throw error
         if (!updated || updated.length === 0) throw new Error('Update blocked — verify the admin RLS update policy on members in Supabase')
+        // Always upsert the sensitive row when ANY of email/phone/dob
+        // is set (or being cleared). Surface errors loudly — silent
+        // failure here is what caused the original "NO EMAIL" pill
+        // bug.
         const { error: sErr } = await supabase.from('member_sensitive').upsert({
           member_id: editId,
           date_of_birth: dobVal,
@@ -297,7 +301,14 @@ export default function MembersPage() {
           phone: phoneVal,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'member_id' })
-        if (sErr) throw sErr
+        if (sErr) {
+          showToast(
+            `Member saved but contact info failed: ${sErr.message}. Likely an RLS policy — verify "Admins can manage sensitive data" exists on member_sensitive.`,
+            'error',
+          )
+          setSaving(false)
+          return
+        }
         showToast(uid ? 'Member updated — login linked' : 'Member updated')
       } else {
         const insertPayload: Record<string, unknown> = {
@@ -309,12 +320,23 @@ export default function MembersPage() {
         const { data: inserted, error } = await supabase.from('members').insert(insertPayload as never).select().single()
         if (error) throw error
         if ((dobVal || emailVal || phoneVal) && inserted) {
-          await supabase.from('member_sensitive').insert({
+          // Surface RLS / constraint failures here loudly. Silent
+          // swallow used to produce the "NO EMAIL" pill on members
+          // who Ops thought they'd given an email to.
+          const { error: sErr } = await supabase.from('member_sensitive').insert({
             member_id: inserted.id,
             date_of_birth: dobVal,
             email: emailVal,
             phone: phoneVal,
           })
+          if (sErr) {
+            showToast(
+              `Member created but contact info failed to save: ${sErr.message}. Open the member to retry, then check the "Admins can manage sensitive data" RLS policy.`,
+              'error',
+            )
+            // Don't abort the rest of the create — the member row exists
+            // and Ops can re-enter contact details from the edit form.
+          }
         }
         // Welcome the new member in-app; when they have an email on file this
         // also auto-sends the welcome via the notify-email webhook. Best-effort —
