@@ -120,8 +120,16 @@ export async function POST(req: NextRequest) {
   const { data: sub, error: sErr } = await db
     .from('anchor_submissions').select('*').eq('id', submissionId).maybeSingle()
   if (sErr || !sub) return NextResponse.json({ error: 'Submission not found' }, { status: 404 })
-  if (sub.status !== 'pending') {
-    return NextResponse.json({ error: `Submission is ${sub.status}, not pending` }, { status: 409 })
+  // Publish now requires the anchor to have accepted Ops's quote. The
+  // 'pending' branch stays accepted only for legacy submissions
+  // grandfathered in before the quote flow shipped.
+  const subStatus = sub.status as string
+  if (subStatus !== 'quote_accepted' && subStatus !== 'pending') {
+    return NextResponse.json({
+      error: subStatus === 'quoted'
+        ? 'Anchor hasn\'t accepted the quote yet. Wait for them to accept before publishing.'
+        : `Submission is ${subStatus}, not ready to publish`,
+    }, { status: 409 })
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,7 +145,14 @@ export async function POST(req: NextRequest) {
   if (!seatsTotal || seatsTotal <= 0) {
     return NextResponse.json({ error: 'Submission missing seats/spots total' }, { status: 400 })
   }
-  const charterTotalCents = Math.round(pricePerSeat * seatsTotal * 100)
+  // Lock to the quoted total when present — that's the exact number
+  // the anchor accepted. Falls back to per-seat × seats for legacy
+  // submissions that pre-date the quote flow.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const quotedTotalCents = (sub as any).quoted_total_cents as number | null | undefined
+  const charterTotalCents = quotedTotalCents && quotedTotalCents > 0
+    ? quotedTotalCents
+    : Math.round(pricePerSeat * seatsTotal * 100)
 
   // ─── Anchor's Stripe customer + default payment method ─────────────────────
   // Resolve via DB-then-Stripe-metadata fallback so a silent cache-write
