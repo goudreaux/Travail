@@ -522,7 +522,10 @@ export default function QueuePage() {
     // Ops enters the TOTAL trip cost; per-seat is derived. The API
     // endpoint still wants price_per_seat (it computes charter_total
     // back to cents internally), so we divide here.
-    const seatsTotal = num('seatsTotal', p.seatsTotal ?? p.seats_total ?? p.spotsTotal ?? p.spots_total ?? 0)
+    // Flights use seatsTotal; excursions use spotsTotal — pick whichever
+    // the kind exposes so we don't fall through to a stale default.
+    const seatsKey = anchor.kind === 'flight' ? 'seatsTotal' : 'spotsTotal'
+    const seatsTotal = num(seatsKey, p.seatsTotal ?? p.seats_total ?? p.spotsTotal ?? p.spots_total ?? 0)
     const totalCost = num('totalCost', (() => {
       // Default fallback: legacy submissions store per-seat; derive total.
       const legacyPerSeat = Number(p.pricePerSeat ?? p.price_per_seat ?? p.pricePerPax ?? p.price_per_pax ?? 0)
