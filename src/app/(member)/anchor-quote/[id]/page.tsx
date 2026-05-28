@@ -16,6 +16,7 @@ interface QuoteSubmission {
   kind: 'flight' | 'excursion'
   member_id: string
   status: string
+  charter_cost_cents: number | null
   quoted_total_cents: number | null
   quoted_at: string | null
   quote_declined_at: string | null
@@ -46,7 +47,7 @@ export default function AnchorQuotePage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error: subErr } = await (supabase as any)
         .from('anchor_submissions')
-        .select('id, kind, member_id, status, quoted_total_cents, quoted_at, quote_accepted_at, quote_declined_at, payload')
+        .select('id, kind, member_id, status, charter_cost_cents, quoted_total_cents, quoted_at, quote_accepted_at, quote_declined_at, payload')
         .eq('id', submissionId)
         .maybeSingle()
       if (cancelled) return
@@ -104,6 +105,12 @@ export default function AnchorQuotePage() {
   const seatsTotal = Number(body.seatsTotal ?? body.spotsTotal ?? body.seats_total ?? body.spots_total ?? 0)
   const totalCents = sub.quoted_total_cents ?? 0
   const totalDollars = totalCents / 100
+  // Recover the charter + fee breakdown. Legacy quotes (pre-3% fee
+  // migration) have null charter_cost_cents; treat the whole quoted
+  // total as charter with $0 fee so display still makes sense.
+  const charterCents = sub.charter_cost_cents ?? totalCents
+  const charterDollars = charterCents / 100
+  const feeDollars = (totalCents - charterCents) / 100
   const perPax = seatsTotal > 0 ? totalDollars / seatsTotal : 0
   const anchorSeats = Number(body.seatsAnchor ?? body.spotsAnchor ?? body.seats_anchor ?? body.spots_anchor ?? 0)
   const anchorFloor = perPax * anchorSeats
@@ -177,6 +184,25 @@ export default function AnchorQuotePage() {
             {fmtMoney(perPax)} / seat × {seatsTotal} seats
           </div>
 
+          {/* Breakdown — what makes up the total */}
+          {feeDollars > 0 && (
+            <div style={{ background: 'var(--paper)', borderRadius: 10, padding: '14px 16px', marginTop: 18, border: '1px solid var(--hair)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-soft)', marginBottom: 8 }}>
+                <span>Charter cost (Tropic + operators)</span>
+                <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{fmtMoney(charterDollars)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-soft)' }}>
+                <span>Travail service fee <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-light)' }}>3%</span></span>
+                <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{fmtMoney(feeDollars)}</span>
+              </div>
+              <div style={{ height: 1, background: 'var(--hair)', margin: '10px 0 8px' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, alignItems: 'center' }}>
+                <span style={{ fontWeight: 700, color: 'var(--ink)' }}>Authorized capture</span>
+                <span style={{ fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--ui)', fontSize: 16, letterSpacing: '-0.012em' }}>{fmtMoney(totalDollars)}</span>
+              </div>
+            </div>
+          )}
+
           <div style={{ height: 1, background: 'var(--hair)', margin: '18px 0' }} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-soft)', marginBottom: 6 }}>
@@ -189,7 +215,7 @@ export default function AnchorQuotePage() {
           </div>
 
           <div style={{ background: 'rgba(0,179,199,0.06)', borderLeft: '3px solid var(--tropic)', borderRadius: '0 8px 8px 0', padding: '12px 14px', fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, marginTop: 18 }}>
-            On accept, we capture the full charter on your card. As pax book seats, you'll be rebated at trip departure — final bill never goes above your floor.
+            On accept, we capture the full amount above on your card. As pax book seats, the charter portion you covered is rebated at trip departure — your final charter cost never goes above your floor. {feeDollars > 0 ? 'The 3% service fee stays with Travail; only refunded if Ops cancels the trip itself.' : ''}
           </div>
         </div>
 

@@ -128,9 +128,11 @@ export interface SettlementEmailParams {
   memberName: string            // "Griffin Goudreau"
   tripName: string              // "Lobster Mini Season · Key West"
   tripDate?: string | null
-  charterTotalCents: number     // what was captured at publish
-  paidRevenueCents: number      // sum of pax payments + forfeits
-  anchorRefundCents: number     // what's being refunded back
+  charterTotalCents: number     // what was captured at publish (charter + fee)
+  charterCostCents?: number | null  // Tropic bare charter cost (charter portion only); null for legacy rows
+  serviceFeeCents?: number | null   // 3% anchor service fee (Travail margin)
+  paidRevenueCents: number      // sum of pax payments + forfeits (charter portion only)
+  anchorRefundCents: number     // what's being refunded back (capped at paid_revenue)
   anchorNetPaidCents: number    // final amount anchor was billed
   refundId?: string | null      // Stripe refund id (for the audit line)
   paxSeatsSold: number          // # of seats sold to non-anchor members
@@ -237,7 +239,11 @@ function brandedSettlementEmail(p: SettlementEmailParams, filled: boolean, fullF
         <tr><td style="padding:8px 36px 24px;">
           <div style="font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:#6b7c80;font-weight:700;margin-bottom:14px;">The breakdown</div>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-            ${row('Charter captured at publish', fmtMoney(p.charterTotalCents))}
+            ${p.charterCostCents != null && p.serviceFeeCents != null && p.serviceFeeCents > 0 ? `
+              ${row('Charter (Tropic + operators)', fmtMoney(p.charterCostCents))}
+              ${row('Travail service fee (3%)', fmtMoney(p.serviceFeeCents))}
+              ${row('Captured at publish', fmtMoney(p.charterTotalCents))}
+            ` : row('Charter captured at publish', fmtMoney(p.charterTotalCents))}
             ${row(`Pax revenue (${p.paxSeatsSold} seat${p.paxSeatsSold === 1 ? '' : 's'})`, fmtMoney(p.paidRevenueCents), 'in')}
             ${row('Refunded to your card', '−' + fmtMoney(p.anchorRefundCents), 'out')}
             <tr>
@@ -250,7 +256,7 @@ function brandedSettlementEmail(p: SettlementEmailParams, filled: boolean, fullF
         <!-- Explainer panel -->
         <tr><td style="padding:6px 36px 24px;">
           <div style="background:rgba(0,179,199,0.06);border-left:3px solid #00b3c7;border-radius:0 8px 8px 0;padding:14px 16px;font-size:13px;color:#1f4b5b;line-height:1.55;">
-            <strong style="color:#0d3340;font-weight:700;">How the math works.</strong> When you anchored the trip we captured the full charter cost (${fmtMoney(p.charterTotalCents)}) on your card. As members booked, their seats covered the cost; the difference is refunded back to you at trip departure. You're always responsible for your own seat${p.anchorSeats === 1 ? '' : 's'} and any that didn't sell.
+            <strong style="color:#0d3340;font-weight:700;">How the math works.</strong> When you anchored the trip we captured ${fmtMoney(p.charterTotalCents)} on your card${p.serviceFeeCents && p.serviceFeeCents > 0 ? ` — the ${fmtMoney(p.charterCostCents ?? 0)} charter plus the 3% Travail service fee` : ''}. As members booked, the charter portion of their seats covered cost; that's what's refunded to you at trip departure. You're always responsible for your own seat${p.anchorSeats === 1 ? '' : 's'} and any that didn't sell${p.serviceFeeCents && p.serviceFeeCents > 0 ? ', plus the service fee' : ''}.
           </div>
         </td></tr>
 

@@ -29,6 +29,7 @@ type AnchorRow = AnchorSubmission & {
   member: Pick<Member, 'name' | 'initials'> | null
   // Quote-flow columns (migration 042). Cast at the type boundary since
   // generated supabase types haven't been regenerated yet.
+  charter_cost_cents?: number | null
   quoted_total_cents?: number | null
   quoted_at?: string | null
   quote_accepted_at?: string | null
@@ -86,31 +87,52 @@ function TotalCostField({
 }) {
   const seats = Number(draft[seatsKey] ?? 0)
   const locked = typeof lockedCents === 'number' && lockedCents > 0
-  const total = locked ? lockedCents / 100 : Number(draft.totalCost ?? 0)
+  // Field input = the BARE Tropic charter cost. Travail's 3% service
+  // fee gets added on top to produce the total the anchor authorizes.
+  const ANCHOR_FEE_RATE = 0.03
+  const charter = locked ? (lockedCents! / 100) / (1 + ANCHOR_FEE_RATE) : Number(draft.totalCost ?? 0)
+  const fee = charter * ANCHOR_FEE_RATE
+  const total = charter + fee
   const perSeat = seats > 0 && total > 0 ? total / seats : 0
   return (
     <div className="field" style={{ marginBottom: 0 }}>
       <label className="field-lab">
         {locked
-          ? <>Total trip cost <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tropic-d)', fontWeight: 700, marginLeft: 8 }}>· locked by quote</span></>
-          : 'Total trip cost (USD)'}
+          ? <>Charter cost (Tropic) <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tropic-d)', fontWeight: 700, marginLeft: 8 }}>· locked by quote</span></>
+          : 'Charter cost (Tropic + operators)'}
       </label>
       <input
         className="input"
         type="number"
         min={0}
-        value={locked ? total : (draft.totalCost ?? '')}
+        value={locked ? charter.toFixed(2) : (draft.totalCost ?? '')}
         placeholder="e.g. 6800"
         readOnly={locked}
         disabled={locked}
         style={locked ? { background: 'var(--paper)', color: 'var(--tropic-d)', fontWeight: 700, cursor: 'not-allowed' } : undefined}
         onChange={locked ? undefined : e => setDraft(prev => ({ ...prev, totalCost: e.target.value }))}
       />
-      <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-light)', marginTop: 6, letterSpacing: '0.06em' }}>
-        {perSeat > 0
-          ? `≈ $${perSeat.toFixed(2)} / ${perLabel} · ${seats} ${perLabel}${seats === 1 ? '' : 's'}${locked ? ' · authorized by anchor' : ''}`
-          : 'Enter seats + total to see per-' + perLabel}
-      </div>
+      {charter > 0 && (
+        <div style={{ background: 'var(--paper)', borderRadius: 8, padding: '10px 12px', marginTop: 8, fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-mid)', letterSpacing: '0.06em', lineHeight: 1.7 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Charter</span>
+            <span style={{ fontWeight: 700, color: 'var(--ink)' }}>${charter.toFixed(2)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Service fee (3%)</span>
+            <span style={{ fontWeight: 700, color: 'var(--ink)' }}>${fee.toFixed(2)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--hair)', paddingTop: 4, marginTop: 2 }}>
+            <span style={{ color: 'var(--tropic-d)', fontWeight: 700 }}>Anchor authorizes</span>
+            <span style={{ fontWeight: 700, color: 'var(--tropic-d)' }}>${total.toFixed(2)}</span>
+          </div>
+          {perSeat > 0 && (
+            <div style={{ marginTop: 4, color: 'var(--ink-light)', fontSize: 10 }}>
+              ≈ ${perSeat.toFixed(2)} / {perLabel} · {seats} {perLabel}{seats === 1 ? '' : 's'}{locked ? ' · authorized by anchor' : ''}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -522,6 +544,13 @@ export default function QueuePage() {
       // fall back to the submission's stored total or legacy per-seat
       // × seats math.
       totalCost: (() => {
+        // Field stores the BARE Tropic charter cost. Prefer the stored
+        // charter_cost_cents (post 3% fee migration). Fall back to
+        // back-deriving from quoted_total_cents for rows quoted before
+        // the migration, or to the payload's legacy total.
+        if (anchor.charter_cost_cents && anchor.charter_cost_cents > 0) {
+          return String(anchor.charter_cost_cents / 100)
+        }
         if (anchor.quoted_total_cents && anchor.quoted_total_cents > 0) {
           return String(anchor.quoted_total_cents / 100)
         }
