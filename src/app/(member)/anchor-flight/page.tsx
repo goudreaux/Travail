@@ -138,7 +138,7 @@ export default function AnchorFlightPage() {
 
   if (!isAdmin) return (
     <div className="page">
-      <PageHero eyebrow="ANCHOR A FLIGHT" title="Coming soon" sub="This feature is under development. Check back soon." />
+      <PageHero eyebrow="PLAN A TRIP · FLIGHT" title="Coming soon" sub="This feature is under development. Check back soon." />
     </div>
   )
 
@@ -277,7 +277,7 @@ export default function AnchorFlightPage() {
               We&apos;ve received your <strong>{origin.name} → {dest.name}</strong> anchor request.
             </p>
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', lineHeight: 1.5, margin: '0 0 32px' }}>
-              The Travail team will get a quote from Tropic and reach back out to confirm pricing before your anchor goes live to the network.
+              Ops will quote pricing with Tropic + the 3% service fee. You&apos;ll get a notification to review and accept it — nothing is charged until you do.
             </p>
             <div style={{ background: 'var(--warm)', borderRadius: 10, padding: '14px 18px', marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="mono">Submission ID</span>
@@ -306,7 +306,7 @@ export default function AnchorFlightPage() {
   return (
     <div className="page">
       <PageHero
-        eyebrow="ANCHOR A FLIGHT"
+        eyebrow="PLAN A TRIP · FLIGHT"
         title="Anchor a Flight"
         sub="Set your route, lock your seats, and invite the network to fill the rest."
       />
@@ -334,6 +334,20 @@ export default function AnchorFlightPage() {
                 <label className="field-lab">To</label>
                 <AirportDropdown value={dest} options={ANCHOR_DESTS} onChange={setDest} />
               </div>
+
+              {/* Route preview card — mirrors the Step 1 preview on the
+                  excursion wizard so the member sees the route locked
+                  in before they advance. */}
+              {origin.code !== dest.code && (
+                <div style={{ background: 'var(--warm)', border: '1px solid var(--hair)', borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ fontFamily: 'var(--display)', fontSize: 18, color: 'var(--ink)' }}>
+                    {origin.name} → {dest.name}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-mid)' }}>
+                    {origin.code} ({origin.sub}) → {dest.code} ({dest.sub})
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -476,7 +490,7 @@ export default function AnchorFlightPage() {
               <div style={{ background: 'var(--tropic-glow)', border: '1px solid rgba(0,179,199,0.2)', borderRadius: 10, padding: '14px 16px', marginTop: 14 }}>
                 <div className="mono" style={{ color: 'var(--tropic-d)', marginBottom: 6 }}>Pricing</div>
                 <p style={{ fontSize: 12.5, color: 'var(--ink-mid)', lineHeight: 1.55, margin: 0 }}>
-                  Seat pricing is confirmed by the Travail team. We&apos;ll check with Tropic for a quote and reach out before your anchor goes live.
+                  Ops will source a Tropic quote, add Travail&apos;s 3% service fee, and send it to you for review. <strong style={{ color: 'var(--ink)' }}>No card is captured until you accept the quote</strong> — you&apos;ll get a notification with the total to review.
                 </p>
               </div>
 
