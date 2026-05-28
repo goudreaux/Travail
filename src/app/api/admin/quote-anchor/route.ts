@@ -50,7 +50,14 @@ export async function POST(req: NextRequest) {
   if (!Number.isFinite(totalCost) || totalCost <= 0) {
     return NextResponse.json({ error: 'total_cost must be a positive number (dollars)' }, { status: 400 })
   }
-  const totalCents = Math.round(totalCost * 100)
+  // The Ops form supplies the bare Tropic charter cost. Travail's 3%
+  // service fee gets added on top so the anchor authorizes (and is
+  // captured for) charter + fee. The fee stays with Travail; it's
+  // not refunded at settlement.
+  const ANCHOR_FEE_RATE = 0.03
+  const charterCents = Math.round(totalCost * 100)
+  const feeCents = Math.round(charterCents * ANCHOR_FEE_RATE)
+  const totalCents = charterCents + feeCents
 
   const db = admin()
   const { data: sub } = await db
@@ -71,6 +78,10 @@ export async function POST(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: updErr } = await (db.from('anchor_submissions') as any)
     .update({
+      // Tropic's bare charter cost — stored separately so we can
+      // recover the fee breakdown for receipts + display.
+      charter_cost_cents: charterCents,
+      // What we'll actually capture from the anchor's card.
       quoted_total_cents: totalCents,
       quoted_at: new Date().toISOString(),
       quoted_by: meRow.id,
@@ -84,16 +95,20 @@ export async function POST(req: NextRequest) {
 
   // Anchor in-app notification (notify-email Edge Function fans this
   // out to the anchor's email). Deep-links to the accept/decline page.
-  const perPax = totalCents / seatsTotal / 100
+  const totalDollars = totalCents / 100
+  const charterDollars = charterCents / 100
+  const feeDollars = feeCents / 100
+  const perPax = totalDollars / seatsTotal
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db.from('notifications') as any).insert({
     member_id: sub.member_id,
     kind: 'approval',
     title: `Quote ready · ${body.name ?? sub.kind}`,
     body:
-      `Ops sourced pricing for "${body.name ?? sub.kind}": $${totalCost.toLocaleString()} total ` +
-      `(~$${perPax.toFixed(2)}/seat × ${seatsTotal} seats). ` +
-      `Review and accept to authorize the charter capture.`,
+      `Ops sourced pricing for "${body.name ?? sub.kind}": ` +
+      `$${charterDollars.toLocaleString()} charter + $${feeDollars.toFixed(2)} service fee (3%) = ` +
+      `$${totalDollars.toLocaleString()} total. ` +
+      `Review and accept to authorize the capture.`,
     ref: {
       kind: 'anchor_quote',
       anchor_submission_id: submissionId,
@@ -117,7 +132,9 @@ export async function POST(req: NextRequest) {
     amountCents: totalCents,
     details: {
       'Action': 'Quote sent to anchor',
-      'Total quoted': `$${totalCost.toLocaleString()}`,
+      'Charter cost (Tropic)': `$${charterDollars.toLocaleString()}`,
+      'Service fee (3%)': `$${feeDollars.toFixed(2)}`,
+      'Total quoted': `$${totalDollars.toLocaleString()}`,
       'Per seat (derived)': `$${perPax.toFixed(2)}`,
       'Seats total': seatsTotal,
     },

@@ -283,6 +283,26 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Pull the original quote so the settlement email can show the
+  // charter / service-fee breakdown (rather than only the captured
+  // total). Best-effort — the submission row may have been pruned;
+  // legacy rows pre-fee have null charter_cost_cents.
+  let charterCostCents: number | null = null
+  let serviceFeeCents: number | null = null
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: sub } = await (db.from('anchor_submissions') as any)
+      .select('charter_cost_cents, quoted_total_cents')
+      .eq('published_item_id', itemId)
+      .maybeSingle()
+    if (sub?.charter_cost_cents) {
+      charterCostCents = Number(sub.charter_cost_cents)
+      serviceFeeCents = Math.max(0, charterTotalCents - charterCostCents)
+    }
+  } catch (e) {
+    safeError('settle-trip: charter breakdown lookup failed (non-fatal)', e)
+  }
+
   // Anchor email
   if (trip.anchor_member_id) {
     const { data: anchorMember } = await db
@@ -295,6 +315,8 @@ export async function POST(req: NextRequest) {
         tripName: trip.name ?? (itemKind === 'flight' ? 'Anchored flight' : 'Anchored excursion'),
         tripDate,
         charterTotalCents,
+        charterCostCents,
+        serviceFeeCents,
         paidRevenueCents,
         anchorRefundCents,
         anchorNetPaidCents,
