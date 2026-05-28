@@ -273,8 +273,38 @@ Deno.serve(async (req) => {
       }),
     })
 
+    // Structured audit row in email_log — best-effort, swallow errors so a
+    // log failure never bounces the notification.
+    let resendId: string | null = null
+    let sendError: string | null = null
+    if (res.ok) {
+      try {
+        const body = await res.clone().json()
+        resendId = body?.id ?? null
+      } catch { /* non-fatal */ }
+    } else {
+      try { sendError = await res.clone().text() } catch { sendError = `status ${res.status}` }
+    }
+    try {
+      await admin.from('email_log').insert({
+        kind: 'notify_email',
+        member_id: record.member_id,
+        to_email: to,
+        subject: record.title,
+        resend_id: resendId,
+        refs: {
+          notification_id: record.id,
+          notification_kind: record.kind ?? null,
+          ref: record.ref ?? null,
+        },
+        send_status: res.ok ? 'sent' : 'failed',
+        send_error: sendError,
+        bcc_ops: !!opsBcc,
+      })
+    } catch { /* don't let audit failure mask the real result */ }
+
     if (!res.ok) {
-      return new Response(`email failed: ${await res.text()}`, { status: 500 })
+      return new Response(`email failed: ${sendError ?? 'unknown'}`, { status: 500 })
     }
     return new Response('sent', { status: 200 })
   } catch (e) {

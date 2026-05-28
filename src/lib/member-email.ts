@@ -8,7 +8,9 @@
 // completes and the in-app notification still fires.
 
 import { Resend } from 'resend'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { safeError } from '@/lib/pii-scrub'
+import type { Database } from '@/lib/supabase/types'
 
 const DEFAULT_FROM = 'Travail Concierge <concierge@travailclub.com>'
 
@@ -24,7 +26,9 @@ const OPS_PAPER_TRAIL_BCC = (
 ).trim()
 
 // All transactional member emails go through this — guarantees the
-// BCC is attached. Returns the Resend response.
+// BCC is attached AND every send (success or failure) gets an
+// email_log row written for structured auditing. The audit insert is
+// best-effort; if it fails we don't block the underlying transaction.
 async function sendMemberMail(
   resend: Resend,
   args: {
@@ -33,20 +37,96 @@ async function sendMemberMail(
     html: string
     text: string
     replyTo?: string
+    // Audit context — what kind of send, which member, what does it
+    // reference. Used to fill the email_log row.
+    kind: string
+    memberId?: string | null
+    refs?: Record<string, unknown>
   },
 ) {
-  return resend.emails.send({
-    from: process.env.RESEND_FROM ?? DEFAULT_FROM,
-    to: [args.to],
-    subject: args.subject,
-    html: args.html,
-    text: args.text,
-    replyTo: args.replyTo ?? process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
-    // BCC ops on every member email for the paper trail. Member never
-    // sees this address — Resend strips the BCC header from the
-    // delivered envelope.
-    ...(OPS_PAPER_TRAIL_BCC ? { bcc: [OPS_PAPER_TRAIL_BCC] } : {}),
-  })
+  let resendId: string | null = null
+  let sendStatus: 'sent' | 'failed' = 'sent'
+  let sendError: string | null = null
+
+  try {
+    const res = await resend.emails.send({
+      from: process.env.RESEND_FROM ?? DEFAULT_FROM,
+      to: [args.to],
+      subject: args.subject,
+      html: args.html,
+      text: args.text,
+      replyTo: args.replyTo ?? process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
+      // BCC ops on every member email for the paper trail. Member never
+      // sees this address — Resend strips the BCC header from the
+      // delivered envelope.
+      ...(OPS_PAPER_TRAIL_BCC ? { bcc: [OPS_PAPER_TRAIL_BCC] } : {}),
+    })
+    // Resend's SDK returns { data: { id }, error } — capture id when present.
+    resendId = (res as { data?: { id?: string | null } | null })?.data?.id ?? null
+    await logEmailSend({
+      kind: args.kind,
+      memberId: args.memberId ?? null,
+      to: args.to,
+      subject: args.subject,
+      resendId,
+      refs: args.refs ?? {},
+      status: sendStatus,
+      error: null,
+    })
+    return res
+  } catch (err) {
+    sendStatus = 'failed'
+    sendError = err instanceof Error ? err.message : String(err)
+    await logEmailSend({
+      kind: args.kind,
+      memberId: args.memberId ?? null,
+      to: args.to,
+      subject: args.subject,
+      resendId: null,
+      refs: args.refs ?? {},
+      status: sendStatus,
+      error: sendError,
+    })
+    throw err
+  }
+}
+
+// Insert one row into public.email_log. Service-role only (RLS forbids
+// client writes). Safe-fail: any error here is swallowed and logged —
+// missing an audit row is bad but not as bad as bouncing the caller.
+async function logEmailSend(row: {
+  kind: string
+  memberId: string | null
+  to: string
+  subject: string
+  resendId: string | null
+  refs: Record<string, unknown>
+  status: 'sent' | 'failed'
+  error: string | null
+}): Promise<void> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceKey) return // can't log without admin client — silent skip
+
+  try {
+    const admin = createAdminClient<Database>(url, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any).from('email_log').insert({
+      kind: row.kind,
+      member_id: row.memberId,
+      to_email: row.to,
+      subject: row.subject,
+      resend_id: row.resendId,
+      refs: row.refs,
+      send_status: row.status,
+      send_error: row.error,
+      bcc_ops: true,
+    })
+  } catch (err) {
+    safeError('logEmailSend: insert failed (non-fatal)', err)
+  }
 }
 
 function escapeHtml(s: string): string {
@@ -72,6 +152,9 @@ function fmtMoney(cents: number): string {
 export interface BookingReceiptEmailParams {
   to: string
   memberName: string
+  memberId?: string | null    // for email_log attribution
+  bookingId?: string | null   // for email_log.refs
+  tripId?: string | null      // for email_log.refs
   tripName: string
   tripDate?: string | null
   tripLocation?: string | null
@@ -114,7 +197,18 @@ export async function sendBookingReceiptEmail(p: BookingReceiptEmailParams): Pro
 
   const resend = new Resend(apiKey)
   try {
-    await sendMemberMail(resend, { to: p.to, subject, html, text })
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'booking_receipt',
+      memberId: p.memberId ?? null,
+      refs: {
+        booking_id: p.bookingId ?? null,
+        trip_id: p.tripId ?? null,
+        trip_name: p.tripName,
+        confirmation_code: p.confirmationCode,
+        total_cents: p.totalCents,
+      },
+    })
   } catch (err) {
     safeError('sendBookingReceiptEmail: send failed (non-fatal)', err)
   }
@@ -195,6 +289,9 @@ function brandedBookingReceiptEmail(p: BookingReceiptEmailParams): string {
 export interface TripCancelledEmailParams {
   to: string
   memberName: string
+  memberId?: string | null    // for email_log
+  tripId?: string | null      // for email_log.refs
+  bookingId?: string | null   // pax only — for email_log.refs
   role: 'anchor' | 'pax'
   tripName: string
   tripDate?: string | null
@@ -234,7 +331,19 @@ export async function sendTripCancelledEmail(p: TripCancelledEmailParams): Promi
 
   const resend = new Resend(apiKey)
   try {
-    await sendMemberMail(resend, { to: p.to, subject, html, text })
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'trip_cancelled',
+      memberId: p.memberId ?? null,
+      refs: {
+        role: p.role,
+        trip_id: p.tripId ?? null,
+        booking_id: p.bookingId ?? null,
+        trip_name: p.tripName,
+        refund_cents: p.refundCents,
+        refund_id: p.refundId ?? null,
+      },
+    })
   } catch (err) {
     safeError('sendTripCancelledEmail: send failed (non-fatal)', err)
   }
@@ -325,6 +434,9 @@ function brandedTripCancelledEmail(p: TripCancelledEmailParams): string {
 export interface PaxTripCompleteParams {
   to: string
   memberName: string
+  memberId?: string | null    // for email_log
+  tripId?: string | null      // for email_log.refs
+  bookingId?: string | null   // for email_log.refs
   tripName: string
   tripDate?: string | null
   seats: number
@@ -355,7 +467,17 @@ export async function sendPaxTripCompleteEmail(p: PaxTripCompleteParams): Promis
 
   const resend = new Resend(apiKey)
   try {
-    await sendMemberMail(resend, { to: p.to, subject, html, text })
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'pax_trip_complete',
+      memberId: p.memberId ?? null,
+      refs: {
+        trip_id: p.tripId ?? null,
+        booking_id: p.bookingId ?? null,
+        trip_name: p.tripName,
+        amount_paid_cents: p.amountPaidCents,
+      },
+    })
   } catch (err) {
     safeError('sendPaxTripCompleteEmail: send failed (non-fatal)', err)
   }
@@ -409,6 +531,9 @@ function brandedPaxTripCompleteEmail(p: PaxTripCompleteParams): string {
 export interface SettlementEmailParams {
   to: string                    // anchor's email
   memberName: string            // "Griffin Goudreau"
+  memberId?: string | null      // for email_log attribution
+  tripId?: string | null        // for email_log.refs
+  anchorSubmissionId?: string | null  // for email_log.refs
   tripName: string              // "Lobster Mini Season · Key West"
   tripDate?: string | null
   charterTotalCents: number     // what was captured at publish (charter + fee)
@@ -462,7 +587,19 @@ export async function sendSettlementEmail(p: SettlementEmailParams): Promise<voi
 
   const resend = new Resend(apiKey)
   try {
-    await sendMemberMail(resend, { to: p.to, subject, html, text })
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'settlement',
+      memberId: p.memberId ?? null,
+      refs: {
+        trip_id: p.tripId ?? null,
+        anchor_submission_id: p.anchorSubmissionId ?? null,
+        trip_name: p.tripName,
+        anchor_refund_cents: p.anchorRefundCents,
+        anchor_net_paid_cents: p.anchorNetPaidCents,
+        refund_id: p.refundId ?? null,
+      },
+    })
   } catch (err) {
     safeError('sendSettlementEmail: send failed (non-fatal)', err)
   }

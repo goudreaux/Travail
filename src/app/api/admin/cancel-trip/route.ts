@@ -255,6 +255,9 @@ export async function POST(req: NextRequest) {
       await sendTripCancelledEmail({
         to: paxEmail,
         memberName: paxMember?.name ?? 'Member',
+        memberId: r.memberId,
+        tripId: itemId,
+        bookingId: r.bookingId,
         role: 'pax',
         tripName: trip.name ?? (itemKind === 'flight' ? 'Flight' : 'Excursion'),
         tripDate: trip.date ?? null,
@@ -286,6 +289,8 @@ export async function POST(req: NextRequest) {
       await sendTripCancelledEmail({
         to: anchorEmail,
         memberName: anchorMember?.name ?? 'Member',
+        memberId: trip.anchor_member_id,
+        tripId: itemId,
         role: 'anchor',
         tripName: trip.name ?? (itemKind === 'flight' ? 'Anchored flight' : 'Anchored excursion'),
         tripDate: trip.date ?? null,

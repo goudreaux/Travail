@@ -16,10 +16,47 @@
 // in the Stripe dashboard or the activity_log table.
 
 import { Resend } from 'resend'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { safeError } from '@/lib/pii-scrub'
+import type { Database } from '@/lib/supabase/types'
 
 const DEFAULT_FROM = 'Travail Concierge <concierge@travailclub.com>'
 const DEFAULT_TO = 'ops@travailclub.com'
+
+// Best-effort row into public.email_log. Service-role only. Swallows
+// errors — a failed audit row must never break an ops notification.
+async function logOpsEmail(row: {
+  to: string
+  subject: string
+  resendId: string | null
+  kind: OpsNotifyKind
+  refs: Record<string, unknown>
+  status: 'sent' | 'failed'
+  error: string | null
+}): Promise<void> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceKey) return
+  try {
+    const admin = createAdminClient<Database>(url, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any).from('email_log').insert({
+      kind: 'ops_notify',
+      member_id: null,    // ops emails aren't addressed to a member
+      to_email: row.to,
+      subject: row.subject,
+      resend_id: row.resendId,
+      refs: { ops_kind: row.kind, ...row.refs },
+      send_status: row.status,
+      send_error: row.error,
+      bcc_ops: false,
+    })
+  } catch (err) {
+    safeError('logOpsEmail: insert failed (non-fatal)', err)
+  }
+}
 
 export type OpsNotifyKind =
   | 'anchor_capture'        // Anchor charged for full charter at publish
@@ -140,17 +177,36 @@ export async function notifyOps(opts: OpsNotifyOptions): Promise<void> {
   const html = brandedOpsEmail({ ...opts, meta, memberName, amountStr, tsHuman })
 
   const resend = new Resend(apiKey)
+  const to = process.env.OPS_INBOX_EMAIL ?? DEFAULT_TO
+  const refs: Record<string, unknown> = {
+    member_code: opts.member?.memberCode ?? null,
+    member_email: opts.member?.email ?? null,
+    item_kind: opts.item?.kind ?? null,
+    item_id: opts.item?.id ?? null,
+    item_name: opts.item?.name ?? null,
+    amount_cents: opts.amountCents ?? null,
+    payment_intent_id: opts.stripe?.paymentIntentId ?? null,
+    refund_id: opts.stripe?.refundId ?? null,
+    charge_id: opts.stripe?.chargeId ?? null,
+    customer_id: opts.stripe?.customerId ?? null,
+  }
   try {
-    await resend.emails.send({
+    const res = await resend.emails.send({
       from: process.env.RESEND_FROM ?? DEFAULT_FROM,
-      to: [process.env.OPS_INBOX_EMAIL ?? DEFAULT_TO],
+      to: [to],
       subject,
       html,
       text,
     })
+    const resendId = (res as { data?: { id?: string | null } | null })?.data?.id ?? null
+    await logOpsEmail({ to, subject, resendId, kind: opts.kind, refs, status: 'sent', error: null })
   } catch (err) {
     // Never bubble a notification failure into the underlying flow.
     safeError('notifyOps: send failed (non-fatal)', err)
+    await logOpsEmail({
+      to, subject, resendId: null, kind: opts.kind, refs,
+      status: 'failed', error: err instanceof Error ? err.message : String(err),
+    })
   }
 }
 

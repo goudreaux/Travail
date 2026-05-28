@@ -312,6 +312,8 @@ export async function POST(req: NextRequest) {
       await sendSettlementEmail({
         to: anchorEmail,
         memberName: anchorMember?.name ?? 'Member',
+        memberId: trip.anchor_member_id,
+        tripId: itemId,
         tripName: trip.name ?? (itemKind === 'flight' ? 'Anchored flight' : 'Anchored excursion'),
         tripDate,
         charterTotalCents,
@@ -349,6 +351,9 @@ export async function POST(req: NextRequest) {
       await sendPaxTripCompleteEmail({
         to: paxEmail,
         memberName: paxMember?.name ?? 'Member',
+        memberId: b.member_id,
+        tripId: itemId,
+        bookingId: b.id,
         tripName: trip.name ?? (itemKind === 'flight' ? 'Flight' : 'Excursion'),
         tripDate,
         seats: Number(b.seats ?? 1),

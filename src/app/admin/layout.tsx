@@ -68,6 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/bookings', label: 'Bookings' },
     { href: '/admin/members', label: 'People' },
     { href: '/admin/activity', label: 'Activity' },
+    { href: '/admin/email-log', label: 'Email log' },
     { href: '/admin/posts', label: 'Feed' },
     { href: '/admin/developer', label: 'Developer' },
   ]
