@@ -654,7 +654,17 @@ export default function TripsPage() {
   // returns the existing settlement on the second call).
   async function settleTrip(kind: 'flight' | 'excursion', id: string, name: string) {
     if (settling) return
-    if (!confirm(`Settle "${name}"? This refunds the anchor for whatever the pax pool covered and finalizes the trip's books. Cannot be undone.`)) return
+    // Detect whether this is an early-override (date still in the future)
+    // so we can warn more explicitly. The endpoint accepts either case.
+    const trip = kind === 'flight'
+      ? flights.find(f => f.id === id)
+      : excursions.find(e => e.id === id)
+    const todayIso = new Date().toISOString().slice(0, 10)
+    const isOverride = trip ? (trip.date > todayIso && trip.status !== 'departed' && trip.status !== 'completed') : false
+    const prompt = isOverride
+      ? `FORCE SETTLE "${name}"?\n\nThis trip's departure date is in the future. Settling now will:\n  • Refund the anchor based on what pax have paid so far\n  • Send the settlement email to the anchor immediately\n  • Block the cron from settling it later (idempotent)\n\nUse for testing or to wrap a trip early. Cannot be undone.`
+      : `Settle "${name}"? This refunds the anchor for whatever the pax pool covered and finalizes the trip's books. Cannot be undone.`
+    if (!confirm(prompt)) return
     setSettling(id)
     try {
       const res = await fetch('/api/admin/settle-trip', {
@@ -1315,16 +1325,13 @@ export default function TripsPage() {
                   <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                     <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={it.onEdit}>Edit</button>
                     {(() => {
-                      // Settle is available when the trip has an anchor
-                      // capture (anchorPi) AND hasn't been settled yet,
-                      // AND the trip is past — either status='departed'/
-                      // 'completed' OR the calendar date is today or
-                      // earlier (so Ops can settle a trip whose status
-                      // hasn't flipped yet).
+                      // Manual settle override. The cron auto-settles at
+                      // trip departure; this button is Ops's escape hatch
+                      // (or test path) to settle on demand, regardless of
+                      // date or status. Gated only on "trip was captured"
+                      // and "not already settled" — the human clicking
+                      // the button has the context to make that call.
                       if (!it.anchorPi) return null
-                      const todayIso = new Date().toISOString().slice(0, 10)
-                      const isPast = it.date <= todayIso || it.status === 'departed' || it.status === 'completed'
-                      if (!isPast) return null
                       if (it.settledAt) {
                         return (
                           <span
@@ -1335,15 +1342,26 @@ export default function TripsPage() {
                           </span>
                         )
                       }
+                      // Visual differentiation: trips already past use
+                      // the prominent sun CTA; trips still upcoming use
+                      // a quieter ghost so Ops sees at a glance which
+                      // settlements are normal vs early-override.
+                      const todayIso = new Date().toISOString().slice(0, 10)
+                      const isPast = it.date <= todayIso || it.status === 'departed' || it.status === 'completed'
                       return (
                         <button
-                          className="btn-sun"
-                          style={{ height: 28, padding: '0 12px', fontSize: 12, marginLeft: 6 }}
+                          className={isPast ? 'btn-sun' : 'btn-ghost'}
+                          style={{
+                            height: 28, padding: '0 12px', fontSize: 12, marginLeft: 6,
+                            ...(isPast ? {} : { color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.35)' }),
+                          }}
                           disabled={settling === it.key}
                           onClick={() => settleTrip(it.kind, it.key, it.name)}
-                          title="Refund the anchor for whatever the pax pool covered + send the settlement email"
+                          title={isPast
+                            ? 'Refund the anchor for whatever the pax pool covered + send the settlement email'
+                            : 'Force-settle this trip BEFORE its departure date. Refunds + emails fire immediately.'}
                         >
-                          {settling === it.key ? '…' : 'Settle now →'}
+                          {settling === it.key ? '…' : (isPast ? 'Settle now →' : 'Force settle')}
                         </button>
                       )
                     })()}
