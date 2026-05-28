@@ -259,7 +259,10 @@ export async function POST(req: NextRequest) {
       // Roll back the capture if we failed to create the trip.
       try { await stripe.refunds.create({ payment_intent: pi.id, reason: 'duplicate' }) } catch { /* best effort */ }
       safeError('Flight insert failed:', error)
-      return NextResponse.json({ error: 'Trip creation failed; capture rolled back.' }, { status: 500 })
+      return NextResponse.json({
+        error: `Trip creation failed; capture rolled back. (${error?.message ?? 'unknown'})`,
+        db_detail: { code: error?.code, message: error?.message, details: error?.details, hint: error?.hint },
+      }, { status: 500 })
     }
     publishedItemId = ins.id
   } else {
@@ -301,7 +304,10 @@ export async function POST(req: NextRequest) {
     if (error || !ins) {
       try { await stripe.refunds.create({ payment_intent: pi.id, reason: 'duplicate' }) } catch { /* best effort */ }
       safeError('Excursion insert failed:', error)
-      return NextResponse.json({ error: 'Excursion creation failed; capture rolled back.' }, { status: 500 })
+      return NextResponse.json({
+        error: `Excursion creation failed; capture rolled back. (${error?.message ?? 'unknown'})`,
+        db_detail: { code: error?.code, message: error?.message, details: error?.details, hint: error?.hint },
+      }, { status: 500 })
     }
     publishedItemId = ins.id
   }
