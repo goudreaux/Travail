@@ -76,13 +76,13 @@ export default function OnboardingSubscribePage() {
       <div className="invite-glow invite-glow--top" />
       <div className="invite-card" style={{ maxWidth: 520 }}>
         <div className="mono" style={{ fontSize: 10, letterSpacing: '0.22em', color: 'var(--sun)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 14 }}>
-          Founding member · $200/month
+          Founding membership
         </div>
         <h1 style={{ fontFamily: 'var(--display)', fontSize: 32, fontWeight: 400, color: 'var(--ink)', margin: '0 0 10px', letterSpacing: '-0.015em' }}>
-          Lock in your founding rate{memberName ? `, ${memberName.split(' ')[0]}` : ''}.
+          Activate your membership{memberName ? `, ${memberName.split(' ')[0]}` : ''}.
         </h1>
         <p style={{ fontSize: 14.5, color: 'var(--ink-soft)', lineHeight: 1.65, margin: '0 0 22px' }}>
-          $200/month, locked for life as long as your membership stays active. The public rate will rise — your card will keep billing the founding rate.
+          Travail membership is $200 per month. As a founding member, your rate remains at this level for as long as your membership is active.
         </p>
 
         {status === 'loading' && (
