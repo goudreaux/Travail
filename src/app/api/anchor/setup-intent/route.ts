@@ -82,21 +82,31 @@ export async function GET() {
   }
 
   try {
-    // Use the customer's default payment method if set; otherwise the
-    // most recent attached card.
+    // Prefer the customer's default PM (set by /finalize after confirm).
+    // Fall back to listing — try card first, then link (Stripe Link
+    // wraps a card and lands as type=link). The fallback also covers
+    // a race where the default isn't promoted yet.
     const customer = await stripe.customers.retrieve(m.stripe_customer_id)
     if (customer.deleted) return NextResponse.json({ hasCard: false })
 
     let pmId = (customer.invoice_settings?.default_payment_method as string | null) ?? null
     if (!pmId) {
-      const pms = await stripe.paymentMethods.list({ customer: m.stripe_customer_id, type: 'card', limit: 1 })
-      pmId = pms.data[0]?.id ?? null
+      for (const t of ['card', 'link'] as const) {
+        const pms = await stripe.paymentMethods.list({ customer: m.stripe_customer_id, type: t, limit: 1 })
+        if (pms.data[0]) { pmId = pms.data[0].id; break }
+      }
     }
     if (!pmId) return NextResponse.json({ hasCard: false })
 
     const pm = await stripe.paymentMethods.retrieve(pmId)
-    const card = pm.card
-    if (!card) return NextResponse.json({ hasCard: false })
+    // Surface card details whether the PM is a raw card or a Link
+    // wrapper (Link exposes the underlying card via .card on retrieve).
+    const card = pm.card ?? (pm.type === 'link' ? pm.card : null)
+    if (!card) {
+      // Last-resort summary — we know a PM exists, just don't have
+      // card detail. Better to show "card on file" than to revert.
+      return NextResponse.json({ hasCard: true })
+    }
 
     return NextResponse.json({
       hasCard: true,

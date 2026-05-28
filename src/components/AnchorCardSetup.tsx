@@ -165,7 +165,7 @@ function CardForm({ onComplete, onCancel }: { onComplete: () => Promise<void>; o
     if (!stripe || !elements) return
     setSubmitting(true)
     setError(null)
-    const { error: confirmErr } = await stripe.confirmSetup({
+    const { error: confirmErr, setupIntent } = await stripe.confirmSetup({
       elements,
       // We stay on-page — Stripe returns control here. No redirect needed
       // because we're attaching a card for future use, not completing a sale.
@@ -177,6 +177,20 @@ function CardForm({ onComplete, onCancel }: { onComplete: () => Promise<void>; o
       setSubmitting(false)
       return
     }
+
+    // Belt-and-braces: tell the server to set the just-attached PM as
+    // the customer's default so the GET reader reliably reports
+    // hasCard on the next poll (otherwise the form silently reverts).
+    if (setupIntent?.id) {
+      try {
+        await fetch('/api/anchor/setup-intent/finalize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ setupIntentId: setupIntent.id }),
+        })
+      } catch { /* fetchCard's fallback will still find the PM */ }
+    }
+
     await onComplete()
     // Don't drop submitting=false here; we've unmounted on success.
   }
