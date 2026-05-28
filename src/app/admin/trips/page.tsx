@@ -589,59 +589,49 @@ export default function TripsPage() {
   // One-click cancel: cancels the trip (both legs of a round trip), voids active
   // bookings on it, and notifies affected members.
   async function cancelTrip(kind: 'flight' | 'excursion', id: string, name: string) {
-    if (!confirm(`Cancel "${name}"? It will be removed from Open Seats, all reservations on it cancelled, and those members notified.`)) return
+    // Real money moves here. Hands off to the server endpoint which
+    // refunds every pax booking in full (including service fees) AND
+    // refunds the anchor's full capture (charter + 3% service fee) —
+    // the one path in the system that refunds the anchor fee. Server-
+    // side because Stripe operations belong on the server, and so the
+    // whole flow is auditable as a single request.
+    const reason = window.prompt(
+      `Force-cancel "${name}"?\n\nThis is a Travail-initiated cancel. It will:\n  • Refund every pax their full payment (including service fees)\n  • Refund the anchor their FULL capture (charter + 3% fee)\n  • Mark the trip + all bookings + the anchor submission cancelled\n  • Send branded emails to the anchor + every pax + ops inbox\n\nOptionally, add a short reason for the email (weather, operator, scheduling…). Leave blank to skip.`,
+      '',
+    )
+    // Cancelling the prompt returns null. Empty string = keep going with no reason.
+    if (reason === null) return
+
     setCancelling(id)
     try {
       const ids = kind === 'flight' && flights.some(f => f.id === `${id}R`) ? [id, `${id}R`] : [id]
-      const table = kind === 'flight' ? 'flights' : 'excursions'
-      const { error } = await supabase.from(table).update({ status: 'cancelled' }).in('id', ids)
-      if (error) throw error
-
-      const { data: bks } = await supabase
-        .from('bookings').select('*')
-        .eq('item_kind', kind).in('item_id', ids).in('status', ['pending', 'approved'])
-      const affected = (bks ?? []) as unknown as Booking[]
-      if (affected.length) {
-        await supabase.from('bookings')
-          .update({ status: 'cancelled', decided_at: new Date().toISOString() })
-          .in('id', affected.map(b => b.id))
-        for (const mid of [...new Set(affected.map(b => b.member_id))]) {
-          try {
-            await supabase.from('notifications').insert({
-              member_id: mid, kind: 'booking', title: 'Trip Cancelled',
-              body: `"${name}" has been cancelled by Ops. Any charges will be handled by the team.`,
-              ref: { item_kind: kind, item_id: id },
-            } as never)
-          } catch { /* notification is supplementary */ }
+      let lastErr: string | null = null
+      let totalPaxRefunded = 0
+      let totalAnchorRefunded = 0
+      let paxCount = 0
+      for (const legId of ids) {
+        const res = await fetch('/api/admin/cancel-trip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_kind: kind, item_id: legId, reason: reason.trim() || undefined }),
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok) { lastErr = json.error ?? `Cancel failed for ${legId}`; break }
+        if (json.already_cancelled) continue
+        totalAnchorRefunded += Number(json.anchor?.refunded_cents ?? 0)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const r of (json.pax ?? []) as any[]) {
+          totalPaxRefunded += Number(r.refunded_cents ?? 0)
+          paxCount += 1
         }
       }
-
-      // Retire the originating anchor submission so it leaves the host's
-      // "active anchors" list, and let them know.
-      const { data: subs } = await supabase
-        .from('anchor_submissions').select('id, member_id')
-        .in('published_item_id', ids).neq('status', 'cancelled')
-      const anchors = (subs ?? []) as { id: string; member_id: string }[]
-      if (anchors.length) {
-        await supabase.from('anchor_submissions')
-          .update({ status: 'cancelled' }).in('id', anchors.map(a => a.id))
-        for (const mid of [...new Set(anchors.map(a => a.member_id))]) {
-          try {
-            await supabase.from('notifications').insert({
-              member_id: mid, kind: 'anchor', title: 'Anchor cancelled',
-              body: `Your anchored trip "${name}" has been cancelled by Ops.`,
-              ref: { item_kind: kind, item_id: id },
-            } as never)
-          } catch { /* notification is supplementary */ }
-        }
-      }
-
-      logActivity({
-        action: 'trip_cancelled', actor_kind: 'admin', item_kind: kind, item_id: id,
-        summary: `Cancelled ${kind} "${name}"${affected.length ? ` and ${affected.length} reservation(s)` : ''}`,
-        meta: { reservations_cancelled: affected.length },
-      })
-      showToast(affected.length ? `Trip cancelled — ${affected.length} reservation(s) voided` : 'Trip cancelled')
+      if (lastErr) { showToast(`Cancel failed: ${lastErr}`, 'error'); return }
+      const totalDollars = (totalAnchorRefunded + totalPaxRefunded) / 100
+      showToast(
+        paxCount > 0
+          ? `Trip cancelled — refunded $${totalDollars.toFixed(2)} across anchor + ${paxCount} pax`
+          : `Trip cancelled — anchor refunded $${(totalAnchorRefunded / 100).toFixed(2)}`,
+      )
       load()
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Cancel failed', 'error')

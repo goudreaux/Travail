@@ -25,6 +25,144 @@ function fmtMoney(cents: number): string {
   return `$${(Math.abs(cents) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+// ─── Trip cancelled by Travail email ───────────────────────────────────────
+//
+// Fired when Ops cancels a trip outright. Goes to both the anchor (full
+// capture refund including the 3% service fee) and every affected pax
+// (full paid amount refunded including their service fee). Travail eats
+// the fee on a force-cancel — this email reassures the member that
+// nothing was withheld.
+
+export interface TripCancelledEmailParams {
+  to: string
+  memberName: string
+  role: 'anchor' | 'pax'
+  tripName: string
+  tripDate?: string | null
+  refundCents: number             // FULL refund amount, including fees
+  refundId?: string | null
+  confirmationCode?: string | null  // pax only
+  reason?: string | null            // optional Ops note
+}
+
+export async function sendTripCancelledEmail(p: TripCancelledEmailParams): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    safeError('sendTripCancelledEmail: RESEND_API_KEY not set; skipping', { to: p.to })
+    return
+  }
+
+  const subject = p.refundCents > 0
+    ? `${p.tripName} cancelled · ${fmtMoney(p.refundCents)} refunded`
+    : `${p.tripName} cancelled`
+
+  const text = [
+    `${p.tripName} has been cancelled by Travail Ops.`,
+    p.tripDate ? `Trip date: ${p.tripDate}` : null,
+    '',
+    p.refundCents > 0
+      ? `A full refund of ${fmtMoney(p.refundCents)} has been issued to your card — including any service fees. Travail eats those on a force-cancel; you're not out anything.`
+      : 'No payment was on file to refund.',
+    '',
+    p.reason ? `Reason from Ops: ${p.reason}` : null,
+    p.refundId ? `Stripe refund: ${p.refundId}` : null,
+    '',
+    'Refunds typically appear on your card within 5–10 business days.',
+    'Questions? Reply to this email and Ops will follow up.',
+  ].filter(Boolean).join('\n')
+
+  const html = brandedTripCancelledEmail(p)
+
+  const resend = new Resend(apiKey)
+  try {
+    await resend.emails.send({
+      from: process.env.RESEND_FROM ?? DEFAULT_FROM,
+      to: [p.to],
+      subject,
+      html,
+      text,
+      replyTo: process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
+    })
+  } catch (err) {
+    safeError('sendTripCancelledEmail: send failed (non-fatal)', err)
+  }
+}
+
+function brandedTripCancelledEmail(p: TripCancelledEmailParams): string {
+  const headline = p.refundCents > 0
+    ? `${fmtMoney(p.refundCents)} refunded`
+    : 'Cancelled'
+  const subhead = p.role === 'anchor'
+    ? (p.refundCents > 0
+        ? 'Your full capture — charter + 3% service fee — has been refunded.'
+        : 'Your anchor was cancelled. No capture was on file to refund.')
+    : (p.refundCents > 0
+        ? `Your full payment, including any service fees, has been refunded.`
+        : `Your reservation has been cancelled. No refund was needed.`)
+
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light only"/>
+<title>${escapeHtml(p.tripName)} · Cancelled</title>
+</head>
+<body style="margin:0;padding:0;background:#fbf6ec;font-family:-apple-system,BlinkMacSystemFont,'Inter Tight','Inter','Segoe UI',sans-serif;color:#0d3340;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fbf6ec;padding:36px 14px 24px;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:580px;background:#fffbf0;border-radius:18px;overflow:hidden;box-shadow:0 18px 48px rgba(13,51,64,0.10);">
+
+        <!-- Header (signal-tinted gradient for cancel) -->
+        <tr><td style="background:linear-gradient(135deg,#3a1410 0%,#5a201b 52%,#3a1812 100%);padding:32px 36px 28px;color:#fff;">
+          <div style="font-family:'JetBrains Mono','Courier New',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:#f4a72c;font-weight:700;margin-bottom:8px;">Trip cancelled</div>
+          <div style="font-size:14px;color:rgba(255,255,255,0.65);margin-bottom:14px;">${escapeHtml(p.tripName)}${p.tripDate ? ` · ${escapeHtml(p.tripDate)}` : ''}</div>
+          <div style="font-size:38px;font-weight:700;color:#fff;letter-spacing:-0.022em;line-height:1;font-family:'Inter Tight',sans-serif;">${escapeHtml(headline)}</div>
+          <div style="font-size:14px;color:rgba(255,255,255,0.78);margin-top:14px;line-height:1.5;max-width:480px;">${escapeHtml(subhead)}</div>
+        </td></tr>
+
+        <!-- Greeting -->
+        <tr><td style="padding:24px 36px 4px;">
+          <div style="font-size:15px;color:#1f4856;">Hi ${escapeHtml(p.memberName.split(' ')[0])},</div>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="padding:8px 36px 22px;">
+          <div style="font-size:14px;color:#1f4856;line-height:1.6;">
+            ${p.role === 'anchor'
+              ? `Travail Ops cancelled <strong>${escapeHtml(p.tripName)}</strong>. Because Travail initiated the cancel, your full capture has been refunded — including the 3% service fee that's normally non-refundable.`
+              : `Travail Ops cancelled <strong>${escapeHtml(p.tripName)}</strong>. Because Travail initiated the cancel, your full payment has been refunded — including any service fees.`}
+          </div>
+          ${p.reason ? `<div style="background:rgba(244,167,44,0.08);border-left:3px solid #f4a72c;border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:#1f4b5b;line-height:1.55;margin-top:18px;">
+            <strong style="color:#0d3340;font-weight:700;">Note from Ops:</strong> ${escapeHtml(p.reason)}
+          </div>` : ''}
+        </td></tr>
+
+        <!-- Refund line -->
+        ${p.refundCents > 0 ? `<tr><td style="padding:0 36px 22px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid rgba(13,51,64,0.10);border-bottom:1px solid rgba(13,51,64,0.10);">
+            <tr>
+              <td style="padding:18px 0;font-family:'Inter Tight',sans-serif;font-size:14px;color:#0d3340;font-weight:700;">Refunded to your card</td>
+              <td align="right" style="padding:18px 0;font-family:'Inter Tight',sans-serif;font-size:24px;font-weight:700;color:#3e8c6d;letter-spacing:-0.018em;">${fmtMoney(p.refundCents)}</td>
+            </tr>
+            ${p.confirmationCode ? `<tr>
+              <td style="padding:12px 0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7c80;font-weight:600;border-top:1px solid rgba(13,51,64,0.06);">Confirmation</td>
+              <td align="right" style="padding:12px 0;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#c97e0e;letter-spacing:0.06em;border-top:1px solid rgba(13,51,64,0.06);">${escapeHtml(p.confirmationCode)}</td>
+            </tr>` : ''}
+            ${p.refundId ? `<tr>
+              <td style="padding:12px 0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7c80;font-weight:600;border-top:1px solid rgba(13,51,64,0.06);">Stripe refund</td>
+              <td align="right" style="padding:12px 0;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#1f4856;letter-spacing:0.04em;border-top:1px solid rgba(13,51,64,0.06);">${escapeHtml(p.refundId)}</td>
+            </tr>` : ''}
+          </table>
+        </td></tr>` : ''}
+
+        <!-- Footer -->
+        <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;margin-bottom:10px;">Refunds typically land on your card within 5–10 business days depending on your card issuer. Questions? Reply to this email and Ops will follow up.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+}
+
 // ─── Pax trip-complete email ───────────────────────────────────────────────
 //
 // When a trip settles, every non-anchor member who had a paid seat gets
