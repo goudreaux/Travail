@@ -487,6 +487,20 @@ export default function ReservePage() {
         safeError('Booking notification not recorded:', notifErr)
       }
 
+      // Fire-and-forget branded receipt email. Stripe's auto receipt
+      // also lands separately; this one carries Travail context
+      // (trip name, confirmation code, boarding-pass deep link,
+      // cancel policy). Never blocks the booking flow.
+      for (const bid of bookingIds) {
+        try {
+          await fetch('/api/bookings/send-receipt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookingId: bid }),
+          })
+        } catch { /* receipt failure is non-blocking */ }
+      }
+
       logActivity({
         action: 'booking_submitted', actor_kind: 'member', actor_member_id: member.id,
         subject_member_id: member.id, booking_id: primary.id,

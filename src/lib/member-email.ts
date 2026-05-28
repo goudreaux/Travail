@@ -25,6 +25,135 @@ function fmtMoney(cents: number): string {
   return `$${(Math.abs(cents) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+// ─── Booking receipt email ─────────────────────────────────────────────────
+//
+// Fired when a pax reservation completes — the card has been charged
+// and the booking row exists. Travail-branded receipt with the trip
+// details, confirmation code, and amount paid. Sits on top of Stripe's
+// own automatic receipt (which arrives separately).
+
+export interface BookingReceiptEmailParams {
+  to: string
+  memberName: string
+  tripName: string
+  tripDate?: string | null
+  tripLocation?: string | null
+  seats: number
+  subtotalCents: number
+  feeCents: number
+  totalCents: number
+  confirmationCode: string | null
+  boardingPassUrl?: string | null
+}
+
+export async function sendBookingReceiptEmail(p: BookingReceiptEmailParams): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    safeError('sendBookingReceiptEmail: RESEND_API_KEY not set; skipping', { to: p.to })
+    return
+  }
+
+  const subject = `${p.tripName} · booked · ${fmtMoney(p.totalCents)}`
+
+  const text = [
+    `You're booked for ${p.tripName}.`,
+    p.tripDate ? `Trip date: ${p.tripDate}` : null,
+    p.tripLocation ? `Location: ${p.tripLocation}` : null,
+    '',
+    `Seats: ${p.seats}`,
+    `Subtotal:         ${fmtMoney(p.subtotalCents)}`,
+    p.feeCents > 0 ? `Service fee (3%): ${fmtMoney(p.feeCents)}` : null,
+    `Total charged:    ${fmtMoney(p.totalCents)}`,
+    p.confirmationCode ? `Confirmation: ${p.confirmationCode}` : null,
+    '',
+    p.boardingPassUrl ? `Boarding pass: ${p.boardingPassUrl}` : 'Open Travail to view your boarding pass.',
+    '',
+    "Cancellations more than 72 hours from departure get a full refund. Inside the 72-hour window, the seat forfeits per policy.",
+    '',
+    'Questions? Reply to this email and Ops will follow up.',
+  ].filter(Boolean).join('\n')
+
+  const html = brandedBookingReceiptEmail(p)
+
+  const resend = new Resend(apiKey)
+  try {
+    await resend.emails.send({
+      from: process.env.RESEND_FROM ?? DEFAULT_FROM,
+      to: [p.to],
+      subject,
+      html,
+      text,
+      replyTo: process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
+    })
+  } catch (err) {
+    safeError('sendBookingReceiptEmail: send failed (non-fatal)', err)
+  }
+}
+
+function brandedBookingReceiptEmail(p: BookingReceiptEmailParams): string {
+  const showFee = p.feeCents > 0
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light only"/>
+<title>${escapeHtml(p.tripName)} · Booked</title>
+</head>
+<body style="margin:0;padding:0;background:#fbf6ec;font-family:-apple-system,BlinkMacSystemFont,'Inter Tight','Inter','Segoe UI',sans-serif;color:#0d3340;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fbf6ec;padding:36px 14px 24px;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:580px;background:#fffbf0;border-radius:18px;overflow:hidden;box-shadow:0 18px 48px rgba(13,51,64,0.10);">
+
+        <!-- Header — moss/teal for happy receipt -->
+        <tr><td style="background:linear-gradient(135deg,#042128 0%,#0a3340 52%,#073744 100%);padding:32px 36px 28px;color:#fff;">
+          <div style="font-family:'JetBrains Mono','Courier New',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:#3e8c6d;font-weight:700;margin-bottom:8px;">Reservation confirmed</div>
+          <div style="font-size:14px;color:rgba(255,255,255,0.65);margin-bottom:14px;">${escapeHtml(p.tripName)}${p.tripDate ? ` · ${escapeHtml(p.tripDate)}` : ''}</div>
+          <div style="font-size:32px;font-weight:700;color:#fff;letter-spacing:-0.022em;line-height:1.05;font-family:'Inter Tight',sans-serif;">You're on the manifest.</div>
+        </td></tr>
+
+        <!-- Greeting -->
+        <tr><td style="padding:24px 36px 4px;">
+          <div style="font-size:15px;color:#1f4856;">Hi ${escapeHtml(p.memberName.split(' ')[0])},</div>
+        </td></tr>
+
+        <!-- Trip + receipt -->
+        <tr><td style="padding:8px 36px 22px;">
+          <div style="font-size:14px;color:#1f4856;line-height:1.6;margin-bottom:18px;">Your seat${p.seats === 1 ? ' is' : 's are'} reserved on <strong>${escapeHtml(p.tripName)}</strong>${p.tripLocation ? ` (${escapeHtml(p.tripLocation)})` : ''}. The receipt below is for your records.</div>
+
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid rgba(13,51,64,0.10);border-bottom:1px solid rgba(13,51,64,0.10);">
+            <tr><td style="padding:10px 0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7c80;font-weight:600;">Seats</td><td align="right" style="padding:10px 0;font-size:14px;font-weight:700;">${p.seats}</td></tr>
+            <tr><td style="padding:10px 0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7c80;font-weight:600;border-top:1px solid rgba(13,51,64,0.06);">Subtotal</td><td align="right" style="padding:10px 0;font-size:14px;font-weight:600;border-top:1px solid rgba(13,51,64,0.06);">${fmtMoney(p.subtotalCents)}</td></tr>
+            ${showFee ? `<tr><td style="padding:10px 0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7c80;font-weight:600;border-top:1px solid rgba(13,51,64,0.06);">Service fee (3%)</td><td align="right" style="padding:10px 0;font-size:14px;font-weight:600;border-top:1px solid rgba(13,51,64,0.06);">${fmtMoney(p.feeCents)}</td></tr>` : ''}
+            <tr>
+              <td style="padding:14px 0;font-family:'Inter Tight',sans-serif;font-size:14px;color:#0d3340;font-weight:700;border-top:2px solid rgba(13,51,64,0.10);">Charged to your card</td>
+              <td align="right" style="padding:14px 0;font-family:'Inter Tight',sans-serif;font-size:22px;font-weight:700;color:#0d3340;letter-spacing:-0.018em;border-top:2px solid rgba(13,51,64,0.10);">${fmtMoney(p.totalCents)}</td>
+            </tr>
+            ${p.confirmationCode ? `<tr>
+              <td style="padding:12px 0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7c80;font-weight:600;border-top:1px solid rgba(13,51,64,0.06);">Confirmation</td>
+              <td align="right" style="padding:12px 0;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#c97e0e;letter-spacing:0.10em;border-top:1px solid rgba(13,51,64,0.06);">${escapeHtml(p.confirmationCode)}</td>
+            </tr>` : ''}
+          </table>
+        </td></tr>
+
+        ${p.boardingPassUrl ? `<tr><td style="padding:0 36px 22px;">
+          <a href="${escapeHtml(p.boardingPassUrl)}" style="display:inline-block;padding:12px 22px;background:#00b3c7;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter Tight',sans-serif;letter-spacing:-0.005em;">Open boarding pass →</a>
+        </td></tr>` : ''}
+
+        <!-- Cancellation policy reminder -->
+        <tr><td style="padding:0 36px 22px;">
+          <div style="background:rgba(0,179,199,0.06);border-left:3px solid #00b3c7;border-radius:0 8px 8px 0;padding:12px 14px;font-size:12.5px;color:#1f4b5b;line-height:1.55;">
+            <strong style="color:#0d3340;font-weight:700;">Cancellation policy.</strong> Cancellations more than 72 hours before departure get a full refund. Inside the 72-hour window, the seat forfeits per policy.
+          </div>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="padding:14px 36px 22px;border-top:1px solid rgba(13,51,64,0.08);">
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions, changes, or roster updates? Reply to this email and Ops will follow up.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+}
+
 // ─── Trip cancelled by Travail email ───────────────────────────────────────
 //
 // Fired when Ops cancels a trip outright. Goes to both the anchor (full
