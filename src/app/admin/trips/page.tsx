@@ -6,6 +6,7 @@ import { logActivity } from '@/lib/activity'
 import { ALL_ICONS, KIND_ICONS, suggestIconForActivity } from '@/lib/icons'
 import { asItinerary, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
 import type { Flight, Excursion, Aircraft, Member, Airport, ExcursionTemplate, Booking } from '@/lib/supabase/types'
+import { SponsoredExcursionModal, type SponsoredExcursion } from './SponsoredExcursionModal'
 
 type FlightRow = Flight
 type ExcursionRow = Excursion
@@ -183,6 +184,8 @@ export default function TripsPage() {
   const [showTemplateForm, setShowTemplateForm] = useState(false)
   const [editTemplateId, setEditTemplateId] = useState<string | null>(null)
   const [templateForm, setTemplateForm] = useState<TemplateForm>(defaultTemplateForm)
+  const [showSponsoredForm, setShowSponsoredForm] = useState(false)
+  const [editSponsored, setEditSponsored] = useState<SponsoredExcursion | null>(null)
   const [saving, setSaving] = useState(false)
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [settling, setSettling] = useState<string | null>(null)
@@ -728,6 +731,9 @@ export default function TripsPage() {
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           {tab === 'active' ? (
             <>
+              <button className="btn-ghost" onClick={() => { setEditSponsored(null); setShowSponsoredForm(true) }}>
+                + Sponsored
+              </button>
               <button className="btn-ghost" onClick={() => { setShowExcForm(true); setEditExcId(null); setExcForm(defaultExcForm); setShowFlightForm(false) }}>
                 + Excursion
               </button>
@@ -761,6 +767,13 @@ export default function TripsPage() {
           </button>
         ))}
       </div>
+
+      <SponsoredExcursionModal
+        open={showSponsoredForm}
+        initial={editSponsored}
+        onClose={() => setShowSponsoredForm(false)}
+        onSaved={() => { load(); showToast(editSponsored ? 'Sponsored excursion updated' : 'Sponsored excursion published') }}
+      />
 
       {/* Flight form (add / edit) */}
       {showFlightForm && (
@@ -1420,7 +1433,7 @@ export default function TripsPage() {
 
 const ITINERARY_ICONS = ['flight', 'sun', 'fish', 'golf', 'sail', 'snorkel', 'wave', 'surfboard', 'rifle', 'quail', 'hog', 'antlers', 'croc', 'lobster', 'bow']
 
-function ItineraryEditor({
+export function ItineraryEditor({
   steps,
   onChange,
   onGenerateDefaults,
