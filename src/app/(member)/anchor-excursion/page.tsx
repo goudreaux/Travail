@@ -227,6 +227,16 @@ export default function AnchorExcursionPage() {
             read: false,
           } as never)
         } catch { /* supplementary */ }
+        // Ping ops by email so the submission lands in their inbox in
+        // addition to the queue. Non-blocking — the booking is already
+        // saved; this is just the ops record.
+        try {
+          await fetch('/api/anchor/notify-submitted', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ submissionId: (data as { id: string }).id }),
+          })
+        } catch { /* ops will still see the row in the queue */ }
         setSubmitted(data)
       }
     } catch (err: unknown) {

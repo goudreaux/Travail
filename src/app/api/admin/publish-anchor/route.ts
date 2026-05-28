@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
+import { notifyOps } from '@/lib/ops-notify'
 import type { Database } from '@/lib/supabase/types'
 
 // Ops-publish endpoint for an anchored trip.
@@ -368,6 +369,32 @@ export async function POST(req: NextRequest) {
     item_kind: sub.kind,
     item_id: publishedItemId,
     meta: { anchor_payment_intent_id: pi.id, charter_total_cents: charterTotalCents, price_per_seat: pricePerSeat, seats_total: seatsTotal },
+  })
+
+  // Ops record: anchor captured. Stripe's webhook will also fire
+  // payment_intent.succeeded for the same PI; the duplicate is fine
+  // (idempotency at the inbox level is cheap), and inline gives ops the
+  // receipt within seconds of the Publish click instead of waiting on
+  // Stripe's webhook queue.
+  const { data: anchorRow } = await db
+    .from('members').select('name, member_no').eq('id', sub.member_id).maybeSingle()
+  await notifyOps({
+    kind: 'anchor_capture',
+    member: {
+      name: anchorRow?.name ?? null,
+      memberCode: anchorRow?.member_no ? `#${anchorRow.member_no}` : null,
+      email: anchorEmail,
+    },
+    amountCents: charterTotalCents,
+    item: { kind: sub.kind, id: publishedItemId, name: body.name ?? null, date: body.date ?? null },
+    stripe: { paymentIntentId: pi.id, customerId: anchorCustomerId },
+    details: {
+      'Submission id': submissionId,
+      'Price/seat': `$${pricePerSeat.toFixed(2)}`,
+      'Seats total': seatsTotal,
+      'Anchor seats': seatsAnchor,
+    },
+    note: `Anchor charged the full charter at publish. At trip departure, anchor will be rebated for every pax seat sold at $${pricePerSeat.toFixed(2)} each, minus the ${seatsAnchor} seat${seatsAnchor === 1 ? '' : 's'} they're keeping.`,
   })
 
   return NextResponse.json({

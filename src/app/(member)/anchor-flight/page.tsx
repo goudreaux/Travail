@@ -240,6 +240,15 @@ export default function AnchorFlightPage() {
             read: false,
           } as never)
         } catch { /* notification is supplementary */ }
+        // Ping ops by email so the submission lands in their inbox in
+        // addition to the queue. Non-blocking.
+        try {
+          await fetch('/api/anchor/notify-submitted', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ submissionId: (data as { id: string }).id }),
+          })
+        } catch { /* ops still sees the row in the queue */ }
         setSubmitted(data)
       }
     } catch (err: unknown) {
