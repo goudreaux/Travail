@@ -379,7 +379,7 @@ export default function BookingsPage() {
       <PageHero
         accent="moss"
         eyebrow="YOUR ACTIVITY"
-        title="Bookings & anchors."
+        title="Bookings & Anchors"
         sub={loading
           ? 'Loading your activity…'
           : `${activeBookings.length} active booking${activeBookings.length !== 1 ? 's' : ''}${confirmedCount > 0 ? ` · ${confirmedCount} confirmed` : ''}${pendingCount > 0 ? ` · ${pendingCount} pending` : ''}${activeAnchors.length > 0 ? ` · ${activeAnchors.length} active anchor${activeAnchors.length !== 1 ? 's' : ''}` : ''}`}
