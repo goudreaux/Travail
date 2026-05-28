@@ -2096,7 +2096,7 @@ body::before {
 
 .trip-card__cta {
   padding: 10px 16px;
-  background: var(--warm);
+  background: var(--paper);
   border-top: 1px solid var(--hair);
   display: flex;
   align-items: center;
