@@ -82,9 +82,14 @@ export async function POST(req: NextRequest) {
   const body = (sub.payload ?? {}) as any
 
   // ─── Compute charter total ─────────────────────────────────────────────────
-  const seatsTotal: number = Number(body.seatsTotal ?? body.seats_total ?? 0)
+  // Flight wizards write seatsTotal / seatsAnchor; excursion wizards
+  // write spotsTotal / spotsAnchor. Accept either so this endpoint stays
+  // kind-agnostic.
+  const seatsTotal: number = Number(
+    body.seatsTotal ?? body.spotsTotal ?? body.seats_total ?? body.spots_total ?? 0,
+  )
   if (!seatsTotal || seatsTotal <= 0) {
-    return NextResponse.json({ error: 'Submission missing seatsTotal' }, { status: 400 })
+    return NextResponse.json({ error: 'Submission missing seats/spots total' }, { status: 400 })
   }
   const charterTotalCents = Math.round(pricePerSeat * seatsTotal * 100)
 
@@ -154,7 +159,9 @@ export async function POST(req: NextRequest) {
 
   // ─── Create the trip row ───────────────────────────────────────────────────
   const isPrivate = body.visibility === 'private' || body.is_private === true
-  const seatsAnchor: number = Number(body.seatsAnchor ?? body.seats_anchor ?? 0)
+  const seatsAnchor: number = Number(
+    body.seatsAnchor ?? body.spotsAnchor ?? body.seats_anchor ?? body.spots_anchor ?? 0,
+  )
   const tripId = sub.kind === 'flight' ? `F-${Date.now().toString(36).toUpperCase()}` : `E-${Date.now().toString(36).toUpperCase()}`
 
   let publishedItemId: string | null = null
