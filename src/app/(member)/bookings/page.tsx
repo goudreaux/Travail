@@ -65,11 +65,15 @@ function submissionStatusClass(status: SubmissionStatus): string {
 }
 
 // A published anchor whose trip Ops has since cancelled (or deleted) is no longer
-// live — treat it as cancelled so it leaves the member's active anchors.
+// live — treat it as cancelled so it leaves the member's active anchors. Trips
+// that have been settled at departure also leave active.
 function effectiveAnchorStatus(a: EnrichedSubmission): SubmissionStatus {
   if (a.status === 'published') {
     const item = a.kind === 'flight' ? a.flight : a.excursion
     if (!item || item.status === 'cancelled') return 'cancelled'
+    // Settled trips drop to history regardless of underlying item status.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((item as any).anchor_settled_at) return 'completed' as SubmissionStatus
   }
   return a.status
 }
@@ -554,33 +558,228 @@ export default function BookingsPage() {
                 </button>
 
                 {showHistory && (
-                  <div className="my-trips-stack" style={{ marginTop: 12 }}>
-                    {closedBookings.map(b => (
-                      <BookingCard
-                        key={b.id}
-                        booking={b}
-                        onNavigate={() => router.push(`/boarding-pass/${b.id}`)}
-                        roundReturn={b.item_kind === 'flight' ? flightById.get(`${b.item_id}R`) : undefined}
-                        isExpanded={effectiveExpanded === b.id}
-                        onSelect={() => setExpandedId(b.id)}
-                        airportName={airportName}
-                      />
-                    ))}
-                    {closedAnchors.map(a => (
-                      <AnchorCard
-                        key={a.id}
-                        submission={a}
-                        isExpanded={effectiveExpanded === a.id}
-                        onSelect={() => setExpandedId(a.id)} airportName={airportName}
-                      />
-                    ))}
-                  </div>
+                  <HistoryTable
+                    bookings={closedBookings}
+                    anchors={closedAnchors}
+                    airportName={airportName}
+                    onBookingClick={(id) => router.push(`/boarding-pass/${id}`)}
+                    onAnchorClick={(submission) => {
+                      // Settled anchors → their boarding pass; declined
+                      // → no destination, just expand inline.
+                      if (submission.anchorBookingId) router.push(`/boarding-pass/${submission.anchorBookingId}`)
+                    }}
+                  />
                 )}
               </section>
             )}
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── History table ─────────────────────────────────────────────────────────
+//
+// Compact ledger view of every settled / closed trip the member has.
+// Mixes pax bookings + anchor submissions, sorted by date descending.
+// Each row is clickable when there's somewhere to land (boarding pass);
+// declined / awkward rows are non-interactive.
+//
+// Wide screens render as a real 5-column table; phones stack via the
+// scoped styled-jsx block at the bottom.
+
+interface HistoryRow {
+  key: string
+  date: string
+  dateDisplay: string
+  name: string
+  role: 'anchor' | 'pax'
+  seats: number
+  amountCents: number
+  refundCents: number
+  statusLabel: string
+  statusTone: 'moss' | 'sun' | 'signal' | 'ink'
+  onClick: (() => void) | null
+}
+
+function HistoryTable({
+  bookings,
+  anchors,
+  airportName,
+  onBookingClick,
+  onAnchorClick,
+}: {
+  bookings: EnrichedBooking[]
+  anchors: EnrichedSubmission[]
+  airportName: Record<string, string>
+  onBookingClick: (id: string) => void
+  onAnchorClick: (submission: EnrichedSubmission) => void
+}) {
+  const rows: HistoryRow[] = []
+
+  for (const b of bookings) {
+    const item = b.item_kind === 'flight' ? b.flight : b.excursion
+    const date = item?.date ?? b.submitted_at?.slice(0, 10) ?? ''
+    const dp = date ? fmtDate(date) : null
+    const name = b.item_kind === 'flight' && b.flight
+      ? `${airportCity(b.flight.origin_code, airportName)} → ${airportCity(b.flight.dest_code, airportName)}`
+      : b.excursion?.name ?? 'Trip'
+    const statusStr = b.status as string
+    const statusLabel =
+      statusStr === 'completed' ? 'COMPLETED'
+      : statusStr === 'cancelled' ? 'CANCELLED'
+      : statusStr === 'declined' ? 'DECLINED'
+      : statusStr === 'refunded' ? 'REFUNDED'
+      : statusStr.toUpperCase()
+    const statusTone: HistoryRow['statusTone'] =
+      statusStr === 'completed' ? 'moss'
+      : statusStr === 'cancelled' || statusStr === 'declined' ? 'signal'
+      : statusStr === 'refunded' ? 'sun'
+      : 'ink'
+    rows.push({
+      key: `b-${b.id}`,
+      date,
+      dateDisplay: dp ? `${dp.dow.toUpperCase()} · ${dp.mo.toUpperCase()} ${dp.day}` : '—',
+      name,
+      role: 'pax',
+      seats: b.seats ?? 1,
+      amountCents: Math.round(Number(b.total ?? 0) * 100),
+      refundCents: 0,
+      statusLabel,
+      statusTone,
+      onClick: () => onBookingClick(b.id),
+    })
+  }
+
+  for (const a of anchors) {
+    const item = a.kind === 'flight' ? a.flight : a.excursion
+    const date = item?.date ?? a.submitted_at?.slice(0, 10) ?? ''
+    const dp = date ? fmtDate(date) : null
+    const name = a.kind === 'flight' && a.flight
+      ? `${airportCity(a.flight.origin_code, airportName)} → ${airportCity(a.flight.dest_code, airportName)}`
+      : a.excursion?.name ?? (a.kind === 'flight' ? 'Anchored flight' : 'Anchored excursion')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tripAny = item as any
+    const settled = !!tripAny?.anchor_settled_at
+    const capturedCents = Number(tripAny?.anchor_captured_cents ?? 0)
+    const refundedCents = Number(tripAny?.anchor_refunded_cents ?? 0)
+    const netCents = Math.max(0, capturedCents - refundedCents)
+
+    let statusLabel = 'CLOSED'
+    let statusTone: HistoryRow['statusTone'] = 'ink'
+    if (settled) { statusLabel = 'SETTLED'; statusTone = 'moss' }
+    else if (a.status === 'declined') { statusLabel = 'DECLINED'; statusTone = 'signal' }
+    else if (a.status === 'cancelled') { statusLabel = 'CANCELLED'; statusTone = 'signal' }
+    else if (effectiveAnchorStatus(a) === 'cancelled') { statusLabel = 'CANCELLED BY OPS'; statusTone = 'signal' }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const payload = a.payload as any
+    const anchorSeats = Number(payload?.seatsAnchor ?? payload?.spotsAnchor ?? payload?.seats_anchor ?? payload?.spots_anchor ?? 0)
+
+    rows.push({
+      key: `a-${a.id}`,
+      date,
+      dateDisplay: dp ? `${dp.dow.toUpperCase()} · ${dp.mo.toUpperCase()} ${dp.day}` : '—',
+      name,
+      role: 'anchor',
+      seats: anchorSeats,
+      amountCents: netCents,
+      refundCents: refundedCents,
+      statusLabel,
+      statusTone,
+      onClick: settled && a.anchorBookingId ? () => onAnchorClick(a) : null,
+    })
+  }
+
+  rows.sort((a, b) => b.date.localeCompare(a.date))
+
+  if (rows.length === 0) {
+    return (
+      <div style={{ marginTop: 12, padding: '20px 18px', textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>
+        No settled trips yet.
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: 12, background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, overflow: 'hidden' }}>
+      <div className="history-thead" style={{
+        display: 'grid', gridTemplateColumns: '92px 1fr 80px 130px 110px', gap: 12, padding: '12px 18px',
+        background: 'var(--paper)', borderBottom: '1px solid var(--hair)',
+        fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600,
+      }}>
+        <div>Date</div>
+        <div>Trip</div>
+        <div>Role</div>
+        <div style={{ textAlign: 'right' }}>Amount</div>
+        <div style={{ textAlign: 'right' }}>Status</div>
+      </div>
+
+      {rows.map((r, idx) => (
+        <div
+          key={r.key}
+          onClick={r.onClick ?? undefined}
+          className="history-row"
+          style={{
+            display: 'grid', gridTemplateColumns: '92px 1fr 80px 130px 110px', gap: 12, padding: '14px 18px',
+            borderTop: idx === 0 ? 'none' : '1px solid var(--hair)', alignItems: 'center',
+            cursor: r.onClick ? 'pointer' : 'default',
+          }}
+        >
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, fontWeight: 700, color: 'var(--ink-mid)', letterSpacing: '0.10em', lineHeight: 1.3 }}>
+            {r.dateDisplay}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.name}>
+              {r.name}
+            </div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-light)', letterSpacing: '0.06em', marginTop: 2 }}>
+              {r.seats} {r.role === 'anchor' ? `seat${r.seats === 1 ? '' : 's'} held` : `seat${r.seats === 1 ? '' : 's'}`}
+            </div>
+          </div>
+          <div>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', padding: '3px 8px', borderRadius: 6,
+              fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
+              color: r.role === 'anchor' ? 'var(--tropic-d)' : 'var(--ink-mid)',
+              background: r.role === 'anchor' ? 'var(--tropic-glow)' : 'var(--paper)',
+            }}>
+              {r.role === 'anchor' ? 'Anchor' : 'Pax'}
+            </span>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontFamily: 'var(--ui)', fontWeight: 700, fontSize: 14, color: 'var(--ink)', letterSpacing: '-0.012em' }}>
+              {fmtMoney(r.amountCents / 100)}
+            </div>
+            {r.role === 'anchor' && r.refundCents > 0 && (
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--moss)', letterSpacing: '0.06em', marginTop: 2 }}>
+                +{fmtMoney(r.refundCents / 100)} refunded
+              </div>
+            )}
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <span className={`pill ${r.statusTone === 'moss' ? 'moss' : r.statusTone === 'sun' ? 'sun' : r.statusTone === 'signal' ? 'signal' : ''}`} style={{ fontSize: 10, padding: '3px 9px' }}>
+              {r.statusLabel}
+            </span>
+          </div>
+        </div>
+      ))}
+
+      <style jsx>{`
+        @media (max-width: 640px) {
+          :global(.history-thead) { display: none !important; }
+          :global(.history-row) {
+            grid-template-columns: 92px 1fr !important;
+            grid-template-areas: "date trip" "date role" "amount amount" "status status";
+          }
+          :global(.history-row) > :nth-child(1) { grid-area: date; }
+          :global(.history-row) > :nth-child(2) { grid-area: trip; }
+          :global(.history-row) > :nth-child(3) { grid-area: role; }
+          :global(.history-row) > :nth-child(4) { grid-area: amount; text-align: left !important; padding-top: 6px; border-top: 1px dashed var(--hair-2); margin-top: 6px; }
+          :global(.history-row) > :nth-child(5) { grid-area: status; text-align: left !important; padding-top: 4px; }
+        }
+      `}</style>
     </div>
   )
 }
