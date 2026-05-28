@@ -511,8 +511,8 @@ export default function SeatsPage() {
       <PageHero
         accent="sun"
         eyebrow="DEPARTURES BOARD"
-        title="Open Seats & spots."
-        sub={loading ? 'Loading available departures…' : `${totalOpen} departure${totalOpen !== 1 ? 's' : ''} with open availability`}
+        title="Open Seats"
+        sub={loading ? 'Loading available departures…' : `Hop on — ${totalOpen} departure${totalOpen !== 1 ? 's' : ''} with open availability`}
         metric={loading ? undefined : { value: totalOpen, label: 'Live', sub: 'Departures' }}
       />
 
