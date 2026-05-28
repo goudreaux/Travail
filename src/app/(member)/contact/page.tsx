@@ -71,7 +71,7 @@ export default function ContactPage() {
       <PageHero
         accent="signal"
         eyebrow="Concierge"
-        title="A note to ops"
+        title="Operations Team"
         sub="Drop us a line — we'll take care of the rest. Replies usually within minutes during desk hours."
       />
 
