@@ -138,7 +138,7 @@ export default function AnchorFlightPage() {
 
   if (!isAdmin) return (
     <div className="page">
-      <PageHero eyebrow="ANCHOR A FLIGHT" title="Coming soon." sub="This feature is under development. Check back soon." />
+      <PageHero eyebrow="ANCHOR A FLIGHT" title="Coming soon" sub="This feature is under development. Check back soon." />
     </div>
   )
 

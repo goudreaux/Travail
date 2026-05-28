@@ -117,7 +117,7 @@ export default function AnchorExcursionPage() {
   if (isAdmin === null) return null
   if (!isAdmin) return (
     <div className="page">
-      <PageHero eyebrow="PLAN A TRIP" title="Coming soon." sub="This feature is under development. Check back soon." />
+      <PageHero eyebrow="PLAN A TRIP" title="Coming soon" sub="This feature is under development. Check back soon." />
     </div>
   )
 
