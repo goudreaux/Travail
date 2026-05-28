@@ -148,6 +148,16 @@ export default function MembersPage() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Count active membership only — exclude rows whose subscription has
+  // ended (cancelled / incomplete_expired). 'past_due' counts because
+  // ops is actively working to recover the card. Members with no
+  // subscription yet count too — they may be brand new invites.
+  const activeMemberCount = members.filter(m => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const s = (m as any).subscription_status as string | null | undefined
+    return s !== 'cancelled' && s !== 'canceled' && s !== 'incomplete_expired'
+  }).length
+
   const filtered = members.filter(m =>
     !search ||
     m.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -205,7 +215,7 @@ export default function MembersPage() {
   function openAdd() {
     setEditId(null)
     setShowAdd(true)
-    setForm(defaultForm)
+    setForm({ ...defaultForm, joined_at: new Date().toISOString().slice(0, 10) })
   }
 
   // Convert a guest → prefill the Add Member form from their info.
@@ -484,7 +494,7 @@ export default function MembersPage() {
             }}
           >
             {t === 'members'
-              ? `Members${members.length ? ` · ${members.length}` : ''}`
+              ? `Members${activeMemberCount ? ` · ${activeMemberCount}` : ''}`
               : t === 'guests'
               ? 'Guests'
               : 'Referrals'}

@@ -53,6 +53,7 @@ export default function BoardingPassPage() {
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [cancelResult, setCancelResult] = useState<{ wasForfeit: boolean; refundCents: number } | null>(null)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [recentCancelCount, setRecentCancelCount] = useState(0)
 
   // The modal owns the multi-step confirmation now — this function
   // just posts to the cancel endpoint once the member has clicked
@@ -86,7 +87,11 @@ export default function BoardingPassPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       const { data: m } = await supabase.from('members').select('*').eq('user_id', user.id).single()
-      if (m) setMember(m as Member)
+      if (m) {
+        setMember(m as Member)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setRecentCancelCount(((m as any).cancel_count_90d as number | null | undefined) ?? 0)
+      }
 
       const { data: b } = await supabase.from('bookings').select('*').eq('id', bookingId).single()
       if (!b) { setNotFound(true); setLoading(false); return }
@@ -339,6 +344,7 @@ export default function BoardingPassPage() {
             hoursUntilDeparture={hoursUntil}
             windowHours={windowHours}
             amountPaidCents={paidCents}
+            recentCancelCount={recentCancelCount}
           />
         )
       })()}

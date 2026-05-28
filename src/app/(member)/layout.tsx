@@ -10,6 +10,7 @@ import MobileNav from '@/components/MobileNav'
 import PullToRefresh from '@/components/PullToRefresh'
 import ToastHost from '@/components/ToastHost'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
+import { useActivityBeacon, useLoginStamp } from '@/lib/use-activity-beacon'
 import type { Member, Notification } from '@/lib/supabase/types'
 
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +23,12 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   const supabase = createClient()
   const pathname = usePathname()
   const router = useRouter()
+
+  // Stamp login + emit activity beacons while the tab is open.
+  // Both routes are best-effort — failures are swallowed so they
+  // never affect the member's experience.
+  useActivityBeacon()
+  useLoginStamp(supabase)
 
   const loadData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
