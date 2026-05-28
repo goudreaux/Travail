@@ -42,6 +42,51 @@ function admin() {
   )
 }
 
+// Resolve "which Stripe customer owns this member?". Same pattern as
+// /api/anchor/setup-intent: DB cache first, then Stripe list({email})
+// matched on metadata.member_id. Necessary here because publish-anchor
+// runs after the anchor has already added their card — if the DB cache
+// write failed silently, we'd 412 even though the customer exists in
+// Stripe and is fully chargeable.
+async function resolveStripeCustomer(memberId: string, email: string | null): Promise<string | null> {
+  const db = admin()
+  const { data: m } = await db
+    .from('members').select('stripe_customer_id').eq('id', memberId).maybeSingle()
+  if (m?.stripe_customer_id) return m.stripe_customer_id
+
+  if (!email) return null
+  try {
+    const list = await stripe.customers.list({ email, limit: 100 })
+    const match = list.data.find(c => !c.deleted && c.metadata?.member_id === memberId)
+    return match?.id ?? null
+  } catch (e) {
+    safeError('publish-anchor.resolveStripeCustomer: list failed:', e)
+    return null
+  }
+}
+
+// Anchor's email lives on auth.users (the login identity); we mirror it
+// into member_sensitive via the sync trigger (migration 037). Read from
+// member_sensitive first (cheap, RLS-friendly via the service role),
+// then fall back to auth.users by user_id.
+async function resolveAnchorEmail(memberId: string): Promise<string | null> {
+  const db = admin()
+  const { data: contact } = await db
+    .from('member_sensitive').select('email').eq('member_id', memberId).maybeSingle()
+  if (contact?.email && contact.email.trim().length > 0) return contact.email.trim()
+
+  const { data: m } = await db
+    .from('members').select('user_id').eq('id', memberId).maybeSingle()
+  if (!m?.user_id) return null
+  try {
+    const { data: u } = await db.auth.admin.getUserById(m.user_id)
+    return u?.user?.email ?? null
+  } catch (e) {
+    safeError('publish-anchor.resolveAnchorEmail: auth lookup failed:', e)
+    return null
+  }
+}
+
 interface PublishPayload {
   anchor_submission_id?: string
   price_per_seat?: number     // dollars (whole units)
@@ -94,22 +139,41 @@ export async function POST(req: NextRequest) {
   const charterTotalCents = Math.round(pricePerSeat * seatsTotal * 100)
 
   // ─── Anchor's Stripe customer + default payment method ─────────────────────
-  const { data: anchorMember } = await db
-    .from('members').select('id, name, stripe_customer_id').eq('id', sub.member_id).single()
-  if (!anchorMember?.stripe_customer_id) {
+  // Resolve via DB-then-Stripe-metadata fallback so a silent cache-write
+  // failure (members.stripe_customer_id still null) doesn't block a publish
+  // when the customer + card actually exist in Stripe.
+  const anchorEmail = await resolveAnchorEmail(sub.member_id)
+  const anchorCustomerId = await resolveStripeCustomer(sub.member_id, anchorEmail)
+  if (!anchorCustomerId) {
     return NextResponse.json({
       error: 'Anchor has no Stripe customer on file. Ask them to add a card via the anchor wizard and resubmit.',
     }, { status: 412 })
   }
 
+  // Best-effort heal: if we resolved via Stripe and the DB cache was empty,
+  // backfill it so the next read short-circuits.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db.from('members') as any)
+      .update({ stripe_customer_id: anchorCustomerId })
+      .eq('id', sub.member_id)
+      .is('stripe_customer_id', null)
+  } catch (e) {
+    safeError('publish-anchor: cache-fill of stripe_customer_id failed (non-fatal):', e)
+  }
+
+  // Find a chargeable payment method. Prefer the customer's default;
+  // fall back to listing — card first, then link.
   let paymentMethodId: string | null = null
   try {
-    const customer = await stripe.customers.retrieve(anchorMember.stripe_customer_id)
+    const customer = await stripe.customers.retrieve(anchorCustomerId)
     if (!customer.deleted) {
       paymentMethodId = (customer.invoice_settings?.default_payment_method as string | null) ?? null
       if (!paymentMethodId) {
-        const pms = await stripe.paymentMethods.list({ customer: anchorMember.stripe_customer_id, type: 'card', limit: 1 })
-        paymentMethodId = pms.data[0]?.id ?? null
+        for (const t of ['card', 'link'] as const) {
+          const pms = await stripe.paymentMethods.list({ customer: anchorCustomerId, type: t, limit: 1 })
+          if (pms.data[0]) { paymentMethodId = pms.data[0].id; break }
+        }
       }
     }
   } catch (e) {
@@ -127,7 +191,7 @@ export async function POST(req: NextRequest) {
     pi = await stripe.paymentIntents.create({
       amount: charterTotalCents,
       currency: 'usd',
-      customer: anchorMember.stripe_customer_id,
+      customer: anchorCustomerId,
       payment_method: paymentMethodId,
       off_session: true,
       confirm: true,
