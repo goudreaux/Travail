@@ -39,19 +39,48 @@ async function ensureStripeCustomer(memberId: string, name: string, email: strin
 
   if (member?.stripe_customer_id) return member.stripe_customer_id
 
-  // Create a Stripe customer and persist the id.
-  const customer = await stripe.customers.create({
-    name,
-    email: email ?? undefined,
-    metadata: { member_id: memberId },
-  })
+  // Self-heal: if a previous attempt created a Stripe customer for this
+  // member but the DB write failed, we'd otherwise create a new one on
+  // every click — exactly what we caught happening in test mode (eight
+  // duplicate customers across consecutive Save-card taps). Search
+  // Stripe for an existing customer keyed to this member_id before
+  // creating a new one.
+  let customerId: string | null = null
+  try {
+    const found = await stripe.customers.search({
+      query: `metadata['member_id']:'${memberId}'`,
+      limit: 1,
+    })
+    if (found.data[0]) customerId = found.data[0].id
+  } catch (e) {
+    // search() is on a newer API; if it isn't available we silently
+    // fall through and create a new one. The verified write below
+    // will keep things from running away.
+    safeError('Stripe customer search failed (non-fatal):', e)
+  }
 
+  if (!customerId) {
+    const created = await stripe.customers.create({
+      name,
+      email: email ?? undefined,
+      metadata: { member_id: memberId },
+    })
+    customerId = created.id
+  }
+
+  // Persist the link + surface any failure so we can debug instead of
+  // looping. Even if the write fails we still return customerId so
+  // the SetupIntent can be created; the next request will self-heal
+  // via the search above.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (db.from('members') as any)
-    .update({ stripe_customer_id: customer.id })
+  const { error: upErr } = await (db.from('members') as any)
+    .update({ stripe_customer_id: customerId })
     .eq('id', memberId)
+  if (upErr) {
+    safeError('Could not persist members.stripe_customer_id:', upErr)
+  }
 
-  return customer.id
+  return customerId
 }
 
 async function getMemberForRequest() {
