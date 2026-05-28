@@ -260,7 +260,7 @@ export default function AnchorExcursionPage() {
               We&apos;ve received your <strong>{effectiveName}</strong> excursion request.
             </p>
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', lineHeight: 1.5, margin: '0 0 32px' }}>
-              The Travail team will confirm the operator and pricing, then make it live to the network.
+              Ops will confirm the operator + pricing and send you a quote to review. Nothing is charged until you accept it.
             </p>
             <div style={{ background: 'var(--warm)', borderRadius: 10, padding: '14px 18px', marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="mono">Submission ID</span>
@@ -470,7 +470,7 @@ export default function AnchorExcursionPage() {
               <div style={{ background: 'var(--tropic-glow)', border: '1px solid rgba(0,179,199,0.2)', borderRadius: 10, padding: '14px 16px', marginTop: 14 }}>
                 <div className="mono" style={{ color: 'var(--tropic-d)', marginBottom: 6 }}>Pricing</div>
                 <p style={{ fontSize: 12.5, color: 'var(--ink-mid)', lineHeight: 1.55, margin: 0 }}>
-                  Pricing is confirmed by the Travail team with the operator before your anchor goes live.
+                  Ops will confirm the operator pricing, add Travail&apos;s 3% service fee, and send the quote for your review. <strong style={{ color: 'var(--ink)' }}>No card is captured until you accept the quote</strong> — you&apos;ll get a notification with the total.
                 </p>
               </div>
 
