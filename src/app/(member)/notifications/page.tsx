@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import PageHero from '@/components/PageHero'
+import { resolveNotificationRoute } from '@/lib/notifications'
 import type { Member, Notification } from '@/lib/supabase/types'
 
 function timeAgo(dateStr: string): string {
@@ -55,23 +56,13 @@ export default function NotificationsPage() {
   }
 
   async function openNotif(n: Notification) {
+    const route = resolveNotificationRoute(n)
     if (!n.read) {
       setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase.from('notifications') as any).update({ read: true }).eq('id', n.id)
     }
-    const ref = (n.ref ?? {}) as Record<string, unknown>
-    // Friend + contact notifications deep-link to the requester's profile,
-    // where Accept / Decline already live.
-    const requesterId = ref.requester_id as string | undefined
-    if ((n.kind === 'friend' || n.kind === 'contact') && requesterId) {
-      router.push(`/network/${requesterId}`)
-      return
-    }
-    const itemKind = ref.item_kind as string | undefined
-    const itemId = ref.item_id as string | undefined
-    if (itemKind && itemId) router.push(`/reserve/${itemId}?kind=${itemKind}`)
-    else router.push('/bookings')
+    if (route) router.push(route)
   }
 
   return (
@@ -98,33 +89,56 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 720 }}>
-            {notifs.map(n => (
-              <button
-                key={n.id}
-                onClick={() => openNotif(n)}
-                style={{
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 12,
-                  background: n.read ? 'var(--card)' : 'var(--tropic-glow)',
-                  border: '1px solid var(--hair)',
-                  borderRadius: 12,
-                  padding: '14px 16px',
-                  cursor: 'pointer',
-                  width: '100%',
-                }}
-              >
-                <span style={{ width: 8, height: 8, borderRadius: '50%', marginTop: 6, flexShrink: 0, background: n.read ? 'transparent' : 'var(--signal)' }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{n.title}</span>
-                    <span className="mono" style={{ fontSize: 10, color: 'var(--ink-light)', whiteSpace: 'nowrap' }}>{timeAgo(n.created_at)}</span>
+            {notifs.map(n => {
+              const route = resolveNotificationRoute(n)
+              const interactive = route !== null
+              // Mark unread announcements as read on first view of the
+              // page (mouse not required). We don't auto-route, we just
+              // clear the unread badge so the count is honest.
+              const onClick = interactive ? () => openNotif(n) : undefined
+              return (
+                <div
+                  key={n.id}
+                  role={interactive ? 'button' : undefined}
+                  tabIndex={interactive ? 0 : undefined}
+                  onClick={onClick}
+                  onKeyDown={interactive ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openNotif(n) } } : undefined}
+                  style={{
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                    background: n.read ? 'var(--card)' : 'var(--tropic-glow)',
+                    border: '1px solid var(--hair)',
+                    borderRadius: 12,
+                    padding: '14px 16px',
+                    cursor: interactive ? 'pointer' : 'default',
+                    width: '100%',
+                    opacity: interactive ? 1 : 0.92,
+                    transition: 'background 0.12s ease',
+                  }}
+                  onMouseEnter={interactive ? e => { (e.currentTarget as HTMLElement).style.background = n.read ? 'var(--paper)' : 'rgba(0,179,199,0.18)' } : undefined}
+                  onMouseLeave={interactive ? e => { (e.currentTarget as HTMLElement).style.background = n.read ? 'var(--card)' : 'var(--tropic-glow)' } : undefined}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', marginTop: 6, flexShrink: 0, background: n.read ? 'transparent' : 'var(--signal)' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 3, alignItems: 'baseline' }}>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{n.title}</span>
+                      <span className="mono" style={{ fontSize: 10, color: 'var(--ink-light)', whiteSpace: 'nowrap' }}>{timeAgo(n.created_at)}</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5 }}>{n.body}</div>
+                    {!interactive && (
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-faint)', fontWeight: 600, marginTop: 8 }}>
+                        Announcement · no action needed
+                      </div>
+                    )}
                   </div>
-                  <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5 }}>{n.body}</div>
+                  {interactive && (
+                    <span style={{ color: 'var(--ink-light)', fontSize: 16, alignSelf: 'center', marginLeft: 4 }} aria-hidden>›</span>
+                  )}
                 </div>
-              </button>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
