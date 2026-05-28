@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
   --bg: #f5ede0;
@@ -21,13 +21,12 @@
   --sun-glow: rgba(244, 167, 44, 0.18);
   --signal: #d94e2a;
   --moss: #3e8c6d;
-  /* Fraunces — variable serif. Structural blade italic letterforms,
-     optical-size axis for crisper terminals at large sizes, SOFT axis
-     for tuning structural (low) vs humanist (high). Used everywhere
-     headlines and accent serifs appear (replaces Cormorant Garamond). */
-  --display: "Fraunces", "Cormorant Garamond", serif;
-  /* Kept as alias for any local override that wants the same font. */
-  --hero: "Fraunces", "Cormorant Garamond", serif;
+  /* Vollkorn — robust wedge serif with chunky terminals and a strong
+     italic. The most "rugged" of the three header experiments — leans
+     Filson / Field & Stream / outdoorsman register. Weight axis only
+     (no optical-size, no SOFT). */
+  --display: "Vollkorn", "Cormorant Garamond", serif;
+  --hero: "Vollkorn", "Cormorant Garamond", serif;
   --ui: "Inter Tight", system-ui, sans-serif;
   --mono: "JetBrains Mono", monospace;
 }
@@ -733,7 +732,6 @@ body::before {
   line-height: 1.0;
   letter-spacing: -0.022em;
   font-size: calc(clamp(34px, 6vw, 48px) - var(--scroll-progress, 0) * 22px);
-  font-variation-settings: "opsz" 90, "SOFT" 50;
 }
 .page-hero__title em {
   font-style: italic;
@@ -1069,7 +1067,6 @@ body::before {
   /* Compresses from ~48px down to ~26px as user scrolls past 200px.
      Calc-with-CSS-vars hits the GPU cleanly with no layout thrash. */
   font-size: calc(48px - var(--scroll-progress, 0) * 22px);
-  font-variation-settings: "opsz" 90, "SOFT" 50;
 }
 .feed-hero__welcome-pre {
   /* Upright greeting — the structural anchor. */
@@ -1084,7 +1081,6 @@ body::before {
   font-family: var(--hero);
   font-style: italic;
   font-weight: 500;
-  font-variation-settings: "opsz" 90, "SOFT" 50;
 }
 
 /* Hairline that grows in from the left. Color tuned for cream bg
@@ -5030,7 +5026,6 @@ textarea.input {
   color: var(--ink);
   letter-spacing: -0.022em;
   line-height: 1.0;
-  font-variation-settings: "opsz" 84, "SOFT" 50;
 }
 .section-ttl em {
   /* Italic accent — slightly lighter so the contrast against the
