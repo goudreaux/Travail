@@ -698,7 +698,9 @@ body::before {
 .page-hero__glow { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(6px); }
 /* Primary = the "sun" in the top-right (same conceit as .feed-hero).
    Secondary = the cool counter-light in the bottom-left. */
-.page-hero__glow--primary { top: -120px; right: -80px; width: 420px; height: 420px; }
+/* Primary glow centered on the card's top-right corner — matches
+   the .feed-hero "sun on the corner" treatment. */
+.page-hero__glow--primary { top: -220px; right: -220px; width: 440px; height: 440px; filter: blur(4px); }
 .page-hero__glow--secondary { bottom: -140px; left: -50px; width: 340px; height: 340px; filter: blur(10px); }
 
 /* Accent palettes — each page picks one so the navigation has color
@@ -708,10 +710,11 @@ body::before {
    keep the warm/cool corner balance. */
 .page-hero--teal .page-hero__glow--primary {
   background: radial-gradient(circle at 50% 50%,
-    rgba(255,200,110,0.55) 0%,
-    rgba(244,167,44,0.38) 22%,
-    rgba(244,167,44,0.12) 50%,
-    transparent 72%);
+    rgba(255,210,130,0.65) 0%,
+    rgba(255,180,80,0.45) 18%,
+    rgba(244,167,44,0.22) 40%,
+    rgba(244,167,44,0.06) 60%,
+    transparent 75%);
 }
 .page-hero--teal .page-hero__glow--secondary { background: radial-gradient(circle, rgba(0,179,199,0.26), transparent 70%); }
 .page-hero--teal .page-hero__eyebrow,
@@ -719,10 +722,11 @@ body::before {
 
 .page-hero--sun .page-hero__glow--primary {
   background: radial-gradient(circle at 50% 50%,
-    rgba(255,200,110,0.55) 0%,
-    rgba(244,167,44,0.42) 22%,
-    rgba(244,167,44,0.14) 50%,
-    transparent 72%);
+    rgba(255,210,130,0.70) 0%,
+    rgba(255,180,80,0.50) 18%,
+    rgba(244,167,44,0.26) 40%,
+    rgba(244,167,44,0.08) 60%,
+    transparent 75%);
 }
 .page-hero--sun .page-hero__glow--secondary { background: radial-gradient(circle, rgba(0,179,199,0.22), transparent 70%); }
 .page-hero--sun .page-hero__eyebrow,
@@ -1038,19 +1042,22 @@ body::before {
    the deep navy toward the bottom-left. The teal moves underneath as
    a cool counter-light bleeding in from below-left. */
 .feed-hero__glow--sun {
-  top: -140px;
-  right: -90px;
-  width: 420px;
-  height: 420px;
-  /* Tighter, brighter center so it reads as a point source (a real
-     sun), with a long warm halo fading into the navy. */
+  /* Sun sits dead-center on the card's top-right corner. With a
+     440px box offset by -220 on top + right, the geometric center
+     of the gradient lands exactly at the (0,0) corner — half the
+     light spills outward, half radiates into the navy. */
+  top: -220px;
+  right: -220px;
+  width: 440px;
+  height: 440px;
   background: radial-gradient(circle at 50% 50%,
-    rgba(255, 200, 110, 0.55) 0%,
-    rgba(244, 167, 44, 0.38) 22%,
-    rgba(244, 167, 44, 0.12) 50%,
-    transparent 72%
+    rgba(255, 210, 130, 0.65) 0%,
+    rgba(255, 180, 80, 0.45) 18%,
+    rgba(244, 167, 44, 0.22) 40%,
+    rgba(244, 167, 44, 0.06) 60%,
+    transparent 75%
   );
-  filter: blur(6px);
+  filter: blur(4px);
   animation: feed-hero-pulse 9s ease-in-out infinite;
 }
 .feed-hero__glow--teal {
@@ -1126,7 +1133,10 @@ body::before {
   animation: feed-hero-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s forwards;
 }
 .feed-hero__welcome-pre {
-  color: var(--tropic);
+  /* All-white greeting — was tropic-tinted; now matches the name so
+     the whole salutation reads as a single line of light against the
+     navy. */
+  color: #fff;
 }
 .feed-hero__welcome-name {
   color: #fff;
@@ -2056,29 +2066,30 @@ body::before {
 }
 
 .trip-card__date-mo {
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--tropic);
-  font-family: var(--mono);
+  font-family: var(--ui);
 }
 
 .trip-card__date-day {
-  font-family: var(--mono);
-  font-size: 28px;
+  font-family: var(--ui);
+  font-size: 30px;
   font-weight: 700;
   color: #fff;
   line-height: 1;
   margin: 2px 0;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.025em;
 }
 
 .trip-card__date-dow {
-  font-size: 9.5px;
-  color: rgba(255, 255, 255, 0.4);
-  font-family: var(--mono);
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: var(--ui);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
