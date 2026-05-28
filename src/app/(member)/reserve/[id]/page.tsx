@@ -10,6 +10,7 @@ import { asItinerary, fmtItineraryTime, generateDefaultItinerary, type Itinerary
 import { KIND_ICONS } from '@/lib/icons'
 import { BookingSuccessSplash } from '@/components/BookingSuccessSplash'
 import { AnchorLiability } from '@/components/AnchorLiability'
+import { ReservePaymentForm } from '@/components/ReservePaymentForm'
 import { fetchRosters, type RosterEntry } from '@/components/Roster'
 
 // Roster avatar (image or initials) for the FOMO "who's going" block.
@@ -127,10 +128,74 @@ export default function ReservePage() {
   // hide the success card behind it. The splash dismisses itself.
   const [showSplash, setShowSplash] = useState(false)
   const [error, setError] = useState('')
+
+  // Payment state — populated when the confirm sheet opens. clientSecret
+  // is the Stripe handle that the embedded PaymentElement renders
+  // against; legBreakdown is the server-derived per-leg totals we stamp
+  // onto each booking row so paid_amount_cents matches what was charged.
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [paymentTotalCents, setPaymentTotalCents] = useState<number | null>(null)
+  const [legBreakdown, setLegBreakdown] = useState<Array<{ itemId: string; totalCents: number }>>([])
+  const [piLoading, setPiLoading] = useState(false)
+  const [piError, setPiError] = useState<string | null>(null)
   const [rosterPublic, setRosterPublic] = useState(true)
   const [roster, setRoster] = useState<RosterEntry[]>([])
   const [wlJoined, setWlJoined] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+
+  // When the confirm sheet opens, ask the server for a PaymentIntent.
+  // The server re-derives the total from the trip row so a tampered
+  // client can't underpay. We re-fetch if the seat count changes or
+  // the user closes + reopens (clientSecret expires after 24h anyway).
+  // `isRoundTrip` is computed later in this component; recompute it
+  // here from the same source so the effect can run early.
+  const piRoundTrip = !!(returnFlight)
+  const piReturnId = piRoundTrip && returnFlight ? returnFlight.id : null
+  useEffect(() => {
+    if (!confirmOpen) {
+      setClientSecret(null)
+      setPaymentTotalCents(null)
+      setLegBreakdown([])
+      setPiError(null)
+      return
+    }
+    let cancelled = false
+    setPiLoading(true)
+    setPiError(null)
+    ;(async () => {
+      try {
+        const res = await fetch('/api/bookings/payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            itemId,
+            kind,
+            seats,
+            isRoundTrip: piRoundTrip,
+            returnItemId: piReturnId,
+          }),
+        })
+        const json = await res.json()
+        if (cancelled) return
+        if (!res.ok || !json.clientSecret) {
+          setPiError(json.error ?? 'Could not start payment')
+          return
+        }
+        setClientSecret(json.clientSecret)
+        setPaymentTotalCents(json.totalCents)
+        setLegBreakdown(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (json.breakdown as Array<any>).map(b => ({ itemId: b.itemId, totalCents: b.totalCents })),
+        )
+      } catch (e) {
+        if (cancelled) return
+        setPiError((e as Error).message ?? 'Network error')
+      } finally {
+        if (!cancelled) setPiLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [confirmOpen, seats, itemId, kind, piRoundTrip, piReturnId])
 
   async function joinWaitlist() {
     if (!member) return
@@ -288,7 +353,11 @@ export default function ReservePage() {
   const departTime = flight ? fmtTime(flight.depart_time) : fmtTime(excursion?.depart_time ?? null)
   const durationStr = flight ? fmtDur(flight.duration_mins) : (excursion?.stay_type === 'day_trip' ? 'Day trip' : excursion?.stay_type === 'overnight' ? 'Overnight' : 'Multi-night')
 
-  async function handleSubmit() {
+  // handleSubmit fires after stripe.confirmPayment has already cleared
+  // the card. The PaymentIntent id is stamped onto the outbound booking
+  // and the per-leg paid amounts come from the server-computed
+  // breakdown so we never trust the client with money math.
+  async function handleSubmit(paymentIntentId: string) {
     if (!member) return
     setError('')
 
@@ -328,7 +397,15 @@ export default function ReservePage() {
         }
       }
 
-      // 2. Create booking(s) — one per leg for round-trips.
+      // 2. Create booking(s) — one per leg for round-trips. The card has
+      //    already been charged for the full total; we stamp the PI id
+      //    on the outbound row and split paid_amount_cents per leg using
+      //    the server breakdown. Status goes straight to 'approved' —
+      //    no Ops gate because payment cleared.
+      const paidAtIso = new Date().toISOString()
+      const paidFor = (legItemId: string) =>
+        legBreakdown.find(b => b.itemId === legItemId)?.totalCents ?? 0
+
       let bookingIds: string[] = []
       let primary: { id: string; confirmation_code: string | null }
 
@@ -342,7 +419,14 @@ export default function ReservePage() {
             id: `B-${stamp}${idx === 0 ? '' : 'R'}`,
             member_id: member.id, item_kind: 'flight', item_id: leg.id, seats,
             price_per_seat: leg.price_per_seat, fees: fee, total: sub + fee,
-            payment_method: paymentMethod, status: 'pending', show_on_roster: rosterPublic,
+            payment_method: paymentMethod, status: 'approved', show_on_roster: rosterPublic,
+            // PI lives on the outbound only (the index is unique). The
+            // return booking still records what was paid so settlement
+            // math reads the same.
+            stripe_payment_intent_id: idx === 0 ? paymentIntentId : null,
+            paid_amount_cents: paidFor(leg.id),
+            paid_at: paidAtIso,
+            payment_status: 'succeeded',
           }
         })
         const { data: rowsData, error: insertError } = await supabase.from('bookings').insert(rows as never).select()
@@ -357,7 +441,11 @@ export default function ReservePage() {
             id: `B-${stamp}`,
             member_id: member.id, item_kind: kind, item_id: itemId, seats,
             price_per_seat: pricePerSeat, fees: serviceFee, total,
-            payment_method: paymentMethod, status: 'pending', show_on_roster: rosterPublic,
+            payment_method: paymentMethod, status: 'approved', show_on_roster: rosterPublic,
+            stripe_payment_intent_id: paymentIntentId,
+            paid_amount_cents: paidFor(itemId),
+            paid_at: paidAtIso,
+            payment_status: 'succeeded',
           } as never)
           .select()
           .single()
@@ -389,8 +477,8 @@ export default function ReservePage() {
         const { error: notifErr } = await supabase.from('notifications').insert({
           member_id: member.id,
           kind: 'booking',
-          title: isRoundTrip ? 'Round-trip booking submitted' : 'Booking submitted for review',
-          body: `Your reservation for "${itemName}"${seats > 1 ? ` (${seats} seats)` : ''} has been submitted. Ops will confirm shortly.`,
+          title: isRoundTrip ? 'Round-trip booking confirmed' : 'Booking confirmed',
+          body: `Your reservation for "${itemName}"${seats > 1 ? ` (${seats} seats)` : ''} is confirmed and your card has been charged ${fmtMoney(paymentTotalCents != null ? paymentTotalCents / 100 : total)}.`,
           ref: { kind, id: itemId, booking_id: primary.id },
           read: false,
         } as never)
@@ -1144,47 +1232,39 @@ export default function ReservePage() {
               </div>
             </div>
 
-            {/* Payment display */}
-            <div style={{
-              background: 'var(--warm)',
-              borderRadius: 8,
-              padding: '12px 14px',
-              fontSize: 13,
-              color: 'var(--ink-mid)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              marginTop: 16,
-            }}>
-              <svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-                <rect x="2" y="6" width="18" height="13" rx="2" />
-                <line x1="2" y1="10" x2="20" y2="10" />
-              </svg>
-              {member?.card_last4
-                ? `Card ending ••${member.card_last4}`
-                : 'No payment on file'}
-            </div>
-
-            {/* Confirm submit */}
-            <button
-              className="btn-primary"
-              style={{ width: '100%', height: 50, fontSize: 15, justifyContent: 'center', marginTop: 18 }}
-              onClick={handleSubmit}
-              disabled={submitting || maxSeats === 0 || !guestsComplete}
-            >
-              {submitting ? (
-                <>
-                  <span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                  Submitting to Ops…
-                </>
-              ) : (
-                'Submit to Ops →'
+            {/* Payment — Stripe PaymentElement embedded once we have a
+                clientSecret from /api/bookings/payment-intent. Card is
+                charged the moment the member taps the Pay button; the
+                booking row is inserted on success with the PI id
+                stamped on it. */}
+            <div style={{ marginTop: 18 }}>
+              {piLoading && (
+                <div className="anchor-card anchor-card--loading">
+                  <span className="pending-indicator" />
+                  <span>Loading secure payment…</span>
+                </div>
               )}
-            </button>
+              {piError && (
+                <div className="anchor-card__error">{piError}</div>
+              )}
+              {!piLoading && !piError && clientSecret && paymentTotalCents != null && (
+                <ReservePaymentForm
+                  clientSecret={clientSecret}
+                  totalCents={paymentTotalCents}
+                  submitLabel={`Pay ${fmtMoney(paymentTotalCents / 100)} & confirm →`}
+                  onPaid={async ({ paymentIntentId }) => {
+                    await handleSubmit(paymentIntentId)
+                  }}
+                />
+              )}
+              {error && (
+                <div className="anchor-card__error" style={{ marginTop: 10 }}>{error}</div>
+              )}
+            </div>
 
             <div style={{ textAlign: 'center', marginTop: 12 }}>
               <span className="mono" style={{ fontSize: 9, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>
-                HOLD ONLY — CARD CAPTURED ON OPS CONFIRMATION
+                CHARGED ON CONFIRMATION · CANCELLABLE PER POLICY
               </span>
             </div>
           </div>
