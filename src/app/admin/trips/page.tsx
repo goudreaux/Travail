@@ -731,14 +731,47 @@ export default function TripsPage() {
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           {tab === 'active' ? (
             <>
-              <button className="btn-ghost" onClick={() => { setEditSponsored(null); setShowSponsoredForm(true) }}>
+              <button
+                onClick={() => { setEditSponsored(null); setShowSponsoredForm(true) }}
+                style={{
+                  height: 38, padding: '0 16px', borderRadius: 10, border: 'none',
+                  background: 'linear-gradient(135deg, #f4a72c 0%, #e09418 100%)',
+                  color: '#1a0e02', fontWeight: 600, fontSize: 13, fontFamily: 'var(--ui)',
+                  cursor: 'pointer', boxShadow: '0 1px 2px rgba(244,167,44,0.30)',
+                  transition: 'transform 0.08s, box-shadow 0.12s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(244,167,44,0.42)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 2px rgba(244,167,44,0.30)' }}
+              >
                 + Sponsored
               </button>
-              <button className="btn-ghost" onClick={() => { setShowExcForm(true); setEditExcId(null); setExcForm(defaultExcForm); setShowFlightForm(false) }}>
-                + Excursion
+              <button
+                onClick={() => { setShowExcForm(true); setEditExcId(null); setExcForm(defaultExcForm); setShowFlightForm(false) }}
+                style={{
+                  height: 38, padding: '0 16px', borderRadius: 10, border: 'none',
+                  background: 'linear-gradient(135deg, #4ba883 0%, #357d5e 100%)',
+                  color: '#ffffff', fontWeight: 600, fontSize: 13, fontFamily: 'var(--ui)',
+                  cursor: 'pointer', boxShadow: '0 1px 2px rgba(62,140,109,0.30)',
+                  transition: 'transform 0.08s, box-shadow 0.12s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(62,140,109,0.42)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 2px rgba(62,140,109,0.30)' }}
+              >
+                + Excursion for Member
               </button>
-              <button className="btn-primary" onClick={() => { setShowFlightForm(true); setEditFlightId(null); setFlightForm(defaultFlightForm); setShowExcForm(false) }}>
-                + Flight
+              <button
+                onClick={() => { setShowFlightForm(true); setEditFlightId(null); setFlightForm(defaultFlightForm); setShowExcForm(false) }}
+                style={{
+                  height: 38, padding: '0 16px', borderRadius: 10, border: 'none',
+                  background: 'linear-gradient(135deg, #00b3c7 0%, #008796 100%)',
+                  color: '#ffffff', fontWeight: 600, fontSize: 13, fontFamily: 'var(--ui)',
+                  cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,179,199,0.30)',
+                  transition: 'transform 0.08s, box-shadow 0.12s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,179,199,0.42)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 2px rgba(0,179,199,0.30)' }}
+              >
+                + Flight for Member
               </button>
             </>
           ) : (
