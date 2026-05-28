@@ -155,11 +155,31 @@ export default function MembersPage() {
   async function openEdit(m: Member) {
     setEditId(m.id)
     setShowAdd(false)
-    // Pull the sensitive row through the audited RPC — this writes an
-    // activity_log entry whenever an admin opens another member's editor.
+    // Pull the sensitive row. The audited RPC is the preferred path
+    // (writes an activity_log entry), but it lives in migration 035 —
+    // not always present in older Supabase environments. Fall back to a
+    // direct SELECT against member_sensitive when the RPC is missing
+    // OR returns nothing; the row-level RLS policy 'Admins can manage
+    // sensitive data' on member_sensitive (migration 027) lets the
+    // admin read it directly.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: sens } = await (supabase as any).rpc('admin_get_member_sensitive', { target_id: m.id })
-    const s = Array.isArray(sens) && sens[0] ? sens[0] : null
+    let s: any = null
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: sens } = await (supabase as any).rpc('admin_get_member_sensitive', { target_id: m.id })
+      if (Array.isArray(sens) && sens[0]) s = sens[0]
+    } catch (rpcErr) {
+      // RPC missing (404 / function not found) — log + fall through.
+      safeError('admin_get_member_sensitive RPC missing or failed (falling back to direct SELECT):', rpcErr)
+    }
+    if (!s) {
+      const { data: direct } = await supabase
+        .from('member_sensitive')
+        .select('email, phone, date_of_birth')
+        .eq('member_id', m.id)
+        .maybeSingle()
+      if (direct) s = direct
+    }
     setForm({
       name: m.name,
       member_no: m.member_no != null ? String(m.member_no) : '',
