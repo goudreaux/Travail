@@ -85,7 +85,7 @@ export default function LoginPage() {
 
           <p className="login-brand-pane__tagline">
             Private aviation + curated experiences.<br />
-            For a small set of founders.
+            A Cypress Sol company.
           </p>
         </div>
 
