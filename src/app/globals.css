@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&family=Vollkorn:ital,wght@0,500;0,600;1,500;1,600&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
   --bg: #f5ede0;
@@ -21,21 +21,25 @@
   --sun-glow: rgba(244, 167, 44, 0.18);
   --signal: #d94e2a;
   --moss: #3e8c6d;
-  /* Two-font system, sans-dominant:
-       --display, --hero, --ui : Inter Tight — everything that reads
-                                  as voice (hero, headers, body, cards,
-                                  buttons, nav). One sans does it all.
-       --mono                  : JetBrains Mono — used only where it
-                                  was already used: LIVE ticks,
-                                  confirmation codes, dates as data,
-                                  prices, eyebrows. The "flight
-                                  manifest" register is Travail's
-                                  brand differentiator since competitor
-                                  apps (Wheels Up et al.) put data in
-                                  the same sans as everything else. */
+  /* Three-font system, with editorial used SPARINGLY:
+       --display, --hero, --ui : Inter Tight — every label, header,
+                                  data point, button, body line.
+                                  This is the workhorse and the
+                                  brand's labelling voice.
+       --editorial             : Vollkorn — reserved for prose
+                                  moments where the human voice is
+                                  the content (member pitches,
+                                  excursion descriptions, anchor
+                                  copy). Never used on labels or
+                                  navigation. Italic by default.
+       --mono                  : JetBrains Mono — flight manifest
+                                  register: LIVE ticks, confirmation
+                                  codes, dates as data, prices,
+                                  eyebrows, metric numerals. */
   --display: "Inter Tight", system-ui, sans-serif;
   --hero: "Inter Tight", system-ui, sans-serif;
   --ui: "Inter Tight", system-ui, sans-serif;
+  --editorial: "Vollkorn", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
@@ -5052,17 +5056,18 @@ textarea.input {
 
 .section-ttl {
   font-family: var(--display);
-  /* Inter Tight 800 + tight tracking lets the section title actually
-     command the white panel against the mono eyebrow above. */
-  font-weight: 800;
-  font-size: 32px;
+  /* Section titles read as LABELS, not statements. Inter Tight 700
+     at a quieter size (24px down from 32) so "My trips" and "Open
+     seats" introduce the section without dominating it. */
+  font-weight: 700;
+  font-size: 22px;
   color: var(--ink);
-  letter-spacing: -0.028em;
+  letter-spacing: -0.022em;
   line-height: 1.0;
 }
 .section-ttl em {
-  /* Italic accent at lighter weight + softened color so it reads as
-     a quiet companion to the structural primary word. */
+  /* Italic accent — still slightly lighter weight + softened color
+     so the structural primary stays the anchor word. */
   font-style: italic;
   font-weight: 500;
   color: var(--ink-mid);
@@ -5089,7 +5094,7 @@ textarea.input {
 
 /* Bigger, bolder headers on mobile so the sections stand out. */
 @media (max-width: 768px) {
-  .section-ttl { font-size: 30px; }
+  .section-ttl { font-size: 21px; }
   .section-head { padding: 18px 18px 14px; }
   .section-head__actions { margin-top: 16px; }
   .section-chev { width: 26px; height: 26px; font-size: 20px; }

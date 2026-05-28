@@ -717,6 +717,11 @@ export default function ReservePage() {
 
             {/* Pitch — pull-quote on the paper bg (no box) */}
             {pitch && (
+              // Editorial-serif voice. This is one of the few places we
+              // intentionally break out of the sans label system: the
+              // pitch is the anchor's own words inviting members onto
+              // their trip, so it gets Vollkorn italic to read as
+              // *prose / personal voice*, not as another data block.
               <div style={{ position: 'relative', padding: '14px 14px 14px 44px' }}>
                 <div
                   aria-hidden
@@ -724,8 +729,9 @@ export default function ReservePage() {
                     position: 'absolute',
                     left: 0,
                     top: -10,
-                    fontFamily: 'var(--display)',
+                    fontFamily: 'var(--editorial)',
                     fontStyle: 'italic',
+                    fontWeight: 600,
                     fontSize: 90,
                     lineHeight: 1,
                     color: 'rgba(13,51,64,0.16)',
@@ -737,7 +743,7 @@ export default function ReservePage() {
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tropic-d)', marginBottom: 8 }}>
                   {anchorMemberId ? 'Why you should come' : 'The pitch'}
                 </div>
-                <p style={{ margin: 0, fontFamily: 'var(--display)', fontStyle: 'italic', fontSize: 21, lineHeight: 1.4, color: 'var(--ink)' }}>
+                <p style={{ margin: 0, fontFamily: 'var(--editorial)', fontStyle: 'italic', fontWeight: 500, fontSize: 21, lineHeight: 1.45, color: 'var(--ink)' }}>
                   {pitch}
                 </p>
               </div>
