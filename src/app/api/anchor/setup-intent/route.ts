@@ -34,29 +34,26 @@ function admin() {
 
 async function ensureStripeCustomer(memberId: string, name: string, email: string | null): Promise<string> {
   const db = admin()
-  const { data: member } = await db
-    .from('members').select('stripe_customer_id').eq('id', memberId).single()
+  const { data: member, error: selErr } = await db
+    .from('members').select('stripe_customer_id').eq('id', memberId).maybeSingle()
+  if (selErr) safeError('ensureStripeCustomer: member SELECT failed:', selErr)
 
   if (member?.stripe_customer_id) return member.stripe_customer_id
 
-  // Self-heal: if a previous attempt created a Stripe customer for this
-  // member but the DB write failed, we'd otherwise create a new one on
-  // every click — exactly what we caught happening in test mode (eight
-  // duplicate customers across consecutive Save-card taps). Search
-  // Stripe for an existing customer keyed to this member_id before
-  // creating a new one.
+  // Self-heal via Stripe.list (NOT .search — search is eventually
+  // consistent and won't return customers created seconds ago, which
+  // is exactly the failure mode we hit). list() is immediate. We pull
+  // up to 100 customers with this email and pick the one tagged with
+  // our member_id in metadata.
   let customerId: string | null = null
-  try {
-    const found = await stripe.customers.search({
-      query: `metadata['member_id']:'${memberId}'`,
-      limit: 1,
-    })
-    if (found.data[0]) customerId = found.data[0].id
-  } catch (e) {
-    // search() is on a newer API; if it isn't available we silently
-    // fall through and create a new one. The verified write below
-    // will keep things from running away.
-    safeError('Stripe customer search failed (non-fatal):', e)
+  if (email) {
+    try {
+      const list = await stripe.customers.list({ email, limit: 100 })
+      const match = list.data.find(c => !c.deleted && c.metadata?.member_id === memberId)
+      if (match) customerId = match.id
+    } catch (e) {
+      safeError('Stripe customer list failed (non-fatal):', e)
+    }
   }
 
   if (!customerId) {
@@ -68,16 +65,20 @@ async function ensureStripeCustomer(memberId: string, name: string, email: strin
     customerId = created.id
   }
 
-  // Persist the link + surface any failure so we can debug instead of
-  // looping. Even if the write fails we still return customerId so
-  // the SetupIntent can be created; the next request will self-heal
-  // via the search above.
+  // Persist + verify. Explicit .select() forces the query to fire and
+  // returns the updated row. If the UPDATE silently fails (RLS,
+  // missing column, constraint), `data` is empty and we know.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: upErr } = await (db.from('members') as any)
+  const { data: updated, error: upErr } = await (db.from('members') as any)
     .update({ stripe_customer_id: customerId })
     .eq('id', memberId)
+    .select('id, stripe_customer_id')
   if (upErr) {
-    safeError('Could not persist members.stripe_customer_id:', upErr)
+    safeError('Could not persist members.stripe_customer_id (error):', upErr)
+  } else if (!Array.isArray(updated) || updated.length === 0) {
+    safeError('Could not persist members.stripe_customer_id (no rows updated):', { memberId, customerId })
+  } else if (updated[0]?.stripe_customer_id !== customerId) {
+    safeError('Persist appeared to succeed but value did not stick:', updated[0])
   }
 
   return customerId
