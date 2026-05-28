@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
   --bg: #f5ede0;
@@ -21,9 +21,22 @@
   --sun-glow: rgba(244, 167, 44, 0.18);
   --signal: #d94e2a;
   --moss: #3e8c6d;
-  --display: "Cormorant Garamond", serif;
+  /* Two-font system, sans-dominant:
+       --display, --hero, --ui : Inter Tight — everything that reads
+                                  as voice (hero, headers, body, cards,
+                                  buttons, nav). One sans does it all.
+       --mono                  : JetBrains Mono — used only where it
+                                  was already used: LIVE ticks,
+                                  confirmation codes, dates as data,
+                                  prices, eyebrows. The "flight
+                                  manifest" register is Travail's
+                                  brand differentiator since competitor
+                                  apps (Wheels Up et al.) put data in
+                                  the same sans as everything else. */
+  --display: "Inter Tight", system-ui, sans-serif;
+  --hero: "Inter Tight", system-ui, sans-serif;
   --ui: "Inter Tight", system-ui, sans-serif;
-  --mono: "JetBrains Mono", monospace;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 /* ─── Reset ─────────────────────────────────────────────── */
@@ -722,16 +735,22 @@ body::before {
   margin-bottom: 14px;
   font-weight: 600;
 }
-/* Bumped from clamp(28,5vw,42) so the title actually commands the block. */
 .page-hero__title {
   font-family: var(--display);
-  font-style: italic;
-  font-weight: 500;
+  /* Same upright-primary + italic-accent discipline as .feed-hero__welcome.
+     Callers can wrap an accent word in <em> ("My <em>trips</em>"). */
+  font-style: normal;
+  font-weight: 700;
   color: #fff;
   margin: 0;
-  line-height: 1.02;
-  letter-spacing: -0.015em;
-  font-size: clamp(34px, 6vw, 48px);
+  line-height: 1.0;
+  letter-spacing: -0.028em;
+  font-size: clamp(36px, 6vw, 50px);
+}
+.page-hero__title em {
+  font-style: italic;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
 }
 .page-hero__sub { font-size: 14px; color: rgba(255,255,255,0.62); margin-top: 10px; }
 .page-hero__actions { position: relative; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
@@ -747,10 +766,13 @@ body::before {
   animation: page-hero-metric-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s both;
 }
 .page-hero__metric-value {
-  font-family: var(--display);
-  font-style: italic;
-  font-weight: 500;
-  font-size: clamp(40px, 6.5vw, 60px);
+  /* Data display number — switch to mono so the metric reads as a live
+     data point ("47", "12.5K"), not a typographic flourish. This is
+     where Travail's manifest-aesthetic earns its keep. */
+  font-family: var(--mono);
+  font-style: normal;
+  font-weight: 700;
+  font-size: clamp(40px, 6.5vw, 56px);
   line-height: 1;
   letter-spacing: -0.02em;
 }
@@ -1068,24 +1090,35 @@ body::before {
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Refined italic greeting — much smaller, single line */
+/* Hero greeting. Inter Tight at confident display weight, with the
+   member's name in italic 500 as the accent — "Good morning, Griffin."
+   Italic-only-on-the-accent keeps the personal warmth Wheels Up's
+   straight-sans treatment lacks. */
 .feed-hero__welcome {
   font-family: var(--display);
-  font-style: italic;
-  font-weight: 500;
+  font-style: normal;
+  font-weight: 700;
   color: #fff;
   margin: 0;
-  line-height: 1.05;
-  letter-spacing: -0.018em;
-  font-size: clamp(26px, 3.4vw, 38px);
+  line-height: 1.0;
+  letter-spacing: -0.028em;
+  font-size: clamp(32px, 4.6vw, 46px);
   opacity: 0;
   animation: feed-hero-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s forwards;
 }
 .feed-hero__welcome-pre {
+  /* Greeting in the tropic glow — structural anchor. */
   color: var(--tropic);
+  font-style: normal;
+  font-weight: 700;
 }
 .feed-hero__welcome-name {
+  /* Personal accent in italic. Inter Tight's italic is just slanted
+     roman, not true italic — but at this size + weight it reads as
+     "warm/authored" rather than "ornamental." */
   color: #fff;
+  font-style: italic;
+  font-weight: 500;
 }
 
 /* Hairline that grows in from the left */
@@ -2106,7 +2139,11 @@ body::before {
 .trip-card__name {
   font-family: var(--display);
   font-size: 18px;
-  font-weight: 500;
+  /* Bumped 500 → 700 since Inter Tight 500 read weaker than the prior
+     Cormorant 500. Tighter tracking matches the other display-weight
+     headers across the system. */
+  font-weight: 700;
+  letter-spacing: -0.022em;
   color: var(--ink);
   line-height: 1.18;
   margin-bottom: 2px;
@@ -5015,11 +5052,20 @@ textarea.input {
 
 .section-ttl {
   font-family: var(--display);
-  font-weight: 500;
-  font-size: 28px;
+  /* Inter Tight 800 + tight tracking lets the section title actually
+     command the white panel against the mono eyebrow above. */
+  font-weight: 800;
+  font-size: 32px;
   color: var(--ink);
-  letter-spacing: -0.018em;
-  line-height: 1.02;
+  letter-spacing: -0.028em;
+  line-height: 1.0;
+}
+.section-ttl em {
+  /* Italic accent at lighter weight + softened color so it reads as
+     a quiet companion to the structural primary word. */
+  font-style: italic;
+  font-weight: 500;
+  color: var(--ink-mid);
 }
 
 .section-chev {
