@@ -1942,7 +1942,10 @@ body::before {
 /* ─── Trip cards ─────────────────────────────────────────── */
 
 .trip-card {
-  background: var(--card);
+  /* Open Seats body: a touch heavier cream than the boarding-pass cards,
+     with a soft top→bottom fade so the CTA strip feels like it belongs
+     to the same paper, not stapled on. */
+  background: linear-gradient(180deg, var(--paper) 0%, var(--bg) 100%);
   border: 1px solid var(--hair);
   border-radius: 14px;
   overflow: hidden;
@@ -2096,7 +2099,9 @@ body::before {
 
 .trip-card__cta {
   padding: 10px 16px;
-  background: var(--paper);
+  /* Pick up where the card body's gradient ends so there's no hard
+     line between the content and the CTA strip. */
+  background: var(--bg);
   border-top: 1px solid var(--hair);
   display: flex;
   align-items: center;
@@ -2114,7 +2119,10 @@ body::before {
 /* ─── My trip cards (boarding-pass) ────────────────────────── */
 
 .my-trip-card {
-  background: var(--paper);
+  /* Boarding-pass body: a touch lighter than Open Seats, white at the
+     top fading into paper so the stub footer reads as the same paper
+     darkening at the perforation. */
+  background: linear-gradient(180deg, var(--card) 0%, var(--paper) 100%);
   border: 1px solid var(--hair);
   border-radius: 16px;
   overflow: hidden;
@@ -5982,18 +5990,11 @@ textarea.input {
   background: linear-gradient(180deg, var(--card) 0%, var(--paper) 100%);
   border: 1px solid var(--hair);
   border-radius: 14px;
-  padding: 16px 18px 14px;
+  padding: 18px 18px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   box-shadow: 0 1px 0 rgba(13,51,64,0.03), 0 6px 20px rgba(13,51,64,0.04);
-}
-.anchor-liability__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
 }
 .anchor-liability__eyebrow {
   font-family: var(--mono);
@@ -6002,29 +6003,39 @@ textarea.input {
   text-transform: uppercase;
   font-weight: 700;
   color: var(--tropic-d);
-  margin-bottom: 6px;
 }
-.anchor-liability__current { display: flex; flex-direction: column; gap: 2px; }
+/* Two columns that always hold — primary owed on the left, "if filled"
+   floor on the right with a hairline divider between. No flex-wrap, so
+   the floor never reflows beneath the primary on narrow phones. */
+.anchor-liability__top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: stretch;
+  gap: 18px;
+}
+.anchor-liability__current { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .anchor-liability__amount {
   font-family: var(--ui);
   font-weight: 700;
-  font-size: clamp(28px, 7vw, 40px);
+  font-size: clamp(26px, 6.5vw, 38px);
   letter-spacing: -0.022em;
-  line-height: 1.05;
+  line-height: 1;
   color: var(--ink);
 }
 .anchor-liability__caption {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--ink-mid);
   font-family: var(--mono);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
 }
 .anchor-liability__floor {
   text-align: right;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  flex-shrink: 0;
+  gap: 3px;
+  padding-left: 18px;
+  border-left: 1px solid var(--hair);
 }
 .anchor-liability__floor-label {
   font-family: var(--mono);
@@ -6040,10 +6051,13 @@ textarea.input {
   font-size: 22px;
   letter-spacing: -0.014em;
   color: var(--moss);
+  line-height: 1;
 }
 .anchor-liability__floor-caption {
   font-size: 10.5px;
   color: var(--ink-light);
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
 }
 .anchor-liability__bar {
   height: 6px;
@@ -6059,11 +6073,12 @@ textarea.input {
 .anchor-liability__legend {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: baseline;
   gap: 12px;
   font-size: 11.5px;
   color: var(--ink-mid);
   flex-wrap: wrap;
+  line-height: 1.4;
 }
 .anchor-liability__legend-dot {
   display: inline-block;
@@ -6079,6 +6094,7 @@ textarea.input {
   letter-spacing: 0.08em;
   color: var(--ink-light);
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 /* Anchor card-on-file widget — sits in the anchor wizard near the
