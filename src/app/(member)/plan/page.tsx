@@ -29,6 +29,15 @@ export default function PlanPage() {
       accent: 'var(--sun-d)',
       glow: 'rgba(244,167,44,0.16)',
     },
+    {
+      href: '/propose',
+      icon: Icons.compass,
+      eyebrow: 'No-risk pitch',
+      title: 'Propose a Trip',
+      sub: 'Pitch a date and rally the network. You only pay if commits hit the minimum — nobody charged if it falls through.',
+      accent: 'var(--moss)',
+      glow: 'rgba(62,140,109,0.16)',
+    },
   ]
 
   return (

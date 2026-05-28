@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/settle-trips",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/proposals-sweep",
+      "schedule": "0 * * * *"
     }
   ]
 }
