@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Icons } from '@/lib/icons'
 import { createClient } from '@/lib/supabase/client'
 import type { Member, Notification } from '@/lib/supabase/types'
+import { resolveNotificationRoute } from '@/lib/notifications'
 
 interface Props {
   member: Member | null
@@ -183,16 +184,13 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
 
   function openNotif(notif: Notification) {
     markOneRead(notif)
-    setDrawerOpen(false)
-    const ref = (notif.ref ?? {}) as Record<string, unknown>
-    const requesterId = ref.requester_id as string | undefined
-    if ((notif.kind === 'friend' || notif.kind === 'contact') && requesterId) {
-      router.push(`/network/${requesterId}`)
-      return
+    const route = resolveNotificationRoute(notif)
+    if (route) {
+      setDrawerOpen(false)
+      router.push(route)
     }
-    const itemKind = ref.item_kind as string | undefined
-    const itemId = ref.item_id as string | undefined
-    if (itemKind && itemId) router.push(`/reserve/${itemId}?kind=${itemKind}`)
+    // No route = announcement-only; we still cleared the unread badge
+    // above but leave the drawer open so the member can keep reading.
   }
 
   return (
@@ -278,14 +276,16 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
                 ) : (
                   localNotifs.map(notif => {
                     const meta = KIND_META[notif.kind] ?? KIND_META.system
+                    const interactive = resolveNotificationRoute(notif) !== null
                     return (
                       <div
                         key={notif.id}
                         className={`notif-item${!notif.read ? ' unread' : ''}`}
                         onClick={() => openNotif(notif)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={e => e.key === 'Enter' && openNotif(notif)}
+                        role={interactive ? 'button' : undefined}
+                        tabIndex={interactive ? 0 : undefined}
+                        onKeyDown={interactive ? e => e.key === 'Enter' && openNotif(notif) : undefined}
+                        style={{ cursor: interactive ? 'pointer' : 'default' }}
                       >
                         <div
                           className="notif-icon"
