@@ -1,29 +1,14 @@
 'use client'
-import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Icons, KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
 
+// Open to every member. Booking guard on /api/anchor/setup-intent still
+// enforces an active subscription — past_due / cancelled members will
+// hit the paywall when they try to submit, not when they browse.
+
 export default function PlanPage() {
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
-  const supabase = createClient()
   const router = useRouter()
-
-  useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { setIsAdmin(false); return }
-      const { data } = await supabase.from('members').select('is_admin').eq('user_id', user.id).single()
-      setIsAdmin(data?.is_admin ?? false)
-    })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (isAdmin === null) return null
-  if (!isAdmin) return (
-    <div className="page">
-      <PageHero accent="sun" eyebrow="PLAN A TRIP" title="Coming soon" sub="This feature is under development. Check back soon." />
-    </div>
-  )
 
   const choices = [
     {
