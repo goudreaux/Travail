@@ -54,6 +54,22 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
       return
     }
 
+    // Subscription wall — any non-admin without an active sub gets bounced
+    // to /onboarding/subscribe. Single source of truth, covers fresh
+    // invites, recovery links, returning members whose sub lapsed, etc.
+    // The /membership page is exempt so cancelled members can hit the
+    // "Start membership" button to resubscribe; /contact is exempt so
+    // they can still reach ops.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const status = (memberData as any).subscription_status ?? null
+    const OK_STATUSES = ['active', 'trialing', 'incomplete', 'past_due', 'unpaid']
+    const exemptPaths = ['/membership', '/contact']
+    const isExempt = exemptPaths.some(p => pathname === p || pathname.startsWith(p + '/'))
+    if (!memberData.is_admin && !OK_STATUSES.includes(status) && !isExempt) {
+      router.push('/onboarding/subscribe')
+      return
+    }
+
     setMember(memberData)
 
     const today = new Date().toISOString().slice(0, 10)
