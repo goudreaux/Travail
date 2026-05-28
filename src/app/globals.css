@@ -691,28 +691,29 @@ body::before {
   gap: 16px;
   flex-wrap: wrap;
 }
-.page-hero__glow { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(2px); }
-.page-hero__glow--primary { top: -90px; right: -70px; width: 320px; height: 320px; }
-.page-hero__glow--secondary { bottom: -110px; left: 38%; width: 260px; height: 260px; }
+.page-hero__glow { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(8px); }
+/* Bigger, softer glows so the navy panel feels sun-caught instead of flat. */
+.page-hero__glow--primary { top: -110px; right: -90px; width: 380px; height: 380px; }
+.page-hero__glow--secondary { bottom: -150px; left: 18%; width: 360px; height: 360px; filter: blur(10px); }
 
 /* Accent palettes — each page picks one so the navigation has color memory. */
-.page-hero--teal .page-hero__glow--primary { background: radial-gradient(circle, rgba(0,179,199,0.32), transparent 68%); }
-.page-hero--teal .page-hero__glow--secondary { background: radial-gradient(circle, rgba(244,167,44,0.12), transparent 70%); }
+.page-hero--teal .page-hero__glow--primary { background: radial-gradient(circle, rgba(0,179,199,0.44), transparent 68%); }
+.page-hero--teal .page-hero__glow--secondary { background: radial-gradient(circle, rgba(244,167,44,0.32), rgba(244,167,44,0.08) 45%, transparent 72%); }
 .page-hero--teal .page-hero__eyebrow,
 .page-hero--teal .page-hero__metric-value { color: var(--tropic); }
 
-.page-hero--sun .page-hero__glow--primary { background: radial-gradient(circle, rgba(244,167,44,0.30), transparent 68%); }
-.page-hero--sun .page-hero__glow--secondary { background: radial-gradient(circle, rgba(0,179,199,0.10), transparent 70%); }
+.page-hero--sun .page-hero__glow--primary { background: radial-gradient(circle, rgba(244,167,44,0.42), transparent 68%); }
+.page-hero--sun .page-hero__glow--secondary { background: radial-gradient(circle, rgba(0,179,199,0.22), transparent 70%); }
 .page-hero--sun .page-hero__eyebrow,
 .page-hero--sun .page-hero__metric-value { color: var(--sun); }
 
-.page-hero--moss .page-hero__glow--primary { background: radial-gradient(circle, rgba(62,140,109,0.34), transparent 68%); }
-.page-hero--moss .page-hero__glow--secondary { background: radial-gradient(circle, rgba(0,179,199,0.10), transparent 70%); }
+.page-hero--moss .page-hero__glow--primary { background: radial-gradient(circle, rgba(62,140,109,0.44), transparent 68%); }
+.page-hero--moss .page-hero__glow--secondary { background: radial-gradient(circle, rgba(244,167,44,0.24), transparent 70%); }
 .page-hero--moss .page-hero__eyebrow,
 .page-hero--moss .page-hero__metric-value { color: var(--moss); }
 
-.page-hero--signal .page-hero__glow--primary { background: radial-gradient(circle, rgba(217,78,42,0.26), transparent 68%); }
-.page-hero--signal .page-hero__glow--secondary { background: radial-gradient(circle, rgba(244,167,44,0.10), transparent 70%); }
+.page-hero--signal .page-hero__glow--primary { background: radial-gradient(circle, rgba(217,78,42,0.36), transparent 68%); }
+.page-hero--signal .page-hero__glow--secondary { background: radial-gradient(circle, rgba(244,167,44,0.22), transparent 70%); }
 .page-hero--signal .page-hero__eyebrow,
 .page-hero--signal .page-hero__metric-value { color: var(--signal); }
 
@@ -1006,19 +1007,23 @@ body::before {
   z-index: 0;
 }
 .feed-hero__glow--teal {
-  top: -120px;
-  right: -80px;
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, rgba(0, 179, 199, 0.30), transparent 68%);
+  top: -140px;
+  right: -100px;
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(0, 179, 199, 0.42), transparent 68%);
+  filter: blur(8px);
   animation: feed-hero-pulse 8s ease-in-out infinite;
 }
 .feed-hero__glow--sun {
-  bottom: -120px;
-  left: 28%;
-  width: 240px;
-  height: 240px;
-  background: radial-gradient(circle, rgba(244, 167, 44, 0.12), transparent 72%);
+  /* Much wider warm sun glow + higher opacity so the bottom-left of
+     the panel reads as sunrise light catching the navy paper. */
+  bottom: -160px;
+  left: 12%;
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(244, 167, 44, 0.32), rgba(244, 167, 44, 0.08) 45%, transparent 72%);
+  filter: blur(10px);
   animation: feed-hero-pulse 10s ease-in-out 2s infinite;
 }
 @keyframes feed-hero-pulse {
@@ -5591,6 +5596,21 @@ textarea.input {
   grid-template-columns: 220px 1fr;
   min-height: 100vh;
   background: var(--bg);
+  /* Ops dashboard is sans-only: no editorial serif. Override --display
+     for the whole admin tree so any element using var(--display) (page
+     titles, eyebrows, metric numbers, body text) resolves to Inter
+     Tight inside .admin-shell. JetBrains Mono is still available via
+     var(--mono) for data tables and labels. */
+  --display: "Inter Tight", system-ui, sans-serif;
+  --hero: "Inter Tight", system-ui, sans-serif;
+}
+/* Strip the brand italic from page titles inside the ops tree —
+   slanted Inter Tight reads as "tilted" rather than "voiced", so it's
+   cleaner to keep them upright. */
+.admin-shell .page-hero__title,
+.admin-shell .page-hero__metric-value,
+.admin-shell .section-ttl {
+  font-style: normal;
 }
 
 /* Ops mode color shift — admins should always know they're in the
