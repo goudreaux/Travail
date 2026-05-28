@@ -27,6 +27,12 @@ type BookingRow = Booking & {
 
 type AnchorRow = AnchorSubmission & {
   member: Pick<Member, 'name' | 'initials'> | null
+  // Quote-flow columns (migration 042). Cast at the type boundary since
+  // generated supabase types haven't been regenerated yet.
+  quoted_total_cents?: number | null
+  quoted_at?: string | null
+  quote_accepted_at?: string | null
+  quote_declined_at?: string | null
 }
 
 // A round trip is two flight bookings — outbound "B-X" and return "B-XR" — that
@@ -208,7 +214,11 @@ export default function QueuePage() {
     const { data } = await supabase
       .from('anchor_submissions')
       .select('*, member:members!member_id(name, initials)')
-      .eq('status', 'pending')
+      // All in-flight stages: pending (new), quoted (awaiting member),
+      // quote_accepted (ready to publish). Terminal states (published,
+      // declined, cancelled) drop out of the queue.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .in('status', ['pending', 'pending_ops_review', 'quoted', 'quote_accepted'] as any)
       .order('submitted_at', { ascending: true })
     setAnchors((data ?? []) as unknown as AnchorRow[])
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -508,55 +518,81 @@ export default function QueuePage() {
     setExpanded(anchor.id)
   }
 
-  async function publishAnchor(anchor: AnchorRow) {
+  // Stage 1: Ops sends the quote. Pulls the total cost + seat count
+  // from the review form, hits /api/admin/quote-anchor, member gets
+  // notified to accept/decline. No money moves yet.
+  async function sendQuote(anchor: AnchorRow) {
     if (working) return
     const p = anchor.payload as Record<string, unknown>
-    // Edited values from the expanded review form override the submission's payload.
     const d = expanded === anchor.id ? draft : {}
     const num = (key: string, fb: unknown) => {
       const raw = d[key] !== undefined && d[key] !== '' ? d[key] : (fb ?? 0)
       const n = Number(raw)
       return Number.isFinite(n) ? n : 0
     }
-
-    // Ops enters the TOTAL trip cost; per-seat is derived. The API
-    // endpoint still wants price_per_seat (it computes charter_total
-    // back to cents internally), so we divide here.
-    // Flights use seatsTotal; excursions use spotsTotal — pick whichever
-    // the kind exposes so we don't fall through to a stale default.
     const seatsKey = anchor.kind === 'flight' ? 'seatsTotal' : 'spotsTotal'
     const seatsTotal = num(seatsKey, p.seatsTotal ?? p.seats_total ?? p.spotsTotal ?? p.spots_total ?? 0)
     const totalCost = num('totalCost', (() => {
-      // Default fallback: legacy submissions store per-seat; derive total.
-      const legacyPerSeat = Number(p.pricePerSeat ?? p.price_per_seat ?? p.pricePerPax ?? p.price_per_pax ?? 0)
       const legacyTotal = Number(p.totalCost ?? p.total_cost ?? 0)
       if (legacyTotal > 0) return legacyTotal
-      if (legacyPerSeat > 0 && seatsTotal > 0) return legacyPerSeat * seatsTotal
       return 0
     })())
     if (totalCost <= 0 || seatsTotal <= 0) {
-      showToast('Set seats + total trip cost before publishing', 'error')
+      showToast('Set seats + total trip cost before sending the quote', 'error')
       setExpanded(anchor.id)
       if (expanded !== anchor.id) openAnchor(anchor)
       return
     }
-    const price = totalCost / seatsTotal
 
     setWorking(anchor.id)
     try {
-      // Hand off to the server. The endpoint reads the submission, captures
-      // the anchor's saved card for the full charter, creates the trip row
-      // with all anchor-state columns populated, creates the anchor's own
-      // booking, and marks the submission published. If the card declines
-      // (402) we surface the message and leave the submission pending so
-      // Ops can retry after talking to the anchor.
+      const res = await fetch('/api/admin/quote-anchor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ anchor_submission_id: anchor.id, total_cost: totalCost }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) { showToast(`Quote failed: ${json.error ?? 'Unknown error'}`, 'error'); return }
+      showToast(`Quote sent — $${totalCost.toLocaleString()} · awaiting anchor accept`, 'success')
+      // Reflect new status locally so the row's CTA flips immediately.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setAnchors(prev => prev.map(a => a.id === anchor.id ? ({ ...a, status: 'quoted' as any }) : a))
+    } catch (e: unknown) {
+      showToast((e as Error).message ?? 'Quote send failed', 'error')
+    } finally { setWorking(null) }
+  }
+
+  // Stage 2: Publish. Only available once status === 'quote_accepted'.
+  // The endpoint reads the locked quoted_total_cents from the
+  // submission and captures the anchor's card. Ops can no longer edit
+  // the price at this stage — the member already authorized the
+  // quoted number.
+  async function publishAnchor(anchor: AnchorRow) {
+    if (working) return
+    if ((anchor.status as string) !== 'quote_accepted') {
+      showToast('Anchor hasn\'t accepted the quote yet', 'error')
+      return
+    }
+    setWorking(anchor.id)
+    try {
+      // publish-anchor still wants price_per_seat for back-compat; we
+      // derive it from the locked quote.
+      const p = anchor.payload as Record<string, unknown>
+      const seatsKey = anchor.kind === 'flight' ? 'seatsTotal' : 'spotsTotal'
+      const seats = Number(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (p as any)[seatsKey] ?? (p as any).seatsTotal ?? (p as any).seats_total ?? (p as any).spotsTotal ?? (p as any).spots_total ?? 0,
+      )
+      const quotedCents = anchor.quoted_total_cents ?? 0
+      if (!seats || !quotedCents) {
+        showToast('Quote details missing — re-quote first', 'error')
+        return
+      }
+      const pricePerSeat = (quotedCents / 100) / seats
       const res = await fetch('/api/admin/publish-anchor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          anchor_submission_id: anchor.id,
-          price_per_seat: price,
-        }),
+        body: JSON.stringify({ anchor_submission_id: anchor.id, price_per_seat: pricePerSeat }),
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -564,10 +600,8 @@ export default function QueuePage() {
         showToast(`Publish failed: ${json.error ?? 'Unknown error'}${code}`, 'error')
         return
       }
-
       const totalDollars = (json.charter_total_cents ?? 0) / 100
       showToast(`Published — captured $${totalDollars.toFixed(2)} from anchor's card`, 'success')
-      // Remove from queue (realtime will reconcile but this is instant).
       setAnchors(prev => prev.filter(a => a.id !== anchor.id))
       if (expanded === anchor.id) setExpanded(null)
     } catch (e: unknown) {
@@ -1028,16 +1062,31 @@ export default function QueuePage() {
                       )}
                     </div>
 
-                    {/* Actions */}
+                    {/* Actions — stage flips between Send quote → Publish */}
                     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                      <button
-                        className="btn-sun"
-                        style={{ height: 32, padding: '0 16px', fontSize: 12.5 }}
-                        disabled={working === a.id}
-                        onClick={() => publishAnchor(a)}
-                      >
-                        {working === a.id ? '…' : 'Publish'}
-                      </button>
+                      {(a.status as string) === 'quote_accepted' ? (
+                        <button
+                          className="btn-sun"
+                          style={{ height: 32, padding: '0 16px', fontSize: 12.5 }}
+                          disabled={working === a.id}
+                          onClick={() => publishAnchor(a)}
+                        >
+                          {working === a.id ? '…' : 'Publish'}
+                        </button>
+                      ) : (a.status as string) === 'quoted' ? (
+                        <span style={{ height: 32, padding: '0 14px', fontSize: 11.5, color: 'var(--tropic-d)', background: 'var(--tropic-glow)', borderRadius: 9, display: 'inline-flex', alignItems: 'center', fontFamily: 'var(--mono)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700 }}>
+                          Quoted · awaiting
+                        </span>
+                      ) : (
+                        <button
+                          className="btn-sun"
+                          style={{ height: 32, padding: '0 16px', fontSize: 12.5 }}
+                          disabled={working === a.id}
+                          onClick={() => sendQuote(a)}
+                        >
+                          {working === a.id ? '…' : 'Send quote'}
+                        </button>
+                      )}
                       <button
                         className="btn-ghost"
                         style={{ height: 32, padding: '0 11px', fontSize: 12, color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.25)' }}
@@ -1090,9 +1139,20 @@ export default function QueuePage() {
                           <textarea className="input" rows={2} value={draft.pitch ?? ''} onChange={e => set('pitch', e.target.value)} />
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16 }}>
-                          <button className="btn-sun" style={{ height: 36, padding: '0 18px', fontSize: 13 }} disabled={working === a.id} onClick={() => publishAnchor(a)}>
-                            {working === a.id ? 'Publishing…' : 'Publish to network →'}
-                          </button>
+                          {(a.status as string) === 'quote_accepted' ? (
+                            <button className="btn-sun" style={{ height: 36, padding: '0 18px', fontSize: 13 }} disabled={working === a.id} onClick={() => publishAnchor(a)}>
+                              {working === a.id ? 'Publishing…' : 'Publish to network →'}
+                            </button>
+                          ) : (a.status as string) === 'quoted' ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'var(--tropic-glow)', borderRadius: 9, fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--tropic-d)', fontWeight: 700 }}>
+                              <span className="pending-indicator" style={{ width: 10, height: 10, borderWidth: 2, borderColor: 'var(--tropic-d) transparent var(--tropic-d) transparent' }} />
+                              Quote sent · awaiting anchor
+                            </div>
+                          ) : (
+                            <button className="btn-sun" style={{ height: 36, padding: '0 18px', fontSize: 13 }} disabled={working === a.id} onClick={() => sendQuote(a)}>
+                              {working === a.id ? 'Sending…' : 'Send quote →'}
+                            </button>
+                          )}
                           <span style={{ fontSize: 11.5, color: 'var(--ink-light)' }}>
                             {a.member?.name ? `Submitted by ${a.member.name}` : ''}{a.submitted_at ? ` · ${new Date(a.submitted_at).toLocaleDateString()}` : ''}
                           </span>
