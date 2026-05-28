@@ -41,22 +41,26 @@ function bookingStatusClass(status: BookingStatus): string {
 }
 
 function submissionStatusLabel(status: SubmissionStatus): string {
-  switch (status) {
-    case 'pending':   return 'IN OPS REVIEW'
-    case 'approved':  return 'APPROVED'
-    case 'declined':  return 'DECLINED'
-    case 'published': return 'LIVE'
-    default:          return (status as string).toUpperCase()
+  switch (status as string) {
+    case 'pending':         return 'IN OPS REVIEW'
+    case 'quoted':          return 'QUOTE READY'
+    case 'quote_accepted':  return 'AWAITING PUBLISH'
+    case 'approved':        return 'APPROVED'
+    case 'declined':        return 'DECLINED'
+    case 'published':       return 'LIVE'
+    default:                return (status as string).toUpperCase()
   }
 }
 
 function submissionStatusClass(status: SubmissionStatus): string {
-  switch (status) {
-    case 'pending':   return 'sun'
-    case 'approved':  return 'tropic'
-    case 'declined':  return 'signal'
-    case 'published': return 'moss'
-    default:          return ''
+  switch (status as string) {
+    case 'pending':         return 'sun'
+    case 'quoted':          return 'tropic'    // decision needed — pulls attention
+    case 'quote_accepted':  return 'tropic'
+    case 'approved':        return 'tropic'
+    case 'declined':        return 'signal'
+    case 'published':       return 'moss'
+    default:                return ''
   }
 }
 
@@ -225,7 +229,17 @@ function AnchorCard({ submission, isExpanded, onSelect, airportName }: { submiss
         <span className="my-trip-card__perf-dash" />
       </div>
       <div className="my-trip-card__stub">
-        {submission.status === 'published' && submission.published_item_id ? (
+        {(submission.status as string) === 'quoted' ? (
+          // Decision needed — the strongest CTA on the page.
+          <>
+            <span className="my-trip-card__conf" style={{ color: 'var(--tropic-d)' }}>QUOTE READY</span>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--tropic-d)', fontWeight: 700 }}>
+              REVIEW & CONFIRM →
+            </span>
+          </>
+        ) : (submission.status as string) === 'quote_accepted' ? (
+          <span className="my-trip-card__conf" style={{ color: 'var(--tropic-d)' }}>YOU ACCEPTED · AWAITING PUBLISH</span>
+        ) : submission.status === 'published' && submission.published_item_id ? (
           <span className="my-trip-card__conf" style={{ color: effStatus === 'cancelled' ? 'var(--signal)' : 'var(--moss)' }}>
             {effStatus === 'cancelled' ? 'CANCELLED BY OPS' : 'LIVE & ACCEPTING BOOKINGS'}
           </span>
@@ -357,7 +371,11 @@ export default function BookingsPage() {
 
   // Active vs closed — matches the ops dashboard split.
   const ACTIVE_BOOKING: BookingStatus[] = ['pending', 'approved']
-  const ACTIVE_ANCHOR: SubmissionStatus[] = ['pending', 'approved', 'published']
+  // 'quoted' + 'quote_accepted' are in-flight states from the quote
+  // workflow (Ops sent a price, awaiting member or ops). They belong
+  // in Active Anchors so the member sees the decision they owe.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ACTIVE_ANCHOR: SubmissionStatus[] = ['pending', 'quoted', 'quote_accepted', 'approved', 'published'] as any
   const activeBookings = visibleBookings.filter(b => ACTIVE_BOOKING.includes(b.status))
   const closedBookings = visibleBookings.filter(b => !ACTIVE_BOOKING.includes(b.status))
   const activeAnchors = anchors.filter(a => ACTIVE_ANCHOR.includes(effectiveAnchorStatus(a)))
@@ -398,6 +416,43 @@ export default function BookingsPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32, maxWidth: 760, width: '100%' }}>
+            {/* Pending decisions banner — quote-stage anchors that the
+                member owes a response on. Pulled above bookings so it's
+                the first thing they see. */}
+            {(() => {
+              const pending = activeAnchors.filter(a => (a.status as string) === 'quoted')
+              if (pending.length === 0) return null
+              return (
+                <section
+                  onClick={() => router.push(`/anchor-quote/${pending[0].id}`)}
+                  style={{
+                    cursor: 'pointer',
+                    background: 'linear-gradient(135deg, var(--tropic-glow), rgba(244,167,44,0.10))',
+                    border: '1px solid var(--tropic)',
+                    borderRadius: 16,
+                    padding: '18px 22px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16,
+                    boxShadow: '0 2px 4px rgba(13,51,64,0.05), 0 12px 30px rgba(0,179,199,0.18)',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--tropic-d)', fontWeight: 700, marginBottom: 4 }}>
+                      Decision needed · {pending.length === 1 ? '1 quote' : `${pending.length} quotes`}
+                    </div>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>
+                      Ops sent you a price{pending.length === 1 ? '' : 's'} — review &amp; confirm
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink-mid)', marginTop: 4 }}>
+                      Tap to open the quote{pending.length === 1 ? '' : 's'}. No charge happens until you accept.
+                    </div>
+                  </div>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tropic-d)', fontWeight: 700, flexShrink: 0 }}>Review →</span>
+                </section>
+              )
+            })()}
+
             {/* Your Active Bookings */}
             <section>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -462,8 +517,16 @@ export default function BookingsPage() {
                       submission={a}
                       isExpanded={true}
                       onSelect={() => {
-                        // Tap → anchor's own boarding pass for this
-                        // trip (auto-created at publish time).
+                        // Decision-needed state — go straight to the quote
+                        // review screen. The quote workflow's whole point
+                        // is that the member sees + confirms the number
+                        // before any card capture.
+                        if ((a.status as string) === 'quoted') {
+                          router.push(`/anchor-quote/${a.id}`)
+                          return
+                        }
+                        // Published trip → anchor's own boarding pass
+                        // (auto-created at publish time).
                         if (a.anchorBookingId) {
                           router.push(`/boarding-pass/${a.anchorBookingId}`)
                         }
