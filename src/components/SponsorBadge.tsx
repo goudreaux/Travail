@@ -6,14 +6,29 @@
 //   • 'ribbon' — corner stamp on a trip-card image
 //   • 'pill'   — inline mark below a title (default)
 //   • 'mark'   — large standalone wordmark for the reserve page hero
+//
+// The sponsor field on excursions is free-form text (so collab lines
+// like "Travail × Tropic × Field & Stream" render cleanly) — we
+// detect known brands inside that string and render their badge.
 
 import React from 'react'
 
 type Size = 'ribbon' | 'pill' | 'mark'
 
+function containsFieldStream(s: string): boolean {
+  // Tolerant match: handles "Field & Stream", "Field and Stream",
+  // "Field&Stream", case-insensitive, plus the legacy slug.
+  const normalized = s.toLowerCase().replace(/\s+/g, '')
+  return (
+    normalized === 'field_stream'
+    || normalized.includes('field&stream')
+    || normalized.includes('fieldandstream')
+  )
+}
+
 export function SponsorBadge({ sponsor, size = 'pill' }: { sponsor: string | null | undefined; size?: Size }) {
   if (!sponsor) return null
-  if (sponsor === 'field_stream') return <FieldStreamBadge size={size} />
+  if (containsFieldStream(sponsor)) return <FieldStreamBadge size={size} />
   return null
 }
 

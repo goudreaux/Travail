@@ -7,6 +7,7 @@ import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
 import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'
 import { SeatMeter } from '@/components/SeatMeter'
+import { SponsorBadge } from '@/components/SponsorBadge'
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 import type { DisplayFlight, DisplayExcursion } from '@/lib/data'
 
@@ -304,12 +305,14 @@ function ExcursionCard({
           <div className="trip-card__title" style={{ color: colors.accent }}>{kindLabel} · FROM {placeName(excursion.origin_code, names).toUpperCase()}</div>
           <div className="trip-card__name">{excursion.name}</div>
           {excursion.sponsor && (
-            <div style={{
-              display: 'inline-block', marginTop: 4, marginBottom: 2,
-              fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.16em', textTransform: 'uppercase',
-              color: 'var(--sun-d)', fontWeight: 700,
-            }}>
-              Sponsored · {excursion.sponsor}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 6, marginBottom: 2 }}>
+              <SponsorBadge sponsor={excursion.sponsor} size="pill" />
+              <span style={{
+                fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.16em', textTransform: 'uppercase',
+                color: 'var(--sun-d)', fontWeight: 700,
+              }}>
+                Sponsored · {excursion.sponsor}
+              </span>
             </div>
           )}
           <div className="trip-card__meta">
