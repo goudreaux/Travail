@@ -303,6 +303,15 @@ function ExcursionCard({
         <div className="trip-card__content">
           <div className="trip-card__title" style={{ color: colors.accent }}>{kindLabel} · FROM {placeName(excursion.origin_code, names).toUpperCase()}</div>
           <div className="trip-card__name">{excursion.name}</div>
+          {excursion.sponsor && (
+            <div style={{
+              display: 'inline-block', marginTop: 4, marginBottom: 2,
+              fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.16em', textTransform: 'uppercase',
+              color: 'var(--sun-d)', fontWeight: 700,
+            }}>
+              Sponsored · {excursion.sponsor}
+            </div>
+          )}
           <div className="trip-card__meta">
             {excursion.startTimeStr !== '—' ? excursion.startTimeStr : ''}
             {excursion.templateMeta?.operator ? ` · ${excursion.templateMeta.operator}` : ''}
@@ -374,7 +383,11 @@ export default function SeatsPage() {
         supabase
           .from('excursions')
           .select('*')
-          .in('status', ['open'])
+          // Include excursions that are 'open' (seats available) plus
+          // 'full' ONLY when they're Travail-sponsored — those stay on
+          // the board even at capacity so members can still see what's
+          // running and who the partners are.
+          .or('status.eq.open,and(status.eq.full,anchor_member_id.is.null,sponsor.not.is.null)')
           .order('date'),
         supabase.from('excursion_templates').select('*'),
         // Only the viewer's own active bookings (all RLS allows). The cabin-wide
