@@ -13,17 +13,26 @@ export interface ItineraryStep {
   icon?: string | null     // KIND_ICONS key — render the mark next to the dot
 }
 
-// Display helper: 'HH:MM' → '8:30 AM'. Returns the raw string back if
-// it can't parse (so an ops-written "TBD" or "~ 9 AM" passes through).
+// Display helper. Accepts both:
+//   • 24h 'HH:MM' from the wizard's <input type="time"> ('14:00' → '2:00 PM')
+//   • free-text Ops strings like '4:00 PM', '~9 AM', 'TBD'
+// Strings that already carry an AM/PM marker are kept (just whitespace
+// + suffix normalized) so '4:00 PM' doesn't get re-parsed and clobbered
+// back to '4:00 AM'. Returns '' for null/empty so callers can swap in a
+// TBD chip.
 export function fmtItineraryTime(t: string | null | undefined): string {
   if (!t) return ''
-  const m = /^(\d{1,2}):(\d{2})/.exec(t)
-  if (!m) return t
+  const trimmed = t.trim().replace(/\s+/g, ' ')
+  const ampmAtEnd = /\b(am|pm)\.?\s*$/i
+  if (ampmAtEnd.test(trimmed)) {
+    return trimmed.replace(ampmAtEnd, m => m.toUpperCase().replace('.', '')).replace(/\s*([AP]M)$/, ' $1')
+  }
+  const m = /^(\d{1,2}):(\d{2})/.exec(trimmed)
+  if (!m) return trimmed
   const h = parseInt(m[1], 10)
-  const min = m[2]
   const ampm = h >= 12 ? 'PM' : 'AM'
   const h12 = h % 12 || 12
-  return `${h12}:${min} ${ampm}`
+  return `${h12}:${m[2]} ${ampm}`
 }
 
 // Builds the canonical 5-step plan from an excursion's row data. Any
