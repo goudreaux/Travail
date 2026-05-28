@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useScrollProgress } from '@/lib/useScrollProgress'
 import { adaptFlight, adaptExcursion, returnLegIds, fmtMoney, airportCity, DisplayFlight, DisplayExcursion } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import { SeatMeter } from '@/components/SeatMeter'
@@ -92,6 +93,11 @@ function excursionMatchesFilter(e: DisplayExcursion, filter: TypeFilter): boolea
 }
 
 export default function FeedPage() {
+  // Drives the sticky-compress hero header. CSS reads
+  // --scroll-progress and interpolates size / padding / opacity as
+  // the user scrolls past the first 200px.
+  useScrollProgress({ maxPx: 200 })
+
   const [member, setMember] = useState<Member | null>(null)
   const [flights, setFlights] = useState<DisplayFlight[]>([])
   const [excursions, setExcursions] = useState<DisplayExcursion[]>([])
@@ -351,7 +357,7 @@ export default function FeedPage() {
 
   return (
     <div className="page">
-      <section className="feed-hero">
+      <section className="feed-hero" data-scroll-hero>
         <div className="feed-hero__glow feed-hero__glow--teal" aria-hidden />
         <div className="feed-hero__glow feed-hero__glow--sun" aria-hidden />
 

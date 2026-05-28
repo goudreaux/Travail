@@ -1,4 +1,6 @@
+'use client'
 import React from 'react'
+import { useScrollProgress } from '@/lib/useScrollProgress'
 
 export type HeroAccent = 'teal' | 'sun' | 'moss' | 'signal'
 
@@ -28,8 +30,10 @@ export default function PageHero({
   accent?: HeroAccent
   children?: React.ReactNode
 }) {
+  // Same sticky-compress pattern as the home feed hero.
+  useScrollProgress({ maxPx: 200 })
   return (
-    <div className={`page-hero page-hero--${accent}`}>
+    <div className={`page-hero page-hero--${accent}`} data-scroll-hero>
       <div className="page-hero__glow page-hero__glow--primary" />
       <div className="page-hero__glow page-hero__glow--secondary" />
       <div className="page-hero__inner">

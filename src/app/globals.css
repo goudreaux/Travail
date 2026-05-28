@@ -21,13 +21,12 @@
   --sun-glow: rgba(244, 167, 44, 0.18);
   --signal: #d94e2a;
   --moss: #3e8c6d;
-  /* Card-level display (trip cards, boarding passes, dates) — kept
-     on Cormorant Garamond. */
-  --display: "Cormorant Garamond", serif;
-  /* Hero + section heads only. Fraunces variable: structural blade
-     italic letterforms instead of Cormorant's cursive swirl. Optical
-     size axis pulls sharper terminals at large sizes; SOFT 50 keeps
-     it on the wedge side of the humanist↔structural spectrum. */
+  /* Fraunces — variable serif. Structural blade italic letterforms,
+     optical-size axis for crisper terminals at large sizes, SOFT axis
+     for tuning structural (low) vs humanist (high). Used everywhere
+     headlines and accent serifs appear (replaces Cormorant Garamond). */
+  --display: "Fraunces", "Cormorant Garamond", serif;
+  /* Kept as alias for any local override that wants the same font. */
   --hero: "Fraunces", "Cormorant Garamond", serif;
   --ui: "Inter Tight", system-ui, sans-serif;
   --mono: "JetBrains Mono", monospace;
@@ -665,31 +664,27 @@ body::before {
 
 /* ─── Editorial page hero ────────────────────────────────── */
 
+/* Page hero (boarding pass, reserve, sub-pages) — matches .feed-hero
+   treatment: lives on the cream page background (no navy card),
+   sticky-compresses on scroll, cards superimpose over it as they rise. */
 .page-hero {
-  position: relative;
-  overflow: hidden;
-  border-radius: 22px;
-  margin: 28px 28px 0;
-  background: linear-gradient(135deg, #052a35 0%, #0d3340 52%, #0a4a55 100%);
-  padding: clamp(24px, 3.5vw, 38px) clamp(20px, 3.5vw, 36px);
-  /* Matches the .panel lift recipe: a subtle inset top highlight catching
-     light + a faint inset bottom shadow tracing the lower edge + a three-
-     layer drop shadow (close, mid, deep diffuse) so the hero reads as
-     lifted off the cream page instead of flat. */
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
-    0 1px 2px rgba(13, 51, 64, 0.10),
-    0 14px 28px -10px rgba(13, 51, 64, 0.24),
-    0 36px 64px -20px rgba(13, 51, 64, 0.32);
+  position: sticky;
+  top: 60px;
+  z-index: 1;
+  overflow: visible;
+  border-radius: 0;
+  margin: 0;
+  background: transparent;
+  box-shadow: none;
+  padding:
+    calc(clamp(24px, 3.5vw, 38px) - var(--scroll-progress, 0) * 18px)
+    clamp(20px, 3.5vw, 36px)
+    calc(clamp(18px, 3vw, 28px) - var(--scroll-progress, 0) * 12px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s ease;
 }
-.page-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 16px);
-}
+.page-hero[data-scrolled="1"] { border-bottom-color: var(--hair); }
+.page-hero::before { content: none; }
 .page-hero__inner {
   position: relative;
   display: flex;
@@ -702,24 +697,20 @@ body::before {
 .page-hero__glow--primary { top: -90px; right: -70px; width: 320px; height: 320px; }
 .page-hero__glow--secondary { bottom: -110px; left: 38%; width: 260px; height: 260px; }
 
-/* Accent palettes — each page picks one so the navigation has color memory. */
-.page-hero--teal .page-hero__glow--primary { background: radial-gradient(circle, rgba(0,179,199,0.32), transparent 68%); }
-.page-hero--teal .page-hero__glow--secondary { background: radial-gradient(circle, rgba(244,167,44,0.12), transparent 70%); }
+/* Accent palettes — page-hero is now on the cream background, so the
+   decorative glows are hidden and the eyebrow/metric pick the *darker*
+   brand tone for accessible contrast. */
+.page-hero__glow { display: none; }
+
 .page-hero--teal .page-hero__eyebrow,
-.page-hero--teal .page-hero__metric-value { color: var(--tropic); }
+.page-hero--teal .page-hero__metric-value { color: var(--tropic-d); }
 
-.page-hero--sun .page-hero__glow--primary { background: radial-gradient(circle, rgba(244,167,44,0.30), transparent 68%); }
-.page-hero--sun .page-hero__glow--secondary { background: radial-gradient(circle, rgba(0,179,199,0.10), transparent 70%); }
 .page-hero--sun .page-hero__eyebrow,
-.page-hero--sun .page-hero__metric-value { color: var(--sun); }
+.page-hero--sun .page-hero__metric-value { color: var(--sun-d); }
 
-.page-hero--moss .page-hero__glow--primary { background: radial-gradient(circle, rgba(62,140,109,0.34), transparent 68%); }
-.page-hero--moss .page-hero__glow--secondary { background: radial-gradient(circle, rgba(0,179,199,0.10), transparent 70%); }
 .page-hero--moss .page-hero__eyebrow,
 .page-hero--moss .page-hero__metric-value { color: var(--moss); }
 
-.page-hero--signal .page-hero__glow--primary { background: radial-gradient(circle, rgba(217,78,42,0.26), transparent 68%); }
-.page-hero--signal .page-hero__glow--secondary { background: radial-gradient(circle, rgba(244,167,44,0.10), transparent 70%); }
 .page-hero--signal .page-hero__eyebrow,
 .page-hero--signal .page-hero__metric-value { color: var(--signal); }
 
@@ -734,20 +725,26 @@ body::before {
   font-family: var(--hero);
   /* Upright weight 600 as the structural base; callers can wrap the
      accent word in <em> for italic emphasis (matches the .section-ttl
-     pattern: "My <em>trips</em>"). */
+     pattern: "My <em>trips</em>"). Compresses on scroll alongside the
+     hero panel. */
   font-weight: 600;
-  color: #fff;
+  color: var(--ink);
   margin: 0;
-  line-height: 1.02;
-  letter-spacing: -0.020em;
-  font-size: clamp(34px, 6vw, 48px);
+  line-height: 1.0;
+  letter-spacing: -0.022em;
+  font-size: calc(clamp(34px, 6vw, 48px) - var(--scroll-progress, 0) * 22px);
   font-variation-settings: "opsz" 90, "SOFT" 50;
 }
 .page-hero__title em {
   font-style: italic;
   font-weight: 500;
 }
-.page-hero__sub { font-size: 14px; color: rgba(255,255,255,0.62); margin-top: 10px; }
+.page-hero__sub {
+  font-size: 14px;
+  color: var(--ink-mid);
+  margin-top: 10px;
+  opacity: calc(1 - var(--scroll-progress, 0) * 1.5);
+}
 .page-hero__actions { position: relative; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
 /* Right-side metric block: anchors the empty space, gives each page a
@@ -773,7 +770,7 @@ body::before {
   font-size: 10px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--ink-mid);
   margin-top: 8px;
   font-weight: 600;
 }
@@ -782,7 +779,7 @@ body::before {
   font-size: 9.5px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--ink-light);
   margin-top: 4px;
 }
 @keyframes page-hero-metric-in {
@@ -984,91 +981,77 @@ body::before {
 /* Tight editorial dashboard block: live status chip, a refined italic
    greeting on one line, a hairline that sweeps in, a rotating "brief"
    wire that ticks through curated lines, and a compact next-up rail. */
+/* Scroll-compressing hero. Lives directly on the page background
+   (no card panel, no navy fill) and stays sticky just below the topbar
+   while the user scrolls. As content rises, --scroll-progress (set by
+   useScrollProgress on the page) interpolates 0→1 across the first
+   200px of scroll; the hero shrinks, the brief fades, and the cards
+   below superimpose over the compressed strip. */
 .feed-hero {
-  position: relative;
-  overflow: hidden;
-  border-radius: 22px;
-  margin: 24px 28px 0;
-  padding: 26px 30px 22px;
-  background:
-    radial-gradient(900px 280px at 90% 110%, rgba(0, 179, 199, 0.14), transparent 60%),
-    linear-gradient(135deg, #042128 0%, #0a3340 52%, #073744 100%);
-  /* Same lift recipe as .page-hero / .panel — inset top highlight, inset
-     bottom shadow tracing the lower edge, three-layer drop shadow. */
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.20),
-    0 1px 2px rgba(13, 51, 64, 0.10),
-    0 14px 28px -10px rgba(13, 51, 64, 0.24),
-    0 36px 64px -20px rgba(13, 51, 64, 0.32);
+  position: sticky;
+  top: 60px;       /* under the .topbar */
+  z-index: 1;       /* below .panel (which renders 2+) so cards rise over */
+  /* No card chrome — transparent so the cream page bg shows through. */
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  margin: 0;
+  padding:
+    calc(28px - var(--scroll-progress, 0) * 16px)
+    28px
+    calc(20px - var(--scroll-progress, 0) * 10px);
+  /* Soft bottom shadow that grows as the hero compresses, so when
+     cards scroll over it, there's a hint of separation. */
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s ease;
 }
-/* Dropped the diagonal stripe overlay and the secondary sun glow —
-   the type now carries the panel instead of competing with surface
-   decoration. The single teal glow stays as a quiet brand cue. */
+.feed-hero[data-scrolled="1"] {
+  border-bottom-color: var(--hair);
+}
 .feed-hero > * { position: relative; z-index: 1; }
 
-.feed-hero__glow {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  filter: blur(2px);
-  z-index: 0;
-}
-.feed-hero__glow--teal {
-  top: -120px;
-  right: -80px;
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, rgba(0, 179, 199, 0.22), transparent 68%);
-  animation: feed-hero-pulse 8s ease-in-out infinite;
-}
-/* Sun glow removed — was adding warmth that competed with the type. */
-.feed-hero__glow--sun { display: none; }
-@keyframes feed-hero-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.06); opacity: 0.75; }
-}
+/* No more glows / stripes / decorative overlays on the hero panel —
+   the type carries the page. */
+.feed-hero__glow { display: none; }
+.feed-hero::after { content: none; }
 
-/* Topline: live status (left) + date (right) */
+/* Topline: live status (left) + date (right). Shrinks + fades as
+   the hero compresses. */
 .feed-hero__topline {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 18px;
-  opacity: 0;
-  animation: feed-hero-rise 0.5s ease 0.05s forwards;
+  margin-bottom: calc(18px - var(--scroll-progress, 0) * 12px);
+  opacity: calc(1 - var(--scroll-progress, 0));
+  max-height: calc(20px - var(--scroll-progress, 0) * 20px);
+  overflow: hidden;
+  transition: opacity 0.15s linear;
 }
-.feed-hero__live-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.feed-hero__live-text,
+.feed-hero__date {
+  color: var(--ink-mid);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
 }
+.feed-hero__live-text { color: var(--tropic-d); }
+.feed-hero__date { color: var(--ink-faint); letter-spacing: 0.22em; }
 .feed-hero__live-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--tropic);
-  box-shadow: 0 0 0 0 rgba(0, 179, 199, 0.55);
+  box-shadow: 0 0 0 0 rgba(0, 179, 199, 0.45);
   animation: feed-hero-live 2s ease-out infinite;
 }
 @keyframes feed-hero-live {
-  0% { box-shadow: 0 0 0 0 rgba(0, 179, 199, 0.55); }
+  0% { box-shadow: 0 0 0 0 rgba(0, 179, 199, 0.45); }
   70% { box-shadow: 0 0 0 8px rgba(0, 179, 199, 0); }
   100% { box-shadow: 0 0 0 0 rgba(0, 179, 199, 0); }
-}
-.feed-hero__live-text {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.62);
-}
-.feed-hero__date {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  color: rgba(255, 255, 255, 0.4);
 }
 
 /* Hero greeting. Two-register treatment: upright weight 600 for the
@@ -1079,40 +1062,40 @@ body::before {
 .feed-hero__welcome {
   font-family: var(--hero);
   font-weight: 600;
-  color: #fff;
+  color: var(--ink);
   margin: 0;
-  line-height: 1.02;
-  letter-spacing: -0.020em;
-  /* Bumped from 26-38px → 34-48px so the greeting actually anchors
-     the panel instead of floating decoratively over it. */
-  font-size: clamp(34px, 4.8vw, 48px);
-  opacity: 0;
-  animation: feed-hero-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s forwards;
-  /* Fraunces optical-size + soft axis. Larger opsz pulls sharper
-     terminals; soft 50 keeps it structural (less humanist swirl). */
+  line-height: 1.0;
+  letter-spacing: -0.022em;
+  /* Compresses from ~48px down to ~26px as user scrolls past 200px.
+     Calc-with-CSS-vars hits the GPU cleanly with no layout thrash. */
+  font-size: calc(48px - var(--scroll-progress, 0) * 22px);
   font-variation-settings: "opsz" 90, "SOFT" 50;
 }
 .feed-hero__welcome-pre {
-  /* Upright greeting in the tropic glow — the structural anchor. */
-  color: var(--tropic);
+  /* Upright greeting — the structural anchor. */
+  color: var(--tropic-d);
   font-style: normal;
   font-weight: 600;
 }
 .feed-hero__welcome-name {
   /* Personal accent in italic — slightly lighter weight so the
      letterforms breathe. */
-  color: #fff;
+  color: var(--ink);
   font-family: var(--hero);
   font-style: italic;
   font-weight: 500;
   font-variation-settings: "opsz" 90, "SOFT" 50;
 }
 
-/* Hairline that grows in from the left */
+/* Hairline that grows in from the left. Color tuned for cream bg
+   (was white-on-navy) and collapses to zero as the hero compresses. */
 .feed-hero__rule {
   height: 1px;
-  background: linear-gradient(90deg, rgba(0, 179, 199, 0.55), rgba(255, 255, 255, 0.08) 60%, transparent);
-  margin: 16px 0 14px;
+  background: linear-gradient(90deg, var(--tropic-d), rgba(13, 51, 64, 0.12) 60%, transparent);
+  margin:
+    calc(16px - var(--scroll-progress, 0) * 16px) 0
+    calc(14px - var(--scroll-progress, 0) * 14px);
+  opacity: calc(1 - var(--scroll-progress, 0) * 1.5);
   transform-origin: left;
   transform: scaleX(0);
   animation: feed-hero-rule 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.35s forwards;
@@ -1121,29 +1104,32 @@ body::before {
   to { transform: scaleX(1); }
 }
 
-/* The brief — rotating concierge line */
+/* The brief — rotating concierge line. Fades out completely by the
+   time the hero is mid-compression so it doesn't crowd the shrunken
+   strip. */
 .feed-hero__brief {
   display: flex;
   align-items: baseline;
   gap: 14px;
-  min-height: 22px;
-  opacity: 0;
-  animation: feed-hero-rise 0.6s ease 0.5s forwards;
+  min-height: calc(22px - var(--scroll-progress, 0) * 22px);
+  margin-top: calc(10px - var(--scroll-progress, 0) * 10px);
+  opacity: calc(1 - var(--scroll-progress, 0) * 1.5);
+  overflow: hidden;
+  transition: opacity 0.15s linear;
 }
 .feed-hero__brief-label {
   font-family: var(--mono);
   font-size: 9.5px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--tropic);
+  color: var(--tropic-d);
   flex-shrink: 0;
   font-weight: 600;
 }
 .feed-hero__brief-text {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--ink-mid);
   letter-spacing: -0.005em;
-  /* `key` change on this element retriggers the swap-in animation each tick. */
   animation: feed-hero-brief-swap 0.55s ease both;
 }
 @keyframes feed-hero-brief-swap {
