@@ -11,6 +11,7 @@ import { usePendingFriendCount } from '@/lib/use-pending-friend-count'
 const MEMBER_PRIMARY = [
   { href: '/', label: 'Feed', icon: Icons.feed, exact: true },
   { href: '/seats', label: 'Seats', icon: Icons.compass, badgeKey: 'seats' as const },
+  { href: '/proposals', label: 'Proposals', icon: Icons.proposal },
   { href: '/bookings', label: 'My Trips', icon: Icons.luggage },
 ] as const
 

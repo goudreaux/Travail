@@ -5,6 +5,8 @@ import { adaptFlight, adaptExcursion, returnLegIds, fmtMoney, airportCity, Displ
 import { KIND_ICONS } from '@/lib/icons'
 import { SeatMeter } from '@/components/SeatMeter'
 import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'
+import { ProposalCard, loadOpenProposals, type ProposalCardData } from '@/components/ProposalCard'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Member, Booking, ExcursionTemplate, Flight, Excursion } from '@/lib/supabase/types'
 
@@ -659,6 +661,12 @@ export default function FeedPage() {
           </div>
       </div>
 
+      {/* Trip Proposals — below Open Seats per product, distinct
+          visual treatment (amber/dashed) so the network reads
+          "potential trips" vs. "live departures." Collapsible like
+          the Open Seats panel above. */}
+      <FeedProposalsSection memberId={member?.id ?? null} />
+
       {/* Feed — coming soon */}
       <div className="panel" style={{ padding: 0 }}>
         <div className="panel-head">
@@ -677,6 +685,94 @@ export default function FeedPage() {
           </div>
         </div>
       </div>
+      </div>
+    </div>
+  )
+}
+
+// Trip Proposals strip on the main feed — collapsible, dashed amber
+// to match the rest of the proposal styling. Loads independently so
+// the feed render doesn't wait on the proposals query.
+function FeedProposalsSection({ memberId }: { memberId: string | null }) {
+  const supabase = createClient()
+  const router = useRouter()
+  const [proposals, setProposals] = useState<ProposalCardData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [open, setOpen] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    async function go() {
+      const list = await loadOpenProposals(supabase, memberId)
+      if (!cancelled) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setProposals(list)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLoading(false)
+      }
+    }
+    go()
+    return () => { cancelled = true }
+  }, [memberId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!loading && proposals.length === 0) return null
+
+  // Cap to the 4 most pressing (smallest expires_at) on the feed; the
+  // dedicated /proposals page shows the rest.
+  const top = proposals.slice().sort((a, b) => {
+    const ea = a.expires_at ? new Date(a.expires_at).getTime() : Infinity
+    const eb = b.expires_at ? new Date(b.expires_at).getTime() : Infinity
+    return ea - eb
+  }).slice(0, 4)
+
+  return (
+    <div className="panel section-panel" data-collapsed={!open} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
+      <button type="button" className="panel-head section-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        <div className="section-head__main">
+          <div className="section-head__eyebrow" style={{ color: 'var(--sun-d)' }}>
+            Network proposals
+          </div>
+          <div className="ttl section-ttl">
+            Trip <em>proposals</em>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{
+            fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.22em',
+            textTransform: 'uppercase', color: '#1a0e02', fontWeight: 700,
+            background: 'linear-gradient(135deg, #f4a72c 0%, #e09418 100%)',
+            padding: '3px 8px', borderRadius: 4,
+          }}>
+            {proposals.length} OPEN
+          </span>
+          <span style={{ fontSize: 16, color: 'var(--ink-light)', transition: 'transform 0.18s', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+        </div>
+      </button>
+      <div style={{ padding: '14px 16px 18px', display: open ? 'flex' : 'none', flexDirection: 'column', gap: 12 }}>
+        {loading ? (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>Loading…</div>
+        ) : (
+          <>
+            {top.map(p => (
+              <ProposalCard key={p.id} p={p} onOpen={() => router.push(`/reserve/${p.id}?kind=proposal`)} />
+            ))}
+            {proposals.length > top.length && (
+              <Link href="/proposals" style={{ textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--sun-d)', textDecoration: 'none', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: 8 }}>
+                View all {proposals.length} proposals →
+              </Link>
+            )}
+            <Link href="/propose" style={{
+              border: '1px dashed rgba(244,167,44,0.40)',
+              borderRadius: 10, padding: '10px 14px',
+              fontFamily: 'var(--mono)', fontSize: 11,
+              color: 'var(--sun-d)', textDecoration: 'none', fontWeight: 700,
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+              textAlign: 'center',
+            }}>
+              + Propose your own trip
+            </Link>
+          </>
+        )}
       </div>
     </div>
   )

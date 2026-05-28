@@ -8,6 +8,7 @@ import PageHero from '@/components/PageHero'
 import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'
 import { SeatMeter } from '@/components/SeatMeter'
 import { SponsorBadge } from '@/components/SponsorBadge'
+import { ProposalCard, loadOpenProposals, type ProposalCardData } from '@/components/ProposalCard'
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 import type { DisplayFlight, DisplayExcursion } from '@/lib/data'
 
@@ -76,208 +77,6 @@ const FILTERS: { key: ActivityFilter; label: string; icon?: string }[] = [
 ]
 
 // ─── Book / Waitlist CTA ─────────────────────────────────────────────────────
-
-// Trip Proposal card — visually distinct (sun-gradient ribbon + dashed
-// border + progress bar) so it doesn't blend in with active trips.
-// Renders commit progress and a CTA that routes to /reserve?kind=proposal.
-interface ProposalCardProp {
-  id: string
-  kind: 'flight' | 'excursion'
-  proposer_id: string
-  proposer_name: string | null
-  name: string
-  date: string
-  origin_code: string
-  payload: Record<string, unknown>
-  capacity_total: number | null
-  min_seats: number | null
-  price_per_seat_cents: number | null
-  expires_at: string | null
-  committed_seats: number
-  is_my_commit: boolean
-  am_proposer: boolean
-}
-// Live countdown to a proposal's expiry. Updates every second.
-// Visual urgency tiers escalate as time runs out — calm grey when far
-// out, amber once inside 48h, signal red and pulsing under 24h, big
-// monospaced numbers under 1h.
-function ProposalCountdown({ expiresAt }: { expiresAt: string }) {
-  const target = new Date(expiresAt).getTime()
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [])
-  const ms = Math.max(0, target - now)
-  const totalSec = Math.floor(ms / 1000)
-  const d = Math.floor(totalSec / 86400)
-  const h = Math.floor((totalSec % 86400) / 3600)
-  const m = Math.floor((totalSec % 3600) / 60)
-  const s = totalSec % 60
-
-  // Tier the urgency.
-  const tier: 'expired' | 'critical' | 'urgent' | 'warning' | 'calm' =
-    ms === 0 ? 'expired'
-    : ms < 3600_000 ? 'critical'
-    : ms < 24 * 3600_000 ? 'urgent'
-    : ms < 48 * 3600_000 ? 'warning'
-    : 'calm'
-
-  const color =
-    tier === 'expired' ? 'var(--ink-faint)'
-    : tier === 'critical' ? '#d94e2a'
-    : tier === 'urgent' ? '#d94e2a'
-    : tier === 'warning' ? '#c97e0e'
-    : 'var(--ink-light)'
-
-  // Format: omit days when zero, omit seconds when days > 0.
-  const parts: string[] = []
-  if (d > 0) parts.push(`${d}d`)
-  if (d > 0 || h > 0) parts.push(`${h}h`)
-  parts.push(`${m}m`)
-  if (d === 0) parts.push(`${s.toString().padStart(2, '0')}s`)
-  const txt = ms === 0 ? 'EXPIRED' : parts.join(' ')
-
-  return (
-    <span style={{
-      fontFamily: 'var(--mono)',
-      fontSize: tier === 'critical' ? 13 : 11,
-      color,
-      fontWeight: tier === 'critical' || tier === 'urgent' ? 700 : 600,
-      letterSpacing: '0.04em',
-      animation: tier === 'critical' || tier === 'urgent' ? 'pulse-urgency 1.4s ease-in-out infinite' : undefined,
-    }}>
-      {tier === 'expired' ? '· EXPIRED' : `· ${txt} left`}
-      <style>{`
-        @keyframes pulse-urgency {
-          0%,100% { opacity: 1; }
-          50%     { opacity: 0.55; }
-        }
-      `}</style>
-    </span>
-  )
-}
-
-function ProposalCard({ p, onOpen }: { p: ProposalCardProp; onOpen: () => void }) {
-  const min = p.min_seats ?? 0
-  const cap = p.capacity_total ?? min
-  const committed = p.committed_seats
-  const pctOfCap = cap ? Math.min(100, Math.round((committed / cap) * 100)) : 0
-  const seatsNeeded = Math.max(0, min - committed)
-  const tripDate = new Date(p.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-  const destName = (p.payload?.destName as string) || (p.payload?.destCode as string) || null
-
-  return (
-    <div
-      onClick={onOpen}
-      style={{
-        background: 'var(--card)',
-        border: '2px dashed rgba(244,167,44,0.45)',
-        borderRadius: 14,
-        padding: '16px 18px',
-        cursor: 'pointer',
-        position: 'relative',
-        overflow: 'hidden',
-        transition: 'border-color 0.15s, box-shadow 0.15s',
-      }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(244,167,44,0.85)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 18px rgba(244,167,44,0.18)' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(244,167,44,0.45)'; (e.currentTarget as HTMLElement).style.boxShadow = 'none' }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-        <span style={{
-          fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.22em',
-          textTransform: 'uppercase', color: '#1a0e02', fontWeight: 700,
-          background: 'linear-gradient(135deg, #f4a72c 0%, #e09418 100%)',
-          padding: '3px 8px', borderRadius: 4, flexShrink: 0,
-        }}>
-          PROPOSAL · {p.kind === 'flight' ? 'FLIGHT' : 'EXCURSION'}
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.012em', lineHeight: 1.25 }}>
-            {p.name}
-          </div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-light)', marginTop: 3 }}>
-            {tripDate}
-            {destName && ` · ${destName}`}
-            {p.proposer_name && ` · proposed by ${p.proposer_name.split(' ')[0]}`}
-          </div>
-        </div>
-      </div>
-
-      {/* Progress bar — clearly marks min vs. capacity. Yellow up to min,
-          green past min, grey for unfilled capacity. */}
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.08em' }}>
-            <strong style={{ color: 'var(--ink)' }}>{committed}</strong> of {min} committed{cap > min ? ` · ${cap} max` : ''}
-          </span>
-          {p.price_per_seat_cents != null && (
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink)', fontWeight: 700 }}>
-              ${(p.price_per_seat_cents / 100).toFixed(0)}/seat
-            </span>
-          )}
-        </div>
-        <div style={{
-          height: 8,
-          background: 'var(--paper)',
-          border: '1px solid var(--hair)',
-          borderRadius: 999,
-          overflow: 'hidden',
-          position: 'relative',
-        }}>
-          <div style={{
-            position: 'absolute', left: 0, top: 0, bottom: 0,
-            width: `${pctOfCap}%`,
-            background: committed >= min
-              ? 'linear-gradient(90deg, #3e8c6d 0%, #4ba883 100%)'
-              : 'linear-gradient(90deg, #f4a72c 0%, #e09418 100%)',
-            transition: 'width 0.3s ease',
-          }} />
-          {min > 0 && cap > 0 && min < cap && (
-            <div style={{
-              position: 'absolute',
-              left: `${Math.round((min / cap) * 100)}%`,
-              top: -3, bottom: -3,
-              borderLeft: '1px dashed var(--ink-light)',
-            }} />
-          )}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-light)' }}>
-          {committed >= min ? (
-            <span style={{ color: 'var(--moss)', fontWeight: 700 }}>✓ Minimum reached — awaiting ops lock</span>
-          ) : (
-            <>
-              <strong style={{ color: 'var(--ink)' }}>{seatsNeeded}</strong> seat{seatsNeeded === 1 ? '' : 's'} to go
-              {p.expires_at && <> <ProposalCountdown expiresAt={p.expires_at} /></>}
-            </>
-          )}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {p.is_my_commit && (
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--tropic-d)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              ✓ Committed
-            </span>
-          )}
-          {p.am_proposer && (
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--sun-d)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              ★ Your proposal
-            </span>
-          )}
-          <button
-            className="cta-outline"
-            style={{ color: 'var(--sun-d)', borderColor: 'var(--sun-d)' }}
-            onClick={e => { e.stopPropagation(); onOpen() }}
-          >
-            {p.is_my_commit ? 'View →' : 'Commit a seat →'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function CtaButton({ available, waitlisted, onBook, onWaitlist, label, accent }: {
   available: number; waitlisted: boolean; onBook: () => void; onWaitlist: () => void; label: string; accent: string
@@ -558,27 +357,9 @@ export default function SeatsPage() {
   const [flightRosters, setFlightRosters] = useState<Record<string, RosterEntry[]>>({})
   const [excRosters, setExcRosters] = useState<Record<string, RosterEntry[]>>({})
   const [airportName, setAirportName] = useState<Record<string, string>>({})
-  // Trip Proposals — different model than flights/excursions (no booked
-  // seats yet, just commit counts), so we render them as their own row
-  // type with a yellow "PROPOSAL" tag and progress bar.
-  interface ProposalRow {
-    id: string
-    kind: 'flight' | 'excursion'
-    proposer_id: string
-    proposer_name: string | null
-    name: string
-    date: string
-    origin_code: string
-    payload: Record<string, unknown>
-    capacity_total: number | null
-    min_seats: number | null
-    price_per_seat_cents: number | null
-    expires_at: string | null
-    committed_seats: number
-    is_my_commit: boolean
-    am_proposer: boolean
-  }
-  const [proposals, setProposals] = useState<ProposalRow[]>([])
+  // Trip Proposals — fetched + rendered via the shared component so
+  // /seats, /proposals, and / (the feed) all share one source of truth.
+  const [proposals, setProposals] = useState<ProposalCardData[]>([])
 
   const load = useCallback(async (silent = false) => {
       if (!silent) setLoading(true)
@@ -669,59 +450,9 @@ export default function SeatsPage() {
       setFlights(adaptedFlights)
       setExcursions(adaptedExcursions)
 
-      // ─── Trip Proposals on the board ──────────────────────────────────
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const today = new Date().toISOString().slice(0, 10)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: propRows } = await (supabase as any)
-        .from('trip_proposals')
-        .select('id, proposer_id, kind, name, date, origin_code, payload, capacity_total, min_seats, price_per_seat_cents, expires_at, status')
-        .eq('status', 'open')
-        .gte('date', today)
-        .order('date')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const propList = (propRows ?? []) as any[]
-      const proposalIds = propList.map(p => p.id)
-      let commitsByProposal: Record<string, { committed: number; mine: boolean }> = {}
-      let proposerNames: Record<string, string> = {}
-      if (proposalIds.length) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: cms } = await (supabase as any)
-          .from('trip_proposal_commits').select('proposal_id, member_id, seats, status').in('proposal_id', proposalIds)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        for (const c of ((cms ?? []) as any[])) {
-          if (c.status !== 'committed' && c.status !== 'captured') continue
-          const cur = commitsByProposal[c.proposal_id] ?? { committed: 0, mine: false }
-          cur.committed += c.seats ?? 1
-          if (memberId && c.member_id === memberId) cur.mine = true
-          commitsByProposal[c.proposal_id] = cur
-        }
-        const proposerIds = [...new Set(propList.map(p => p.proposer_id))]
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: ms } = await (supabase as any).from('members').select('id, name').in('id', proposerIds)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        for (const m of ((ms ?? []) as any[])) proposerNames[m.id] = m.name ?? ''
-      }
-      setProposals(propList.map(p => {
-        const c = commitsByProposal[p.id] ?? { committed: 0, mine: false }
-        return {
-          id: p.id,
-          kind: p.kind,
-          proposer_id: p.proposer_id,
-          proposer_name: proposerNames[p.proposer_id] ?? null,
-          name: p.name,
-          date: p.date,
-          origin_code: p.origin_code,
-          payload: (p.payload ?? {}) as Record<string, unknown>,
-          capacity_total: p.capacity_total,
-          min_seats: p.min_seats,
-          price_per_seat_cents: p.price_per_seat_cents,
-          expires_at: p.expires_at,
-          committed_seats: c.committed,
-          is_my_commit: c.mine,
-          am_proposer: !!memberId && p.proposer_id === memberId,
-        }
-      }))
+      // Trip Proposals — shared loader so /seats, /proposals, and the
+      // feed all render identical cards from one query.
+      setProposals(await loadOpenProposals(supabase, memberId ?? null))
 
       setLoading(false)
   }, [memberId]) // eslint-disable-line react-hooks/exhaustive-deps
