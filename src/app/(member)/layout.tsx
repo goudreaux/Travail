@@ -65,7 +65,17 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
     const OK_STATUSES = ['active', 'trialing', 'incomplete', 'past_due', 'unpaid']
     const exemptPaths = ['/membership', '/contact']
     const isExempt = exemptPaths.some(p => pathname === p || pathname.startsWith(p + '/'))
-    if (!memberData.is_admin && !OK_STATUSES.includes(status) && !isExempt) {
+    const shouldBounce = !memberData.is_admin && !OK_STATUSES.includes(status) && !isExempt
+    // Diagnostic — remove once we've confirmed the gate is firing in prod.
+    console.log('[sub-gate]', {
+      pathname,
+      memberId: memberData.id,
+      is_admin: memberData.is_admin,
+      status,
+      isExempt,
+      shouldBounce,
+    })
+    if (shouldBounce) {
       router.push('/onboarding/subscribe')
       return
     }
