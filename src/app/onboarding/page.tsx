@@ -121,7 +121,10 @@ export default function OnboardingPage() {
           .eq('id', member.id)
         if (upErr) throw upErr
       }
-      router.push('/')
+      // After password + profile are set, collect the founder-rate
+      // subscription before dropping them into the app. The subscribe
+      // page is gated to admins-only for the skip path.
+      router.push('/onboarding/subscribe')
     } catch (e: unknown) {
       setError((e as Error).message ?? 'Something went wrong. Please try again.')
     } finally {

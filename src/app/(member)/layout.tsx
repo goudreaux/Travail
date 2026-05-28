@@ -9,6 +9,7 @@ import TopBar from '@/components/TopBar'
 import MobileNav from '@/components/MobileNav'
 import PullToRefresh from '@/components/PullToRefresh'
 import ToastHost from '@/components/ToastHost'
+import SubscriptionBanner from '@/components/SubscriptionBanner'
 import type { Member, Notification } from '@/lib/supabase/types'
 
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
@@ -50,6 +51,32 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
 
     if (!memberData) {
       setNotSetUp(true)
+      return
+    }
+
+    // Subscription wall — any non-admin without an active sub gets bounced
+    // to /onboarding/subscribe. Single source of truth, covers fresh
+    // invites, recovery links, returning members whose sub lapsed, etc.
+    // The /membership page is exempt so cancelled members can hit the
+    // "Start membership" button to resubscribe; /contact is exempt so
+    // they can still reach ops.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const status = (memberData as any).subscription_status ?? null
+    const OK_STATUSES = ['active', 'trialing', 'incomplete', 'past_due', 'unpaid']
+    const exemptPaths = ['/membership', '/contact']
+    const isExempt = exemptPaths.some(p => pathname === p || pathname.startsWith(p + '/'))
+    const shouldBounce = !memberData.is_admin && !OK_STATUSES.includes(status) && !isExempt
+    // Diagnostic — remove once we've confirmed the gate is firing in prod.
+    console.log('[sub-gate]', {
+      pathname,
+      memberId: memberData.id,
+      is_admin: memberData.is_admin,
+      status,
+      isExempt,
+      shouldBounce,
+    })
+    if (shouldBounce) {
+      router.push('/onboarding/subscribe')
       return
     }
 
@@ -104,6 +131,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
     <div className="app">
       <Sidebar pathname={pathname} member={member} pendingCount={pendingCount} openSeatsCount={openSeatsCount} unreadCount={unreadCount} />
       <main className="main">
+        <SubscriptionBanner status={member?.subscription_status} />
         <TopBar
           member={member}
           notifications={notifications}

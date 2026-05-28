@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
+import { assertCanBook } from '@/lib/can-book'
 import type { Database } from '@/lib/supabase/types'
 
 // Create a PaymentIntent for a pax seat reservation.
@@ -109,6 +110,18 @@ export async function POST(req: NextRequest) {
   const { data: meRow } = await supabase
     .from('members').select('id, name').eq('user_id', user.id).maybeSingle()
   if (!meRow) return NextResponse.json({ error: 'Member record not found' }, { status: 403 })
+
+  // Membership gate — past_due / cancelled members keep app access but
+  // can't create new billable obligations until ops resolves the card.
+  // 402 → client renders <PaywallCard /> with portal link.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const guard = await assertCanBook(admin() as any, meRow.id)
+  if (!guard.ok) {
+    return NextResponse.json(
+      { error: 'Membership required', reason: guard.reason, status: guard.status },
+      { status: 402 },
+    )
+  }
 
   let payload: PIPayload
   try { payload = await req.json() }

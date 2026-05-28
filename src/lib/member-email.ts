@@ -8,7 +8,9 @@
 // completes and the in-app notification still fires.
 
 import { Resend } from 'resend'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { safeError } from '@/lib/pii-scrub'
+import type { Database } from '@/lib/supabase/types'
 
 const DEFAULT_FROM = 'Travail Concierge <concierge@travailclub.com>'
 
@@ -24,7 +26,9 @@ const OPS_PAPER_TRAIL_BCC = (
 ).trim()
 
 // All transactional member emails go through this — guarantees the
-// BCC is attached. Returns the Resend response.
+// BCC is attached AND every send (success or failure) gets an
+// email_log row written for structured auditing. The audit insert is
+// best-effort; if it fails we don't block the underlying transaction.
 async function sendMemberMail(
   resend: Resend,
   args: {
@@ -33,20 +37,96 @@ async function sendMemberMail(
     html: string
     text: string
     replyTo?: string
+    // Audit context — what kind of send, which member, what does it
+    // reference. Used to fill the email_log row.
+    kind: string
+    memberId?: string | null
+    refs?: Record<string, unknown>
   },
 ) {
-  return resend.emails.send({
-    from: process.env.RESEND_FROM ?? DEFAULT_FROM,
-    to: [args.to],
-    subject: args.subject,
-    html: args.html,
-    text: args.text,
-    replyTo: args.replyTo ?? process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
-    // BCC ops on every member email for the paper trail. Member never
-    // sees this address — Resend strips the BCC header from the
-    // delivered envelope.
-    ...(OPS_PAPER_TRAIL_BCC ? { bcc: [OPS_PAPER_TRAIL_BCC] } : {}),
-  })
+  let resendId: string | null = null
+  let sendStatus: 'sent' | 'failed' = 'sent'
+  let sendError: string | null = null
+
+  try {
+    const res = await resend.emails.send({
+      from: process.env.RESEND_FROM ?? DEFAULT_FROM,
+      to: [args.to],
+      subject: args.subject,
+      html: args.html,
+      text: args.text,
+      replyTo: args.replyTo ?? process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
+      // BCC ops on every member email for the paper trail. Member never
+      // sees this address — Resend strips the BCC header from the
+      // delivered envelope.
+      ...(OPS_PAPER_TRAIL_BCC ? { bcc: [OPS_PAPER_TRAIL_BCC] } : {}),
+    })
+    // Resend's SDK returns { data: { id }, error } — capture id when present.
+    resendId = (res as { data?: { id?: string | null } | null })?.data?.id ?? null
+    await logEmailSend({
+      kind: args.kind,
+      memberId: args.memberId ?? null,
+      to: args.to,
+      subject: args.subject,
+      resendId,
+      refs: args.refs ?? {},
+      status: sendStatus,
+      error: null,
+    })
+    return res
+  } catch (err) {
+    sendStatus = 'failed'
+    sendError = err instanceof Error ? err.message : String(err)
+    await logEmailSend({
+      kind: args.kind,
+      memberId: args.memberId ?? null,
+      to: args.to,
+      subject: args.subject,
+      resendId: null,
+      refs: args.refs ?? {},
+      status: sendStatus,
+      error: sendError,
+    })
+    throw err
+  }
+}
+
+// Insert one row into public.email_log. Service-role only (RLS forbids
+// client writes). Safe-fail: any error here is swallowed and logged —
+// missing an audit row is bad but not as bad as bouncing the caller.
+async function logEmailSend(row: {
+  kind: string
+  memberId: string | null
+  to: string
+  subject: string
+  resendId: string | null
+  refs: Record<string, unknown>
+  status: 'sent' | 'failed'
+  error: string | null
+}): Promise<void> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceKey) return // can't log without admin client — silent skip
+
+  try {
+    const admin = createAdminClient<Database>(url, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any).from('email_log').insert({
+      kind: row.kind,
+      member_id: row.memberId,
+      to_email: row.to,
+      subject: row.subject,
+      resend_id: row.resendId,
+      refs: row.refs,
+      send_status: row.status,
+      send_error: row.error,
+      bcc_ops: true,
+    })
+  } catch (err) {
+    safeError('logEmailSend: insert failed (non-fatal)', err)
+  }
 }
 
 function escapeHtml(s: string): string {
@@ -72,6 +152,9 @@ function fmtMoney(cents: number): string {
 export interface BookingReceiptEmailParams {
   to: string
   memberName: string
+  memberId?: string | null    // for email_log attribution
+  bookingId?: string | null   // for email_log.refs
+  tripId?: string | null      // for email_log.refs
   tripName: string
   tripDate?: string | null
   tripLocation?: string | null
@@ -114,7 +197,18 @@ export async function sendBookingReceiptEmail(p: BookingReceiptEmailParams): Pro
 
   const resend = new Resend(apiKey)
   try {
-    await sendMemberMail(resend, { to: p.to, subject, html, text })
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'booking_receipt',
+      memberId: p.memberId ?? null,
+      refs: {
+        booking_id: p.bookingId ?? null,
+        trip_id: p.tripId ?? null,
+        trip_name: p.tripName,
+        confirmation_code: p.confirmationCode,
+        total_cents: p.totalCents,
+      },
+    })
   } catch (err) {
     safeError('sendBookingReceiptEmail: send failed (non-fatal)', err)
   }
@@ -195,6 +289,9 @@ function brandedBookingReceiptEmail(p: BookingReceiptEmailParams): string {
 export interface TripCancelledEmailParams {
   to: string
   memberName: string
+  memberId?: string | null    // for email_log
+  tripId?: string | null      // for email_log.refs
+  bookingId?: string | null   // pax only — for email_log.refs
   role: 'anchor' | 'pax'
   tripName: string
   tripDate?: string | null
@@ -234,7 +331,19 @@ export async function sendTripCancelledEmail(p: TripCancelledEmailParams): Promi
 
   const resend = new Resend(apiKey)
   try {
-    await sendMemberMail(resend, { to: p.to, subject, html, text })
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'trip_cancelled',
+      memberId: p.memberId ?? null,
+      refs: {
+        role: p.role,
+        trip_id: p.tripId ?? null,
+        booking_id: p.bookingId ?? null,
+        trip_name: p.tripName,
+        refund_cents: p.refundCents,
+        refund_id: p.refundId ?? null,
+      },
+    })
   } catch (err) {
     safeError('sendTripCancelledEmail: send failed (non-fatal)', err)
   }
@@ -325,6 +434,9 @@ function brandedTripCancelledEmail(p: TripCancelledEmailParams): string {
 export interface PaxTripCompleteParams {
   to: string
   memberName: string
+  memberId?: string | null    // for email_log
+  tripId?: string | null      // for email_log.refs
+  bookingId?: string | null   // for email_log.refs
   tripName: string
   tripDate?: string | null
   seats: number
@@ -355,7 +467,17 @@ export async function sendPaxTripCompleteEmail(p: PaxTripCompleteParams): Promis
 
   const resend = new Resend(apiKey)
   try {
-    await sendMemberMail(resend, { to: p.to, subject, html, text })
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'pax_trip_complete',
+      memberId: p.memberId ?? null,
+      refs: {
+        trip_id: p.tripId ?? null,
+        booking_id: p.bookingId ?? null,
+        trip_name: p.tripName,
+        amount_paid_cents: p.amountPaidCents,
+      },
+    })
   } catch (err) {
     safeError('sendPaxTripCompleteEmail: send failed (non-fatal)', err)
   }
@@ -409,6 +531,9 @@ function brandedPaxTripCompleteEmail(p: PaxTripCompleteParams): string {
 export interface SettlementEmailParams {
   to: string                    // anchor's email
   memberName: string            // "Griffin Goudreau"
+  memberId?: string | null      // for email_log attribution
+  tripId?: string | null        // for email_log.refs
+  anchorSubmissionId?: string | null  // for email_log.refs
   tripName: string              // "Lobster Mini Season · Key West"
   tripDate?: string | null
   charterTotalCents: number     // what was captured at publish (charter + fee)
@@ -462,7 +587,19 @@ export async function sendSettlementEmail(p: SettlementEmailParams): Promise<voi
 
   const resend = new Resend(apiKey)
   try {
-    await sendMemberMail(resend, { to: p.to, subject, html, text })
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'settlement',
+      memberId: p.memberId ?? null,
+      refs: {
+        trip_id: p.tripId ?? null,
+        anchor_submission_id: p.anchorSubmissionId ?? null,
+        trip_name: p.tripName,
+        anchor_refund_cents: p.anchorRefundCents,
+        anchor_net_paid_cents: p.anchorNetPaidCents,
+        refund_id: p.refundId ?? null,
+      },
+    })
   } catch (err) {
     safeError('sendSettlementEmail: send failed (non-fatal)', err)
   }
@@ -557,6 +694,283 @@ function brandedSettlementEmail(p: SettlementEmailParams, filled: boolean, fullF
               </td>
             </tr>
           </table>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+}
+
+// ─── Subscription emails ───────────────────────────────────────────────────
+//
+// Three lifecycle moments: welcome (first invoice paid), past_due
+// (renewal failed → ops will call to resolve), and cancelled (sub ended).
+// All three flow through sendMemberMail() so the BCC + email_log paper
+// trail is automatic.
+
+export interface SubscriptionWelcomeParams {
+  to: string
+  memberName: string
+  memberId?: string | null
+  subscriptionId?: string | null
+  amountCents: number
+  isFounding: boolean
+}
+
+export async function sendSubscriptionWelcomeEmail(p: SubscriptionWelcomeParams): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    safeError('sendSubscriptionWelcomeEmail: RESEND_API_KEY not set; skipping', { to: p.to })
+    return
+  }
+  const subject = p.isFounding
+    ? `Welcome to Travail · ${fmtMoney(p.amountCents)}/mo founding rate locked in`
+    : `Welcome to Travail · ${fmtMoney(p.amountCents)}/mo`
+
+  const text = [
+    `Hi ${p.memberName.split(' ')[0]},`,
+    '',
+    p.isFounding
+      ? `You're in — and you're a founding member. Your rate of ${fmtMoney(p.amountCents)}/month is locked. Even as Travail's public pricing rises, your card keeps billing the founder rate.`
+      : `You're in. Your membership of ${fmtMoney(p.amountCents)}/month is active.`,
+    '',
+    'What you can do now:',
+    '  • Reserve a seat on any open trip',
+    '  • Anchor your own charter or excursion',
+    '  • Connect with the rest of the network',
+    '',
+    'Questions about your membership? Reply to this email and Ops will follow up.',
+  ].join('\n')
+
+  const html = brandedSubscriptionWelcomeEmail(p)
+  const resend = new Resend(apiKey)
+  try {
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'subscription_welcome',
+      memberId: p.memberId ?? null,
+      refs: {
+        subscription_id: p.subscriptionId ?? null,
+        amount_cents: p.amountCents,
+        is_founding: p.isFounding,
+      },
+    })
+  } catch (err) {
+    safeError('sendSubscriptionWelcomeEmail: send failed (non-fatal)', err)
+  }
+}
+
+function brandedSubscriptionWelcomeEmail(p: SubscriptionWelcomeParams): string {
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light only"/>
+<title>Welcome to Travail</title>
+</head>
+<body style="margin:0;padding:0;background:#fbf6ec;font-family:-apple-system,BlinkMacSystemFont,'Inter Tight','Inter','Segoe UI',sans-serif;color:#0d3340;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fbf6ec;padding:36px 14px 24px;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:580px;background:#fffbf0;border-radius:18px;overflow:hidden;box-shadow:0 18px 48px rgba(13,51,64,0.10);">
+
+        <tr><td style="background:linear-gradient(135deg,#042128 0%,#0a3340 52%,#073744 100%);padding:34px 36px 30px;color:#fff;">
+          <div style="font-family:'JetBrains Mono','Courier New',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:${p.isFounding ? '#f4a72c' : '#00b3c7'};font-weight:700;margin-bottom:10px;">${p.isFounding ? 'Founding member' : 'Membership active'}</div>
+          <div style="font-size:34px;font-weight:700;color:#fff;letter-spacing:-0.022em;line-height:1.05;font-family:'Inter Tight',sans-serif;margin-bottom:8px;">Welcome to Travail.</div>
+          <div style="font-size:14px;color:rgba(255,255,255,0.75);line-height:1.5;">${p.isFounding ? `Your ${fmtMoney(p.amountCents)}/month founding rate is locked.` : `Your membership of ${fmtMoney(p.amountCents)}/month is active.`}</div>
+        </td></tr>
+
+        <tr><td style="padding:26px 36px 6px;">
+          <div style="font-size:15px;color:#1f4856;">Hi ${escapeHtml(p.memberName.split(' ')[0])},</div>
+        </td></tr>
+
+        <tr><td style="padding:8px 36px 18px;">
+          <div style="font-size:14px;color:#1f4856;line-height:1.65;">
+            ${p.isFounding
+              ? `You're one of the first members of Travail — and your rate is locked at <strong>${fmtMoney(p.amountCents)}/month for as long as you stay subscribed</strong>. Even as the public price rises, your card keeps billing the founding rate.`
+              : `Your membership is live. You're ready to book any open trip, anchor your own, and connect with the network.`}
+          </div>
+        </td></tr>
+
+        ${p.isFounding ? `<tr><td style="padding:0 36px 22px;">
+          <div style="background:rgba(244,167,44,0.10);border-left:3px solid #f4a72c;border-radius:0 8px 8px 0;padding:14px 16px;font-size:13px;color:#1f4b5b;line-height:1.55;">
+            <strong style="color:#0d3340;font-weight:700;">A note on the founding rate.</strong> Cancel anytime — but resubscribing later will be at the then-current public rate, not ${fmtMoney(p.amountCents)}. Worth remembering.
+          </div>
+        </td></tr>` : ''}
+
+        <tr><td style="padding:4px 36px 24px;">
+          <a href="https://travailclub.com/" style="display:inline-block;padding:13px 24px;background:#00b3c7;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter Tight',sans-serif;letter-spacing:-0.005em;">Open Travail →</a>
+        </td></tr>
+
+        <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions about your membership? Reply to this email and Ops will follow up.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+}
+
+export interface SubscriptionPastDueParams {
+  to: string
+  memberName: string
+  memberId?: string | null
+  amountCents: number
+  nextAttemptAt: string | null
+  hostedInvoiceUrl: string | null
+}
+
+export async function sendSubscriptionPastDueEmail(p: SubscriptionPastDueParams): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    safeError('sendSubscriptionPastDueEmail: RESEND_API_KEY not set; skipping', { to: p.to })
+    return
+  }
+  const subject = `Travail membership · card declined · ${fmtMoney(p.amountCents)}`
+  const text = [
+    `Hi ${p.memberName.split(' ')[0]},`,
+    '',
+    `We tried to renew your membership for ${fmtMoney(p.amountCents)} and the card was declined.`,
+    '',
+    'You still have full app access, but new bookings are paused until the card clears.',
+    p.nextAttemptAt ? `We'll automatically retry on ${new Date(p.nextAttemptAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}.` : 'We will not automatically retry.',
+    '',
+    p.hostedInvoiceUrl ? `Update your card or pay this invoice directly: ${p.hostedInvoiceUrl}` : 'Update your card from your membership page in the app.',
+    '',
+    'Ops has been notified and will reach out shortly. Questions in the meantime — reply to this email.',
+  ].join('\n')
+
+  const html = brandedSubscriptionPastDueEmail(p)
+  const resend = new Resend(apiKey)
+  try {
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'subscription_past_due',
+      memberId: p.memberId ?? null,
+      refs: {
+        amount_cents: p.amountCents,
+        next_attempt_at: p.nextAttemptAt,
+        hosted_invoice_url: p.hostedInvoiceUrl,
+      },
+    })
+  } catch (err) {
+    safeError('sendSubscriptionPastDueEmail: send failed (non-fatal)', err)
+  }
+}
+
+function brandedSubscriptionPastDueEmail(p: SubscriptionPastDueParams): string {
+  const retryLine = p.nextAttemptAt
+    ? `We'll automatically retry on <strong>${new Date(p.nextAttemptAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</strong>.`
+    : `We won't retry automatically — please update your card so we can run it again.`
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light only"/>
+<title>Travail · Card declined</title>
+</head>
+<body style="margin:0;padding:0;background:#fbf6ec;font-family:-apple-system,BlinkMacSystemFont,'Inter Tight','Inter','Segoe UI',sans-serif;color:#0d3340;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fbf6ec;padding:36px 14px 24px;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:580px;background:#fffbf0;border-radius:18px;overflow:hidden;box-shadow:0 18px 48px rgba(13,51,64,0.10);">
+        <tr><td style="background:linear-gradient(135deg,#3a1410 0%,#5a201b 52%,#3a1812 100%);padding:32px 36px 28px;color:#fff;">
+          <div style="font-family:'JetBrains Mono','Courier New',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:#f4a72c;font-weight:700;margin-bottom:8px;">Card declined</div>
+          <div style="font-size:14px;color:rgba(255,255,255,0.65);margin-bottom:12px;">Membership renewal · ${fmtMoney(p.amountCents)}</div>
+          <div style="font-size:30px;font-weight:700;color:#fff;letter-spacing:-0.022em;line-height:1.1;font-family:'Inter Tight',sans-serif;">Quick card update needed.</div>
+        </td></tr>
+
+        <tr><td style="padding:24px 36px 4px;">
+          <div style="font-size:15px;color:#1f4856;">Hi ${escapeHtml(p.memberName.split(' ')[0])},</div>
+        </td></tr>
+
+        <tr><td style="padding:8px 36px 18px;">
+          <div style="font-size:14px;color:#1f4856;line-height:1.65;">We tried to renew your Travail membership for <strong>${fmtMoney(p.amountCents)}</strong> and the card was declined. Could be expired, could be your bank holding it for review — usually a 30-second fix.</div>
+        </td></tr>
+
+        <tr><td style="padding:0 36px 18px;">
+          <div style="background:rgba(244,167,44,0.10);border-left:3px solid #f4a72c;border-radius:0 8px 8px 0;padding:13px 16px;font-size:13px;color:#1f4b5b;line-height:1.55;">
+            <strong style="color:#0d3340;font-weight:700;">App access continues.</strong> You can still sign in. New bookings are paused until the card clears — we'll lift that the moment we see a successful charge. ${retryLine}
+          </div>
+        </td></tr>
+
+        <tr><td style="padding:4px 36px 26px;">
+          ${p.hostedInvoiceUrl ? `<a href="${escapeHtml(p.hostedInvoiceUrl)}" style="display:inline-block;padding:13px 24px;background:#00b3c7;color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter Tight',sans-serif;letter-spacing:-0.005em;margin-right:10px;">Update card / pay invoice →</a>` : ''}
+          <a href="https://travailclub.com/membership" style="display:inline-block;padding:13px 24px;background:transparent;color:#0d3340;text-decoration:none;border:1px solid rgba(13,51,64,0.20);border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter Tight',sans-serif;">Open Travail</a>
+        </td></tr>
+
+        <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Ops has been notified and will reach out. Reply to this email if you want to discuss before then.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+}
+
+export interface SubscriptionCancelledParams {
+  to: string
+  memberName: string
+  memberId?: string | null
+  subscriptionId?: string | null
+}
+
+export async function sendSubscriptionCancelledEmail(p: SubscriptionCancelledParams): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    safeError('sendSubscriptionCancelledEmail: RESEND_API_KEY not set; skipping', { to: p.to })
+    return
+  }
+  const subject = `Travail membership ended`
+  const text = [
+    `Hi ${p.memberName.split(' ')[0]},`,
+    '',
+    'Your Travail membership has ended. Thank you for being part of the founding cohort.',
+    '',
+    "If you change your mind, you're welcome back anytime — note that re-subscribing later will be at the current public rate, not the founding rate you had.",
+    '',
+    'Questions or feedback on the way out — reply to this email and Ops will read it personally.',
+  ].join('\n')
+
+  const html = brandedSubscriptionCancelledEmail(p)
+  const resend = new Resend(apiKey)
+  try {
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'subscription_cancelled',
+      memberId: p.memberId ?? null,
+      refs: { subscription_id: p.subscriptionId ?? null },
+    })
+  } catch (err) {
+    safeError('sendSubscriptionCancelledEmail: send failed (non-fatal)', err)
+  }
+}
+
+function brandedSubscriptionCancelledEmail(p: SubscriptionCancelledParams): string {
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light only"/>
+<title>Travail · Membership ended</title>
+</head>
+<body style="margin:0;padding:0;background:#fbf6ec;font-family:-apple-system,BlinkMacSystemFont,'Inter Tight','Inter','Segoe UI',sans-serif;color:#0d3340;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fbf6ec;padding:36px 14px 24px;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:580px;background:#fffbf0;border-radius:18px;overflow:hidden;box-shadow:0 18px 48px rgba(13,51,64,0.10);">
+        <tr><td style="background:linear-gradient(135deg,#042128 0%,#0a3340 52%,#073744 100%);padding:32px 36px 28px;color:#fff;">
+          <div style="font-family:'JetBrains Mono','Courier New',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:#c97e0e;font-weight:700;margin-bottom:8px;">Membership ended</div>
+          <div style="font-size:28px;font-weight:700;color:#fff;letter-spacing:-0.022em;line-height:1.1;font-family:'Inter Tight',sans-serif;">Thank you for being here.</div>
+        </td></tr>
+
+        <tr><td style="padding:24px 36px 6px;">
+          <div style="font-size:15px;color:#1f4856;">Hi ${escapeHtml(p.memberName.split(' ')[0])},</div>
+        </td></tr>
+
+        <tr><td style="padding:8px 36px 18px;">
+          <div style="font-size:14px;color:#1f4856;line-height:1.65;">Your Travail membership has ended. We're grateful you were part of the founding cohort — even briefly.</div>
+        </td></tr>
+
+        <tr><td style="padding:0 36px 22px;">
+          <div style="background:rgba(0,179,199,0.06);border-left:3px solid #00b3c7;border-radius:0 8px 8px 0;padding:13px 16px;font-size:13px;color:#1f4b5b;line-height:1.55;">
+            If you change your mind, you're welcome back anytime — note that re-subscribing later will be at the <strong>current public rate</strong>, not the founding rate you had.
+          </div>
+        </td></tr>
+
+        <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions or feedback — reply to this email and Ops will read it personally.</div>
         </td></tr>
       </table>
     </td></tr>

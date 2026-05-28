@@ -14,3 +14,9 @@ export const stripe = new Stripe(key ?? 'sk_test_placeholder', {
 
 export const STRIPE_PRICE_FOUNDING = process.env.STRIPE_PRICE_FOUNDING ?? ''
 export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? ''
+
+// Member-facing cancel funnel — the in-app copy points to this number so
+// every cancel goes through a human conversation with ops. Override with
+// env when ops gets a dedicated business line.
+export const TRAVAIL_OPS_PHONE = process.env.TRAVAIL_OPS_PHONE ?? '+1-408-507-3523'
+export const TRAVAIL_OPS_PHONE_DISPLAY = process.env.TRAVAIL_OPS_PHONE_DISPLAY ?? '(408) 507-3523'

@@ -112,6 +112,9 @@ export async function POST(req: NextRequest) {
   await sendBookingReceiptEmail({
     to: memberEmail,
     memberName: meRow.name ?? 'Member',
+    memberId: meRow.id,
+    bookingId: booking.id,
+    tripId: booking.item_id ?? null,
     tripName,
     tripDate,
     tripLocation,
