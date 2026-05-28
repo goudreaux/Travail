@@ -22,11 +22,17 @@ export interface CancelReservationModalProps {
   windowHours: number           // policy window — 72 by default
   // Money context.
   amountPaidCents: number       // what the member paid
+  // Habitual-cancellation warning. When the member has already
+  // cancelled ≥ 3 trips in the rolling 90 days, the modal surfaces a
+  // soft "this may put your membership under review" notice. No hard
+  // block — ops makes the call from the data.
+  recentCancelCount?: number    // count in the last 90 days, defaults to 0
 }
 
 export function CancelReservationModal({
   open, onClose, onConfirm, submitting, error,
   tripName, tripDate, hoursUntilDeparture, windowHours, amountPaidCents,
+  recentCancelCount = 0,
 }: CancelReservationModalProps) {
   const insideWindow = hoursUntilDeparture < windowHours
   const departed = hoursUntilDeparture <= 0
@@ -113,6 +119,19 @@ export function CancelReservationModal({
         </div>
 
         <div style={{ padding: '20px 28px 22px', overflowY: 'auto' }}>
+          {recentCancelCount >= 3 && !departed && (
+            <div style={{
+              background: 'rgba(244,167,44,0.10)', border: '1px solid rgba(244,167,44,0.30)',
+              borderRadius: 10, padding: '12px 14px', marginBottom: 14,
+            }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--sun-d)', fontWeight: 700, marginBottom: 6 }}>
+                Heads up · {recentCancelCount} cancels in 90 days
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.55 }}>
+                Repeated cancellations may put your membership under review. Travail is a small network, and consistent commitments matter to the rest of the cabin. If something keeps coming up, reply to a recent email and let Ops know — we'd rather talk than escalate.
+              </div>
+            </div>
+          )}
           {departed ? (
             <div style={{
               background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)',

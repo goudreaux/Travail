@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import stats from '@/lib/code-stats.json'
+import { MemberStatsPanel } from './MemberStatsPanel'
 
 // Tech-company comparison rows for the "How we stack up" panel. Numbers
 // are deliberately approximate / well-known — the point is perspective,
@@ -201,6 +202,8 @@ export default function DeveloperDashboard() {
         <div style={{ marginTop: 24, fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-faint)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           Snapshot {relDate(stats.generatedAt)} · refreshed on every deploy
         </div>
+
+        <MemberStatsPanel />
 
         <div style={{ marginTop: 28 }}>
           <Link href="/admin" className="mono" style={{ fontSize: 10.5, color: 'var(--ink-mid)' }}>
