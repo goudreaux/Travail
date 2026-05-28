@@ -6,6 +6,8 @@ import { fmtHomeBase, memberCode, tierLabel, tierPill } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
 import { safeError } from '@/lib/pii-scrub'
 import GuestsPanel from '@/components/GuestsPanel'
+import ReferralsPanel from '@/components/ReferralsPanel'
+import type { Referral } from '@/lib/referrals'
 import type { Member } from '@/lib/supabase/types'
 import type { Guest } from '@/lib/guests'
 
@@ -99,7 +101,8 @@ export default function MembersPage() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' | 'info' } | null>(null)
   const [convertGuestId, setConvertGuestId] = useState<string | null>(null)
-  const [peopleTab, setPeopleTab] = useState<'members' | 'guests'>('members')
+  const [peopleTab, setPeopleTab] = useState<'members' | 'guests' | 'referrals'>('members')
+  const [convertReferralId, setConvertReferralId] = useState<string | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
   const searchParams = useSearchParams()
 
@@ -213,6 +216,18 @@ export default function MembersPage() {
     setShowAdd(true)
     setForm({ ...defaultForm, name: full, initials: autoInitials(full), email: g.email ?? '', phone: g.phone ? formatPhone(g.phone) : '' })
     setConvertGuestId(g.id)
+  }
+
+  // Convert a referral → same idea, prefill Add Member from the
+  // prospect's info and remember the referral id so save() can mark
+  // it 'invited' and link the new member back to the referral row.
+  function startConvertReferral(r: Referral) {
+    const full = `${r.first_name} ${r.last_name}`.trim()
+    setPeopleTab('members')
+    setEditId(null)
+    setShowAdd(true)
+    setForm({ ...defaultForm, name: full, initials: autoInitials(full), email: r.email, phone: r.phone ? formatPhone(r.phone) : '' })
+    setConvertReferralId(r.id)
   }
 
   async function deleteMember(id: string, name: string) {
@@ -392,11 +407,20 @@ export default function MembersPage() {
           await (supabase as any).from('guests').update({ member_id: inserted.id }).eq('id', convertGuestId)
           setConvertGuestId(null)
         }
+        if (convertReferralId && inserted) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any).from('referrals').update({
+            status: 'invited',
+            invited_member_id: inserted.id,
+            decided_at: new Date().toISOString(),
+          }).eq('id', convertReferralId)
+          setConvertReferralId(null)
+        }
         if (inserted) {
           logActivity({
             action: 'member_created', actor_kind: 'admin',
             subject_member_id: inserted.id,
-            summary: `Created member ${payload.name}${convertGuestId ? ' (converted from guest)' : ''}`,
+            summary: `Created member ${payload.name}${convertGuestId ? ' (converted from guest)' : convertReferralId ? ' (from referral)' : ''}`,
             meta: { linked_login: !!uid },
           })
         }
@@ -447,7 +471,7 @@ export default function MembersPage() {
 
       {/* People tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--hair)', marginBottom: 24 }}>
-        {(['members', 'guests'] as const).map(t => (
+        {(['members', 'guests', 'referrals'] as const).map(t => (
           <button
             key={t}
             onClick={() => setPeopleTab(t)}
@@ -459,13 +483,19 @@ export default function MembersPage() {
               marginBottom: -1,
             }}
           >
-            {t === 'members' ? `Members${members.length ? ` · ${members.length}` : ''}` : 'Guests'}
+            {t === 'members'
+              ? `Members${members.length ? ` · ${members.length}` : ''}`
+              : t === 'guests'
+              ? 'Guests'
+              : 'Referrals'}
           </button>
         ))}
       </div>
 
       {peopleTab === 'guests' ? (
         <GuestsPanel onConvert={startConvert} />
+      ) : peopleTab === 'referrals' ? (
+        <ReferralsPanel onConvert={startConvertReferral} />
       ) : (
       <>
 
