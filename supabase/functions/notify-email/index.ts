@@ -248,13 +248,29 @@ Deno.serve(async (req) => {
       ctaHref: href,
     })
 
+    // Paper trail: BCC ops on every notification email. Matches the
+    // BCC the in-Next.js sendMemberMail() helper applies. Override via
+    // OPS_PAPER_TRAIL_BCC; falls back to OPS_INBOX_EMAIL or the default.
+    const opsBcc = (
+      Deno.env.get('OPS_PAPER_TRAIL_BCC')
+      ?? Deno.env.get('OPS_INBOX_EMAIL')
+      ?? 'ops@travailclub.com'
+    ).trim()
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ from, to, subject: record.title, html, text }),
+      body: JSON.stringify({
+        from,
+        to,
+        subject: record.title,
+        html,
+        text,
+        ...(opsBcc ? { bcc: [opsBcc] } : {}),
+      }),
     })
 
     if (!res.ok) {

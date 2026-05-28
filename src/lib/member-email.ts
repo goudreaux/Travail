@@ -12,6 +12,43 @@ import { safeError } from '@/lib/pii-scrub'
 
 const DEFAULT_FROM = 'Travail Concierge <concierge@travailclub.com>'
 
+// Paper-trail BCC. Every transactional member email is silently
+// copied to this address so ops has the complete audit thread in
+// their inbox without needing to query a separate log. Defaults to
+// ops@travailclub.com; override via env when you want a different
+// destination (e.g. a dedicated archive mailbox).
+const OPS_PAPER_TRAIL_BCC = (
+  process.env.OPS_PAPER_TRAIL_BCC
+  ?? process.env.OPS_INBOX_EMAIL
+  ?? 'ops@travailclub.com'
+).trim()
+
+// All transactional member emails go through this — guarantees the
+// BCC is attached. Returns the Resend response.
+async function sendMemberMail(
+  resend: Resend,
+  args: {
+    to: string
+    subject: string
+    html: string
+    text: string
+    replyTo?: string
+  },
+) {
+  return resend.emails.send({
+    from: process.env.RESEND_FROM ?? DEFAULT_FROM,
+    to: [args.to],
+    subject: args.subject,
+    html: args.html,
+    text: args.text,
+    replyTo: args.replyTo ?? process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
+    // BCC ops on every member email for the paper trail. Member never
+    // sees this address — Resend strips the BCC header from the
+    // delivered envelope.
+    ...(OPS_PAPER_TRAIL_BCC ? { bcc: [OPS_PAPER_TRAIL_BCC] } : {}),
+  })
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -77,14 +114,7 @@ export async function sendBookingReceiptEmail(p: BookingReceiptEmailParams): Pro
 
   const resend = new Resend(apiKey)
   try {
-    await resend.emails.send({
-      from: process.env.RESEND_FROM ?? DEFAULT_FROM,
-      to: [p.to],
-      subject,
-      html,
-      text,
-      replyTo: process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
-    })
+    await sendMemberMail(resend, { to: p.to, subject, html, text })
   } catch (err) {
     safeError('sendBookingReceiptEmail: send failed (non-fatal)', err)
   }
@@ -204,14 +234,7 @@ export async function sendTripCancelledEmail(p: TripCancelledEmailParams): Promi
 
   const resend = new Resend(apiKey)
   try {
-    await resend.emails.send({
-      from: process.env.RESEND_FROM ?? DEFAULT_FROM,
-      to: [p.to],
-      subject,
-      html,
-      text,
-      replyTo: process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
-    })
+    await sendMemberMail(resend, { to: p.to, subject, html, text })
   } catch (err) {
     safeError('sendTripCancelledEmail: send failed (non-fatal)', err)
   }
@@ -332,14 +355,7 @@ export async function sendPaxTripCompleteEmail(p: PaxTripCompleteParams): Promis
 
   const resend = new Resend(apiKey)
   try {
-    await resend.emails.send({
-      from: process.env.RESEND_FROM ?? DEFAULT_FROM,
-      to: [p.to],
-      subject,
-      html,
-      text,
-      replyTo: process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
-    })
+    await sendMemberMail(resend, { to: p.to, subject, html, text })
   } catch (err) {
     safeError('sendPaxTripCompleteEmail: send failed (non-fatal)', err)
   }
@@ -446,14 +462,7 @@ export async function sendSettlementEmail(p: SettlementEmailParams): Promise<voi
 
   const resend = new Resend(apiKey)
   try {
-    await resend.emails.send({
-      from: process.env.RESEND_FROM ?? DEFAULT_FROM,
-      to: [p.to],
-      subject,
-      html,
-      text,
-      replyTo: process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
-    })
+    await sendMemberMail(resend, { to: p.to, subject, html, text })
   } catch (err) {
     safeError('sendSettlementEmail: send failed (non-fatal)', err)
   }
