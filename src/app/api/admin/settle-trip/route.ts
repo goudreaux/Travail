@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
+import { notifyOps } from '@/lib/ops-notify'
+import { sendSettlementEmail } from '@/lib/member-email'
 import type { Database } from '@/lib/supabase/types'
 
 // Settlement runner — the last leg of the charter pass-through.
@@ -206,6 +208,84 @@ export async function POST(req: NextRequest) {
       title: `Settlement · ${trip.name ?? 'your trip'}`,
       body,
       ref: { item_kind: itemKind, item_id: itemId, settlement_id: settlementRow.id },
+    })
+  }
+
+  // ─── Branded settlement email to the anchor + ops record ───────────────────
+  // The in-app notification covers the "saw it in the app" case; the
+  // branded email gives the anchor a permanent receipt they can file.
+  // Both are best-effort — refund + settlement row already persisted.
+  let perSeatCents = 0
+  let anchorSeats = 0
+  let paxSeatsSold = 0
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const seatField: any = itemKind === 'flight' ? 'seats_total' : 'spots_total'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const anchorField: any = itemKind === 'flight' ? 'seats_anchor' : 'spots_anchor'
+    const { data: detail } = await db
+      .from(table)
+      .select(`id, name, date, ${seatField}, ${anchorField}, price_per_seat:price_per_pax, anchor_member_id`)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .eq('id', itemId).maybeSingle() as any
+    if (detail) {
+      const seatsTotal: number = Number(detail[seatField] ?? 0)
+      anchorSeats = Number(detail[anchorField] ?? 0)
+      perSeatCents = seatsTotal > 0 ? Math.round(charterTotalCents / seatsTotal) : 0
+    }
+    // Pax seats sold = paid_revenue / per_seat (rounded down for safety
+    // against forfeit math weirdness).
+    if (perSeatCents > 0) paxSeatsSold = Math.floor(paidRevenueCents / perSeatCents)
+  } catch (e) {
+    safeError('settle-trip: per-seat math lookup failed (non-fatal)', e)
+  }
+
+  // Anchor email
+  if (trip.anchor_member_id) {
+    const { data: anchorMember } = await db
+      .from('members').select('name, member_no').eq('id', trip.anchor_member_id).maybeSingle()
+    const { data: contact } = await db
+      .from('member_sensitive').select('email').eq('member_id', trip.anchor_member_id).maybeSingle()
+    if (contact?.email) {
+      await sendSettlementEmail({
+        to: contact.email,
+        memberName: anchorMember?.name ?? 'Member',
+        tripName: trip.name ?? (itemKind === 'flight' ? 'Anchored flight' : 'Anchored excursion'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        tripDate: (await db.from(table).select('date').eq('id', itemId).maybeSingle()).data?.date ?? null,
+        charterTotalCents,
+        paidRevenueCents,
+        anchorRefundCents,
+        anchorNetPaidCents,
+        refundId,
+        paxSeatsSold,
+        perSeatCents,
+        anchorSeats,
+      })
+    }
+
+    // Ops record-keeping
+    await notifyOps({
+      kind: 'anchor_settlement',
+      member: {
+        name: anchorMember?.name ?? null,
+        memberCode: anchorMember?.member_no ? `#${anchorMember.member_no}` : null,
+        email: contact?.email ?? null,
+      },
+      item: { kind: itemKind, id: itemId, name: trip.name ?? null },
+      amountCents: anchorRefundCents,
+      stripe: {
+        paymentIntentId: trip.anchor_payment_intent_id,
+        refundId,
+      },
+      details: {
+        'Charter captured': `$${(charterTotalCents / 100).toFixed(2)}`,
+        'Pax revenue': `$${(paidRevenueCents / 100).toFixed(2)} (${paxSeatsSold} seat${paxSeatsSold === 1 ? '' : 's'})`,
+        'Refund issued': `$${(anchorRefundCents / 100).toFixed(2)}`,
+        'Anchor final cost': `$${(anchorNetPaidCents / 100).toFixed(2)}`,
+        'Settlement id': settlementRow.id,
+      },
+      note: payload.notes ?? null,
     })
   }
 

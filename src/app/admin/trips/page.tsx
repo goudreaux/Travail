@@ -245,9 +245,18 @@ export default function TripsPage() {
   const destAirports = airports.filter(a => a.role === 'destination' || a.role === 'both')
 
   // "Active" = exactly what members see on Open Seats: open/full trips, with
-  // round trips collapsed to the outbound leg. Cancelled/draft/past are excluded.
-  type ActiveItem = { key: string; kind: 'flight' | 'excursion'; name: string; label: string; date: string; avail: number; total: number; status: string; onEdit: () => void }
-  const activeFlightList = flights.filter(f => f.status === 'open' || f.status === 'full')
+  // round trips collapsed to the outbound leg. Cancelled/draft excluded;
+  // departed/completed kept in the list so Ops can still see + settle
+  // them. anchorPi + settledAt drive whether the Settle button shows.
+  type ActiveItem = {
+    key: string; kind: 'flight' | 'excursion'
+    name: string; label: string; date: string
+    avail: number; total: number; status: string
+    anchorPi: string | null
+    settledAt: string | null
+    onEdit: () => void
+  }
+  const activeFlightList = flights.filter(f => f.status === 'open' || f.status === 'full' || f.status === 'departed')
   const activeRetIds = returnLegIds(activeFlightList)
   const flightItems: ActiveItem[] = activeFlightList
     .filter(f => !activeRetIds.has(f.id))
@@ -259,15 +268,23 @@ export default function TripsPage() {
         label: isRound ? `${f.origin_code} ⇄ ${f.dest_code} · round trip` : `${f.origin_code} → ${f.dest_code}`,
         avail: Math.max(0, f.seats_total - f.seats_anchor - (f.seats_taken ?? 0)),
         total: f.seats_total - f.seats_anchor, status: f.status,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        anchorPi: ((f as any).anchor_payment_intent_id as string | null) ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        settledAt: ((f as any).anchor_settled_at as string | null) ?? null,
         onEdit: () => openEditFlight(f),
       }
     })
   const excItems: ActiveItem[] = excursions
-    .filter(e => e.status === 'open' || e.status === 'full')
+    .filter(e => e.status === 'open' || e.status === 'full' || e.status === 'completed')
     .map(e => ({
       key: e.id, kind: 'excursion', name: e.name, date: e.date, label: e.origin_code,
       avail: Math.max(0, e.spots_total - e.spots_anchor - (e.spots_taken ?? 0)),
       total: e.spots_total - e.spots_anchor, status: e.status,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      anchorPi: ((e as any).anchor_payment_intent_id as string | null) ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      settledAt: ((e as any).anchor_settled_at as string | null) ?? null,
       onEdit: () => openEditExc(e),
     }))
   const activeItems: ActiveItem[] = [...flightItems, ...excItems].sort((a, b) => a.date.localeCompare(b.date))
@@ -1297,17 +1314,39 @@ export default function TripsPage() {
                   <td><span className={`pill ${statusColor[it.status]}`}>{it.status}</span></td>
                   <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                     <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={it.onEdit}>Edit</button>
-                    {(it.status === 'departed' || it.status === 'completed') && (
-                      <button
-                        className="btn-ghost"
-                        style={{ height: 28, padding: '0 10px', fontSize: 12, marginLeft: 6, color: 'var(--moss)', borderColor: 'rgba(62,140,109,0.35)' }}
-                        disabled={settling === it.key}
-                        onClick={() => settleTrip(it.kind, it.key, it.name)}
-                        title="Refund the anchor for whatever the pax pool covered"
-                      >
-                        {settling === it.key ? '…' : 'Settle'}
-                      </button>
-                    )}
+                    {(() => {
+                      // Settle is available when the trip has an anchor
+                      // capture (anchorPi) AND hasn't been settled yet,
+                      // AND the trip is past — either status='departed'/
+                      // 'completed' OR the calendar date is today or
+                      // earlier (so Ops can settle a trip whose status
+                      // hasn't flipped yet).
+                      if (!it.anchorPi) return null
+                      const todayIso = new Date().toISOString().slice(0, 10)
+                      const isPast = it.date <= todayIso || it.status === 'departed' || it.status === 'completed'
+                      if (!isPast) return null
+                      if (it.settledAt) {
+                        return (
+                          <span
+                            title={`Settled ${new Date(it.settledAt).toLocaleString()}`}
+                            style={{ marginLeft: 6, padding: '0 10px', height: 28, display: 'inline-flex', alignItems: 'center', fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--moss)', background: 'rgba(62,140,109,0.10)', border: '1px solid rgba(62,140,109,0.30)', borderRadius: 9, fontWeight: 700 }}
+                          >
+                            Settled ✓
+                          </span>
+                        )
+                      }
+                      return (
+                        <button
+                          className="btn-sun"
+                          style={{ height: 28, padding: '0 12px', fontSize: 12, marginLeft: 6 }}
+                          disabled={settling === it.key}
+                          onClick={() => settleTrip(it.kind, it.key, it.name)}
+                          title="Refund the anchor for whatever the pax pool covered + send the settlement email"
+                        >
+                          {settling === it.key ? '…' : 'Settle now →'}
+                        </button>
+                      )
+                    })()}
                     <button
                       className="btn-ghost"
                       style={{ height: 28, padding: '0 10px', fontSize: 12, marginLeft: 6, color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.3)' }}
