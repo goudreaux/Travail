@@ -978,7 +978,6 @@ export default function TripsPage() {
                 <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 6 }}>
                   Destination: <strong>{excDestLabel}</strong>
                   {selectedTemplate.operator ? ` · ${selectedTemplate.operator}` : ''}
-                  {' · '}catalog ${selectedTemplate.price_per_pax.toLocaleString()}/pax
                 </div>
               )}
             </div>
@@ -1224,11 +1223,6 @@ export default function TripsPage() {
               </div>
             )}
 
-            <div className="field">
-              <label className="field-lab">Base Price Per Pax ($)</label>
-              <input className="input" type="number" min={0} value={TF.price_per_pax} onChange={e => setTemplateForm(f => ({ ...f, price_per_pax: Number(e.target.value) }))} />
-              <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>Default cost when scheduling — adjustable per trip.</div>
-            </div>
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label className="field-lab">Description <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>— the trip &amp; conservation story</span></label>
               <textarea className="input" rows={3} value={TF.description} onChange={e => setTemplateForm(f => ({ ...f, description: e.target.value }))} placeholder="What the fishing's like and the conservation angle…" />
@@ -1310,7 +1304,6 @@ export default function TripsPage() {
                 <th>Name</th>
                 <th>Destination</th>
                 <th>Operator</th>
-                <th>Base Price</th>
                 <th>Icon</th>
                 <th></th>
               </tr>
@@ -1321,7 +1314,6 @@ export default function TripsPage() {
                   <td style={{ fontWeight: 500, color: 'var(--ink)' }}>{t.name}</td>
                   <td style={{ fontSize: 13 }}>{airportName(t.dest_code)}</td>
                   <td style={{ fontSize: 12, color: 'var(--ink-light)' }}>{t.operator || '—'}</td>
-                  <td style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}>${t.price_per_pax.toLocaleString()}</td>
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink-light)' }}>{t.icon}</td>
                   <td onClick={e => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
                     <button className="btn-ghost" style={{ height: 28, padding: '0 10px', fontSize: 12 }} onClick={() => openEditTemplate(t)}>Edit</button>
