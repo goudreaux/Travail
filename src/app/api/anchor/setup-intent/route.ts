@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
+import { assertCanBook } from '@/lib/can-book'
 import type { Database } from '@/lib/supabase/types'
 
 // Anchor card-on-file flow.
@@ -162,6 +163,17 @@ export async function GET() {
 export async function POST() {
   const r = await getMemberForRequest()
   if ('error' in r) return NextResponse.json({ error: r.error }, { status: r.status })
+
+  // Membership gate — same as pax booking. Anchoring is a billable
+  // obligation, so past_due / cancelled members can't start it.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const guard = await assertCanBook(admin() as any, r.member.id)
+  if (!guard.ok) {
+    return NextResponse.json(
+      { error: 'Membership required', reason: guard.reason, status: guard.status },
+      { status: 402 },
+    )
+  }
 
   try {
     const customerId = await ensureStripeCustomer(r.member.id, r.member.name, r.email)

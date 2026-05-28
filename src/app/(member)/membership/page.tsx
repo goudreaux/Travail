@@ -218,6 +218,8 @@ export default function MembershipPage() {
           {/* ── Left column ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
+            <SubscriptionPanel member={member} />
+
             {/* Profile card */}
             <div className="panel">
               <div className="panel-head">
@@ -579,6 +581,112 @@ export default function MembershipPage() {
             )}
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Subscription panel ────────────────────────────────────────────────────
+// Shows status, renewal date, founder badge, and the manage-card / cancel
+// guidance. "Manage card" pops the Stripe Customer Portal; cancel is by
+// phone only (policy decision — high friction so members don't ghost the
+// subscription without a conversation with ops).
+
+function SubscriptionPanel({ member }: { member: Member }) {
+  const status = (member as Member & { subscription_status?: string | null }).subscription_status ?? null
+  const periodEnd = (member as Member & { current_period_end?: string | null }).current_period_end ?? null
+  const priceId = (member as Member & { subscription_price_id?: string | null }).subscription_price_id ?? null
+  const isFounding = !!(member as Member & { is_founding_member?: boolean }).is_founding_member
+
+  // Mark members whose card already failed renewal — bookings paused.
+  const isPastDue = status === 'past_due' || status === 'unpaid'
+  const isCancelled = status === 'canceled' || status === 'cancelled' || status === 'incomplete_expired'
+  const isActive = status === 'active' || status === 'trialing'
+
+  const [busy, setBusy] = useState(false)
+
+  async function openPortal() {
+    setBusy(true)
+    try {
+      const res = await fetch('/api/subscribe/portal', { method: 'POST' })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else setBusy(false)
+    } catch {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="panel">
+      <div className="panel-head">
+        <h3>Membership</h3>
+        {isFounding && <span className="pill sun">Founding</span>}
+      </div>
+      <div style={{ padding: '20px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+          <div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 4 }}>
+              Status
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>
+              {isActive ? 'Active' : isPastDue ? 'Card declined' : isCancelled ? 'Ended' : status === 'incomplete' ? 'Setting up' : 'Inactive'}
+            </div>
+          </div>
+          {periodEnd && isActive && (
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 4 }}>
+                Next renewal
+              </div>
+              <div style={{ fontSize: 14, color: 'var(--ink)' }}>
+                {new Date(periodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {isFounding && (
+          <div style={{ background: 'rgba(244,167,44,0.10)', border: '1px solid rgba(244,167,44,0.30)', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 14 }}>
+            <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>$200/month founding rate</strong> — locked for as long as your membership stays active.
+          </div>
+        )}
+
+        {isPastDue && (
+          <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: 'var(--signal)', lineHeight: 1.5, marginBottom: 14 }}>
+            Your last renewal failed. Bookings are paused until the card clears. Update your card below — ops will be in touch shortly either way.
+          </div>
+        )}
+
+        {priceId && (
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-faint)', letterSpacing: '0.06em', marginBottom: 14 }}>
+            Price: {priceId}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {(isActive || isPastDue || status === 'incomplete') && (
+            <button className="btn-primary" onClick={openPortal} disabled={busy} style={{ fontSize: 13 }}>
+              {busy ? 'Opening…' : 'Manage card →'}
+            </button>
+          )}
+          {!status || status === 'none' || isCancelled ? (
+            <a href="/onboarding/subscribe" className="btn-primary" style={{ fontSize: 13 }}>
+              Start membership
+            </a>
+          ) : null}
+        </div>
+
+        {isActive && (
+          <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px dashed var(--hair)' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 6 }}>
+              To cancel
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.6 }}>
+              Call ops at <a href="tel:+14085073523" style={{ color: 'var(--ink)', fontWeight: 600, textDecoration: 'none' }}>(408) 507-3523</a>. We&apos;ll process it on the call. Your access continues through the end of the current billing period — no partial refund.
+              {isFounding && <> Re-subscribing later will be at the then-current public rate, not the founding rate.</>}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

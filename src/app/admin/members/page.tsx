@@ -615,6 +615,14 @@ export default function MembersPage() {
             </div>
           </div>
 
+          {editId && (() => {
+            const target = members.find(m => m.id === editId)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const t = target as any
+            if (!t?.stripe_subscription_id) return null
+            return <SubscriptionCancelSection memberId={editId} memberName={target?.name ?? ''} status={t.subscription_status ?? null} onDone={() => { setEditId(null); load() }} />
+          })()}
+
           <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
             <button className="btn-primary" onClick={save} disabled={saving || !form.name.trim()}>
               {saving ? 'Saving…' : 'Save'}
@@ -728,3 +736,110 @@ export default function MembersPage() {
     </div>
   )
 }
+
+// Ops-only "Cancel subscription on member's behalf" block inside the
+// edit modal. High-friction by design: require typed confirmation +
+// reason + explicit choice of period_end vs immediate. Members can't
+// reach this — it's a phone-call flow.
+function SubscriptionCancelSection({
+  memberId, memberName, status, onDone,
+}: {
+  memberId: string
+  memberName: string
+  status: string | null
+  onDone: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [confirm, setConfirm] = useState('')
+  const [reason, setReason] = useState('')
+  const [mode, setMode] = useState<'period_end' | 'immediate'>('period_end')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  if (status === 'canceled' || status === 'cancelled' || status === 'incomplete_expired') {
+    return (
+      <div style={{ marginTop: 18, padding: '12px 14px', background: 'var(--paper)', border: '1px dashed var(--hair)', borderRadius: 10, fontSize: 12, color: 'var(--ink-light)' }}>
+        Subscription already ended ({status}). No action available.
+      </div>
+    )
+  }
+
+  async function submit() {
+    if (confirm.trim() !== 'CANCEL') { setErr('Type CANCEL to confirm.'); return }
+    setErr(null); setBusy(true)
+    try {
+      const res = await fetch('/api/admin/subscriptions/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_id: memberId, mode, reason: reason.trim() || null }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? `Cancel failed (${res.status})`)
+      onDone()
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Cancel failed')
+      setBusy(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px dashed var(--hair)' }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 6 }}>
+          Danger zone
+        </div>
+        <button
+          onClick={() => setOpen(true)}
+          style={{ padding: '8px 14px', background: 'transparent', color: 'var(--signal)', border: '1px solid rgba(217,78,42,0.30)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--ui)' }}
+        >
+          Cancel subscription on behalf of member
+        </button>
+        <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 6, lineHeight: 1.5 }}>
+          Use after a phone call with the member. Default ends at period close; immediate is only on direct request.
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: 22, padding: '16px 18px', background: 'rgba(217,78,42,0.05)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 12 }}>
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--signal)', fontWeight: 700, marginBottom: 10 }}>
+        Cancel {memberName}&apos;s membership
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        <button onClick={() => setMode('period_end')} style={{ padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: mode === 'period_end' ? 600 : 400, border: `1px solid ${mode === 'period_end' ? 'var(--tropic)' : 'var(--hair-2)'}`, background: mode === 'period_end' ? 'var(--tropic-glow)' : 'transparent', color: mode === 'period_end' ? 'var(--tropic-d)' : 'var(--ink-light)', cursor: 'pointer' }}>
+          End of period (recommended)
+        </button>
+        <button onClick={() => setMode('immediate')} style={{ padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: mode === 'immediate' ? 600 : 400, border: `1px solid ${mode === 'immediate' ? 'var(--signal)' : 'var(--hair-2)'}`, background: mode === 'immediate' ? 'rgba(217,78,42,0.10)' : 'transparent', color: mode === 'immediate' ? 'var(--signal)' : 'var(--ink-light)', cursor: 'pointer' }}>
+          Immediate (kills access now)
+        </button>
+      </div>
+
+      <div className="field" style={{ marginBottom: 10 }}>
+        <label className="field-lab">Reason (logged to activity)</label>
+        <textarea className="input" rows={2} value={reason} onChange={e => setReason(e.target.value)} placeholder="What did the member say on the call?" />
+      </div>
+      <div className="field" style={{ marginBottom: 10 }}>
+        <label className="field-lab">Type CANCEL to confirm</label>
+        <input className="input" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="CANCEL" />
+      </div>
+
+      {err && (
+        <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 8, padding: '8px 10px', fontSize: 12.5, color: 'var(--signal)', marginBottom: 10 }}>{err}</div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={submit}
+          disabled={busy || confirm.trim() !== 'CANCEL'}
+          style={{ padding: '9px 16px', background: 'var(--signal)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: busy ? 'not-allowed' : 'pointer', opacity: confirm.trim() === 'CANCEL' ? 1 : 0.5, fontFamily: 'var(--ui)' }}
+        >
+          {busy ? 'Cancelling…' : 'Cancel subscription'}
+        </button>
+        <button onClick={() => { setOpen(false); setConfirm(''); setReason(''); setErr(null) }} className="btn-ghost">Back</button>
+      </div>
+    </div>
+  )
+}
+

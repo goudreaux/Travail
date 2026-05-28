@@ -5,6 +5,11 @@ import type { Database } from '@/lib/supabase/types'
 import { stripe, STRIPE_WEBHOOK_SECRET } from '@/lib/stripe'
 import { notifyOps } from '@/lib/ops-notify'
 import { safeError } from '@/lib/pii-scrub'
+import {
+  sendSubscriptionWelcomeEmail,
+  sendSubscriptionPastDueEmail,
+  sendSubscriptionCancelledEmail,
+} from '@/lib/member-email'
 
 // Stripe webhook endpoint — the safety net.
 //
@@ -46,6 +51,26 @@ function admin() {
 
 function tsFromUnix(s: number | null | undefined) {
   return s ? new Date(s * 1000).toISOString() : null
+}
+
+// Email resolution for subscription emails — member_sensitive first,
+// then auth.users via the admin client. Same pattern as cancel-trip and
+// settle-trip, kept inline here so the webhook stays self-contained.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveEmailForMember(db: any, memberId: string): Promise<string | null> {
+  const { data: contact } = await db
+    .from('member_sensitive').select('email').eq('member_id', memberId).maybeSingle()
+  if (contact?.email && contact.email.trim().length > 0) return contact.email
+  const { data: m } = await db
+    .from('members').select('user_id').eq('id', memberId).maybeSingle()
+  if (!m?.user_id) return null
+  try {
+    const { data: u } = await db.auth.admin.getUserById(m.user_id)
+    return u?.user?.email ?? null
+  } catch (e) {
+    safeError('webhook: auth.users email lookup failed', e)
+    return null
+  }
 }
 
 async function lookupMember(memberId: string | null | undefined) {
@@ -90,15 +115,132 @@ export async function POST(req: NextRequest) {
         const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
         const item = sub.items?.data?.[0]
         const periodEnd = (item as unknown as { current_period_end?: number } | undefined)?.current_period_end
-        await db
-          .from('members')
+        const priceId = item?.price?.id ?? null
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (db.from('members') as any)
           .update({
             stripe_subscription_id: sub.id,
             subscription_status: sub.status,
+            subscription_price_id: priceId,
             trial_ends_at: tsFromUnix(sub.trial_end),
             current_period_end: tsFromUnix(periodEnd),
           })
           .eq('stripe_customer_id', customerId)
+
+        // On termination, send the member a branded close-out and ping ops.
+        if (event.type === 'customer.subscription.deleted') {
+          const { data: m } = await db
+            .from('members').select('id, name')
+            .eq('stripe_customer_id', customerId).maybeSingle()
+          if (m) {
+            const memberEmail = await resolveEmailForMember(db, m.id)
+            if (memberEmail) {
+              await sendSubscriptionCancelledEmail({
+                to: memberEmail,
+                memberName: m.name ?? 'Member',
+                memberId: m.id,
+                subscriptionId: sub.id,
+              })
+            }
+            await notifyOps({
+              kind: 'subscription_cancelled',
+              member: await lookupMember(m.id) ?? undefined,
+              stripe: { customerId, paymentIntentId: null },
+              note: 'Subscription cancelled. Member loses booking access at period end if cancel_at_period_end, immediately if direct cancel.',
+            })
+          }
+        }
+        break
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as StripeNS.Invoice
+        const customerId = typeof invoice.customer === 'string'
+          ? invoice.customer
+          : invoice.customer?.id ?? null
+        if (!customerId) break
+
+        // First successful invoice on a subscription_create is the welcome
+        // moment — branded email + ops alert. Subsequent renewals are
+        // silent (Stripe's automatic receipt covers them).
+        const isFirst = invoice.billing_reason === 'subscription_create'
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: mRaw } = await (db.from('members') as any)
+          .select('id, name, is_founding_member')
+          .eq('stripe_customer_id', customerId).maybeSingle()
+        const m = mRaw as { id: string; name: string | null; is_founding_member: boolean } | null
+        if (!m) break
+
+        if (isFirst) {
+          const memberEmail = await resolveEmailForMember(db, m.id)
+          // Stripe SDK exposes the subscription on Invoice but the union
+          // type erases through expansions; cast to read it.
+          const subField = (invoice as unknown as { subscription?: string | { id: string } | null }).subscription
+          const subId = typeof subField === 'string' ? subField : (subField?.id ?? null)
+          if (memberEmail) {
+            await sendSubscriptionWelcomeEmail({
+              to: memberEmail,
+              memberName: m.name ?? 'Member',
+              memberId: m.id,
+              subscriptionId: subId,
+              amountCents: invoice.amount_paid ?? 0,
+              isFounding: !!m.is_founding_member,
+            })
+          }
+          await notifyOps({
+            kind: 'subscription_started',
+            member: await lookupMember(m.id) ?? undefined,
+            amountCents: invoice.amount_paid ?? 0,
+            stripe: { customerId, paymentIntentId: null },
+            details: {
+              'Founding member': m.is_founding_member ? 'yes' : 'no',
+              Invoice: invoice.id,
+            },
+          })
+        }
+        break
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as StripeNS.Invoice
+        const customerId = typeof invoice.customer === 'string'
+          ? invoice.customer
+          : invoice.customer?.id ?? null
+        if (!customerId) break
+
+        const { data: m } = await db
+          .from('members').select('id, name')
+          .eq('stripe_customer_id', customerId).maybeSingle()
+        if (!m) break
+
+        // Branded "card needs attention" email with portal link. Stripe
+        // also has a built-in version of this; we keep ours on so the
+        // copy + branding stays consistent.
+        const memberEmail = await resolveEmailForMember(db, m.id)
+        if (memberEmail) {
+          await sendSubscriptionPastDueEmail({
+            to: memberEmail,
+            memberName: m.name ?? 'Member',
+            memberId: m.id,
+            amountCents: invoice.amount_due ?? 0,
+            nextAttemptAt: tsFromUnix(invoice.next_payment_attempt),
+            hostedInvoiceUrl: invoice.hosted_invoice_url ?? null,
+          })
+        }
+
+        // Ops must move fast — they're the ones who'll call the member.
+        await notifyOps({
+          kind: 'subscription_payment_failed',
+          member: await lookupMember(m.id) ?? undefined,
+          amountCents: invoice.amount_due ?? 0,
+          stripe: { customerId, paymentIntentId: null },
+          details: {
+            'Attempt count': invoice.attempt_count ?? undefined,
+            'Next retry': tsFromUnix(invoice.next_payment_attempt) ?? 'no further retries',
+            'Hosted invoice': invoice.hosted_invoice_url ?? undefined,
+          },
+          note: 'Membership payment failed. Member retains app access but bookings are paused. Reach out to resolve.',
+        })
         break
       }
 
