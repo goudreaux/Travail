@@ -4,7 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
 import { notifyOps } from '@/lib/ops-notify'
-import { sendSettlementEmail } from '@/lib/member-email'
+import { sendSettlementEmail, sendPaxTripCompleteEmail } from '@/lib/member-email'
 import type { Database } from '@/lib/supabase/types'
 
 // Settlement runner — the last leg of the charter pass-through.
@@ -118,23 +118,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Could not read bookings' }, { status: 500 })
   }
 
+  // Pax revenue at settlement = the CHARTER PORTION only of every
+  // qualifying pax booking. Service fees stay with Travail as margin
+  // and do NOT count toward the anchor's offset. price_per_seat × seats
+  // gives the charter portion directly from the booking row.
   let paidRevenueCents = 0
+  let paxSeatsSold = 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const b of (bookings ?? []) as any[]) {
     const counts =
       (b.status === 'approved' && (b.paid_amount_cents ?? 0) > 0)
       || (b.status === 'cancelled' && b.was_forfeit === true)
     if (!counts) continue
-    // Prefer paid_amount_cents when present (true Stripe-captured amount);
-    // fall back to total * 100 for older rows that pre-date the column.
-    const cents = (b.paid_amount_cents && b.paid_amount_cents > 0)
-      ? b.paid_amount_cents
-      : Math.round(Number(b.total ?? 0) * 100)
-    paidRevenueCents += cents
+    const seats = Number(b.seats ?? 0)
+    const perSeatDollars = Number(b.price_per_seat ?? 0)
+    // Charter portion only — strip out fees. This is the amount that
+    // covers actual charter cost; the rest of what pax paid is fee.
+    const charterPortionCents = Math.round(perSeatDollars * seats * 100)
+    paidRevenueCents += charterPortionCents
+    paxSeatsSold += seats
   }
 
   const charterTotalCents: number = trip.anchor_captured_cents
-  const anchorRefundCents = Math.max(0, charterTotalCents - paidRevenueCents)
+  // Refund = what the pax pool covered (their charter portion). The
+  // anchor's net cost = capture − refund = the cost of every seat
+  // the anchor "owns" at settlement (their own seats + any unfilled).
+  // Cap at charter_total in case math drift somehow pushes pax revenue
+  // above the captured amount.
+  const anchorRefundCents = Math.min(charterTotalCents, paidRevenueCents)
   const anchorNetPaidCents = charterTotalCents - anchorRefundCents
 
   // ─── Refund the anchor's PI by the refund amount ───────────────────────────
@@ -185,13 +196,27 @@ export async function POST(req: NextRequest) {
     }, { status: 500 })
   }
 
+  // Mark trip as terminal so it drops off active boards (open / full
+   // → completed for excursions, departed for flights). 'completed'
+   // and 'departed' are the existing terminal statuses for each kind.
+  const terminalStatus = itemKind === 'flight' ? 'departed' : 'completed'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db.from(table) as any)
     .update({
       anchor_refunded_cents: anchorRefundCents,
       anchor_settled_at: new Date().toISOString(),
+      status: terminalStatus,
     })
     .eq('id', itemId)
+
+  // Mark all this trip's bookings as 'completed' so the booking lands
+  // in members' history rather than active bookings.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (db.from('bookings') as any)
+    .update({ status: 'completed' })
+    .eq('item_kind', itemKind)
+    .eq('item_id', itemId)
+    .in('status', ['approved'])
 
   // ─── Notify the anchor + activity log ──────────────────────────────────────
   if (trip.anchor_member_id) {
@@ -217,7 +242,7 @@ export async function POST(req: NextRequest) {
   // Both are best-effort — refund + settlement row already persisted.
   let perSeatCents = 0
   let anchorSeats = 0
-  let paxSeatsSold = 0
+  let tripDate: string | null = null
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const seatField: any = itemKind === 'flight' ? 'seats_total' : 'spots_total'
@@ -225,34 +250,50 @@ export async function POST(req: NextRequest) {
     const anchorField: any = itemKind === 'flight' ? 'seats_anchor' : 'spots_anchor'
     const { data: detail } = await db
       .from(table)
-      .select(`id, name, date, ${seatField}, ${anchorField}, price_per_seat:price_per_pax, anchor_member_id`)
+      .select(`id, name, date, ${seatField}, ${anchorField}, anchor_member_id`)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .eq('id', itemId).maybeSingle() as any
     if (detail) {
       const seatsTotal: number = Number(detail[seatField] ?? 0)
       anchorSeats = Number(detail[anchorField] ?? 0)
       perSeatCents = seatsTotal > 0 ? Math.round(charterTotalCents / seatsTotal) : 0
+      tripDate = detail.date ?? null
     }
-    // Pax seats sold = paid_revenue / per_seat (rounded down for safety
-    // against forfeit math weirdness).
-    if (perSeatCents > 0) paxSeatsSold = Math.floor(paidRevenueCents / perSeatCents)
   } catch (e) {
     safeError('settle-trip: per-seat math lookup failed (non-fatal)', e)
+  }
+
+  // Resolve a usable email for any member: member_sensitive first, then
+  // fall back to auth.users (the login identity). Without this, anyone
+  // whose member_sensitive row was never populated silently never gets
+  // settlement / receipt emails.
+  async function resolveMemberEmail(memberId: string): Promise<string | null> {
+    const { data: contact } = await db
+      .from('member_sensitive').select('email').eq('member_id', memberId).maybeSingle()
+    if (contact?.email && contact.email.trim().length > 0) return contact.email
+    const { data: m } = await db
+      .from('members').select('user_id').eq('id', memberId).maybeSingle()
+    if (!m?.user_id) return null
+    try {
+      const { data: u } = await db.auth.admin.getUserById(m.user_id)
+      return u?.user?.email ?? null
+    } catch (e) {
+      safeError('settle-trip: auth.users email lookup failed', e)
+      return null
+    }
   }
 
   // Anchor email
   if (trip.anchor_member_id) {
     const { data: anchorMember } = await db
       .from('members').select('name, member_no').eq('id', trip.anchor_member_id).maybeSingle()
-    const { data: contact } = await db
-      .from('member_sensitive').select('email').eq('member_id', trip.anchor_member_id).maybeSingle()
-    if (contact?.email) {
+    const anchorEmail = await resolveMemberEmail(trip.anchor_member_id)
+    if (anchorEmail) {
       await sendSettlementEmail({
-        to: contact.email,
+        to: anchorEmail,
         memberName: anchorMember?.name ?? 'Member',
         tripName: trip.name ?? (itemKind === 'flight' ? 'Anchored flight' : 'Anchored excursion'),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        tripDate: (await db.from(table).select('date').eq('id', itemId).maybeSingle()).data?.date ?? null,
+        tripDate,
         charterTotalCents,
         paidRevenueCents,
         anchorRefundCents,
@@ -262,6 +303,36 @@ export async function POST(req: NextRequest) {
         perSeatCents,
         anchorSeats,
       })
+    } else {
+      safeError('settle-trip: no email for anchor; settlement email skipped', { memberId: trip.anchor_member_id })
+    }
+
+    // Pax member emails — every non-anchor member who had a paid seat
+    // on this trip gets a short "trip wrapped" branded email so they
+    // know it closed and can pull their booking summary.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const paxBookings: any[] = (bookings ?? []) as any[]
+    const sentToMembers = new Set<string>()
+    for (const b of paxBookings) {
+      if (!b.member_id || sentToMembers.has(b.member_id)) continue
+      if (b.status !== 'approved' || !(b.paid_amount_cents > 0)) continue
+      sentToMembers.add(b.member_id)
+      const { data: paxMember } = await db
+        .from('members').select('name').eq('id', b.member_id).maybeSingle()
+      const paxEmail = await resolveMemberEmail(b.member_id)
+      if (!paxEmail) {
+        safeError('settle-trip: no email for pax; trip-complete email skipped', { memberId: b.member_id })
+        continue
+      }
+      await sendPaxTripCompleteEmail({
+        to: paxEmail,
+        memberName: paxMember?.name ?? 'Member',
+        tripName: trip.name ?? (itemKind === 'flight' ? 'Flight' : 'Excursion'),
+        tripDate,
+        seats: Number(b.seats ?? 1),
+        amountPaidCents: Number(b.paid_amount_cents ?? 0),
+        confirmationCode: b.confirmation_code ?? null,
+      })
     }
 
     // Ops record-keeping
@@ -270,7 +341,7 @@ export async function POST(req: NextRequest) {
       member: {
         name: anchorMember?.name ?? null,
         memberCode: anchorMember?.member_no ? `#${anchorMember.member_no}` : null,
-        email: contact?.email ?? null,
+        email: anchorEmail,
       },
       item: { kind: itemKind, id: itemId, name: trip.name ?? null },
       amountCents: anchorRefundCents,
