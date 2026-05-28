@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
   --bg: #f5ede0;
@@ -21,9 +21,15 @@
   --sun-glow: rgba(244, 167, 44, 0.18);
   --signal: #d94e2a;
   --moss: #3e8c6d;
-  --display: "Cormorant Garamond", serif;
+  /* Two-font system. Inter Tight covers everything that used to be on
+     the serif (--display) plus all UI surfaces. JetBrains Mono carries
+     the body text, labels, and data — gives the app a "manifest /
+     cockpit readout" register without a third typeface. */
+  --display: "Inter Tight", system-ui, sans-serif;
   --ui: "Inter Tight", system-ui, sans-serif;
-  --mono: "JetBrains Mono", monospace;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  /* Alias kept so any local override that asked for --hero still works. */
+  --hero: "Inter Tight", system-ui, sans-serif;
 }
 
 /* ─── Reset ─────────────────────────────────────────────── */
@@ -48,7 +54,14 @@ html, body {
     var(--bg);
   background-attachment: fixed;
   color: var(--ink);
-  font-family: var(--ui);
+  /* Body text on JetBrains Mono — gives the whole app a flight-manifest
+     / cockpit-readout register. Inter Tight is still used for headlines
+     and any element that opts in via .ui-sans or via specific classes
+     that set font-family: var(--ui). */
+  font-family: var(--mono);
+  font-size: 14px;
+  letter-spacing: -0.005em;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -725,13 +738,20 @@ body::before {
 /* Bumped from clamp(28,5vw,42) so the title actually commands the block. */
 .page-hero__title {
   font-family: var(--display);
-  font-style: italic;
-  font-weight: 500;
+  /* Upright display sans — same treatment as .feed-hero__welcome.
+     Inter Tight 700 + tight tracking is the new "headline" voice. */
+  font-style: normal;
+  font-weight: 700;
   color: #fff;
   margin: 0;
-  line-height: 1.02;
-  letter-spacing: -0.015em;
+  line-height: 1.0;
+  letter-spacing: -0.025em;
   font-size: clamp(34px, 6vw, 48px);
+}
+.page-hero__title em {
+  font-style: italic;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.78);
 }
 .page-hero__sub { font-size: 14px; color: rgba(255,255,255,0.62); margin-top: 10px; }
 .page-hero__actions { position: relative; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
@@ -1071,13 +1091,17 @@ body::before {
 /* Refined italic greeting — much smaller, single line */
 .feed-hero__welcome {
   font-family: var(--display);
-  font-style: italic;
-  font-weight: 500;
+  /* Inter Tight at heavier weight reads as confident display sans
+     instead of a slanted slim italic. Wider letterforms + heavier
+     weight = the masculine register the prior italic Cormorant
+     couldn't carry. */
+  font-style: normal;
+  font-weight: 700;
   color: #fff;
   margin: 0;
-  line-height: 1.05;
-  letter-spacing: -0.018em;
-  font-size: clamp(26px, 3.4vw, 38px);
+  line-height: 1.0;
+  letter-spacing: -0.025em;
+  font-size: clamp(30px, 4.2vw, 44px);
   opacity: 0;
   animation: feed-hero-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s forwards;
 }
@@ -2106,7 +2130,10 @@ body::before {
 .trip-card__name {
   font-family: var(--display);
   font-size: 18px;
-  font-weight: 500;
+  /* Bumped 500 → 700 since Inter Tight at 500 reads lighter than the
+     prior Cormorant 500 italic. */
+  font-weight: 700;
+  letter-spacing: -0.022em;
   color: var(--ink);
   line-height: 1.18;
   margin-bottom: 2px;
@@ -5015,11 +5042,21 @@ textarea.input {
 
 .section-ttl {
   font-family: var(--display);
-  font-weight: 500;
-  font-size: 28px;
+  /* Inter Tight 700 + tight tracking gives the section heads
+     ("My trips", "Open seats") the display-sans presence they need
+     against the mono eyebrow above. */
+  font-weight: 700;
+  font-size: 32px;
   color: var(--ink);
-  letter-spacing: -0.018em;
-  line-height: 1.02;
+  letter-spacing: -0.025em;
+  line-height: 1.0;
+}
+.section-ttl em {
+  /* Italic accent — Inter Tight's italic is just slanted roman; keep
+     it tonally separate via lighter weight + slight color shift. */
+  font-style: italic;
+  font-weight: 500;
+  color: var(--ink-mid);
 }
 
 .section-chev {
