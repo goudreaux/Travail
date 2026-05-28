@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
   --bg: #f5ede0;
@@ -21,7 +21,14 @@
   --sun-glow: rgba(244, 167, 44, 0.18);
   --signal: #d94e2a;
   --moss: #3e8c6d;
+  /* Card-level display (trip cards, boarding passes, dates) — kept
+     on Cormorant Garamond. */
   --display: "Cormorant Garamond", serif;
+  /* Hero + section heads only. Fraunces variable: structural blade
+     italic letterforms instead of Cormorant's cursive swirl. Optical
+     size axis pulls sharper terminals at large sizes; SOFT 50 keeps
+     it on the wedge side of the humanist↔structural spectrum. */
+  --hero: "Fraunces", "Cormorant Garamond", serif;
   --ui: "Inter Tight", system-ui, sans-serif;
   --mono: "JetBrains Mono", monospace;
 }
@@ -724,14 +731,21 @@ body::before {
 }
 /* Bumped from clamp(28,5vw,42) so the title actually commands the block. */
 .page-hero__title {
-  font-family: var(--display);
-  font-style: italic;
-  font-weight: 500;
+  font-family: var(--hero);
+  /* Upright weight 600 as the structural base; callers can wrap the
+     accent word in <em> for italic emphasis (matches the .section-ttl
+     pattern: "My <em>trips</em>"). */
+  font-weight: 600;
   color: #fff;
   margin: 0;
   line-height: 1.02;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.020em;
   font-size: clamp(34px, 6vw, 48px);
+  font-variation-settings: "opsz" 90, "SOFT" 50;
+}
+.page-hero__title em {
+  font-style: italic;
+  font-weight: 500;
 }
 .page-hero__sub { font-size: 14px; color: rgba(255,255,255,0.62); margin-top: 10px; }
 .page-hero__actions { position: relative; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
@@ -988,14 +1002,9 @@ body::before {
     0 14px 28px -10px rgba(13, 51, 64, 0.24),
     0 36px 64px -20px rgba(13, 51, 64, 0.32);
 }
-.feed-hero::after {
-  /* Editorial hairline texture, very subtle. */
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 20px);
-}
+/* Dropped the diagonal stripe overlay and the secondary sun glow —
+   the type now carries the panel instead of competing with surface
+   decoration. The single teal glow stays as a quiet brand cue. */
 .feed-hero > * { position: relative; z-index: 1; }
 
 .feed-hero__glow {
@@ -1010,17 +1019,11 @@ body::before {
   right: -80px;
   width: 320px;
   height: 320px;
-  background: radial-gradient(circle, rgba(0, 179, 199, 0.30), transparent 68%);
+  background: radial-gradient(circle, rgba(0, 179, 199, 0.22), transparent 68%);
   animation: feed-hero-pulse 8s ease-in-out infinite;
 }
-.feed-hero__glow--sun {
-  bottom: -120px;
-  left: 28%;
-  width: 240px;
-  height: 240px;
-  background: radial-gradient(circle, rgba(244, 167, 44, 0.12), transparent 72%);
-  animation: feed-hero-pulse 10s ease-in-out 2s infinite;
-}
+/* Sun glow removed — was adding warmth that competed with the type. */
+.feed-hero__glow--sun { display: none; }
 @keyframes feed-hero-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.06); opacity: 0.75; }
@@ -1068,24 +1071,41 @@ body::before {
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* Refined italic greeting — much smaller, single line */
+/* Hero greeting. Two-register treatment: upright weight 600 for the
+   structural greeting ("Good morning,") and italic 500 for the
+   personal accent (the member's name). Italic-only-on-the-name reads
+   as authored rather than ornamental — and the upright half stands up
+   against the dark navy panel weight. */
 .feed-hero__welcome {
-  font-family: var(--display);
-  font-style: italic;
-  font-weight: 500;
+  font-family: var(--hero);
+  font-weight: 600;
   color: #fff;
   margin: 0;
-  line-height: 1.05;
-  letter-spacing: -0.018em;
-  font-size: clamp(26px, 3.4vw, 38px);
+  line-height: 1.02;
+  letter-spacing: -0.020em;
+  /* Bumped from 26-38px → 34-48px so the greeting actually anchors
+     the panel instead of floating decoratively over it. */
+  font-size: clamp(34px, 4.8vw, 48px);
   opacity: 0;
   animation: feed-hero-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s forwards;
+  /* Fraunces optical-size + soft axis. Larger opsz pulls sharper
+     terminals; soft 50 keeps it structural (less humanist swirl). */
+  font-variation-settings: "opsz" 90, "SOFT" 50;
 }
 .feed-hero__welcome-pre {
+  /* Upright greeting in the tropic glow — the structural anchor. */
   color: var(--tropic);
+  font-style: normal;
+  font-weight: 600;
 }
 .feed-hero__welcome-name {
+  /* Personal accent in italic — slightly lighter weight so the
+     letterforms breathe. */
   color: #fff;
+  font-family: var(--hero);
+  font-style: italic;
+  font-weight: 500;
+  font-variation-settings: "opsz" 90, "SOFT" 50;
 }
 
 /* Hairline that grows in from the left */
@@ -5014,12 +5034,23 @@ textarea.input {
 .section-head__eyebrow--moss   { color: var(--moss); }
 
 .section-ttl {
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 28px;
+  font-family: var(--hero);
+  /* Upright weight 700 for the primary word, italic accent left to
+     the <em> children in the markup ("My <em>trips</em>"). Heavier
+     than before so the title doesn't get crushed by the mono eyebrow
+     above. */
+  font-weight: 700;
+  font-size: clamp(30px, 4.2vw, 38px);
   color: var(--ink);
-  letter-spacing: -0.018em;
-  line-height: 1.02;
+  letter-spacing: -0.022em;
+  line-height: 1.0;
+  font-variation-settings: "opsz" 84, "SOFT" 50;
+}
+.section-ttl em {
+  /* Italic accent — slightly lighter so the contrast against the
+     upright primary word is clear. */
+  font-style: italic;
+  font-weight: 500;
 }
 
 .section-chev {
