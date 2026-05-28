@@ -60,6 +60,15 @@ export async function POST() {
     )
 
     const { subscription, clientSecret } = await createFounderSubscription(customerId, member.id)
+    if (!clientSecret) {
+      // Either the Stripe API version returns the client secret in a shape we
+      // don't probe (new field?) or the subscription was created without a
+      // first invoice that needs paying. Logged for diagnosis.
+      safeError('subscribe/create: no client_secret extracted from latest_invoice', {
+        subscription_id: subscription.id,
+        latest_invoice_shape: Object.keys((subscription.latest_invoice ?? {}) as object),
+      })
+    }
 
     // Optimistic write — Stripe will reconfirm via webhook but we want
     // the member to see "$200/mo · Founding Member" the moment the page

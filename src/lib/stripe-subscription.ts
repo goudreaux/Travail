@@ -62,19 +62,28 @@ export async function createFounderSubscription(
       save_default_payment_method: 'on_subscription',
       payment_method_types: ['card'],
     },
-    expand: ['latest_invoice.payment_intent'],
+    // Expand both shapes: the legacy `latest_invoice.payment_intent` (pre-
+    // 2025-09-30 API versions) and the new `latest_invoice.confirmation_secret`
+    // (Dahlia / 2026-04-22, which is what SDK v22 ships with).
+    expand: ['latest_invoice.payment_intent', 'latest_invoice.confirmation_secret'],
     metadata: {
       member_id: memberId,
       cohort: 'founders_2026',
     },
   })
 
-  // Extract the PaymentIntent client secret from the first invoice. The
-  // SDK's type erases the expansion so we cast through unknown.
-  const invoice = subscription.latest_invoice as unknown as
-    | { payment_intent?: { client_secret?: string | null } | null }
-    | null
-  const clientSecret = invoice?.payment_intent?.client_secret ?? null
+  // Extract the client secret. The SDK types erase the expanded shapes so
+  // we cast and probe both fields — whichever the active API version
+  // returns is the one we use.
+  const invoice = subscription.latest_invoice as unknown as {
+    confirmation_secret?: { client_secret?: string | null } | null
+    payment_intent?: { client_secret?: string | null } | null
+  } | null
+
+  const clientSecret =
+    invoice?.confirmation_secret?.client_secret
+    ?? invoice?.payment_intent?.client_secret
+    ?? null
 
   return { subscription, clientSecret }
 }

@@ -56,10 +56,12 @@ export default function OnboardingSubscribePage() {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? `Subscription create failed (${res.status})`)
         if (!data.client_secret) {
-          // Sub exists and the first invoice has no payment_intent left
-          // to confirm — either it already paid or it's in a weird state.
-          // Send them in; the webhook will reconcile.
-          router.push('/'); return
+          // Stripe didn't return a client secret. Surface this instead of
+          // silently dropping the member into the app — likely an API
+          // shape change or a config issue, and ops needs visibility.
+          throw new Error(
+            'Could not load card form. Your subscription was created but the payment step did not initialize. Please reach out to ops.',
+          )
         }
         setClientSecret(data.client_secret)
         setStatus('ready')
