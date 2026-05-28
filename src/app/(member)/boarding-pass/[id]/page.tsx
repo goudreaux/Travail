@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { fmtDate, fmtTime, fmtDur, fmtMoney, airportCity, airportSub } from '@/lib/data'
 import { fetchRosters, CoPassengerList, type RosterEntry } from '@/components/Roster'
+import { CancelReservationModal } from '@/components/CancelReservationModal'
 import type { Member, Booking, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 
 type Passenger = {
@@ -51,32 +52,21 @@ export default function BoardingPassPage() {
   const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [cancelResult, setCancelResult] = useState<{ wasForfeit: boolean; refundCents: number } | null>(null)
+  const [cancelOpen, setCancelOpen] = useState(false)
 
-  // Policy-driven cancel — calls /api/booking/cancel which decides
-  // refund vs forfeit by how close we are to departure (72h gate).
-  async function cancelBooking() {
+  // The modal owns the multi-step confirmation now — this function
+  // just posts to the cancel endpoint once the member has clicked
+  // through the friction. Server makes the refund-vs-forfeit decision
+  // based on the trip's frozen 72h policy.
+  async function performCancel(reason: string) {
     if (!booking) return
     setCancelError(null)
-    // Read the cancellation window from the trip's frozen policy snapshot;
-    // fall back to 72h so the confirmation copy never lies even on
-    // legacy trips that pre-date the policy column.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const policy = (flight ?? excursion ?? {}) as any
-    const windowHours = policy?.cancellation_policy?.window_hours ?? 72
-    const departAt = new Date(`${flight?.date ?? excursion?.date}T${flight?.depart_time ?? excursion?.depart_time ?? excursion?.start_time ?? '00:00'}`)
-    const hoursOut = (departAt.getTime() - Date.now()) / 3600000
-    const insideWindow = hoursOut < windowHours
-    const promptCopy = insideWindow
-      ? `You're within ${windowHours} hours of departure. Per Travail policy, this cancellation forfeits your seat — no refund. Continue?`
-      : `Cancel this reservation? You'll receive a full refund (5–10 business days). The seat returns to the open pool.`
-    if (!confirm(promptCopy)) return
-
     setCancelling(true)
     try {
       const res = await fetch('/api/booking/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: booking.id }),
+        body: JSON.stringify({ bookingId: booking.id, reason: reason || undefined }),
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -85,6 +75,7 @@ export default function BoardingPassPage() {
       }
       setCancelResult({ wasForfeit: !!json.was_forfeit, refundCents: json.refund_amount_cents ?? 0 })
       setCancelRequested(true)
+      setCancelOpen(false)
     } finally {
       setCancelling(false)
     }
@@ -297,10 +288,10 @@ export default function BoardingPassPage() {
               <button
                 className="btn-ghost"
                 style={{ height: 34, padding: '0 16px', fontSize: 12.5, color: 'var(--signal)', borderColor: 'rgba(217,78,42,0.3)' }}
-                onClick={cancelBooking}
+                onClick={() => setCancelOpen(true)}
                 disabled={cancelling}
               >
-                {cancelling ? 'Cancelling…' : 'Cancel reservation'}
+                Cancel reservation
               </button>
             )
           )}
@@ -317,6 +308,40 @@ export default function BoardingPassPage() {
           </div>
         )}
       </div>
+
+      {/* Cancellation modal — own confirmation friction. */}
+      {(() => {
+        if (!booking) return null
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const tripAny = (flight ?? excursion) as any
+        if (!tripAny) return null
+        const windowHours = tripAny?.cancellation_policy?.window_hours ?? 72
+        const dateStr = flight?.date ?? excursion?.date ?? ''
+        const timeStr = flight?.depart_time ?? excursion?.depart_time ?? excursion?.start_time ?? '00:00'
+        const departAt = new Date(`${dateStr}T${timeStr || '00:00'}`)
+        const hoursUntil = (departAt.getTime() - Date.now()) / 3600000
+        const dp = dateStr ? fmtDate(dateStr) : null
+        const dateDisplay = dp ? `${dp.dow} ${dp.mo} ${dp.day}` : null
+        const tripName = flight
+          ? `${airportCity(flight.origin_code, airportNames)} → ${airportCity(flight.dest_code, airportNames)}`
+          : (excursion?.name ?? 'Reservation')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const paidCents = Number((booking as any).paid_amount_cents ?? Math.round(Number(booking.total ?? 0) * 100))
+        return (
+          <CancelReservationModal
+            open={cancelOpen}
+            onClose={() => { if (!cancelling) setCancelOpen(false) }}
+            onConfirm={performCancel}
+            submitting={cancelling}
+            error={cancelError}
+            tripName={tripName}
+            tripDate={dateDisplay}
+            hoursUntilDeparture={hoursUntil}
+            windowHours={windowHours}
+            amountPaidCents={paidCents}
+          />
+        )
+      })()}
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
+import { notifyOps } from '@/lib/ops-notify'
 import type { Database } from '@/lib/supabase/types'
 
 // Member-initiated booking cancellation.
@@ -35,6 +36,7 @@ function admin() {
 
 interface CancelPayload {
   bookingId?: string
+  reason?: string
 }
 
 function tripDeparture(dateStr: string, timeStr: string | null | undefined): Date {
@@ -66,6 +68,7 @@ export async function POST(req: NextRequest) {
   catch { return NextResponse.json({ error: 'Invalid payload' }, { status: 400 }) }
 
   const bookingId = (payload.bookingId ?? '').trim()
+  const reason = (payload.reason ?? '').trim().slice(0, 1000) || null
   if (!bookingId) {
     return NextResponse.json({ error: 'bookingId required' }, { status: 400 })
   }
@@ -184,6 +187,7 @@ export async function POST(req: NextRequest) {
       refund_id: refundId,
       hours_until_departure: Math.round(hoursUntilDeparture * 10) / 10,
       window_hours: windowHours,
+      reason,
     },
   })
 
@@ -198,6 +202,39 @@ export async function POST(req: NextRequest) {
       : `Your reservation was cancelled outside the ${windowHours}-hour window. A full refund of $${(refundAmountCents / 100).toFixed(2)} has been issued and should appear on your card within 5-10 business days.`,
     ref: { booking_id: booking.id, item_kind: booking.item_kind, item_id: booking.item_id },
   })
+
+  // Ops record — every pax cancel lands in the ops inbox so the team
+  // sees the seat opening up + forfeit revenue / refund activity in
+  // real time.
+  try {
+    const { data: paxMember } = await db
+      .from('members').select('name, member_no').eq('id', booking.member_id).maybeSingle()
+    const { data: paxContact } = await db
+      .from('member_sensitive').select('email').eq('member_id', booking.member_id).maybeSingle()
+    await notifyOps({
+      kind: wasForfeit ? 'pax_cancel_forfeit' : 'pax_cancel_refund',
+      member: {
+        name: paxMember?.name ?? null,
+        memberCode: paxMember?.member_no ? `#${paxMember.member_no}` : null,
+        email: paxContact?.email ?? null,
+      },
+      item: { kind: booking.item_kind as 'flight' | 'excursion', id: booking.item_id, name: null },
+      amountCents: wasForfeit ? (booking.paid_amount_cents ?? 0) : refundAmountCents,
+      stripe: { paymentIntentId: booking.stripe_payment_intent_id, refundId },
+      details: {
+        Booking: booking.id,
+        'Hours until departure': String(Math.round(hoursUntilDeparture * 10) / 10),
+        'Policy window': `${windowHours}h`,
+        Seats: String(booking.seats ?? 1),
+        ...(reason ? { 'Member reason': reason } : {}),
+      },
+      note: wasForfeit
+        ? 'Pax cancelled inside the policy window — seat forfeited, no refund. Money stays on Travail\'s books and offsets the anchor\'s settlement.'
+        : 'Pax cancelled outside the policy window — full Stripe refund issued. Seat returns to open pool.',
+    })
+  } catch (e) {
+    safeError('cancel: notifyOps failed (non-fatal)', e)
+  }
 
   return NextResponse.json({
     ok: true,
