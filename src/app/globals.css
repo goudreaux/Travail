@@ -663,14 +663,18 @@ body::before {
   overflow: hidden;
   border-radius: 22px;
   margin: 28px 28px 0;
-  background: linear-gradient(135deg, #052a35 0%, #0d3340 52%, #0a4a55 100%);
+  /* Sun-tinted gradient: a warm radial bleeding from the top-right
+     corner over the navy base. Same conceit as .feed-hero — the
+     Get Away "sun" sits just above the panel's corner. */
+  background:
+    radial-gradient(700px 360px at 100% 0%, rgba(244, 167, 44, 0.16), transparent 55%),
+    linear-gradient(135deg, #052a35 0%, #0d3340 52%, #0a4a55 100%);
   padding: clamp(24px, 3.5vw, 38px) clamp(20px, 3.5vw, 36px);
-  /* Matches the .panel lift recipe: a subtle inset top highlight catching
-     light + a faint inset bottom shadow tracing the lower edge + a three-
-     layer drop shadow (close, mid, deep diffuse) so the hero reads as
-     lifted off the cream page instead of flat. */
+  /* Warm rim highlight at the top-right edge, white inset top, dark
+     inset bottom, three-layer drop shadow. */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 1px 1px 0 rgba(255, 200, 110, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
     inset 0 -1px 0 rgba(0, 0, 0, 0.18),
     0 1px 2px rgba(13, 51, 64, 0.10),
     0 14px 28px -10px rgba(13, 51, 64, 0.24),
@@ -691,18 +695,35 @@ body::before {
   gap: 16px;
   flex-wrap: wrap;
 }
-.page-hero__glow { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(8px); }
-/* Bigger, softer glows so the navy panel feels sun-caught instead of flat. */
-.page-hero__glow--primary { top: -110px; right: -90px; width: 380px; height: 380px; }
-.page-hero__glow--secondary { bottom: -150px; left: 18%; width: 360px; height: 360px; filter: blur(10px); }
+.page-hero__glow { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(6px); }
+/* Primary = the "sun" in the top-right (same conceit as .feed-hero).
+   Secondary = the cool counter-light in the bottom-left. */
+.page-hero__glow--primary { top: -120px; right: -80px; width: 420px; height: 420px; }
+.page-hero__glow--secondary { bottom: -140px; left: -50px; width: 340px; height: 340px; filter: blur(10px); }
 
-/* Accent palettes — each page picks one so the navigation has color memory. */
-.page-hero--teal .page-hero__glow--primary { background: radial-gradient(circle, rgba(0,179,199,0.44), transparent 68%); }
-.page-hero--teal .page-hero__glow--secondary { background: radial-gradient(circle, rgba(244,167,44,0.32), rgba(244,167,44,0.08) 45%, transparent 72%); }
+/* Accent palettes — each page picks one so the navigation has color
+   memory. The default --teal swaps primary/secondary: warm sun in
+   the top-right (the brand "Get Away" sun), cool teal counter-light
+   bottom-left. The other variants follow their own primary color but
+   keep the warm/cool corner balance. */
+.page-hero--teal .page-hero__glow--primary {
+  background: radial-gradient(circle at 50% 50%,
+    rgba(255,200,110,0.55) 0%,
+    rgba(244,167,44,0.38) 22%,
+    rgba(244,167,44,0.12) 50%,
+    transparent 72%);
+}
+.page-hero--teal .page-hero__glow--secondary { background: radial-gradient(circle, rgba(0,179,199,0.26), transparent 70%); }
 .page-hero--teal .page-hero__eyebrow,
 .page-hero--teal .page-hero__metric-value { color: var(--tropic); }
 
-.page-hero--sun .page-hero__glow--primary { background: radial-gradient(circle, rgba(244,167,44,0.42), transparent 68%); }
+.page-hero--sun .page-hero__glow--primary {
+  background: radial-gradient(circle at 50% 50%,
+    rgba(255,200,110,0.55) 0%,
+    rgba(244,167,44,0.42) 22%,
+    rgba(244,167,44,0.14) 50%,
+    transparent 72%);
+}
 .page-hero--sun .page-hero__glow--secondary { background: radial-gradient(circle, rgba(0,179,199,0.22), transparent 70%); }
 .page-hero--sun .page-hero__eyebrow,
 .page-hero--sun .page-hero__metric-value { color: var(--sun); }
@@ -977,13 +998,18 @@ body::before {
   border-radius: 22px;
   margin: 24px 28px 0;
   padding: 26px 30px 22px;
+  /* Background gradient tinted so the upper-right starts a touch
+     lighter — the navy catches the sun glow from the same direction
+     as the Get Away "sun" hovering above the corner. */
   background:
-    radial-gradient(900px 280px at 90% 110%, rgba(0, 179, 199, 0.14), transparent 60%),
+    radial-gradient(700px 360px at 100% 0%, rgba(244, 167, 44, 0.16), transparent 55%),
     linear-gradient(135deg, #042128 0%, #0a3340 52%, #073744 100%);
-  /* Same lift recipe as .page-hero / .panel — inset top highlight, inset
-     bottom shadow tracing the lower edge, three-layer drop shadow. */
+  /* Inset rim highlight at the top-right is warm, not white, so the
+     edge reads as "sun-caught paper" rather than ordinary lit paper.
+     Three-layer drop shadow stays for the float. */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 1px 1px 0 rgba(255, 200, 110, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
     inset 0 -1px 0 rgba(0, 0, 0, 0.20),
     0 1px 2px rgba(13, 51, 64, 0.10),
     0 14px 28px -10px rgba(13, 51, 64, 0.24),
@@ -1006,25 +1032,38 @@ body::before {
   filter: blur(2px);
   z-index: 0;
 }
-.feed-hero__glow--teal {
-  top: -140px;
-  right: -100px;
-  width: 380px;
-  height: 380px;
-  background: radial-gradient(circle, rgba(0, 179, 199, 0.42), transparent 68%);
-  filter: blur(8px);
-  animation: feed-hero-pulse 8s ease-in-out infinite;
-}
+/* The "sun" is the Get Away button glowing just above and outside the
+   hero's top-right corner. Light spills down-and-left onto the navy
+   paper, catching the upper-right quadrant warmest and fading into
+   the deep navy toward the bottom-left. The teal moves underneath as
+   a cool counter-light bleeding in from below-left. */
 .feed-hero__glow--sun {
-  /* Much wider warm sun glow + higher opacity so the bottom-left of
-     the panel reads as sunrise light catching the navy paper. */
+  top: -140px;
+  right: -90px;
+  width: 420px;
+  height: 420px;
+  /* Tighter, brighter center so it reads as a point source (a real
+     sun), with a long warm halo fading into the navy. */
+  background: radial-gradient(circle at 50% 50%,
+    rgba(255, 200, 110, 0.55) 0%,
+    rgba(244, 167, 44, 0.38) 22%,
+    rgba(244, 167, 44, 0.12) 50%,
+    transparent 72%
+  );
+  filter: blur(6px);
+  animation: feed-hero-pulse 9s ease-in-out infinite;
+}
+.feed-hero__glow--teal {
+  /* Counter-light: cool teal spilling in from the bottom-left, the
+     opposite corner of the sun. Quieter than the sun, just enough to
+     keep the navy from going monochrome. */
   bottom: -160px;
-  left: 12%;
-  width: 360px;
-  height: 360px;
-  background: radial-gradient(circle, rgba(244, 167, 44, 0.32), rgba(244, 167, 44, 0.08) 45%, transparent 72%);
+  left: -60px;
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(circle, rgba(0, 179, 199, 0.26), transparent 70%);
   filter: blur(10px);
-  animation: feed-hero-pulse 10s ease-in-out 2s infinite;
+  animation: feed-hero-pulse 11s ease-in-out 2s infinite;
 }
 @keyframes feed-hero-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
