@@ -291,19 +291,32 @@ export default function MembersPage() {
         if (error) throw error
         if (!updated || updated.length === 0) throw new Error('Update blocked — verify the admin RLS update policy on members in Supabase')
         // Always upsert the sensitive row when ANY of email/phone/dob
-        // is set (or being cleared). Surface errors loudly — silent
-        // failure here is what caused the original "NO EMAIL" pill
-        // bug.
-        const { error: sErr } = await supabase.from('member_sensitive').upsert({
-          member_id: editId,
-          date_of_birth: dobVal,
-          email: emailVal,
-          phone: phoneVal,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'member_id' })
+        // is set (or being cleared). Verify the write returned a row
+        // — RLS can sometimes silently swallow upserts when the policy
+        // returns no rows on insert/update, which produced the original
+        // "NO EMAIL" bug where the toast said "saved" but the row
+        // wasn't actually persisted.
+        const { data: sensRow, error: sErr } = await supabase
+          .from('member_sensitive')
+          .upsert({
+            member_id: editId,
+            date_of_birth: dobVal,
+            email: emailVal,
+            phone: phoneVal,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'member_id' })
+          .select()
         if (sErr) {
           showToast(
             `Member saved but contact info failed: ${sErr.message}. Likely an RLS policy — verify "Admins can manage sensitive data" exists on member_sensitive.`,
+            'error',
+          )
+          setSaving(false)
+          return
+        }
+        if (!sensRow || sensRow.length === 0) {
+          showToast(
+            'Member saved but contact info wrote 0 rows — RLS is allowing the upsert query to run but blocking the write. Check that the admin user has is_admin=true in the members table.',
             'error',
           )
           setSaving(false)
