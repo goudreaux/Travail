@@ -5,6 +5,7 @@ import { fmtDate, fmtHomeBase, memberCode, tierLabel, tierPill, TRIP_TYPES, cano
 import { safeError } from '@/lib/pii-scrub'
 import PageHero from '@/components/PageHero'
 import type { Member, Booking, AnchorSubmission, MemberSensitive } from '@/lib/supabase/types'
+import { type Referral, REFERRAL_STATUS_LABEL, REFERRAL_STATUS_PILL } from '@/lib/referrals'
 
 function timeAgo(dateStr: string) {
   const ms = Date.now() - new Date(dateStr).getTime()
@@ -219,6 +220,8 @@ export default function MembershipPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
             <SubscriptionPanel member={member} />
+
+            <ReferFriendPanel memberId={member.id} />
 
             {/* Profile card */}
             <div className="panel">
@@ -684,6 +687,200 @@ function SubscriptionPanel({ member }: { member: Member }) {
             <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.6 }}>
               Call ops at <a href="tel:+14085073523" style={{ color: 'var(--ink)', fontWeight: 600, textDecoration: 'none' }}>(408) 507-3523</a>. We&apos;ll process it on the call. Your access continues through the end of the current billing period — no partial refund.
               {isFounding && <> Re-subscribing later will be at the then-current public rate, not the founding rate.</>}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Refer a friend panel ──────────────────────────────────────────────────
+// Member submits prospects they think would be a good fit. Ops reviews
+// each one. Pending submissions can be withdrawn; everything past that
+// is read-only for the member (decisions belong to ops).
+
+function ReferFriendPanel({ memberId }: { memberId: string }) {
+  const supabase = createClient()
+  const [referrals, setReferrals] = useState<Referral[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [first, setFirst] = useState('')
+  const [last, setLast] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [why, setWhy] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from('referrals').select('*')
+        .eq('referrer_id', memberId)
+        .order('created_at', { ascending: false })
+      if (!cancelled) {
+        setReferrals((data ?? []) as Referral[])
+        setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [memberId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function reload() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from('referrals').select('*')
+      .eq('referrer_id', memberId)
+      .order('created_at', { ascending: false })
+    setReferrals((data ?? []) as Referral[])
+  }
+
+  function resetForm() {
+    setFirst(''); setLast(''); setEmail(''); setPhone(''); setWhy(''); setError(null)
+  }
+
+  async function submit() {
+    setError(null)
+    if (!first.trim() || !last.trim()) { setError('First and last name are required.'); return }
+    const e = email.trim()
+    if (!e || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { setError('Please enter a valid email address.'); return }
+    setSubmitting(true)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: insErr } = await (supabase as any).from('referrals').insert({
+        referrer_id: memberId,
+        first_name: first.trim(),
+        last_name: last.trim(),
+        email: e,
+        phone: phone.trim() || null,
+        why: why.trim().slice(0, 2000) || null,
+        status: 'pending',
+      })
+      if (insErr) throw insErr
+      // Best-effort ops + self ack. The webhook ships the email; we just
+      // drop the in-app notification on the member's own row so they see
+      // their submission acknowledged when they hit /notifications.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from('notifications').insert({
+          member_id: memberId,
+          kind: 'system',
+          title: 'Referral submitted',
+          body: `You introduced ${first.trim()} ${last.trim()} to Travail Ops. We'll be in touch shortly with next steps.`,
+        })
+      } catch { /* non-fatal */ }
+      setShowForm(false); resetForm()
+      setToast('Sent to ops for review.')
+      setTimeout(() => setToast(null), 3500)
+      reload()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function withdraw(r: Referral) {
+    if (!confirm(`Withdraw your referral for ${r.first_name} ${r.last_name}? You can submit a new one later.`)) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: upErr } = await (supabase as any)
+      .from('referrals').update({ status: 'withdrawn' }).eq('id', r.id)
+    if (upErr) { setToast(upErr.message); return }
+    reload()
+  }
+
+  const pending = referrals.filter(r => r.status === 'pending').length
+
+  return (
+    <div className="panel">
+      <div className="panel-head">
+        <h3>Refer a friend</h3>
+        {pending > 0 && <span className="pill sun">{pending} pending</span>}
+      </div>
+      <div style={{ padding: '20px 24px' }}>
+        <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.6, margin: '0 0 14px' }}>
+          Know someone who&apos;d be a good Travail member? Send their info to Ops and we&apos;ll take it from there.
+        </p>
+
+        {!showForm && (
+          <button className="btn-primary" onClick={() => setShowForm(true)} style={{ fontSize: 13 }}>
+            Refer someone →
+          </button>
+        )}
+
+        {showForm && (
+          <div style={{ background: 'var(--paper)', border: '1px solid var(--hair)', borderRadius: 10, padding: 16, marginBottom: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="field" style={{ margin: 0 }}>
+                <label className="field-lab">First name</label>
+                <input className="input" value={first} onChange={e => setFirst(e.target.value)} />
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label className="field-lab">Last name</label>
+                <input className="input" value={last} onChange={e => setLast(e.target.value)} />
+              </div>
+              <div className="field" style={{ margin: 0, gridColumn: '1 / -1' }}>
+                <label className="field-lab">Email</label>
+                <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+              </div>
+              <div className="field" style={{ margin: 0, gridColumn: '1 / -1' }}>
+                <label className="field-lab">Phone <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(optional)</span></label>
+                <input className="input" value={phone} onChange={e => setPhone(e.target.value)} />
+              </div>
+              <div className="field" style={{ margin: 0, gridColumn: '1 / -1' }}>
+                <label className="field-lab">Why they&apos;d be a fit <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(optional)</span></label>
+                <textarea className="input" rows={3} value={why} onChange={e => setWhy(e.target.value)} placeholder="A line or two about who they are and what draws them to this kind of network." />
+              </div>
+            </div>
+            {error && (
+              <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 8, padding: '8px 10px', fontSize: 12.5, color: 'var(--signal)', marginTop: 10 }}>
+                {error}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button className="btn-primary" disabled={submitting} onClick={submit} style={{ fontSize: 13 }}>
+                {submitting ? 'Sending…' : 'Send to Ops'}
+              </button>
+              <button className="btn-ghost" onClick={() => { setShowForm(false); resetForm() }} style={{ fontSize: 13 }}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {toast && (
+          <div style={{ background: 'rgba(62,140,109,0.10)', border: '1px solid rgba(62,140,109,0.30)', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, color: 'var(--moss)', marginBottom: 12 }}>
+            {toast}
+          </div>
+        )}
+
+        {loading ? (
+          <div style={{ fontSize: 12, color: 'var(--ink-light)', padding: '12px 0' }}>Loading…</div>
+        ) : referrals.length > 0 && (
+          <div style={{ marginTop: 6 }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 8 }}>
+              Your referrals
+            </div>
+            <div style={{ border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
+              {referrals.map((r, i) => (
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderTop: i === 0 ? 'none' : '1px solid var(--hair)' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)' }}>{r.first_name} {r.last_name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-faint)', fontFamily: 'var(--mono)' }}>{r.email}</div>
+                  </div>
+                  <span className={`pill ${REFERRAL_STATUS_PILL[r.status]}`} style={{ fontSize: 9.5 }}>
+                    {REFERRAL_STATUS_LABEL[r.status]}
+                  </span>
+                  {r.status === 'pending' && (
+                    <button onClick={() => withdraw(r)} style={{ background: 'transparent', border: 'none', color: 'var(--ink-faint)', cursor: 'pointer', fontSize: 11, fontFamily: 'var(--ui)' }}>
+                      Withdraw
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
