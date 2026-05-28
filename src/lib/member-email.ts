@@ -25,6 +25,102 @@ function fmtMoney(cents: number): string {
   return `$${(Math.abs(cents) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+// ─── Pax trip-complete email ───────────────────────────────────────────────
+//
+// When a trip settles, every non-anchor member who had a paid seat gets
+// a short branded note that the trip wrapped. No refund math — pax
+// don't get rebated at settlement (their flat per-seat is what they
+// owed). Just a closing receipt + confirmation code for their records.
+
+export interface PaxTripCompleteParams {
+  to: string
+  memberName: string
+  tripName: string
+  tripDate?: string | null
+  seats: number
+  amountPaidCents: number
+  confirmationCode?: string | null
+}
+
+export async function sendPaxTripCompleteEmail(p: PaxTripCompleteParams): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    safeError('sendPaxTripCompleteEmail: RESEND_API_KEY not set; skipping', { to: p.to })
+    return
+  }
+
+  const subject = `${p.tripName} · trip wrapped`
+  const text = [
+    `${p.tripName} has wrapped.`,
+    p.tripDate ? `Trip date: ${p.tripDate}` : null,
+    '',
+    `Seats: ${p.seats}`,
+    `Total paid: ${fmtMoney(p.amountPaidCents)}`,
+    p.confirmationCode ? `Confirmation: ${p.confirmationCode}` : null,
+    '',
+    'Thanks for joining. If you have questions about your trip or a receipt request, reply to this email.',
+  ].filter(Boolean).join('\n')
+
+  const html = brandedPaxTripCompleteEmail(p)
+
+  const resend = new Resend(apiKey)
+  try {
+    await resend.emails.send({
+      from: process.env.RESEND_FROM ?? DEFAULT_FROM,
+      to: [p.to],
+      subject,
+      html,
+      text,
+      replyTo: process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
+    })
+  } catch (err) {
+    safeError('sendPaxTripCompleteEmail: send failed (non-fatal)', err)
+  }
+}
+
+function brandedPaxTripCompleteEmail(p: PaxTripCompleteParams): string {
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light only"/>
+<title>${escapeHtml(p.tripName)} · Wrapped</title>
+</head>
+<body style="margin:0;padding:0;background:#fbf6ec;font-family:-apple-system,BlinkMacSystemFont,'Inter Tight','Inter','Segoe UI',sans-serif;color:#0d3340;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fbf6ec;padding:36px 14px 24px;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background:#fffbf0;border-radius:18px;overflow:hidden;box-shadow:0 18px 48px rgba(13,51,64,0.10);">
+
+        <!-- Header -->
+        <tr><td style="background:linear-gradient(135deg,#042128 0%,#0a3340 52%,#073744 100%);padding:32px 36px 26px;color:#fff;">
+          <div style="font-family:'JetBrains Mono','Courier New',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:#00b3c7;font-weight:700;margin-bottom:8px;">Trip wrapped</div>
+          <div style="font-size:14px;color:rgba(255,255,255,0.65);margin-bottom:12px;">${escapeHtml(p.tripName)}${p.tripDate ? ` · ${escapeHtml(p.tripDate)}` : ''}</div>
+          <div style="font-size:24px;font-weight:700;color:#fff;letter-spacing:-0.018em;line-height:1.15;">Thanks for joining.</div>
+        </td></tr>
+
+        <!-- Greeting -->
+        <tr><td style="padding:24px 36px 4px;">
+          <div style="font-size:15px;color:#1f4856;">Hi ${escapeHtml(p.memberName.split(' ')[0])},</div>
+        </td></tr>
+
+        <!-- Receipt summary -->
+        <tr><td style="padding:8px 36px 22px;">
+          <div style="font-size:14px;color:#1f4856;line-height:1.55;margin-bottom:18px;">Your trip has officially closed. Here's your receipt for the books.</div>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid rgba(13,51,64,0.10);border-bottom:1px solid rgba(13,51,64,0.10);">
+            <tr><td style="padding:12px 0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7c80;font-weight:600;">Seats</td><td align="right" style="padding:12px 0;font-size:14px;font-weight:700;">${p.seats}</td></tr>
+            <tr><td style="padding:12px 0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7c80;font-weight:600;border-top:1px solid rgba(13,51,64,0.06);">Total paid</td><td align="right" style="padding:12px 0;font-size:18px;font-weight:700;letter-spacing:-0.012em;border-top:1px solid rgba(13,51,64,0.06);">${fmtMoney(p.amountPaidCents)}</td></tr>
+            ${p.confirmationCode ? `<tr><td style="padding:12px 0;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6b7c80;font-weight:600;border-top:1px solid rgba(13,51,64,0.06);">Confirmation</td><td align="right" style="padding:12px 0;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#c97e0e;letter-spacing:0.06em;border-top:1px solid rgba(13,51,64,0.06);">${escapeHtml(p.confirmationCode)}</td></tr>` : ''}
+          </table>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions about your trip or need a different receipt format? Reply to this email and Ops will follow up.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+}
+
 // ─── Settlement email ──────────────────────────────────────────────────────
 
 export interface SettlementEmailParams {
