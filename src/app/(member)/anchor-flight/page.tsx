@@ -8,20 +8,24 @@ import TimeInput from '@/components/TimeInput'
 import { AnchorCardSetup } from '@/components/AnchorCardSetup'
 import type { AirportMeta } from '@/lib/data'
 
+// Tropic Ocean Airways' scheduled-flight routes — the bases they fly
+// from on a regular basis. Ad-hoc destinations are still possible via
+// the CUSTOM sentinel; ops confirms the routing with Tropic on those.
 const ANCHOR_ORIGINS: AirportMeta[] = [
-  { code: 'KTPF', name: 'Davis Island', sub: 'Tampa, FL', role: 'origin' },
-  { code: 'KFXE', name: 'Fort Lauderdale Exec', sub: 'Fort Lauderdale, FL', role: 'origin' },
+  { code: 'KTPA', name: 'Tampa International', sub: 'Tampa, FL',         role: 'origin' },
+  { code: 'KTPF', name: 'Davis Islands',       sub: 'Tampa, FL',         role: 'origin' },
 ]
 
+// Sentinel destination meaning "the member wants somewhere not on the
+// scheduled list" — handed to ops with a free-form name they typed.
+const CUSTOM_DEST_CODE = 'CUSTOM'
+
 const ANCHOR_DESTS: AirportMeta[] = [
-  { code: 'KGIF', name: 'Winter Haven', sub: 'Central FL', role: 'destination' },
-  { code: 'X07', name: 'Islamorada', sub: 'FL Keys', role: 'destination' },
-  { code: 'KMTH', name: 'Marathon', sub: 'FL Keys', role: 'destination' },
-  { code: 'KEYW', name: 'Key West', sub: 'FL Keys', role: 'destination' },
-  { code: 'MYBS', name: 'South Bimini', sub: 'Bahamas', role: 'destination' },
-  { code: 'MYEF', name: 'Exuma', sub: 'Bahamas', role: 'destination' },
-  { code: 'MYAM', name: 'Marsh Harbour', sub: 'Bahamas · Abacos', role: 'destination' },
-  { code: 'MYAN', name: 'Andros Town', sub: 'Bahamas', role: 'destination' },
+  { code: 'STR',  name: 'St. Regis Hotel · Sarasota', sub: 'Sarasota, FL',     role: 'destination' },
+  { code: 'LCC',  name: 'Lochloosa Country Club',     sub: 'North Central FL', role: 'destination' },
+  { code: 'KEYW', name: 'Key West Airport',           sub: 'FL Keys',          role: 'destination' },
+  { code: 'LPI',  name: 'Little Palm Island',         sub: 'FL Keys',          role: 'destination' },
+  { code: CUSTOM_DEST_CODE, name: 'Custom destination', sub: 'Request — ops will confirm with Tropic', role: 'destination' },
 ]
 
 type GuestEntry = { first_name: string; last_name: string; date_of_birth: string }
@@ -105,6 +109,12 @@ export default function AnchorFlightPage() {
   const [step, setStep] = useState(1)
   const [origin, setOrigin] = useState<AirportMeta>(ANCHOR_ORIGINS[0])
   const [dest, setDest] = useState<AirportMeta>(ANCHOR_DESTS[0])
+  // When the member picks "Custom destination", they fill in a free-form
+  // name + optional context for ops. Ops confirms the route with Tropic
+  // and writes back the real airport code on the quote.
+  const [customDestName, setCustomDestName] = useState('')
+  const [customDestNotes, setCustomDestNotes] = useState('')
+  const isCustomDest = dest.code === CUSTOM_DEST_CODE
   const [tripType, setTripType] = useState<'one-way' | 'round-trip'>('one-way')
   const [aircraft, setAircraft] = useState<4 | 8>(8)
   const [guests, setGuests] = useState<GuestEntry[]>([])
@@ -148,7 +158,7 @@ export default function AnchorFlightPage() {
   const anchorSeats = visibility === 'private' ? aircraft : pax
   const aircraftLabel = aircraft === 4 ? 'Cessna 206' : 'Cessna Grand Caravan'
   const blockTime = fmtDur(90)
-  const suggestedName = `${origin.name} → ${dest.name}`
+  const suggestedName = `${origin.name} → ${isCustomDest ? (customDestName.trim() || 'Custom destination') : dest.name}`
   const effectiveName = tripName.trim() || suggestedName
   const today = new Date().toISOString().split('T')[0]
 
@@ -158,7 +168,8 @@ export default function AnchorFlightPage() {
   const removeGuest = (i: number) => setGuests(gs => gs.filter((_, idx) => idx !== i))
 
   function validateStep(s: number): string | null {
-    if (s === 1 && origin.code === dest.code) return 'Origin and destination must be different.'
+    if (s === 1 && !isCustomDest && origin.code === dest.code) return 'Origin and destination must be different.'
+    if (s === 1 && isCustomDest && !customDestName.trim()) return 'Tell us where you want to go — we’ll confirm with Tropic.'
     if (s === 2) {
       if (!date) return 'Select a departure date.'
       if (isRoundTrip && !returnDate) return 'Select a return date.'
@@ -206,8 +217,14 @@ export default function AnchorFlightPage() {
           payload: {
             originCode: origin.code,
             originName: origin.name,
-            destCode: dest.code,
-            destName: dest.name,
+            // For custom destinations we hand ops the free-form name the
+            // member typed and a CUSTOM sentinel as the code — ops swaps
+            // in the real airport code when they confirm the routing
+            // with Tropic.
+            destCode: isCustomDest ? CUSTOM_DEST_CODE : dest.code,
+            destName: isCustomDest ? customDestName.trim() : dest.name,
+            customDest: isCustomDest,
+            customDestNotes: isCustomDest ? (customDestNotes.trim() || null) : null,
             tripType,
             date,
             departTime,
@@ -274,7 +291,7 @@ export default function AnchorFlightPage() {
             </div>
             <h2 className="display-i" style={{ fontSize: 32, color: 'var(--ink)', margin: '0 0 12px' }}>Anchor in review.</h2>
             <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 8px' }}>
-              We&apos;ve received your <strong>{origin.name} → {dest.name}</strong> anchor request.
+              We&apos;ve received your <strong>{origin.name} → {isCustomDest ? (customDestName.trim() || 'Custom destination') : dest.name}</strong> anchor request.
             </p>
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', lineHeight: 1.5, margin: '0 0 32px' }}>
               Ops will quote pricing with Tropic + the 3% service fee. You&apos;ll get a notification to review and accept it — nothing is charged until you do.
@@ -335,16 +352,49 @@ export default function AnchorFlightPage() {
                 <AirportDropdown value={dest} options={ANCHOR_DESTS} onChange={setDest} />
               </div>
 
+              {/* Custom destination fields — ops confirms routing with
+                  Tropic on these. Required: a name. Optional: any
+                  context (proximity to a known field, who's meeting
+                  them, etc.) that helps ops scope the quote. */}
+              {isCustomDest && (
+                <>
+                  <div className="field">
+                    <label className="field-lab">Destination name <span className="req">*</span></label>
+                    <input
+                      className="input"
+                      placeholder="Hotel name, town, marina, golf course…"
+                      value={customDestName}
+                      onChange={e => setCustomDestName(e.target.value)}
+                    />
+                  </div>
+                  <div className="field">
+                    <label className="field-lab">Notes for ops <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}>(optional)</span></label>
+                    <textarea
+                      className="input"
+                      rows={3}
+                      placeholder="Nearest known airport, who you're meeting, anything that helps Ops scope the route…"
+                      value={customDestNotes}
+                      onChange={e => setCustomDestNotes(e.target.value)}
+                    />
+                  </div>
+                  <div style={{ background: 'rgba(244,167,44,0.08)', border: '1px solid rgba(244,167,44,0.25)', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.55 }}>
+                    Ops will confirm the routing with Tropic and lock the airport before quoting. Allow an extra 24 hours for custom destinations.
+                  </div>
+                </>
+              )}
+
               {/* Route preview card — mirrors the Step 1 preview on the
                   excursion wizard so the member sees the route locked
                   in before they advance. */}
-              {origin.code !== dest.code && (
+              {((isCustomDest && customDestName.trim()) || (!isCustomDest && origin.code !== dest.code)) && (
                 <div style={{ background: 'var(--warm)', border: '1px solid var(--hair)', borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <div style={{ fontFamily: 'var(--display)', fontSize: 18, color: 'var(--ink)' }}>
-                    {origin.name} → {dest.name}
+                    {origin.name} → {isCustomDest ? customDestName.trim() : dest.name}
                   </div>
                   <div style={{ fontSize: 12.5, color: 'var(--ink-mid)' }}>
-                    {origin.code} ({origin.sub}) → {dest.code} ({dest.sub})
+                    {isCustomDest
+                      ? `${origin.code} (${origin.sub}) → custom · awaiting ops confirmation`
+                      : `${origin.code} (${origin.sub}) → ${dest.code} (${dest.sub})`}
                   </div>
                 </div>
               )}
@@ -467,7 +517,7 @@ export default function AnchorFlightPage() {
 
               <div className="wiz-summary" style={{ marginTop: 6 }}>
                 {[
-                  { label: 'Route', value: `${origin.name} ${isRoundTrip ? '⇄' : '→'} ${dest.name}` },
+                  { label: 'Route', value: `${origin.name} ${isRoundTrip ? '⇄' : '→'} ${isCustomDest ? (customDestName.trim() || 'Custom destination') : dest.name}${isCustomDest ? ' (custom — ops will confirm)' : ''}` },
                   { label: 'Trip type', value: isRoundTrip ? 'Round trip' : 'One way' },
                   { label: 'Departs', value: date || '—' },
                   { label: 'Departure time', value: departTime },
