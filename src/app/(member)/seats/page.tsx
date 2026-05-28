@@ -97,16 +97,73 @@ interface ProposalCardProp {
   is_my_commit: boolean
   am_proposer: boolean
 }
+// Live countdown to a proposal's expiry. Updates every second.
+// Visual urgency tiers escalate as time runs out — calm grey when far
+// out, amber once inside 48h, signal red and pulsing under 24h, big
+// monospaced numbers under 1h.
+function ProposalCountdown({ expiresAt }: { expiresAt: string }) {
+  const target = new Date(expiresAt).getTime()
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  const ms = Math.max(0, target - now)
+  const totalSec = Math.floor(ms / 1000)
+  const d = Math.floor(totalSec / 86400)
+  const h = Math.floor((totalSec % 86400) / 3600)
+  const m = Math.floor((totalSec % 3600) / 60)
+  const s = totalSec % 60
+
+  // Tier the urgency.
+  const tier: 'expired' | 'critical' | 'urgent' | 'warning' | 'calm' =
+    ms === 0 ? 'expired'
+    : ms < 3600_000 ? 'critical'
+    : ms < 24 * 3600_000 ? 'urgent'
+    : ms < 48 * 3600_000 ? 'warning'
+    : 'calm'
+
+  const color =
+    tier === 'expired' ? 'var(--ink-faint)'
+    : tier === 'critical' ? '#d94e2a'
+    : tier === 'urgent' ? '#d94e2a'
+    : tier === 'warning' ? '#c97e0e'
+    : 'var(--ink-light)'
+
+  // Format: omit days when zero, omit seconds when days > 0.
+  const parts: string[] = []
+  if (d > 0) parts.push(`${d}d`)
+  if (d > 0 || h > 0) parts.push(`${h}h`)
+  parts.push(`${m}m`)
+  if (d === 0) parts.push(`${s.toString().padStart(2, '0')}s`)
+  const txt = ms === 0 ? 'EXPIRED' : parts.join(' ')
+
+  return (
+    <span style={{
+      fontFamily: 'var(--mono)',
+      fontSize: tier === 'critical' ? 13 : 11,
+      color,
+      fontWeight: tier === 'critical' || tier === 'urgent' ? 700 : 600,
+      letterSpacing: '0.04em',
+      animation: tier === 'critical' || tier === 'urgent' ? 'pulse-urgency 1.4s ease-in-out infinite' : undefined,
+    }}>
+      {tier === 'expired' ? '· EXPIRED' : `· ${txt} left`}
+      <style>{`
+        @keyframes pulse-urgency {
+          0%,100% { opacity: 1; }
+          50%     { opacity: 0.55; }
+        }
+      `}</style>
+    </span>
+  )
+}
+
 function ProposalCard({ p, onOpen }: { p: ProposalCardProp; onOpen: () => void }) {
   const min = p.min_seats ?? 0
   const cap = p.capacity_total ?? min
   const committed = p.committed_seats
-  const pctOfMin = min ? Math.min(100, Math.round((committed / min) * 100)) : 0
   const pctOfCap = cap ? Math.min(100, Math.round((committed / cap) * 100)) : 0
   const seatsNeeded = Math.max(0, min - committed)
-  const daysToExpire = p.expires_at
-    ? Math.max(0, Math.ceil((new Date(p.expires_at).getTime() - Date.now()) / 86400000))
-    : null
   const tripDate = new Date(p.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
   const destName = (p.payload?.destName as string) || (p.payload?.destCode as string) || null
 
@@ -194,11 +251,7 @@ function ProposalCard({ p, onOpen }: { p: ProposalCardProp; onOpen: () => void }
           ) : (
             <>
               <strong style={{ color: 'var(--ink)' }}>{seatsNeeded}</strong> seat{seatsNeeded === 1 ? '' : 's'} to go
-              {daysToExpire != null && (
-                <span style={{ color: daysToExpire <= 2 ? 'var(--signal)' : 'var(--ink-light)' }}>
-                  {' · '}{daysToExpire} day{daysToExpire === 1 ? '' : 's'} until expire
-                </span>
-              )}
+              {p.expires_at && <> <ProposalCountdown expiresAt={p.expires_at} /></>}
             </>
           )}
         </div>
