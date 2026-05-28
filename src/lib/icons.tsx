@@ -2,6 +2,10 @@ import React from 'react'
 
 export const Icons = {
   feed: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><line x1="4" y1="6" x2="18" y2="6"/><line x1="4" y1="11" x2="18" y2="11"/><line x1="4" y1="16" x2="14" y2="16"/></svg>),
+  // Trip Proposals — concentric rings + center dot read as "hit the
+  // target" (commit threshold) and visually pair with the sun-amber
+  // proposal styling on the rest of the app.
+  proposal: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><circle cx="11" cy="11" r="4.5"/><circle cx="11" cy="11" r="1.5" fill="currentColor"/></svg>),
   cal: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><rect x="4" y="5" width="14" height="13" rx="1.5"/><line x1="4" y1="9" x2="18" y2="9"/><line x1="8" y1="3" x2="8" y2="6"/><line x1="14" y1="3" x2="14" y2="6"/></svg>),
   seat: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M5 11h12M5 11a3 3 0 0 1 0-6h12a3 3 0 0 1 0 6M5 11v6h12v-6M9 17v3M13 17v3"/></svg>),
   build: (<svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 13l7-1 3-7h2l-1 7 5-1 1 1.5-5 3-1 4-2 0.5-1-3.5-3 0-1 0.5z"/></svg>),
