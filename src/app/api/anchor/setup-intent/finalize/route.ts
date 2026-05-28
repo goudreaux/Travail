@@ -5,6 +5,34 @@ import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
 import type { Database } from '@/lib/supabase/types'
 
+// Single source of truth for "which Stripe customer owns this member?".
+// Mirrors the helper in ../route.ts — tries the DB cache first, then
+// falls back to Stripe customers.list({email}) + metadata.member_id
+// match. We duplicate it here (rather than import) to keep this route
+// self-contained and avoid coupling its module init order.
+async function resolveStripeCustomer(memberId: string, email: string | null): Promise<string | null> {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured')
+  const db = createAdminClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  )
+  const { data: m } = await db
+    .from('members').select('stripe_customer_id').eq('id', memberId).maybeSingle()
+  if (m?.stripe_customer_id) return m.stripe_customer_id
+
+  if (!email) return null
+  try {
+    const list = await stripe.customers.list({ email, limit: 100 })
+    const match = list.data.find(c => !c.deleted && c.metadata?.member_id === memberId)
+    return match?.id ?? null
+  } catch (e) {
+    safeError('finalize.resolveStripeCustomer: list failed:', e)
+    return null
+  }
+}
+
 // Finalize a card-on-file SetupIntent that the browser just confirmed.
 //
 // Why this exists: when the client calls stripe.confirmSetup(), the
@@ -51,16 +79,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'setupIntentId required' }, { status: 400 })
   }
 
-  const db = admin()
-  const { data: m } = await db
-    .from('members').select('stripe_customer_id').eq('id', meRow.id).single()
-  if (!m?.stripe_customer_id) {
+  // Resolve the customer via DB-then-Stripe lookup. If the DB write of
+  // members.stripe_customer_id silently failed when the customer was
+  // created, the DB read alone returns null and finalize previously 409'd.
+  // The Stripe-metadata fallback finds the real customer and keeps us moving.
+  const customerId = await resolveStripeCustomer(meRow.id, user.email ?? null)
+  if (!customerId) {
     return NextResponse.json({ error: 'No Stripe customer on file' }, { status: 409 })
   }
 
   try {
     const si = await stripe.setupIntents.retrieve(setupIntentId)
-    if (si.customer !== m.stripe_customer_id) {
+    if (si.customer !== customerId) {
       // Sanity — the SetupIntent must belong to the caller's customer.
       return NextResponse.json({ error: 'Mismatched customer on the setup intent' }, { status: 403 })
     }
@@ -72,9 +102,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Setup intent has no payment method attached' }, { status: 409 })
     }
 
-    await stripe.customers.update(m.stripe_customer_id, {
+    await stripe.customers.update(customerId, {
       invoice_settings: { default_payment_method: pmId },
     })
+
+    // Best-effort heal: if the DB cache was empty and we found the
+    // customer via Stripe, write it back so subsequent reads short-circuit.
+    try {
+      const db = admin()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (db.from('members') as any)
+        .update({ stripe_customer_id: customerId })
+        .eq('id', meRow.id)
+        .is('stripe_customer_id', null)
+    } catch (e) {
+      safeError('finalize: cache-fill of stripe_customer_id failed (non-fatal):', e)
+    }
 
     return NextResponse.json({ ok: true, payment_method_id: pmId })
   } catch (e) {
