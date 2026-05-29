@@ -5,6 +5,7 @@ import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
 import { notifyOps } from '@/lib/ops-notify'
 import { canAnchor } from '@/lib/trip-timing'
+import { assertTransactionsAllowed } from '@/lib/maintenance'
 import type { Database } from '@/lib/supabase/types'
 
 // Ops-publish endpoint for an anchored trip.
@@ -121,6 +122,12 @@ export async function POST(req: NextRequest) {
   }
 
   const db = admin()
+
+  // Maintenance kill switch — publishing captures the anchor's card, so
+  // it's a charge. Freeze it even for admins while closed.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const maint = await assertTransactionsAllowed(db as any)
+  if (!maint.ok) return NextResponse.json({ error: maint.message }, { status: 503 })
 
   // Load the submission.
   const { data: sub, error: sErr } = await db

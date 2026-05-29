@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { ensureStripeCustomer, createFounderSubscription } from '@/lib/stripe-subscription'
 import { STRIPE_PRICE_FOUNDING } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
+import { assertTransactionsAllowed } from '@/lib/maintenance'
 import type { Database } from '@/lib/supabase/types'
 
 // Create (or reuse) a founder-rate subscription for the signed-in member.
@@ -35,6 +36,12 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
 
   const db = admin()
+
+  // Maintenance kill switch — freeze new subscriptions (recurring charge).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const maint = await assertTransactionsAllowed(db as any)
+  if (!maint.ok) return NextResponse.json({ error: maint.message }, { status: 503 })
+
   const { data: member } = await db
     .from('members')
     .select('id, name, stripe_customer_id, stripe_subscription_id, subscription_status')

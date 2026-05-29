@@ -8,6 +8,7 @@ import { BookingSplashPreviewPanel } from './BookingSplashPreviewPanel'
 import { TutorialPreviewPanel } from './TutorialPreviewPanel'
 import { TutorialEditorPanel } from './TutorialEditorPanel'
 import { FeatureMatrix } from './FeatureMatrix'
+import { MaintenancePanel } from './MaintenancePanel'
 
 // Reusable collapsible header — same hit area + chevron rotation pattern
 // as the section-panel on the member feed. Tap anywhere on the header
@@ -159,6 +160,10 @@ export default function DeveloperDashboard() {
             <span>last commit {relDate(stats.lastCommit.iso)}</span>
           </div>
         </div>
+
+        {/* Platform kill switch — freezes all transactions. Top of the
+            page since it's the most consequential control here. */}
+        <MaintenancePanel />
 
         {/* Investor-facing feature matrix — collapsed by default,
             expand to share with stakeholders. */}

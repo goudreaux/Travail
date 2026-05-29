@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
 import { assertCanBook } from '@/lib/can-book'
+import { assertTransactionsAllowed } from '@/lib/maintenance'
 import { canBookSeat } from '@/lib/trip-timing'
 import type { Database } from '@/lib/supabase/types'
 
@@ -123,6 +124,11 @@ export async function POST(req: NextRequest) {
       { status: 402 },
     )
   }
+
+  // Maintenance kill switch — freeze all new charges.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const maint = await assertTransactionsAllowed(admin() as any)
+  if (!maint.ok) return NextResponse.json({ error: maint.message }, { status: 503 })
 
   let payload: PIPayload
   try { payload = await req.json() }
