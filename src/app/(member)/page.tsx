@@ -6,6 +6,8 @@ import { KIND_ICONS, Icons } from '@/lib/icons'
 import { SeatMeter } from '@/components/SeatMeter'
 import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'
 import { ProposalCard, loadOpenProposals, type ProposalCardData } from '@/components/ProposalCard'
+import { SponsorBadge } from '@/components/SponsorBadge'
+import { UrgencyTag } from '@/components/UrgencyTag'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Member, Booking, ExcursionTemplate, Flight, Excursion, AnchorSubmission } from '@/lib/supabase/types'
@@ -29,14 +31,15 @@ type TripItem =
   | { kind: 'flight'; booking: Booking; flight: DisplayFlight; roundReturn?: DisplayFlight }
   | { kind: 'excursion'; booking: Booking; excursion: DisplayExcursion }
 
-const TYPE_FILTERS = ['all', 'flight', 'fish', 'sail', 'surf', 'snorkel', 'golf', 'hunt', 'wildlife', 'leisure'] as const
+const TYPE_FILTERS = ['all', 'sponsored', 'flight', 'fish', 'sail', 'surf', 'snorkel', 'golf', 'hunt', 'wildlife', 'leisure'] as const
 type TypeFilter = typeof TYPE_FILTERS[number]
 
 // Filter chip catalogue — matches the Seats page. Only chips with at
 // least one matching active item actually render (see availableFeedFilters
 // below), so the bar always reflects what's bookable.
 const FEED_FILTERS: { key: TypeFilter; label: string; icon?: string; tint?: string }[] = [
-  { key: 'all',      label: 'All' },
+  { key: 'all',       label: 'All' },
+  { key: 'sponsored', label: '★ Sponsored', tint: 'var(--sun-d)' },
   { key: 'flight',   label: 'Flights',  icon: 'flight',    tint: 'var(--tropic-d)' },
   { key: 'fish',     label: 'Fishing',  icon: 'fish',      tint: 'var(--sun-d)' },
   { key: 'sail',     label: 'Sailing',  icon: 'sail',      tint: 'var(--sun-d)' },
@@ -88,6 +91,7 @@ function excursionCategory(icon: string): TypeFilter {
 
 function excursionMatchesFilter(e: DisplayExcursion, filter: TypeFilter): boolean {
   if (filter === 'all') return true
+  if (filter === 'sponsored') return !!e.sponsor
   if (filter === 'flight') return false  // flights handled separately
   const icon = e.templateMeta?.icon ?? ''
   return excursionCategory(icon) === filter
@@ -304,7 +308,10 @@ export default function FeedPage() {
   // that maps to it.
   const activeFeedFilters = new Set<TypeFilter>(['all'])
   if (openFlights.length > 0) activeFeedFilters.add('flight')
-  for (const e of openExcursions) activeFeedFilters.add(excursionCategory(e.templateMeta?.icon ?? ''))
+  for (const e of openExcursions) {
+    activeFeedFilters.add(excursionCategory(e.templateMeta?.icon ?? ''))
+    if (e.sponsor) activeFeedFilters.add('sponsored')
+  }
   const availableFeedFilters = FEED_FILTERS.filter(f => activeFeedFilters.has(f.key))
   // Reset the user's selection if the matching items disappear.
   const activeFeedFilterStr = [...activeFeedFilters].join(',')
@@ -625,7 +632,10 @@ export default function FeedPage() {
                           </div>
                           <div className="trip-card__icon" style={{ background: colors.bg }}><span style={{ color: colors.dot }}>{KIND_ICONS['flight']}</span></div>
                           <div className="trip-card__content">
-                            <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · PRIVATE AVIATION</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · PRIVATE AVIATION</div>
+                              <UrgencyTag date={f.date} time={f.depart_time} />
+                            </div>
                             <div className="trip-card__name">{airportCity(f.origin_code, airportName)}<span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span>{airportCity(f.dest_code, airportName)}</div>
                             <div className="trip-card__meta">{f.departTimeStr}{f.durationStr ? ` · ${f.durationStr}` : ''}</div>
                             <SeatMeter total={f.seats_total} available={f.seatsAvailable} accent={colors.dot} unit="seats" />
@@ -649,8 +659,12 @@ export default function FeedPage() {
                   const icon = e.templateMeta?.icon ?? 'fish'
                   const colors = excColors(icon)
                   const price = e.price_per_pax || e.templateMeta?.price_per_pax || 0
+                  const isSponsored = !!e.sponsor
                   return (
-                    <div key={e.id} className="trip-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/reserve/${e.id}?kind=excursion`)}>
+                    <div key={e.id} className={`trip-card${isSponsored ? ' trip-card--sponsored' : ''}`} style={{ cursor: 'pointer' }} onClick={() => router.push(`/reserve/${e.id}?kind=excursion`)}>
+                      {isSponsored && (
+                        <span className="sponsored-ribbon" aria-label="Travail sponsored event">★ Travail Sponsored</span>
+                      )}
                       <div className="trip-card__main">
                         <div className="trip-card__date">
                           <div className="trip-card__date-mo">{dp.mo}</div>
@@ -659,8 +673,19 @@ export default function FeedPage() {
                         </div>
                         <div className="trip-card__icon" style={{ background: colors.bg }}><span style={{ color: colors.dot }}>{KIND_ICONS[icon] ?? KIND_ICONS['fish']}</span></div>
                         <div className="trip-card__content">
-                          <div className="trip-card__title" style={{ color: colors.accent }}>{excKindLabel(icon)} · FROM {placeName(e.origin_code, airportName).toUpperCase()}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <div className="trip-card__title" style={{ color: colors.accent }}>{excKindLabel(icon)} · FROM {placeName(e.origin_code, airportName).toUpperCase()}</div>
+                            <UrgencyTag date={e.date} time={e.depart_time} />
+                          </div>
                           <div className="trip-card__name">{e.name}</div>
+                          {isSponsored && (
+                            <div style={{ marginTop: 6, maxWidth: '52%' }}>
+                              <SponsorBadge sponsor={e.sponsor} size="pill" />
+                              <div style={{ marginTop: 4, fontSize: 11, color: '#8a5a06', fontWeight: 700, lineHeight: 1.4 }}>
+                                ✦ Special event — first to commit gets a seat.
+                              </div>
+                            </div>
+                          )}
                           <div className="trip-card__meta">{e.startTimeStr !== '—' ? e.startTimeStr : ''}{e.templateMeta?.operator ? ` · ${e.templateMeta.operator}` : ''}</div>
                           <SeatMeter total={e.spots_total} available={e.spotsAvailable} accent={colors.dot} unit="spots" />
                           <RosterStack entries={excRosters[e.id] ?? []} occupied={e.spots_total - e.spotsAvailable} />

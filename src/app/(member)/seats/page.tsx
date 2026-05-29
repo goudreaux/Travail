@@ -9,6 +9,7 @@ import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster
 import { SeatMeter } from '@/components/SeatMeter'
 import { SponsorBadge } from '@/components/SponsorBadge'
 import { ProposalCard, loadOpenProposals, type ProposalCardData } from '@/components/ProposalCard'
+import { UrgencyTag } from '@/components/UrgencyTag'
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 import type { DisplayFlight, DisplayExcursion } from '@/lib/data'
 
@@ -20,7 +21,7 @@ function placeName(code: string, names: Record<string, string>): string {
 
 // ─── Color helpers ─────────────────────────────────────────────────────────────
 
-type ActivityFilter = 'all' | 'flight' | 'fish' | 'sail' | 'surf' | 'snorkel' | 'golf' | 'hunt' | 'wildlife' | 'leisure'
+type ActivityFilter = 'all' | 'sponsored' | 'flight' | 'fish' | 'sail' | 'surf' | 'snorkel' | 'golf' | 'hunt' | 'wildlife' | 'leisure'
 
 function getFlightColors() {
   return { accent: 'var(--tropic-d)', bg: 'var(--tropic-glow)', dot: 'var(--tropic)' }
@@ -64,7 +65,8 @@ function excursionFilter(icon: string): ActivityFilter {
 // flight/excursion at the moment are filtered out before render — so
 // the bar always reflects what's actually bookable.
 const FILTERS: { key: ActivityFilter; label: string; icon?: string }[] = [
-  { key: 'all',      label: 'All' },
+  { key: 'all',       label: 'All' },
+  { key: 'sponsored', label: '★ Sponsored' },
   { key: 'flight',   label: 'Flights',  icon: 'flight' },
   { key: 'fish',     label: 'Fishing',  icon: 'fish' },
   { key: 'sail',     label: 'Sailing',  icon: 'sail' },
@@ -170,7 +172,10 @@ function FlightCard({
           <span style={{ color: colors.dot }}>{KIND_ICONS['flight']}</span>
         </div>
         <div className="trip-card__content">
-          <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · PRIVATE AVIATION</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · PRIVATE AVIATION</div>
+            <UrgencyTag date={flight.date} time={flight.depart_time} />
+          </div>
           <div className="trip-card__name">
             {airportCity(flight.origin_code, names)}
             <span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span>
@@ -234,7 +239,10 @@ function RoundTripCard({
           <span style={{ color: colors.dot }}>{KIND_ICONS['flight']}</span>
         </div>
         <div className="trip-card__content">
-          <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · ROUND TRIP</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · ROUND TRIP</div>
+            <UrgencyTag date={outbound.date} time={outbound.depart_time} />
+          </div>
           <div className="trip-card__name">
             {airportCity(outbound.origin_code, names)}
             <span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>⇄</span>
@@ -309,26 +317,24 @@ function ExcursionCard({
           <span style={{ color: colors.dot }}>{KIND_ICONS[icon] ?? KIND_ICONS['fish']}</span>
         </div>
         <div className="trip-card__content">
-          <div className="trip-card__title" style={{ color: colors.accent }}>{kindLabel} · FROM {placeName(excursion.origin_code, names).toUpperCase()}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div className="trip-card__title" style={{ color: colors.accent }}>{kindLabel} · FROM {placeName(excursion.origin_code, names).toUpperCase()}</div>
+            <UrgencyTag date={excursion.date} time={excursion.depart_time} />
+          </div>
           <div className="trip-card__name">{excursion.name}</div>
           {excursion.sponsor && (
-            <div style={{ marginTop: 7, marginBottom: 2 }}>
-              {/* Sponsor presentation: brand badge (Field & Stream when
-                  detected) + a golden "special event — first to commit"
-                  line so members know the seats move fast. */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <SponsorBadge sponsor={excursion.sponsor} size="pill" />
-                <span style={{
-                  fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase',
-                  color: 'var(--sun-d)', fontWeight: 700,
-                }}>
-                  Sponsored · {excursion.sponsor}
-                </span>
-              </div>
+            // Brand badge (Field & Stream when detected) + a golden
+            // "first to commit" urgency line. The full sponsor string +
+            // "sponsored" status already live on the gold corner ribbon,
+            // so we don't repeat them here — keeps the text off the
+            // bright part of the photo where it was hard to read.
+            // maxWidth pins everything to the card's faded-left zone.
+            <div style={{ marginTop: 7, marginBottom: 2, maxWidth: '52%' }}>
+              <SponsorBadge sponsor={excursion.sponsor} size="pill" />
               <div style={{
-                marginTop: 5, fontSize: 11, color: '#8a5a06', fontWeight: 600, lineHeight: 1.4,
+                marginTop: 5, fontSize: 11, color: '#8a5a06', fontWeight: 700, lineHeight: 1.4,
               }}>
-                ✦ Special event with special accommodations — first to commit gets a seat.
+                ✦ Special event — first to commit gets a seat.
               </div>
             </div>
           )}
@@ -511,9 +517,12 @@ export default function SeatsPage() {
   const publicFlights = flights.filter(f => !isPrivate(f))
   const publicExcursions = excursions.filter(e => !isPrivate(e))
   const flightEntries = buildFlightEntries(publicFlights)
+  // Sponsored is a cross-cutting filter — flights are never sponsored
+  // today, so it resolves to sponsored excursions only.
   const visibleFlightEntries = (filter === 'all' || filter === 'flight') ? flightEntries : []
   const visibleExcursions = publicExcursions.filter(e => {
     if (filter === 'all') return true
+    if (filter === 'sponsored') return !!e.sponsor
     if (filter === 'flight') return false
     const icon = e.templateMeta?.icon ?? 'fish'
     return excursionFilter(icon) === filter
@@ -529,6 +538,7 @@ export default function SeatsPage() {
   // flight; activity filters appear only if at least one published
   // excursion maps to that category.
   const activeFilterKeys: ActivityFilter[] = ['all']
+  if (publicExcursions.some(e => e.sponsor)) activeFilterKeys.push('sponsored')
   if (flightEntries.length > 0) activeFilterKeys.push('flight')
   const seen = new Set<ActivityFilter>()
   for (const e of excursions) {
