@@ -31,6 +31,7 @@ export default function ProposeExcursionPage() {
   const [departTime, setDepartTime] = useState('08:30')
   const [returnTime, setReturnTime] = useState('17:00')
   const [pitch, setPitch] = useState('')
+  const [opsNotes, setOpsNotes] = useState('')
   const [suggestedCapacity, setSuggestedCapacity] = useState(8)
   const [suggestedMinSeats, setSuggestedMinSeats] = useState(4)
   const [proposerMinSeats, setProposerMinSeats] = useState(2)
@@ -76,6 +77,7 @@ export default function ProposeExcursionPage() {
             departTime,
             returnTime,
             pitch: pitch.trim() || null,
+            notes: opsNotes.trim() || null,
           },
         }),
       })
@@ -217,6 +219,11 @@ export default function ProposeExcursionPage() {
           <div className="field">
             <label className="field-lab">Pitch <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(optional)</span></label>
             <textarea className="input" rows={3} value={pitch} onChange={e => setPitch(e.target.value)} placeholder="Why this trip? What makes it worth committing to?" />
+          </div>
+
+          <div className="field">
+            <label className="field-lab">Notes for ops <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(optional, private)</span></label>
+            <textarea className="input" rows={3} value={opsNotes} onChange={e => setOpsNotes(e.target.value)} placeholder="Anything that helps us source it: operator or lodge you have in mind, a contact you've spoken to, gear or permits, special requests. Members never see this." />
           </div>
 
           {error && (

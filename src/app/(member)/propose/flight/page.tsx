@@ -43,6 +43,7 @@ export default function ProposeFlightPage() {
   const [proposerMinSeats, setProposerMinSeats] = useState(2)  // firm party
   const [proposerMaxSeats, setProposerMaxSeats] = useState(4)  // your ceiling
   const [pitch, setPitch] = useState('')
+  const [opsNotes, setOpsNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
@@ -88,6 +89,7 @@ export default function ProposeFlightPage() {
             customDest: isCustomDest,
             departTime,
             pitch: pitch.trim() || null,
+            notes: opsNotes.trim() || null,
           },
         }),
       })
@@ -235,6 +237,11 @@ export default function ProposeFlightPage() {
           <div className="field">
             <label className="field-lab">Pitch <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(optional)</span></label>
             <textarea className="input" rows={3} value={pitch} onChange={e => setPitch(e.target.value)} placeholder="Why this trip? What makes it worth committing to?" />
+          </div>
+
+          <div className="field">
+            <label className="field-lab">Notes for ops <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(optional, private)</span></label>
+            <textarea className="input" rows={3} value={opsNotes} onChange={e => setOpsNotes(e.target.value)} placeholder="Anything that helps us source it: a contact at the destination, ground transport, dietary or schedule needs, special requests. Members never see this." />
           </div>
 
           {error && (

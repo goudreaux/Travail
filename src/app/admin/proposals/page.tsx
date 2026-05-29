@@ -84,10 +84,16 @@ export default function AdminProposalsPage() {
     }
     const proposerIds = [...new Set(proposals.map(p => p.proposer_id).filter(Boolean))]
     let nameById: Record<string, string> = {}
+    const contactById: Record<string, { email: string | null; phone: string | null }> = {}
     if (proposerIds.length) {
       const { data: ms } = await db.from('members').select('id, name').in('id', proposerIds)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const m of ((ms ?? []) as any[])) nameById[m.id] = m.name ?? ''
+      // Contact lives in member_sensitive; admins can read it via RLS.
+      // Ops needs it to reach the proposer while coordinating vendors.
+      const { data: cts } = await db.from('member_sensitive').select('member_id, email, phone').in('member_id', proposerIds)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const c of ((cts ?? []) as any[])) contactById[c.member_id] = { email: c.email ?? null, phone: c.phone ?? null }
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const list: ProposalRow[] = proposals.map((p: any) => {
