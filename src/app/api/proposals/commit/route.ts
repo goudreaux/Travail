@@ -144,18 +144,13 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // Provisionally insert the commit row so the proposal's committed
-  // count reflects the in-progress card add. Status flips to
-  // 'released' if the client never confirms.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (db as any).from('trip_proposal_commits').insert({
-    proposal_id: proposalId,
-    member_id: me.id,
-    seats,
-    stripe_customer_id: customerId,
-    stripe_setup_intent_id: setupIntent.id,
-    status: 'committed',
-  })
+  // NB: we deliberately do NOT create the commit row here. It's created in
+  // /api/proposals/commit/finalize, only after the card is actually saved —
+  // so a member who clicks "Continue to card on file" and then abandons the
+  // form is never left as a phantom 'committed' seat (the old behaviour
+  // inserted the row at SetupIntent time and never released it on abandon).
+  // `seats` rides along in the SetupIntent metadata so finalize can rebuild
+  // the row.
 
   return NextResponse.json({
     clientSecret: setupIntent.client_secret,

@@ -58,24 +58,25 @@ export async function POST(req: NextRequest) {
     }, { status: 409 })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: commit } = await (db as any)
-    .from('trip_proposal_commits')
-    .select('id, status')
-    .eq('proposal_id', proposalId)
-    .eq('member_id', me.id)
-    .maybeSingle()
-  if (!commit) return NextResponse.json({ error: 'No commit to withdraw' }, { status: 404 })
-  if (commit.status !== 'committed') {
-    return NextResponse.json({ error: `Commit is ${commit.status} and can't be withdrawn here.` }, { status: 400 })
-  }
-
   try {
+    // Release every 'committed' row this member holds on the proposal in a
+    // single status-scoped update. Previously we read one row with
+    // .maybeSingle() and released it by id — but .maybeSingle() THROWS when
+    // more than one row exists, so a member with a stray duplicate (the old
+    // provisional-insert path could leave them) would tap Withdraw and have
+    // it appear to do nothing. A bulk update is idempotent and robust.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any).from('trip_proposal_commits').update({
-      status: 'released',
-      released_at: new Date().toISOString(),
-    }).eq('id', commit.id)
+    const { data: released, error: relErr } = await (db as any)
+      .from('trip_proposal_commits')
+      .update({ status: 'released', released_at: new Date().toISOString() })
+      .eq('proposal_id', proposalId)
+      .eq('member_id', me.id)
+      .eq('status', 'committed')
+      .select('id')
+    if (relErr) throw relErr
+    if (!released || released.length === 0) {
+      return NextResponse.json({ error: 'No active commit to withdraw.' }, { status: 404 })
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: prop } = await (db as any)

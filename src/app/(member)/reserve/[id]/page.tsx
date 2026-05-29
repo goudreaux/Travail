@@ -7,6 +7,7 @@ import { fmtDate, fmtDur, fmtMoney, fmtTime, fmtHomeBase, memberCode, airportCit
 import { logActivity } from '@/lib/activity'
 import { safeError } from '@/lib/pii-scrub'
 import { asItinerary, fmtItineraryTime, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
+import { canBookSeat } from '@/lib/trip-timing'
 import { KIND_ICONS } from '@/lib/icons'
 import { BookingSuccessSplash } from '@/components/BookingSuccessSplash'
 import { AnchorLiability } from '@/components/AnchorLiability'
@@ -342,6 +343,19 @@ export default function ReservePage() {
     : 0
   const isFull = !loading && maxSeats <= 0
 
+  // Booking cutoff — surface it BEFORE the member fills out the whole flow.
+  // The payment endpoint enforces the same 12h gate server-side; checking it
+  // here (for both legs of a round trip) means we never let someone build a
+  // reservation only to be rejected at the card step. Closed wins over "full".
+  const outCutoff = flight
+    ? canBookSeat(flight.date, flight.depart_time)
+    : excursion
+    ? canBookSeat(excursion.date, excursion.depart_time ?? excursion.start_time)
+    : null
+  const retCutoff = returnFlight ? canBookSeat(returnFlight.date, returnFlight.depart_time) : null
+  const closedReason = outCutoff && !outCutoff.ok ? outCutoff.reason : retCutoff && !retCutoff.ok ? retCutoff.reason : null
+  const bookingClosed = !loading && !!closedReason
+
   const pricePerSeat = flight
     ? (returnFlight ? flight.price_per_seat + returnFlight.price_per_seat : flight.price_per_seat)
     : excursion?.price_per_pax ?? template?.price_per_pax ?? 0
@@ -649,6 +663,24 @@ export default function ReservePage() {
   }
 
   const dp = fmtDate(itemDate)
+
+  // ── Booking cutoff → locked ─────────────────────────────────────────────────
+  if (bookingClosed) {
+    return (
+      <div className="page">
+        <div className="page-view" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 460 }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 18, padding: '44px 48px', maxWidth: 460, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(13,51,64,0.08)' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--sun-d)', marginBottom: 10 }}>Booking closed</div>
+            <h2 className="display-i" style={{ fontSize: 28, color: 'var(--ink)', margin: '0 0 8px' }}>Too close to takeoff.</h2>
+            <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 24px' }}>
+              {closedReason}
+            </p>
+            <button className="btn-ghost" style={{ width: '100%' }} onClick={() => router.push('/seats')}>Back to open seats</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // ── Full trip → waitlist ────────────────────────────────────────────────────
   if (isFull) {
