@@ -2087,6 +2087,23 @@ body::before {
   .trip-card--sponsored { animation: none; }
 }
 
+/* Text-protection scrim on sponsored cards. These carry more text
+   (brand badge + urgency line), and the photos tend to be bright
+   beaches/water, so plain text was bleeding into the image. The
+   content layer (z-index 2, above the photo) gets a card-colored
+   gradient that's near-opaque on the left where text sits and
+   feathers to transparent into the photo — readable text, vivid
+   photo, no hard edge. */
+.trip-card--sponsored .trip-card__content {
+  background: linear-gradient(
+    to right,
+    rgba(255, 251, 240, 0.97) 0%,
+    rgba(255, 251, 240, 0.92) 42%,
+    rgba(255, 251, 240, 0.55) 66%,
+    rgba(255, 251, 240, 0) 88%
+  );
+}
+
 /* Golden corner ribbon stamped on a sponsored card. */
 .sponsored-ribbon {
   position: absolute;
