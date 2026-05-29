@@ -72,6 +72,7 @@ export type OpsNotifyKind =
   | 'subscription_started'        // New member's first invoice paid
   | 'subscription_payment_failed' // Renewal failed — ops calls to resolve
   | 'subscription_cancelled'      // Sub cancelled (member-initiated via phone, or auto-cancel after dunning)
+  | 'proposal_withdrawn'          // Proposer/committer withdrew from a Trip Proposal
 
 export interface OpsNotifyOptions {
   kind: OpsNotifyKind
@@ -107,6 +108,7 @@ const KIND_META: Record<OpsNotifyKind, { label: string; accent: string; sign: 'i
   subscription_started:        { label: 'MEMBERSHIP STARTED',       accent: '#3e8c6d', sign: 'in' },
   subscription_payment_failed: { label: 'MEMBERSHIP PAYMENT FAILED', accent: '#d94e2a', sign: 'neutral' },
   subscription_cancelled:      { label: 'MEMBERSHIP CANCELLED',     accent: '#c97e0e', sign: 'neutral' },
+  proposal_withdrawn:          { label: 'TRIP PROPOSAL WITHDRAWN',  accent: '#c97e0e', sign: 'neutral' },
 }
 
 function fmtMoney(cents: number | null | undefined): string {
