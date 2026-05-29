@@ -145,8 +145,6 @@ dashboard. Next.js (App Router, customized — see `AGENTS.md`), Supabase
 ---
 
 ## Open follow-ups / known gaps
-- Dashboard "Open seats" panel rows link to **`/seats/[id]` which doesn't exist**
-  (dead link) — should point at `/reserve/[id]` or a detail page.
 - **Boarding pass** and **/seats cards** still show bare airport codes (only the
   reserve itinerary shows "Name (CODE)").
 - A member's reply doesn't notify Ops (Ops checks the inbox); no unread badges.
