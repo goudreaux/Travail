@@ -109,8 +109,26 @@ export default function FeedPage() {
   // Mobile-friendly collapsible sections on the feed.
   const [myTripsOpen, setMyTripsOpen] = useState(true)
   const [openSeatsOpen, setOpenSeatsOpen] = useState(true)
+  // The proposals panel below renders its own collapse state — we lift
+  // the initial value here so the feed can collapse it on mobile load
+  // alongside Open Seats. My Trips stays open by default on every
+  // viewport since it's the personal-priority surface.
+  const [proposalsOpenInitial, setProposalsOpenInitial] = useState(true)
   const supabase = createClient()
   const router = useRouter()
+
+  // Mobile first-load: collapse Open Seats + Open Proposals so the
+  // feed opens with My Trips visible above the fold. My Trips stays
+  // expanded because it's the personal-priority surface — what's on
+  // *my* board matters more than what's on the network's.
+  useEffect(() => {
+    if (window.matchMedia?.('(max-width: 720px)').matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOpenSeatsOpen(false)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProposalsOpenInitial(false)
+    }
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -665,7 +683,7 @@ export default function FeedPage() {
           visual treatment (amber/dashed) so the network reads
           "potential trips" vs. "live departures." Collapsible like
           the Open Seats panel above. */}
-      <FeedProposalsSection memberId={member?.id ?? null} />
+      <FeedProposalsSection memberId={member?.id ?? null} defaultOpen={proposalsOpenInitial} />
 
       {/* Feed — coming soon */}
       <div className="panel" style={{ padding: 0 }}>
@@ -696,13 +714,20 @@ export default function FeedPage() {
 // Reuses the shared ProposalCard which already mirrors the trip-card
 // format used by Open Seats. Shows even when empty so the network
 // always sees the "+ propose your own" entry point.
-function FeedProposalsSection({ memberId }: { memberId: string | null }) {
+function FeedProposalsSection({ memberId, defaultOpen = true }: { memberId: string | null; defaultOpen?: boolean }) {
   const supabase = createClient()
   const router = useRouter()
   const [proposals, setProposals] = useState<ProposalCardData[]>([])
   const [loading, setLoading] = useState(true)
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(defaultOpen)
   const [filter, setFilter] = useState<'all' | 'flight' | 'excursion' | 'mine'>('all')
+
+  // Mirror the parent's initial state when it changes from the
+  // mobile-collapse effect. After that, the user owns the toggle.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOpen(defaultOpen)
+  }, [defaultOpen])
 
   useEffect(() => {
     let cancelled = false
