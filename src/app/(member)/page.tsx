@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { adaptFlight, adaptExcursion, returnLegIds, fmtMoney, airportCity, DisplayFlight, DisplayExcursion } from '@/lib/data'
-import { KIND_ICONS } from '@/lib/icons'
+import { KIND_ICONS, Icons } from '@/lib/icons'
 import { SeatMeter } from '@/components/SeatMeter'
 import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'
 import { ProposalCard, loadOpenProposals, type ProposalCardData } from '@/components/ProposalCard'
@@ -881,9 +881,11 @@ function EmptyTripsNeg({ memberId, onPlan }: { memberId: string | null; onPlan: 
 
   return (
     <div className="empty" style={{ padding: '36px 20px 32px', textAlign: 'center' }}>
-      <svg width="34" height="34" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
-        <path d="M3 13l7-1 3-7h2l-1 7 5-1 1 1.5-5 3-1 4-2 .5-1-3.5-3 0-1 .5z" />
-      </svg>
+      {/* Luggage icon — matches the My Trips entry in the mobile nav
+          so the empty-state and the nav read as one surface. */}
+      <span style={{ display: 'inline-block', opacity: 0.5, transform: 'scale(1.9)', color: 'var(--ink-light)' }} aria-hidden>
+        {Icons.luggage}
+      </span>
       <h3 style={{ marginTop: 12, fontFamily: 'var(--display)', fontStyle: 'italic', fontWeight: 500 }}>
         {neg.headline}
       </h3>

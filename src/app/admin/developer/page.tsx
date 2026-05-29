@@ -6,6 +6,7 @@ import { MemberStatsPanel } from './MemberStatsPanel'
 import { EnvelopePreviewPanel } from './EnvelopePreviewPanel'
 import { BookingSplashPreviewPanel } from './BookingSplashPreviewPanel'
 import { TutorialPreviewPanel } from './TutorialPreviewPanel'
+import { TutorialEditorPanel } from './TutorialEditorPanel'
 import { FeatureMatrix } from './FeatureMatrix'
 
 // Reusable collapsible header — same hit area + chevron rotation pattern
@@ -283,6 +284,7 @@ export default function DeveloperDashboard() {
         <EnvelopePreviewPanel />
         <BookingSplashPreviewPanel />
         <TutorialPreviewPanel />
+        <TutorialEditorPanel />
 
         <MemberStatsPanel
           collapsible
