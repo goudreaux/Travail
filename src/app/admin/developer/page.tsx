@@ -3,6 +3,7 @@ import Link from 'next/link'
 import stats from '@/lib/code-stats.json'
 import { MemberStatsPanel } from './MemberStatsPanel'
 import { EnvelopePreviewPanel } from './EnvelopePreviewPanel'
+import { BookingSplashPreviewPanel } from './BookingSplashPreviewPanel'
 
 // Tech-company comparison rows for the "How we stack up" panel. Numbers
 // are deliberately approximate / well-known — the point is perspective,
@@ -205,6 +206,7 @@ export default function DeveloperDashboard() {
         </div>
 
         <EnvelopePreviewPanel />
+        <BookingSplashPreviewPanel />
 
         <MemberStatsPanel />
 
