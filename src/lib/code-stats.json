@@ -1,78 +1,78 @@
 {
-  "generatedAt": "2026-05-27T17:31:37.836Z",
-  "branch": "claude/epic-ride-b6b4g",
+  "generatedAt": "2026-05-29T16:52:40.987Z",
+  "branch": "claude/quirky-feynman-pjiD2",
   "lastCommit": {
-    "hash": "6f5aada",
-    "message": "Remove in-app company-policy download",
-    "iso": "2026-05-27T13:43:44+00:00"
+    "hash": "851a372",
+    "message": "chore: deny PR-merge tools to gate production deploys",
+    "iso": "2026-05-29T16:45:38+00:00"
   },
   "totals": {
-    "totalLines": 23098,
-    "tsLines": 15490,
-    "tsFiles": 59,
-    "cssLines": 5921,
-    "migrationLines": 1687,
-    "migrations": 34,
-    "commits": 589,
-    "pages": 32,
-    "apiRoutes": 3,
-    "apiLines": 343,
-    "components": 12,
-    "componentLines": 1985,
-    "libFiles": 10,
-    "libLines": 1341
+    "totalLines": 43734,
+    "tsLines": 33083,
+    "tsFiles": 132,
+    "cssLines": 7626,
+    "migrationLines": 3025,
+    "migrations": 57,
+    "commits": 52,
+    "pages": 47,
+    "apiRoutes": 29,
+    "apiLines": 5486,
+    "components": 27,
+    "componentLines": 4789,
+    "libFiles": 26,
+    "libLines": 4014
   },
-  "firstCommitISO": "2026-05-22T15:26:49+00:00",
+  "firstCommitISO": "2026-05-28T13:06:12-04:00",
   "recentCommits": [
     {
-      "hash": "6f5aada",
-      "iso": "2026-05-27T13:43:44+00:00",
-      "message": "Remove in-app company-policy download"
+      "hash": "851a372",
+      "iso": "2026-05-29T16:45:38+00:00",
+      "message": "chore: deny PR-merge tools to gate production deploys"
     },
     {
-      "hash": "250b296",
-      "iso": "2026-05-27T13:39:26+00:00",
-      "message": "Quiet Company policy download link"
+      "hash": "c11f05e",
+      "iso": "2026-05-29T16:42:04+00:00",
+      "message": "docs: drop resolved dead /seats/[id] link from known gaps"
     },
     {
-      "hash": "df0e9e6",
-      "iso": "2026-05-27T13:33:04+00:00",
-      "message": "Add running handbook: protocols, runbooks, FAQs, investor talking points"
+      "hash": "99b84ae",
+      "iso": "2026-05-29T11:52:12-04:00",
+      "message": "Closed-for-maintenance kill switch in ops developer page (#334)"
     },
     {
-      "hash": "8557072",
-      "iso": "2026-05-27T13:11:31+00:00",
-      "message": "Merge origin/main — resolve network page + globals.css overlap with PR #208"
+      "hash": "388e815",
+      "iso": "2026-05-29T11:40:06-04:00",
+      "message": "Shared trip-timing gate: last-minute anchors/proposals + 12h booking cutoff (#333)"
     },
     {
-      "hash": "5fa97b8",
-      "iso": "2026-05-27T12:57:13+00:00",
-      "message": "Wire Sentry with PII-scrubbed beforeSend"
+      "hash": "213ea23",
+      "iso": "2026-05-29T11:19:18-04:00",
+      "message": "Soften proposal deadline tag to a subtle red chip (#332)"
     },
     {
-      "hash": "23e1e90",
-      "iso": "2026-05-27T12:36:51+00:00",
-      "message": "PII scrubber for logs + Sentry-ready beforeSend"
+      "hash": "ed0b86b",
+      "iso": "2026-05-29T11:08:11-04:00",
+      "message": "Proposal flow overhaul: network-vs-min math, urgency, My Trips visibility, ops detail, filter (#331)"
     },
     {
-      "hash": "396ce3d",
-      "iso": "2026-05-27T12:28:10+00:00",
-      "message": "Security: HTTP headers + audited PII access"
+      "hash": "503305e",
+      "iso": "2026-05-29T10:15:31-04:00",
+      "message": "Surface proposal pipeline to proposer + ops queue badge (#330)"
     },
     {
-      "hash": "d730b7c",
-      "iso": "2026-05-27T12:11:13+00:00",
-      "message": "Co-passenger quick-connect + contact protections"
+      "hash": "f69a5d8",
+      "iso": "2026-05-29T09:45:02-04:00",
+      "message": "First-login tutorial rewrite + em-dash purge + mobile sponsored-card fix (#329)"
     },
     {
-      "hash": "ecc4dc3",
-      "iso": "2026-05-27T11:41:52+00:00",
-      "message": "Contact request flow: opt-in reveal of email + phone"
+      "hash": "e4489f1",
+      "iso": "2026-05-29T09:05:16-04:00",
+      "message": "Sponsored glow everywhere + sponsored filter + <72h urgency tags (#328)"
     },
     {
-      "hash": "bfe2600",
-      "iso": "2026-05-27T11:35:33+00:00",
-      "message": "Friends system: requests, accept/decline, profile UI"
+      "hash": "938c79a",
+      "iso": "2026-05-29T07:58:18-04:00",
+      "message": "Sponsor line: dropdown of preset collabs (#327)"
     }
   ]
 }
