@@ -26,7 +26,14 @@ export interface ProposalCardData {
   min_seats: number | null
   price_per_seat_cents: number | null
   expires_at: string | null
-  committed_seats: number
+  // Network seats are what count toward the minimum. The proposer's
+  // own firm seats are guaranteed and shown separately so the bar
+  // doesn't pretend the trip is half-funded by the proposer's own
+  // butt-in-a-seat. Spread guarantee covers the gap at the deadline,
+  // not before.
+  committed_seats: number          // total (network + proposer firm) — legacy / display
+  network_seats: number            // commits from members OTHER than the proposer
+  proposer_firm_seats: number      // proposer's current commit (their own firm party)
   is_my_commit: boolean
   am_proposer: boolean
   // Each committer becomes a RosterEntry — same shape as flight/excursion
@@ -92,30 +99,97 @@ export function ProposalCountdown({ expiresAt }: { expiresAt: string }) {
   )
 }
 
+// Punchy "Xd left" / "Xh LEFT!" urgency tag for proposal cards.
+// Mirrors the open-seats UrgencyTag visual language but reads off the
+// proposal's commit deadline (expires_at) rather than departure time.
+// Only renders when there's still a deadline to chase (open proposal,
+// minimum not yet hit). Tiers escalate the closer it gets.
+export function ProposalDeadlineTag({ expiresAt }: { expiresAt: string }) {
+  const target = new Date(expiresAt).getTime()
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [])
+  const ms = Math.max(0, target - now)
+  if (ms === 0) return null
+  const hours = ms / 3_600_000
+  const days = Math.floor(hours / 24)
+
+  const label =
+    hours <= 6  ? `${Math.max(1, Math.round(hours))}H LEFT!`
+    : hours <= 24 ? 'LAST DAY!'
+    : hours <= 48 ? '1 DAY LEFT'
+    : `${days}D LEFT`
+
+  const critical = hours <= 24
+
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 4,
+      fontFamily: 'var(--mono)',
+      fontSize: 9,
+      fontWeight: 700,
+      letterSpacing: '0.14em',
+      textTransform: 'uppercase',
+      color: '#fff',
+      background: critical
+        ? 'linear-gradient(135deg, #e8512f 0%, #d94e2a 100%)'
+        : 'linear-gradient(135deg, #f4a72c 0%, #e09418 100%)',
+      padding: '3px 8px',
+      borderRadius: 5,
+      boxShadow: critical ? '0 1px 4px rgba(217,78,42,0.45)' : '0 1px 4px rgba(224,148,24,0.35)',
+      animation: critical ? 'deadline-pulse 1.4s ease-in-out infinite' : undefined,
+      whiteSpace: 'nowrap',
+    }}>
+      ⏳ {label}
+      <style>{`
+        @keyframes deadline-pulse {
+          0%,100% { transform: scale(1); }
+          50%     { transform: scale(1.04); }
+        }
+      `}</style>
+    </span>
+  )
+}
+
 // Replaces SeatMeter for proposals — same height + structure, but the
-// fill represents "commits toward min_seats" with a tick mark at the
-// min threshold so the network sees how far they have to go vs. how
-// much room remains beyond.
-function ProposalProgressBar({ committed, min, cap, accent }: {
-  committed: number
+// fill represents NETWORK commits toward min_seats with a tick mark at
+// the min threshold so the network sees how far they have to go. The
+// proposer's firm seats sit OUTSIDE this bar (rendered next to it) so
+// the math never reads "5 of 4 committed."
+function ProposalProgressBar({ network, proposerFirm, min, cap, proposerName, accent }: {
+  network: number
+  proposerFirm: number
   min: number
   cap: number
+  proposerName: string | null
   accent: string
 }) {
-  const pctOfCap = cap ? Math.min(100, Math.round((committed / cap) * 100)) : 0
-  const minTickPct = min > 0 && cap > 0 && min < cap ? Math.round((min / cap) * 100) : null
-  const hitMin = min > 0 && committed >= min
+  // Network slots = capacity minus the proposer's firm party. The bar
+  // visualizes filling THAT pool, not total seats — that's the math
+  // that gates go-live.
+  const networkSlots = Math.max(min, cap - proposerFirm)
+  const pctOfSlots = networkSlots ? Math.min(100, Math.round((network / networkSlots) * 100)) : 0
+  const minTickPct = min > 0 && networkSlots > 0 && min < networkSlots ? Math.round((min / networkSlots) * 100) : null
+  const hitMin = min > 0 && network >= min
 
   return (
     <div style={{ marginTop: 6 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
         <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-light)', letterSpacing: '0.06em' }}>
-          <strong style={{ color: 'var(--ink)' }}>{committed}</strong>
+          <strong style={{ color: 'var(--ink)' }}>{network}</strong>
           <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>of</span>
           <strong style={{ color: 'var(--ink)' }}>{min}</strong>
-          <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>committed</span>
-          {cap > min && <span style={{ color: 'var(--ink-faint)' }}>· {cap} max</span>}
+          <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>network commits</span>
         </span>
+        {proposerFirm > 0 && (
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--sun-d)', fontWeight: 700, letterSpacing: '0.06em' }}>
+            +{proposerFirm} firm from {proposerName?.split(' ')[0] ?? 'proposer'}
+          </span>
+        )}
       </div>
       <div style={{
         height: 8,
@@ -127,7 +201,7 @@ function ProposalProgressBar({ committed, min, cap, accent }: {
       }}>
         <div style={{
           position: 'absolute', left: 0, top: 0, bottom: 0,
-          width: `${pctOfCap}%`,
+          width: `${pctOfSlots}%`,
           background: hitMin
             ? 'linear-gradient(90deg, #3e8c6d 0%, #4ba883 100%)'
             : `linear-gradient(90deg, ${accent} 0%, ${accent} 100%)`,
@@ -149,14 +223,15 @@ function ProposalProgressBar({ committed, min, cap, accent }: {
 export function ProposalCard({ p, onOpen }: { p: ProposalCardData; onOpen: () => void }) {
   const min = p.min_seats ?? 0
   const cap = p.capacity_total ?? min
-  const committed = p.committed_seats
-  const seatsNeeded = Math.max(0, min - committed)
+  const network = p.network_seats
+  const proposerFirm = p.proposer_firm_seats
+  const networkNeeded = Math.max(0, min - network)
   const dp = fmtDate(p.date)
   const destName = (p.payload?.destName as string) || (p.payload?.destCode as string) || null
   const accent = '#e09418'   // sun-d
   const accentBg = 'rgba(244,167,44,0.12)'
   const accentBorder = 'rgba(244,167,44,0.55)'
-  const hitMin = min > 0 && committed >= min
+  const hitMin = min > 0 && network >= min
   const kindIcon = p.kind === 'flight' ? KIND_ICONS.flight : KIND_ICONS.fish
 
   return (
@@ -197,8 +272,11 @@ export function ProposalCard({ p, onOpen }: { p: ProposalCardData; onOpen: () =>
           <span style={{ color: accent }}>{kindIcon}</span>
         </div>
         <div className="trip-card__content">
-          <div className="trip-card__title" style={{ color: accent }}>
-            {p.kind === 'flight' ? 'FLIGHT' : 'EXCURSION'} · PROPOSAL
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div className="trip-card__title" style={{ color: accent }}>
+              {p.kind === 'flight' ? 'FLIGHT' : 'EXCURSION'} · PROPOSAL
+            </div>
+            {!hitMin && p.expires_at && <ProposalDeadlineTag expiresAt={p.expires_at} />}
           </div>
           <div className="trip-card__name">
             {p.kind === 'flight'
@@ -210,9 +288,9 @@ export function ProposalCard({ p, onOpen }: { p: ProposalCardData; onOpen: () =>
               ? <>From {p.origin_code} · proposed by {p.proposer_name ?? 'a member'}</>
               : <>{p.name} · from {p.origin_code} · proposed by {p.proposer_name ?? 'a member'}</>}
           </div>
-          <ProposalProgressBar committed={committed} min={min} cap={cap} accent={accent} />
+          <ProposalProgressBar network={network} proposerFirm={proposerFirm} min={min} cap={cap} proposerName={p.proposer_name} accent={accent} />
           <div onClick={e => e.stopPropagation()}>
-            <RosterStack entries={p.roster ?? []} occupied={committed} />
+            <RosterStack entries={p.roster ?? []} occupied={network + proposerFirm} />
           </div>
         </div>
         <img className="trip-card__img" src={p.image_url || '/trip-default.jpeg'} alt="" />
@@ -225,8 +303,8 @@ export function ProposalCard({ p, onOpen }: { p: ProposalCardData; onOpen: () =>
             </span>
           ) : (
             <>
-              <strong style={{ color: 'var(--ink)' }}>{seatsNeeded}</strong>
-              <span>seat{seatsNeeded === 1 ? '' : 's'} to go</span>
+              <strong style={{ color: 'var(--ink)' }}>{networkNeeded}</strong>
+              <span>seat{networkNeeded === 1 ? '' : 's'} to go</span>
               {p.expires_at && (
                 <>
                   <span style={{ color: 'var(--ink-faint)' }}>·</span>
@@ -306,7 +384,9 @@ export interface MyProposalData {
   status: string
   min_seats: number | null
   capacity_total: number | null
-  committed_seats: number
+  committed_seats: number          // total — legacy / display only
+  network_seats: number            // counts toward min
+  proposer_firm_seats: number      // proposer's own firm party (shown separately)
   expires_at: string | null
   decline_reason: string | null
 }
@@ -348,7 +428,7 @@ export function MyProposalRow({ p, onOpen }: { p: MyProposalData; onOpen: () => 
           }}>{s.label}</span>
           {p.status === 'open' && (
             <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-light)' }}>
-              {p.committed_seats}/{min} committed
+              {p.network_seats}/{min} network · {p.proposer_firm_seats} your firm
             </span>
           )}
           {p.status === 'open' && p.expires_at && (
@@ -359,6 +439,164 @@ export function MyProposalRow({ p, onOpen }: { p: MyProposalData; onOpen: () => 
           {title}
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.45 }}>{note}</div>
+      </div>
+      <span style={{ flexShrink: 0, color: 'var(--ink-faint)', fontSize: 18, alignSelf: 'center' }}>›</span>
+    </div>
+  )
+}
+
+// "Your proposal commits" strip for the feed + My Trips page. Surfaces
+// every proposal where the member has an active (committed/captured)
+// commit, in any status — so a member can track a proposal they're
+// tied to without hunting for it. Funded proposals turn into a real
+// booking elsewhere, so we skip those here to avoid duplication.
+export interface MyProposalCommitData {
+  proposalId: string
+  kind: 'flight' | 'excursion'
+  name: string
+  date: string
+  origin_code: string
+  payload: Record<string, unknown>
+  status: string
+  min_seats: number | null
+  network_seats: number
+  proposer_firm_seats: number
+  my_seats: number
+  am_proposer: boolean
+  expires_at: string | null
+  price_per_seat_cents: number | null
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function loadMyProposalCommits(supabase: any, memberId: string | null): Promise<MyProposalCommitData[]> {
+  if (!memberId) return []
+  // Find every commit row this member owns that's still live.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: myCommits } = await (supabase as any)
+    .from('trip_proposal_commits')
+    .select('proposal_id, seats, status')
+    .eq('member_id', memberId)
+    .in('status', ['committed', 'captured'])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const myRows = ((myCommits ?? []) as any[])
+  if (myRows.length === 0) return []
+  const proposalIds = myRows.map(c => c.proposal_id)
+  const mySeatsByProp: Record<string, number> = {}
+  for (const c of myRows) mySeatsByProp[c.proposal_id] = (mySeatsByProp[c.proposal_id] ?? 0) + (c.seats ?? 1)
+
+  // Pull the proposals. Skip funded (those have their own booking
+  // on the My Trips list) and skip terminal states (expired /
+  // declined / withdrawn) since they're not actionable from a
+  // tracker.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: props } = await (supabase as any)
+    .from('trip_proposals')
+    .select('id, proposer_id, kind, name, date, origin_code, payload, status, min_seats, expires_at, price_per_seat_cents')
+    .in('id', proposalIds)
+    .in('status', ['pending_ops_review', 'open'])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const propList = ((props ?? []) as any[])
+  if (propList.length === 0) return []
+  const liveIds = propList.map(p => p.id)
+
+  // Tally network vs proposer firm for each live proposal so the
+  // tracker row can show "X/Y network · Z firm" matching the board.
+  const tally: Record<string, { network: number; proposerFirm: number; proposerId: string }> = {}
+  for (const p of propList) tally[p.id] = { network: 0, proposerFirm: 0, proposerId: p.proposer_id }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: allCommits } = await (supabase as any)
+    .from('trip_proposal_commits')
+    .select('proposal_id, member_id, seats, status')
+    .in('proposal_id', liveIds)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const c of ((allCommits ?? []) as any[])) {
+    if (c.status !== 'committed' && c.status !== 'captured') continue
+    const t = tally[c.proposal_id]
+    if (!t) continue
+    if (c.member_id === t.proposerId) t.proposerFirm += c.seats ?? 1
+    else t.network += c.seats ?? 1
+  }
+
+  return propList.map(p => ({
+    proposalId: p.id,
+    kind: p.kind,
+    name: p.name,
+    date: p.date,
+    origin_code: p.origin_code,
+    payload: (p.payload ?? {}) as Record<string, unknown>,
+    status: p.status,
+    min_seats: p.min_seats,
+    network_seats: tally[p.id]?.network ?? 0,
+    proposer_firm_seats: tally[p.id]?.proposerFirm ?? 0,
+    my_seats: mySeatsByProp[p.id] ?? 0,
+    am_proposer: p.proposer_id === memberId,
+    expires_at: p.expires_at,
+    price_per_seat_cents: p.price_per_seat_cents,
+  }))
+}
+
+// Compact "your proposal commit" row, shown on the feed + My Trips
+// page. Inlines the same network-vs-min math the board uses so the
+// member sees the same picture from every entry point.
+export function MyProposalCommitRow({ c, onOpen }: { c: MyProposalCommitData; onOpen: () => void }) {
+  const dp = fmtDate(c.date)
+  const min = c.min_seats ?? 0
+  const hitMin = min > 0 && c.network_seats >= min
+  const needed = Math.max(0, min - c.network_seats)
+  const destName = (c.payload?.destName as string) || (c.payload?.destCode as string) || null
+  const title = c.kind === 'flight'
+    ? `${c.origin_code}${destName ? ` → ${destName}` : ''}`
+    : c.name
+
+  const statusLabel = c.status === 'pending_ops_review'
+    ? 'PENDING REVIEW'
+    : hitMin ? 'MIN REACHED · AWAITING OPS' : `${needed} TO GO`
+  const statusColor = c.status === 'pending_ops_review' ? '#8a5a06'
+    : hitMin ? 'var(--moss-d)' : 'var(--sun-d)'
+  const statusBg = c.status === 'pending_ops_review' ? 'rgba(244,167,44,0.14)'
+    : hitMin ? 'rgba(62,140,109,0.14)' : 'rgba(244,167,44,0.12)'
+
+  return (
+    <div
+      onClick={onOpen}
+      style={{
+        display: 'flex', gap: 12, alignItems: 'flex-start',
+        background: 'var(--card)', border: '2px dashed rgba(244,167,44,0.45)',
+        borderRadius: 12, padding: '13px 15px', cursor: 'pointer',
+      }}
+    >
+      <div style={{ flexShrink: 0, width: 46, textAlign: 'center', fontFamily: 'var(--mono)', lineHeight: 1.15 }}>
+        <div style={{ fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.08em' }}>{dp.mo}</div>
+        <div style={{ fontSize: 18, color: 'var(--ink)', fontWeight: 700 }}>{dp.day}</div>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
+          <span style={{
+            fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em',
+            color: '#1a0e02', background: 'linear-gradient(135deg, #f4a72c 0%, #e09418 100%)',
+            padding: '2px 6px', borderRadius: 3,
+          }}>PROPOSAL</span>
+          <span style={{
+            fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em',
+            color: statusColor, background: statusBg, padding: '2px 7px', borderRadius: 4,
+          }}>{statusLabel}</span>
+          {c.am_proposer && (
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 8.5, color: 'var(--sun-d)', fontWeight: 700, letterSpacing: '0.12em' }}>
+              ★ YOURS
+            </span>
+          )}
+          {c.status === 'open' && c.expires_at && !hitMin && (
+            <ProposalDeadlineTag expiresAt={c.expires_at} />
+          )}
+        </div>
+        <div style={{ fontFamily: 'var(--display)', fontSize: 15.5, color: 'var(--ink)', lineHeight: 1.25, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {title}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.45 }}>
+          You're in for <strong style={{ color: 'var(--ink)' }}>{c.my_seats}</strong> seat{c.my_seats === 1 ? '' : 's'}
+          {c.status === 'open' && <> · {c.network_seats}/{min} network committed</>}
+          {c.price_per_seat_cents != null && <> · ${(c.price_per_seat_cents / 100).toFixed(0)}/seat</>}
+        </div>
       </div>
       <span style={{ flexShrink: 0, color: 'var(--ink-faint)', fontSize: 18, alignSelf: 'center' }}>›</span>
     </div>
@@ -380,31 +618,41 @@ export async function loadMyProposals(supabase: any, memberId: string | null): P
   const list = (rows ?? []) as any[]
   if (list.length === 0) return []
 
-  // Tally committed seats per proposal so the LIVE rows show progress.
+  // Tally seats per proposal, split into network vs proposer firm so
+  // the proposer's tracker shows the same split everyone else sees.
   const ids = list.map(p => p.id)
-  const committed: Record<string, number> = {}
+  const tallied: Record<string, { network: number; proposerFirm: number }> = {}
   const { data: cms } = await supabase
-    .from('trip_proposal_commits').select('proposal_id, seats, status').in('proposal_id', ids)
+    .from('trip_proposal_commits').select('proposal_id, member_id, seats, status').in('proposal_id', ids)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const c of ((cms ?? []) as any[])) {
     if (c.status !== 'committed' && c.status !== 'captured') continue
-    committed[c.proposal_id] = (committed[c.proposal_id] ?? 0) + (c.seats ?? 1)
+    const t = tallied[c.proposal_id] ?? { network: 0, proposerFirm: 0 }
+    // For the proposer's own tracker, the proposer is `memberId`.
+    if (c.member_id === memberId) t.proposerFirm += c.seats ?? 1
+    else t.network += c.seats ?? 1
+    tallied[c.proposal_id] = t
   }
 
-  return list.map(p => ({
-    id: p.id,
-    kind: p.kind,
-    name: p.name,
-    date: p.date,
-    origin_code: p.origin_code,
-    payload: (p.payload ?? {}) as Record<string, unknown>,
-    status: p.status,
-    min_seats: p.min_seats,
-    capacity_total: p.capacity_total,
-    committed_seats: committed[p.id] ?? 0,
-    expires_at: p.expires_at,
-    decline_reason: p.decline_reason ?? null,
-  }))
+  return list.map(p => {
+    const t = tallied[p.id] ?? { network: 0, proposerFirm: 0 }
+    return {
+      id: p.id,
+      kind: p.kind,
+      name: p.name,
+      date: p.date,
+      origin_code: p.origin_code,
+      payload: (p.payload ?? {}) as Record<string, unknown>,
+      status: p.status,
+      min_seats: p.min_seats,
+      capacity_total: p.capacity_total,
+      committed_seats: t.network + t.proposerFirm,
+      network_seats: t.network,
+      proposer_firm_seats: t.proposerFirm,
+      expires_at: p.expires_at,
+      decline_reason: p.decline_reason ?? null,
+    }
+  })
 }
 
 // Shared loader: fetches all status='open' proposals + commit counts
@@ -425,7 +673,15 @@ export async function loadOpenProposals(supabase: any, memberId: string | null):
   if (propList.length === 0) return []
 
   const proposalIds = propList.map(p => p.id)
-  const commitsByProposal: Record<string, { committed: number; mine: boolean; rows: { member_id: string; seats: number }[] }> = {}
+  // Split commits into NETWORK (anyone but the proposer) and PROPOSER FIRM
+  // (the proposer's own commit). The bar + min logic count network only;
+  // the proposer's firm party is shown separately so we never say "5 of 4".
+  const proposerByProposal: Record<string, string> = {}
+  for (const p of propList) proposerByProposal[p.id] = p.proposer_id
+  const commitsByProposal: Record<string, {
+    network: number; proposerFirm: number; mine: boolean;
+    rows: { member_id: string; seats: number }[]
+  }> = {}
   const memberMeta: Record<string, { name: string; initials: string; avatar_url: string | null }> = {}
 
   const { data: cms } = await supabase
@@ -434,8 +690,10 @@ export async function loadOpenProposals(supabase: any, memberId: string | null):
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const c of ((cms ?? []) as any[])) {
     if (c.status !== 'committed' && c.status !== 'captured') continue
-    const cur = commitsByProposal[c.proposal_id] ?? { committed: 0, mine: false, rows: [] }
-    cur.committed += c.seats ?? 1
+    const cur = commitsByProposal[c.proposal_id] ?? { network: 0, proposerFirm: 0, mine: false, rows: [] }
+    const isProposer = c.member_id === proposerByProposal[c.proposal_id]
+    if (isProposer) cur.proposerFirm += c.seats ?? 1
+    else cur.network += c.seats ?? 1
     if (memberId && c.member_id === memberId) cur.mine = true
     cur.rows.push({ member_id: c.member_id, seats: c.seats ?? 1 })
     commitsByProposal[c.proposal_id] = cur
@@ -461,7 +719,7 @@ export async function loadOpenProposals(supabase: any, memberId: string | null):
   }
 
   return propList.map(p => {
-    const c = commitsByProposal[p.id] ?? { committed: 0, mine: false, rows: [] }
+    const c = commitsByProposal[p.id] ?? { network: 0, proposerFirm: 0, mine: false, rows: [] }
     const roster: RosterEntry[] = c.rows.map(r => ({
       item_id: p.id,
       member_id: r.member_id,
@@ -483,7 +741,9 @@ export async function loadOpenProposals(supabase: any, memberId: string | null):
       min_seats: p.min_seats,
       price_per_seat_cents: p.price_per_seat_cents,
       expires_at: p.expires_at,
-      committed_seats: c.committed,
+      committed_seats: c.network + c.proposerFirm,
+      network_seats: c.network,
+      proposer_firm_seats: c.proposerFirm,
       is_my_commit: c.mine,
       am_proposer: !!memberId && p.proposer_id === memberId,
       roster,

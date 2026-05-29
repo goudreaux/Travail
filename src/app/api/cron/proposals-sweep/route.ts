@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: openProps } = await (db as any)
     .from('trip_proposals')
-    .select('id, name, date, min_seats, expires_at, proposer_id, status')
+    .select('id, name, date, min_seats, expires_at, proposer_id, proposer_max_seats, status')
     .in('status', ['open', 'pending_ops_review'])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,15 +73,21 @@ export async function POST(req: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: committed } = await (db as any)
         .from('trip_proposal_commits')
-        .select('seats, status')
+        .select('member_id, seats, status')
         .eq('proposal_id', p.id)
+      // Network seats are what counts toward min. Proposer's max
+      // covers any gap up to their spread guarantee. We only expire
+      // when network + proposer_max can't even theoretically reach
+      // min — at which point the trip can't go regardless.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const seats = ((committed ?? []) as any[])
-        .filter((c: any) => c.status === 'committed')
-        .reduce((s: number, c: any) => s + (c.seats ?? 1), 0)
-      if (seats < (p.min_seats ?? Infinity)) {
+      const active = ((committed ?? []) as any[]).filter((c: any) => c.status === 'committed')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const networkSeats = active.filter((c: any) => c.member_id !== p.proposer_id).reduce((s: number, c: any) => s + (c.seats ?? 1), 0)
+      const proposerMax = p.proposer_max_seats ?? 0
+      const min = p.min_seats ?? Infinity
+      if (networkSeats + proposerMax < min) {
         shouldExpire = true
-        reason = `Reached the 5-day Tropic window with ${seats}/${p.min_seats} commits.`
+        reason = `Reached the 5-day Tropic window with ${networkSeats}/${p.min_seats} network commits (proposer spread couldn't cover the gap).`
       }
     }
 

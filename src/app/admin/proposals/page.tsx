@@ -346,17 +346,22 @@ function ProposalRowCard({
       {row.status === 'open' && (
         <>
           <div style={{ marginBottom: 10, fontSize: 13, color: 'var(--ink-soft)' }}>
-            <strong style={{ color: 'var(--ink)' }}>{row.committed_seats}</strong>/{row.min_seats ?? '?'} committed
+            <strong style={{ color: 'var(--ink)' }}>{row.network_seats}</strong>/{row.min_seats ?? '?'} network commits
+            {' · '}{row.proposer_seats_now} firm from proposer
             {' · expires '}{row.expires_at ? new Date(row.expires_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
             {row.price_per_seat_cents != null && ` · $${(row.price_per_seat_cents / 100).toFixed(0)}/seat`}
           </div>
+          {/* Lock fires when NETWORK commits hit min. The proposer's
+              firm seats are guaranteed but don't count toward the
+              network threshold; the deadline spread (cron) handles the
+              fallback case where network falls short. */}
           <button
             className="btn-primary"
-            disabled={busy || (row.min_seats == null || row.committed_seats < row.min_seats)}
+            disabled={busy || (row.min_seats == null || row.network_seats < row.min_seats)}
             onClick={onLock}
-            title={row.min_seats != null && row.committed_seats >= row.min_seats ? '' : 'Waiting on commits to hit minimum'}
+            title={row.min_seats != null && row.network_seats >= row.min_seats ? '' : 'Waiting on network commits to hit minimum'}
           >
-            {busy ? 'Locking…' : row.committed_seats >= (row.min_seats ?? Infinity) ? 'Lock & capture all commits' : 'Waiting on commits'}
+            {busy ? 'Locking…' : row.network_seats >= (row.min_seats ?? Infinity) ? 'Lock & capture all commits' : 'Waiting on network commits'}
           </button>
         </>
       )}

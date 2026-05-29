@@ -6,7 +6,7 @@ import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-
 import { createClient } from '@/lib/supabase/client'
 import { getStripe } from '@/lib/stripe-browser'
 import PageHero from '@/components/PageHero'
-import { ProposalCountdown } from '@/components/ProposalCard'
+import { ProposalCountdown, ProposalDeadlineTag } from '@/components/ProposalCard'
 import { RosterStack, type RosterEntry } from '@/components/Roster'
 
 // Member commits a seat on a Trip Proposal.
@@ -192,7 +192,10 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
 
   const min = proposal.min_seats ?? 0
   const cap = proposal.capacity_total ?? min
-  const seatsNeeded = Math.max(0, min - committed)
+  // Network seats are what gates go-live; proposer's firm seats sit
+  // outside the bar (rendered separately) so the math never reads
+  // "5 of 4 committed."
+  const seatsNeeded = Math.max(0, min - networkCommitted)
   const perSeatCents = proposal.price_per_seat_cents ?? 0
   const dateLabel = new Date(proposal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const amProposer = !!memberId && memberId === proposal.proposer_id
@@ -233,11 +236,15 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
         />
         <div className="page-view" style={{ maxWidth: 560 }}>
           <ProposalSummaryPanel
-            committed={committed} min={min} cap={cap}
+            network={networkCommitted}
+            proposerFirm={Math.max(0, committed - networkCommitted)}
+            min={min} cap={cap}
             perSeatCents={perSeatCents}
             expiresAt={proposal.expires_at}
             roster={roster}
+            proposerName={proposerName}
           />
+          <ProposalDetailsPanel proposal={proposal} roster={roster} />
 
           <div className="panel" style={{ padding: '20px 24px', marginTop: 16 }}>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 8 }}>
@@ -296,11 +303,15 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
       />
       <div className="page-view" style={{ maxWidth: 560 }}>
         <ProposalSummaryPanel
-          committed={committed} min={min} cap={cap}
+          network={networkCommitted}
+          proposerFirm={Math.max(0, committed - networkCommitted)}
+          min={min} cap={cap}
           perSeatCents={perSeatCents}
           expiresAt={proposal.expires_at}
           roster={roster}
+          proposerName={proposerName}
         />
+        <ProposalDetailsPanel proposal={proposal} roster={roster} />
 
         {!clientSecret && (
           <div className="panel" style={{ padding: '20px 24px', marginTop: 16 }}>
@@ -368,22 +379,24 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
 }
 
 function ProposalSummaryPanel({
-  committed, min, cap, perSeatCents, expiresAt, roster,
+  network, proposerFirm, min, cap, perSeatCents, expiresAt, roster, proposerName,
 }: {
-  committed: number; min: number; cap: number; perSeatCents: number; expiresAt: string | null; roster: RosterEntry[]
+  network: number; proposerFirm: number; min: number; cap: number;
+  perSeatCents: number; expiresAt: string | null; roster: RosterEntry[];
+  proposerName: string | null
 }) {
-  const hitMin = min > 0 && committed >= min
-  const seatsNeeded = Math.max(0, min - committed)
-  const pctOfCap = cap ? Math.min(100, Math.round((committed / cap) * 100)) : 0
+  const hitMin = min > 0 && network >= min
+  const networkNeeded = Math.max(0, min - network)
+  const networkSlots = Math.max(min, cap - proposerFirm)
+  const pctOfSlots = networkSlots ? Math.min(100, Math.round((network / networkSlots) * 100)) : 0
   return (
     <div className="panel" style={{ padding: '18px 24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
         <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-light)', letterSpacing: '0.06em' }}>
-          <strong style={{ color: 'var(--ink)' }}>{committed}</strong>
+          <strong style={{ color: 'var(--ink)' }}>{network}</strong>
           <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>of</span>
           <strong style={{ color: 'var(--ink)' }}>{min}</strong>
-          <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>committed</span>
-          {cap > min && <span style={{ color: 'var(--ink-faint)' }}>· {cap} max</span>}
+          <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>network commits</span>
         </span>
         {perSeatCents > 0 && (
           <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink)', fontWeight: 700 }}>
@@ -391,35 +404,117 @@ function ProposalSummaryPanel({
           </span>
         )}
       </div>
+      {proposerFirm > 0 && (
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--sun-d)', fontWeight: 700, letterSpacing: '0.06em', marginBottom: 6 }}>
+          +{proposerFirm} firm from {proposerName?.split(' ')[0] ?? 'proposer'} (guaranteed, not counted toward min)
+        </div>
+      )}
       <div style={{ height: 10, background: 'var(--paper)', border: '1px solid var(--hair)', borderRadius: 999, overflow: 'hidden', position: 'relative' }}>
         <div style={{
           position: 'absolute', left: 0, top: 0, bottom: 0,
-          width: `${pctOfCap}%`,
+          width: `${pctOfSlots}%`,
           background: hitMin
             ? 'linear-gradient(90deg, #3e8c6d 0%, #4ba883 100%)'
             : 'linear-gradient(90deg, #f4a72c 0%, #e09418 100%)',
           transition: 'width 0.3s ease',
         }} />
-        {min > 0 && cap > 0 && min < cap && (
+        {min > 0 && networkSlots > 0 && min < networkSlots && (
           <div style={{
             position: 'absolute',
-            left: `${Math.round((min / cap) * 100)}%`,
+            left: `${Math.round((min / networkSlots) * 100)}%`,
             top: -3, bottom: -3,
             borderLeft: '1px dashed var(--ink-light)',
           }} />
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, fontSize: 12, color: 'var(--ink-soft)' }}>
-        <span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, fontSize: 12, color: 'var(--ink-soft)', flexWrap: 'wrap', gap: 8 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {hitMin
             ? <span style={{ color: 'var(--moss)', fontWeight: 700, fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.06em' }}>✓ MIN REACHED · AWAITING OPS</span>
-            : <><strong style={{ color: 'var(--ink)' }}>{seatsNeeded}</strong> more to go</>}
+            : <><strong style={{ color: 'var(--ink)' }}>{networkNeeded}</strong> more network seat{networkNeeded === 1 ? '' : 's'} to go</>}
+          {expiresAt && !hitMin && <ProposalDeadlineTag expiresAt={expiresAt} />}
         </span>
         {expiresAt && !hitMin && <ProposalCountdown expiresAt={expiresAt} />}
       </div>
       {roster.length > 0 && (
         <div style={{ marginTop: 12 }}>
-          <RosterStack entries={roster} occupied={committed} />
+          <RosterStack entries={roster} occupied={network + proposerFirm} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Trip details + member-facing pitch + named committers — the
+// "should I commit?" pitch sheet. Date is already in the PageHero, so
+// this surfaces destination/route, depart/return times, stay type
+// (excursion), the proposer's pitch line, and a named roster of who's
+// already in. The ops-only "Notes for ops" stays hidden here.
+function ProposalDetailsPanel({
+  proposal, roster,
+}: {
+  proposal: Proposal; roster: RosterEntry[]
+}) {
+  const p = proposal.payload ?? {}
+  const destName = (p.destName as string) || (p.destCode as string) || null
+  const destCode = p.destCode as string | undefined
+  const departTime = p.departTime as string | undefined
+  const returnTime = p.returnTime as string | undefined
+  const stayType = p.stayType as string | undefined
+  const stayLabel = stayType === 'overnight' ? 'Overnight' : stayType === 'multi_night' ? 'Multi-night' : stayType === 'day_trip' ? 'Day trip' : null
+  const pitch = (p.pitch as string | undefined)?.trim() || null
+  const dateLabel = new Date(proposal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+
+  const rows: [string, string][] = [['Date', dateLabel]]
+  if (proposal.kind === 'flight') {
+    rows.push(['Route', `${proposal.origin_code} → ${destCode || destName || 'TBD'}`])
+    if (departTime) rows.push(['Departs', departTime])
+  } else {
+    rows.push(['From', proposal.origin_code])
+    if (destName) rows.push(['Destination', destName])
+    if (stayLabel) rows.push(['Stay', stayLabel])
+    if (departTime) rows.push(['Depart', departTime])
+    if (returnTime) rows.push(['Return', returnTime])
+  }
+
+  return (
+    <div className="panel" style={{ padding: '18px 24px', marginTop: 16 }}>
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 10 }}>
+        Trip details
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '6px 16px', fontSize: 13 }}>
+        {rows.map(([k, v]) => (
+          <div key={k} style={{ display: 'contents' }}>
+            <div style={{ color: 'var(--ink-light)' }}>{k}</div>
+            <div style={{ color: 'var(--ink)', fontWeight: 500 }}>{v}</div>
+          </div>
+        ))}
+      </div>
+      {pitch && (
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--hair)' }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--sun-d)', fontWeight: 700, marginBottom: 6 }}>
+            The pitch
+          </div>
+          <div style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.55, fontStyle: 'italic' }}>
+            “{pitch}”
+          </div>
+        </div>
+      )}
+      {roster.length > 0 && (
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--hair)' }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 700, marginBottom: 8 }}>
+            Who's in
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: 'var(--ink)' }}>
+            {roster.map(r => (
+              <div key={r.member_id} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>{r.name}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-light)' }}>
+                  {r.seats} seat{r.seats === 1 ? '' : 's'}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
