@@ -1177,21 +1177,18 @@ export default function ReservePage() {
               <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 10 }}>
                 4 · Payment
               </div>
-              <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
-                {/* Card on file */}
-                <div
-                  className="toggle-row"
-                  style={{ padding: '13px 16px', borderBottom: '1px solid var(--hair)' }}
-                >
-                  <div>
-                    <div className="t-lab">Card on file</div>
-                    <div className="t-sub">
-                      {member?.card_last4
-                        ? `••••  ••••  ••••  ${member.card_last4}`
-                        : 'No card on file, contact Ops'}
-                    </div>
-                  </div>
-                  <div className={`toggle${paymentMethod === 'card' ? ' active' : ''}`} style={{ pointerEvents: 'none' }} />
+              {/* Pax checkout collects/confirms the card via Stripe at the
+                  confirm step — there's no stored "card on file" gate here.
+                  Set honest expectations instead of the old (misleading)
+                  "No card on file, contact Ops" row + dead toggle. */}
+              <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: '13px 16px' }}>
+                <div className="t-lab">
+                  {member?.card_last4 ? `Card ending ${member.card_last4}` : 'Secure checkout'}
+                </div>
+                <div className="t-sub" style={{ marginTop: 2 }}>
+                  {member?.card_last4
+                    ? 'Confirm or update your card on the next step. Nothing is charged until you tap Pay & confirm.'
+                    : 'You’ll enter your card securely on the next step. Nothing is charged until you tap Pay & confirm.'}
                 </div>
               </div>
             </div>
