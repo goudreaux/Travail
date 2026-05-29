@@ -324,15 +324,22 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
             </div>
             <div className="field">
               <label className="field-lab">Seats</label>
-              <input
-                className="input"
-                type="number"
-                min={1}
-                max={Math.max(1, cap - committed)}
-                value={seats}
-                onChange={e => setSeats(Math.max(1, Math.min(cap - committed, Number(e.target.value) || 1)))}
-              />
-              <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
+              {/* Chip picker — consistent with the reserve page (not a manual
+                  number input). Capped at remaining capacity, max 8. */}
+              <div className="chips">
+                {Array.from({ length: Math.min(Math.max(1, cap - committed), 8) }, (_, i) => i + 1).map(n => (
+                  <button
+                    key={n}
+                    type="button"
+                    className={`chip${seats === n ? ' active' : ''}`}
+                    onClick={() => setSeats(n)}
+                    style={{ minWidth: 52 }}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 6, fontFamily: 'var(--mono)' }}>
                 {seats} × ${(perSeatCents / 100).toFixed(0)} = <strong style={{ color: 'var(--ink)' }}>${((seats * perSeatCents) / 100).toFixed(2)}</strong> if the proposal locks.
               </div>
             </div>
@@ -684,15 +691,20 @@ function AddSeatsPanel({
         ) : (
           <div className="field">
             <label className="field-lab">Seats to add (max {maxAdditional})</label>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              max={maxAdditional}
-              value={add}
-              onChange={e => setAdd(Math.max(1, Math.min(maxAdditional, Number(e.target.value) || 1)))}
-            />
-            <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
+            <div className="chips">
+              {Array.from({ length: Math.min(maxAdditional, 8) }, (_, i) => i + 1).map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  className={`chip${add === n ? ' active' : ''}`}
+                  onClick={() => setAdd(n)}
+                  style={{ minWidth: 52 }}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 6, fontFamily: 'var(--mono)' }}>
               New total: {currentSeats + add} seat{currentSeats + add === 1 ? '' : 's'}
             </div>
           </div>
