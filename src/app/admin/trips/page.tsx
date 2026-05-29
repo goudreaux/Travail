@@ -357,7 +357,8 @@ export default function TripsPage() {
   }
 
   function excError(): string | null {
-    if (!EF.template_id) return 'Choose an excursion from the catalog'
+    // Template is optional — custom Travail excursions don't come from
+    // the catalog. The name is what's actually required.
     if (!effExcOrigin) return 'Select or enter an origin'
     if (EF.originSel === CUSTOM && !EF.originCustomName.trim()) return 'Name the custom origin airport'
     if (!EF.name.trim()) return 'Excursion name is required'
@@ -994,14 +995,14 @@ export default function TripsPage() {
             {/* ─── Experience (from catalog) ─── */}
             <div style={sectionLabelStyle}>Experience</div>
             <div className="field" style={{ gridColumn: '1 / -1' }}>
-              <label className="field-lab">Excursion <span className="req">*</span></label>
+              <label className="field-lab">Excursion template <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>(optional — leave blank for a custom Travail excursion)</span></label>
               <select className="select" value={EF.template_id} onChange={e => selectTemplate(e.target.value)}>
-                <option value="">Select a template…</option>
+                <option value="">No template — custom excursion</option>
                 {templates.map(t => <option key={t.id} value={t.id}>{t.name} · {airportName(t.dest_code)}</option>)}
               </select>
               {templates.length === 0 && (
-                <div style={{ fontSize: 11, color: 'var(--signal)', marginTop: 6 }}>
-                  No templates yet — create one in the <strong>Excursion Templates</strong> tab first.
+                <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 6 }}>
+                  No templates yet — that&apos;s fine. Build a custom excursion here, or add reusable templates in the <strong>Excursion Templates</strong> tab.
                 </div>
               )}
               {selectedTemplate && (
