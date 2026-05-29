@@ -10,6 +10,7 @@ import MobileNav from '@/components/MobileNav'
 import PullToRefresh from '@/components/PullToRefresh'
 import ToastHost from '@/components/ToastHost'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
+import { FirstLoginTutorial } from '@/components/FirstLoginTutorial'
 import { useActivityBeacon, useLoginStamp } from '@/lib/use-activity-beacon'
 import type { Member, Notification } from '@/lib/supabase/types'
 
@@ -149,6 +150,15 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
       <MobileNav pathname={pathname} isAdmin={!!member?.is_admin} openSeatsCount={openSeatsCount} />
       <PullToRefresh />
       <ToastHost />
+      {/* One-shot welcome tutorial on first sign-in. Persistence is
+          server-side via members.tutorial_completed_at (migration 054)
+          so switching devices doesn't re-trigger it. */}
+      {member && !(member as Member & { tutorial_completed_at?: string | null }).tutorial_completed_at && (
+        <FirstLoginTutorial
+          memberId={member.id}
+          onDone={() => setMember(m => m ? ({ ...m, tutorial_completed_at: new Date().toISOString() } as Member) : m)}
+        />
+      )}
     </div>
   )
 }

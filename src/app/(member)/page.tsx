@@ -430,13 +430,7 @@ export default function FeedPage() {
                 <div className="pending-indicator" />
               </div>
             ) : tripItems.length === 0 ? (
-              <div className="empty" style={{ padding: '32px 16px' }}>
-                <svg width="32" height="32" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 13l7-1 3-7h2l-1 7 5-1 1 1.5-5 3-1 4-2 .5-1-3.5-3 0-1 .5z" />
-                </svg>
-                <h3>No upcoming trips</h3>
-                <p>Anchor a flight or join an open excursion to get started.</p>
-              </div>
+              <EmptyTripsNeg memberId={member?.id ?? null} onPlan={() => router.push('/plan')} />
             ) : (
               (() => {
                 const effectiveExpanded = expandedTripId ?? tripItems[0]?.booking.id ?? null
@@ -845,6 +839,61 @@ function FeedProposalsSection({ memberId, defaultOpen = true }: { memberId: stri
             )}
           </>
         )}
+      </div>
+    </div>
+  )
+}
+
+// Empty-state copy for the My Trips section on the feed. Rotates
+// through a stable (per-member, per-day) negging line so members get
+// a cheeky-but-polite nudge to plan something without seeing the same
+// line back-to-back. We seed off member id + the calendar date so the
+// pick stays consistent through the day and rotates daily.
+const EMPTY_TRIP_NEGS: { headline: string; sub: string }[] = [
+  {
+    headline: 'Suspiciously quiet here.',
+    sub: 'Your manifest is empty. The cabin is not. Anchor a trip or take an open seat before someone else does.',
+  },
+  {
+    headline: 'We checked twice — still nothing.',
+    sub: 'The point of a private aviation club is the flying. Just saying.',
+  },
+  {
+    headline: 'Membership is wasted on the grounded.',
+    sub: 'Open seats are live. Tap below and rejoin the fun.',
+  },
+  {
+    headline: 'Your boarding pass slot is gathering dust.',
+    sub: 'Float a proposal — no risk if it doesn’t fund. Worst case: a date on the calendar.',
+  },
+  {
+    headline: 'Wayfarers don’t sit still.',
+    sub: 'A respectable adventurer’s calendar has at least one item on it. We won’t tell anyone — but consider this notice.',
+  },
+]
+
+function EmptyTripsNeg({ memberId, onPlan }: { memberId: string | null; onPlan: () => void }) {
+  const today = new Date().toISOString().slice(0, 10)
+  const seed = (memberId ?? 'anon') + today
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  const neg = EMPTY_TRIP_NEGS[h % EMPTY_TRIP_NEGS.length]
+
+  return (
+    <div className="empty" style={{ padding: '36px 20px 32px', textAlign: 'center' }}>
+      <svg width="34" height="34" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+        <path d="M3 13l7-1 3-7h2l-1 7 5-1 1 1.5-5 3-1 4-2 .5-1-3.5-3 0-1 .5z" />
+      </svg>
+      <h3 style={{ marginTop: 12, fontFamily: 'var(--display)', fontStyle: 'italic', fontWeight: 500 }}>
+        {neg.headline}
+      </h3>
+      <p style={{ maxWidth: 360, margin: '6px auto 18px', lineHeight: 1.55 }}>
+        {neg.sub}
+      </p>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <button className="btn-primary" style={{ background: 'var(--sun)' }} onClick={onPlan}>
+          Get away →
+        </button>
       </div>
     </div>
   )

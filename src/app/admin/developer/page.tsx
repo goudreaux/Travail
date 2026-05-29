@@ -5,6 +5,8 @@ import stats from '@/lib/code-stats.json'
 import { MemberStatsPanel } from './MemberStatsPanel'
 import { EnvelopePreviewPanel } from './EnvelopePreviewPanel'
 import { BookingSplashPreviewPanel } from './BookingSplashPreviewPanel'
+import { TutorialPreviewPanel } from './TutorialPreviewPanel'
+import { FeatureMatrix } from './FeatureMatrix'
 
 // Reusable collapsible header — same hit area + chevron rotation pattern
 // as the section-panel on the member feed. Tap anywhere on the header
@@ -157,6 +159,10 @@ export default function DeveloperDashboard() {
           </div>
         </div>
 
+        {/* Investor-facing feature matrix — collapsed by default,
+            expand to share with stakeholders. */}
+        <FeatureMatrix />
+
         {/* Grid of stat tiles */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 12, marginBottom: 28 }}>
           <StatTile label="TypeScript / TSX" value={nf(t.tsLines)} sub={`${t.tsFiles} files`} accent="tropic" />
@@ -276,6 +282,7 @@ export default function DeveloperDashboard() {
 
         <EnvelopePreviewPanel />
         <BookingSplashPreviewPanel />
+        <TutorialPreviewPanel />
 
         <MemberStatsPanel
           collapsible
