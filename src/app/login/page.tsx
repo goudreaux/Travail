@@ -71,7 +71,7 @@ export default function LoginPage() {
 
         <div className="login-brand-pane__main">
           <h1 className="login-brand-pane__welcome">
-            <span className="login-brand-pane__welcome-pre">Welcome back to</span>
+            <span className="login-brand-pane__welcome-pre">Welcome to</span>
             <span className="login-brand-pane__welcome-mark">
               <Image
                 src="/travail-wordmark.png"
@@ -84,8 +84,7 @@ export default function LoginPage() {
           </h1>
 
           <p className="login-brand-pane__tagline">
-            Private aviation + curated experiences.<br />
-            A Cypress Sol company.
+            Private aviation + curated experiences.
           </p>
         </div>
 
