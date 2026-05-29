@@ -14,7 +14,7 @@ import { ProposerCardForm } from '@/components/ProposerCardForm'
 // min seats during review.
 
 const ORIGINS = [
-  { code: 'KTPA', name: 'Tampa International', sub: 'Tampa, FL' },
+  { code: 'KTPA', name: 'TPA',                 sub: 'Tampa, FL' },
   { code: 'KTPF', name: 'Davis Islands',       sub: 'Tampa, FL' },
 ]
 
