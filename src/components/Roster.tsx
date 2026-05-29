@@ -280,7 +280,7 @@ export function CoPassengerList({ entries, meId }: { entries: RosterEntry[]; meI
               ) : contactPending ? (
                 <span className="copax-chip copax-chip--muted" title="Contact request pending">…</span>
               ) : isPrivate ? (
-                <span className="copax-chip copax-chip--quiet" title="Private — connect through Ops">
+                <span className="copax-chip copax-chip--quiet" title="Private, connect through Ops">
                   <svg width="11" height="11" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="5" y="10" width="12" height="9" rx="1.5" />
                     <path d="M7.5 10V7a3.5 3.5 0 0 1 7 0v3" />
@@ -313,7 +313,7 @@ export function CoPassengerList({ entries, meId }: { entries: RosterEntry[]; meI
 export function RosterList({ entries }: { entries: RosterEntry[] }) {
   const friendIds = useFriendIds()
   if (!entries.length) {
-    return <div style={{ fontSize: 13, color: 'var(--ink-light)' }}>No one has shared their spot yet — be the first.</div>
+    return <div style={{ fontSize: 13, color: 'var(--ink-light)' }}>No one has shared their spot yet. Be the first.</div>
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

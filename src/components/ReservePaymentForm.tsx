@@ -99,7 +99,7 @@ function InnerForm({
       // Network blip, browser security policy, etc. — Stripe.js
       // sometimes throws instead of surfacing via { error }. Without
       // this catch the button sticks on "Processing…" forever.
-      setError((err as Error)?.message ?? 'Network error — please try again.')
+      setError((err as Error)?.message ?? 'Network error. Please try again.')
       setSubmitting(false)
     }
   }

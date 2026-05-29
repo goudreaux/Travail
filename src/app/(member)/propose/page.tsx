@@ -32,7 +32,7 @@ export default function ProposePage() {
       icon: Icons.compass,
       eyebrow: 'Plan together',
       title: 'Propose an Excursion',
-      sub: 'Pitch a day — fishing, golf, anything. If the network commits, it goes live and the deposits clear.',
+      sub: 'Pitch a day: fishing, golf, anything. If the network commits, it goes live and the deposits clear.',
       accent: 'var(--sun-d)',
       glow: 'rgba(244,167,44,0.16)',
     },
@@ -44,7 +44,7 @@ export default function ProposePage() {
         accent="sun"
         eyebrow="PROPOSE A TRIP · NO RISK"
         title="What if you don't want to anchor it yourself?"
-        sub={`Propose a trip and rally the network. If the minimum commit is reached at least ${PROPOSAL_MIN_LEAD_DAYS} days before takeoff, it locks in and everyone pays. If not, no one pays — it just expires harmlessly.`}
+        sub={`Propose a trip and rally the network. If the minimum commit is reached at least ${PROPOSAL_MIN_LEAD_DAYS} days before takeoff, it locks in and everyone pays. If not, no one pays, it just expires harmlessly.`}
       />
       <div className="page-view">
         <div className="wiz">
@@ -69,7 +69,7 @@ export default function ProposePage() {
             <strong style={{ color: 'var(--ink)' }}>How it works:</strong>{' '}
             you submit a proposal, ops sets a minimum seat count + per-seat price,
             and the network has 5 days before departure to commit. Members commit
-            with a card on file — nothing leaves their account until the proposal
+            with a card on file, nothing leaves their account until the proposal
             locks. If commits fall short by the 5-day window, the proposal expires
             and nobody pays.
           </div>

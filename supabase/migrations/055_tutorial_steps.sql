@@ -39,32 +39,32 @@ insert into public.tutorial_steps (step_key, order_idx, eyebrow, title, body, ic
 values
   (
     'welcome', 1, 'WHAT THIS IS',
-    'A members club for private aviation + curated experiences.',
-    'Open seats on charter flights, member-anchored excursions, and network-proposed trips. $200/month, locked for life as long as your membership stays active. You''re already in.',
+    'A members club for private aviation and curated experiences.',
+    'Welcome aboard. Travail connects a small, vetted group of travelers who share private flights and one-of-a-kind trips. There are three ways to go: claim an open seat on a flight a member has already booked, anchor your own flight or excursion and let the network fill the cabin, or propose a trip and rally everyone around it. Your membership is $200 a month, and that rate is locked for life as long as your membership stays active. You''re already in, so let''s walk through how it all works.',
     'plane', false
   ),
   (
     'open_seats', 2, 'OPEN SEATS',
-    'Take a seat on someone else''s plane.',
-    'When a member anchors a charter, the spare seats open up to the network at a flat per-seat price. Tap a card on /seats to reserve. No card games — you pay, you fly.',
+    'Take a seat on a flight that''s already booked.',
+    'When a member charters a flight, the empty seats open to the rest of the network at a flat, per-seat price. Browse what''s available on the Seats page, tap any card to see the route, date, and price, then reserve your spot. The cost is fixed and shown up front, so there''s no bidding and no surprises. You pay for your seat, you fly.',
     'compass', false
   ),
   (
     'get_away', 3, 'GET AWAY',
-    'Anchor your own trip — flight or excursion.',
-    'Charter a seaplane or set up a day with an operator. You authorize the charter cost, network fills the seats, and you get refunded for every seat that sells. Tap "Get Away" up top.',
+    'Anchor your own flight or excursion.',
+    'Want to set the itinerary yourself? Tap Get Away at the top of the screen. You can charter a seaplane or arrange a day out with one of our trusted operators. You authorize the full charter cost up front to hold the booking, then the network fills the open seats. Each time a seat sells, you''re refunded its share, so a full cabin can bring your own cost down to a single seat.',
     'spark', false
   ),
   (
     'proposals', 4, 'PROPOSALS',
-    'Pitch a trip without paying for the whole boat.',
-    'Propose a date. The network commits cards on file. If enough members sign up by the 5-day window, ops locks Tropic and everyone''s deposit clears. If not, nobody pays. No risk — try it.',
+    'Pitch a trip without paying for the whole thing.',
+    'Have an idea but would rather not commit alone? Post a proposal with a date and let the network weigh in. Interested members reserve a spot with a card on file, but nothing is charged yet. If enough people commit within the five-day window, we lock in the booking and everyone''s deposit clears at once. If it doesn''t fill, no one is charged and the proposal quietly expires. Floating an idea costs nothing, so give it a try.',
     'target', false
   ),
   (
     'network', 5, 'THE NETWORK',
-    'Refer the people you''d want next to you on the plane.',
-    'Travail is a small, deliberate club. Refer friends from your Membership page; ops reviews each one. The network is only as good as who''s in it — bring people you''d actually want a row over from.',
+    'Refer the people you''d want in the next seat over.',
+    'Travail stays small and deliberate by design. A trip is only as good as the people on it, so we grow entirely by referral. Invite friends from your Membership page and our team reviews each request before extending an invitation. Bring the people you''d genuinely enjoy sharing a cabin with.',
     'network', false
   ),
   (
@@ -74,9 +74,9 @@ values
     'home', true
   ),
   (
-    'closer', 7, 'YOU''RE SET',
-    'That''s the whole product. Have fun out there.',
-    'Get Away to plan your first trip, Open Seats to ride along, Proposals to rally the network. Tap Done and we''ll close this and let you go.',
+    'closer', 7, 'YOU''RE ALL SET',
+    'That''s the tour. Enjoy the ride.',
+    'You now know the three ways to travel with us: Open Seats to ride along on a booked flight, Get Away to anchor your own, and Proposals to rally the network around a new idea. Everything lives in the navigation at the bottom of your screen whenever you need it. Tap Done when you''re ready and we''ll get out of your way.',
     'check', false
   )
 on conflict (step_key) do nothing;

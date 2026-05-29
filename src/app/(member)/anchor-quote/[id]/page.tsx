@@ -215,7 +215,7 @@ export default function AnchorQuotePage() {
           </div>
 
           <div style={{ background: 'rgba(0,179,199,0.06)', borderLeft: '3px solid var(--tropic)', borderRadius: '0 8px 8px 0', padding: '12px 14px', fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, marginTop: 18 }}>
-            On accept, we capture the full amount above on your card. As pax book seats, the charter portion you covered is rebated at trip departure — your final charter cost never goes above your floor. {feeDollars > 0 ? 'The 3% service fee stays with Travail; only refunded if Ops cancels the trip itself.' : ''}
+            On accept, we capture the full amount above on your card. As pax book seats, the charter portion you covered is rebated at trip departure, your final charter cost never goes above your floor. {feeDollars > 0 ? 'The 3% service fee stays with Travail; only refunded if Ops cancels the trip itself.' : ''}
           </div>
         </div>
 
@@ -266,7 +266,7 @@ export default function AnchorQuotePage() {
         ) : (
           <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--hair)' }}>
             <div style={{ fontSize: 13, color: 'var(--ink-mid)', marginBottom: 10 }}>
-              Tell ops what isn't working — pricing, dates, scope — so they can come back with revisions.
+              Tell ops what isn't working (pricing, dates, scope) so they can come back with revisions.
             </div>
             <textarea
               value={declineReason}

@@ -23,7 +23,7 @@ const DESTS = [
   { code: 'LCC',    name: 'Lochloosa Country Club',     sub: 'North Central FL' },
   { code: 'KEYW',   name: 'Key West Airport',           sub: 'FL Keys' },
   { code: 'LPI',    name: 'Little Palm Island',         sub: 'FL Keys' },
-  { code: 'CUSTOM', name: 'Custom destination',         sub: 'Request — ops will confirm' },
+  { code: 'CUSTOM', name: 'Custom destination',         sub: 'Request, ops will confirm' },
 ]
 
 function todayPlus(days: number): string {
@@ -61,7 +61,7 @@ export default function ProposeFlightPage() {
     setError(null)
     if (!date) { setError('Pick a date.'); return }
     if (date < minDate) { setError(`Proposals need at least ${PROPOSAL_MIN_LEAD_DAYS} days of lead time so the network has a chance to commit.`); return }
-    if (isCustomDest && !customDestName.trim()) { setError('Tell us where you want to go — ops will confirm with Tropic.'); return }
+    if (isCustomDest && !customDestName.trim()) { setError('Tell us where you want to go, ops will confirm with Tropic.'); return }
     if (!isCustomDest && origin === destCode) { setError('Origin and destination must be different.'); return }
     if (proposerMaxSeats < proposerMinSeats) { setError('Your maximum coverage must be at least your party size.'); return }
     if (proposerMaxSeats > suggestedCapacity) { setError('Your maximum coverage can\'t exceed the aircraft capacity.'); return }
@@ -112,7 +112,7 @@ export default function ProposeFlightPage() {
         <PageHero
           accent="sun"
           eyebrow="PROPOSAL · SAVE A CARD"
-          title="One last step — your card on file"
+          title="One last step: your card on file"
           sub="Your proposal isn't truly submitted until you have a card on file for your firm party. No charge yet."
         />
         <div className="page-view" style={{ maxWidth: 520 }}>
@@ -134,7 +134,7 @@ export default function ProposeFlightPage() {
           accent="sun"
           eyebrow="PROPOSAL SUBMITTED"
           title="Sent to ops for review."
-          sub={`Your proposal ${submittedId} is in the queue. Ops will set the minimum seat count + per-seat price, then it goes live for the network. You'll get a notification when it does — you can be the first to commit then.`}
+          sub={`Your proposal ${submittedId} is in the queue. Ops will set the minimum seat count + per-seat price, then it goes live for the network. You'll get a notification when it does, you can be the first to commit then.`}
         />
         <div className="page-view" style={{ display: 'flex', gap: 10, padding: '12px 0' }}>
           <button className="btn-primary" onClick={() => router.push('/seats')}>Browse open seats</button>
@@ -211,7 +211,7 @@ export default function ProposeFlightPage() {
               Your spread guarantee
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 12 }}>
-              How many seats are you personally committing? And how many would you cover if the network underfills? You&apos;ll only pay your firm party — unless commits fall short, in which case you pay up to your guarantee to make the trip happen.
+              How many seats are you personally committing? And how many would you cover if the network underfills? You&apos;ll only pay your firm party, unless commits fall short, in which case you pay up to your guarantee to make the trip happen.
             </div>
             <div className="row-2">
               <div className="field" style={{ marginBottom: 0 }}>

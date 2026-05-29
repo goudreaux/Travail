@@ -140,7 +140,7 @@ export default function MobileNav({
           onClick={() => setMoreOpen(v => !v)}
           aria-haspopup="dialog"
           aria-expanded={moreOpen}
-          aria-label={`More options${friendRequestCount > 0 ? ` — ${friendRequestCount} pending friend request${friendRequestCount === 1 ? '' : 's'}` : ''}`}
+          aria-label={`More options${friendRequestCount > 0 ? `, ${friendRequestCount} pending friend request${friendRequestCount === 1 ? '' : 's'}` : ''}`}
         >
           <span className="m-item__icon">
             {iconWrap(MoreIcon)}

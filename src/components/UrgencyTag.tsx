@@ -45,7 +45,7 @@ export function UrgencyTag({ date, time }: { date: string; time?: string | null 
   return (
     <span
       className="urgency-tag"
-      aria-label={`Departing soon — ${label.toLowerCase()}`}
+      aria-label={`Departing soon, ${label.toLowerCase()}`}
     >
       ⚡ {label}
       <style jsx>{`

@@ -79,7 +79,7 @@ export default function ReferralsPanel({ onConvert }: { onConvert: (r: Referral)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error, data } = await (supabase as any).from('referrals').delete().eq('id', r.id).select()
     if (error) { showToast(error.message, 'error'); return }
-    if (!data || data.length === 0) { showToast('Delete blocked — check the admin RLS policy on referrals', 'error'); return }
+    if (!data || data.length === 0) { showToast('Delete blocked, check the admin RLS policy on referrals', 'error'); return }
     showToast('Referral deleted')
     load()
   }
