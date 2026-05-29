@@ -51,12 +51,107 @@ const STEPS: TutorialStep[] = [
     icon: <svg width="36" height="36" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="8"/><ellipse cx="11" cy="11" rx="3.2" ry="8"/><line x1="3" y1="11" x2="19" y2="11"/></svg>,
   },
   {
+    eyebrow: 'PIN IT TO YOUR PHONE',
+    title: 'Add Travail to your home screen.',
+    body: 'INSTALL_INSTRUCTIONS_PLACEHOLDER',  // replaced at render with the platform-specific block
+    icon: <svg width="36" height="36" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="3" width="12" height="16" rx="2"/><line x1="11" y1="16" x2="11" y2="16"/></svg>,
+  },
+  {
     eyebrow: 'YOU’RE SET',
     title: 'That’s the whole product. Have fun out there.',
     body: 'Get Away to plan your first trip, Open Seats to ride along, Proposals to rally the network. Tap Done and we’ll close this and let you go.',
     icon: <svg width="36" height="36" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12l5 5L20 6"/></svg>,
   },
 ]
+
+// Platform-aware install instructions for the "Pin it to your phone"
+// tutorial step. Detects iOS Safari, Android Chrome, and standalone
+// (already-installed) so the right snippet renders. Falls back to a
+// short generic blurb on desktop.
+function InstallInstructions() {
+  // Detect once at mount and freeze — we don't want the instructions
+  // to flicker mid-tutorial if the user agent string is touched.
+  const platform = (() => {
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') return 'unknown'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const standaloneIOS = (navigator as any).standalone === true
+    const standaloneDisplay = window.matchMedia?.('(display-mode: standalone)').matches
+    if (standaloneIOS || standaloneDisplay) return 'installed'
+    const ua = navigator.userAgent
+    if (/iPhone|iPad|iPod/i.test(ua)) return 'ios'
+    if (/Android/i.test(ua)) return 'android'
+    return 'desktop'
+  })()
+
+  // Shared 3-step list rendering for clean copy.
+  const Step = ({ n, children }: { n: number; children: React.ReactNode }) => (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
+      <span style={{
+        flexShrink: 0, width: 22, height: 22, borderRadius: '50%',
+        background: 'var(--tropic-glow)', color: 'var(--tropic-d)',
+        fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>{n}</span>
+      <span style={{ flex: 1, fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.55, paddingTop: 1 }}>{children}</span>
+    </div>
+  )
+
+  if (platform === 'installed') {
+    return (
+      <div style={{ fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.6 }}>
+        Looks like you&apos;ve already got Travail installed on your home screen. <strong style={{ color: 'var(--moss)' }}>Nicely done</strong> — tap Next to wrap up.
+      </div>
+    )
+  }
+
+  if (platform === 'ios') {
+    return (
+      <div>
+        <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, marginBottom: 12 }}>
+          Make Travail behave like a real app on iPhone. Three taps in Safari:
+        </div>
+        <Step n={1}>
+          Tap the <strong>Share</strong> button at the bottom of Safari (the square with an up-arrow).
+        </Step>
+        <Step n={2}>
+          Scroll down and pick <strong>Add to Home Screen</strong>.
+        </Step>
+        <Step n={3}>
+          Tap <strong>Add</strong>. Travail lives on your home screen now — opens full-screen, no Safari chrome.
+        </Step>
+        <div style={{ fontSize: 12, color: 'var(--ink-faint)', marginTop: 8, lineHeight: 1.5 }}>
+          Note: this only works in Safari, not Chrome or another browser on iOS.
+        </div>
+      </div>
+    )
+  }
+
+  if (platform === 'android') {
+    return (
+      <div>
+        <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, marginBottom: 12 }}>
+          Make Travail behave like a real app on Android. Two taps in Chrome:
+        </div>
+        <Step n={1}>
+          Tap the <strong>three-dot menu</strong> in the top-right corner of Chrome.
+        </Step>
+        <Step n={2}>
+          Pick <strong>Install app</strong> (or <strong>Add to Home screen</strong> on older Chrome).
+        </Step>
+        <Step n={3}>
+          Confirm <strong>Install</strong>. Travail appears on your home screen and launches full-screen.
+        </Step>
+      </div>
+    )
+  }
+
+  // Desktop fallback
+  return (
+    <div style={{ fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.6 }}>
+      You&apos;re on desktop right now. Open Travail on your phone (Safari for iPhone, Chrome for Android) and we&apos;ll show you the home-screen install steps there. It only takes a few seconds and makes the app feel native.
+    </div>
+  )
+}
 
 export function FirstLoginTutorial({ memberId, onDone }: { memberId: string; onDone: () => void }) {
   const supabase = createClient()
@@ -134,7 +229,7 @@ export function FirstLoginTutorial({ memberId, onDone }: { memberId: string; onD
             {s.title}
           </div>
           <div style={{ fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.6 }}>
-            {s.body}
+            {s.body === 'INSTALL_INSTRUCTIONS_PLACEHOLDER' ? <InstallInstructions /> : s.body}
           </div>
         </div>
 
