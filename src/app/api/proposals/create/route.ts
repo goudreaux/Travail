@@ -1,15 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
 import { PROPOSAL_MIN_LEAD_DAYS, MAX_ACTIVE_PROPOSALS_PER_MEMBER } from '@/lib/proposals'
 import { notifyOps } from '@/lib/ops-notify'
+import { assertCanBook } from '@/lib/can-book'
+import { sendProposalSubmittedEmail } from '@/lib/member-email'
 import type { Database } from '@/lib/supabase/types'
 
-// Member submits a Trip Proposal. Saves the row in pending_ops_review,
-// pings ops, and returns the new id. No card collection here — the
-// proposer commits a seat afterwards via /api/proposals/commit using
-// the SetupIntent flow, same as any other member.
+// Member submits a Trip Proposal AND puts their card on file in one shot.
+//
+// Why combined: the proposer's commit needs to exist before ops can
+// approve the proposal (otherwise the proposer is a phantom committer
+// who never pays). Doing it in two round-trips opens a window where
+// the proposal is reviewable but unfunded.
+//
+// Returns { proposalId, clientSecret } — the wizard confirms the
+// SetupIntent client-side, then POSTs to
+// /api/proposals/commit/finalize to attach the payment_method id to
+// the commit row. If the card never confirms, the proposal sits in
+// pending_ops_review with a card-less proposer commit; ops can
+// decline or follow up.
 //
 // Validation:
 //   - date >= today + PROPOSAL_MIN_LEAD_DAYS (7-day floor)
@@ -66,6 +78,16 @@ export async function POST(req: NextRequest) {
   const { data: me } = await supabase
     .from('members').select('id, name, member_no').eq('user_id', user.id).maybeSingle()
   if (!me) return NextResponse.json({ error: 'Member record not found' }, { status: 403 })
+
+  // Subscription gate — same as the regular booking flow.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const guard = await assertCanBook(admin() as any, me.id)
+  if (!guard.ok) {
+    return NextResponse.json(
+      { error: 'Active membership required to propose a trip', reason: guard.reason, status: guard.status },
+      { status: 402 },
+    )
+  }
 
   let body: Payload
   try { body = await req.json() }
@@ -139,6 +161,63 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (insErr) throw insErr
+    const proposalId: string = inserted.id
+
+    // ─── Mint the proposer's commit + SetupIntent ───────────────────────
+    // Find or create the Stripe Customer for this member, then a
+    // SetupIntent to collect a card off-session for the eventual
+    // lock-time capture. Identical card-on-file flow as
+    // /api/proposals/commit (the route members use to commit), just
+    // bundled into create so the proposer can never end up phantom.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: mRow } = await (db as any)
+      .from('members').select('stripe_customer_id').eq('id', me.id).maybeSingle()
+    let customerId: string | null = mRow?.stripe_customer_id ?? null
+
+    if (!customerId) {
+      const email = user.email ?? null
+      if (email) {
+        try {
+          const list = await stripe.customers.list({ email, limit: 100 })
+          const match = list.data.find(c => !c.deleted && (c as { metadata?: { member_id?: string } }).metadata?.member_id === me.id)
+          if (match) customerId = match.id
+        } catch (e) { safeError('proposals/create: customer.list failed', e) }
+      }
+      if (!customerId) {
+        const c = await stripe.customers.create({
+          email: email ?? undefined,
+          name: me.name ?? undefined,
+          metadata: { member_id: me.id },
+        })
+        customerId = c.id
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (db as any).from('members').update({ stripe_customer_id: customerId }).eq('id', me.id)
+    }
+
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId!,
+      payment_method_types: ['card'],
+      usage: 'off_session',
+      metadata: {
+        member_id: me.id,
+        proposal_id: proposalId,
+        purpose: 'proposer_commit',
+        seats: String(proposerMin),
+      },
+    })
+
+    // Proposer's commit row — seats = their firm party; the lock
+    // route bumps this up to whatever the spread math requires.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db as any).from('trip_proposal_commits').insert({
+      proposal_id: proposalId,
+      member_id: me.id,
+      seats: proposerMin,
+      stripe_customer_id: customerId,
+      stripe_setup_intent_id: setupIntent.id,
+      status: 'committed',
+    })
 
     // Ping ops — they review and set the actual capacity/min/price.
     await notifyOps({
@@ -147,7 +226,7 @@ export async function POST(req: NextRequest) {
         name: me.name ?? null,
         memberCode: me.member_no ? `#${me.member_no}` : null,
       },
-      item: { kind, id: inserted.id, name, date },
+      item: { kind, id: proposalId, name, date },
       note: `New TRIP PROPOSAL — needs review. Proposer suggested capacity ${suggestedCapacity}, min ${suggestedMinSeats}.`,
       details: {
         Action: 'PROPOSAL submitted',
@@ -157,7 +236,27 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return NextResponse.json({ id: inserted.id })
+    // Branded "thanks, in the queue" email to the proposer.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: contact } = await (db as any)
+      .from('member_sensitive').select('email').eq('member_id', me.id).maybeSingle()
+    const proposerEmail = (contact?.email && contact.email.trim()) || user.email || null
+    if (proposerEmail) {
+      await sendProposalSubmittedEmail({
+        to: proposerEmail,
+        memberName: me.name ?? 'Member',
+        memberId: me.id,
+        proposalId,
+        proposalName: name,
+        tripDate: date,
+      })
+    }
+
+    return NextResponse.json({
+      proposalId,
+      clientSecret: setupIntent.client_secret,
+      setupIntentId: setupIntent.id,
+    })
   } catch (err) {
     safeError('proposals/create: insert failed', err)
     return NextResponse.json(

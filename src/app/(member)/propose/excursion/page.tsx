@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import PageHero from '@/components/PageHero'
 import { PROPOSAL_MIN_LEAD_DAYS } from '@/lib/proposals'
+import { ProposerCardForm } from '@/components/ProposerCardForm'
 
 // Excursion proposal wizard — same spread-guarantee mechanics as the
 // flight proposal. Free-form name + origin airport + date + party
@@ -37,6 +38,8 @@ export default function ProposeExcursionPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [cardSaved, setCardSaved] = useState(false)
   const minDate = todayPlus(PROPOSAL_MIN_LEAD_DAYS)
 
   useEffect(() => {
@@ -78,7 +81,8 @@ export default function ProposeExcursionPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? `Submit failed (${res.status})`)
-      setSubmittedId(data.id)
+      setSubmittedId(data.proposalId ?? data.id)
+      if (data.clientSecret) setClientSecret(data.clientSecret)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Submit failed')
     } finally {
@@ -86,7 +90,29 @@ export default function ProposeExcursionPage() {
     }
   }
 
-  if (submittedId) {
+  // Card-on-file step after /api/proposals/create returns.
+  if (submittedId && clientSecret && !cardSaved) {
+    return (
+      <div className="page">
+        <PageHero
+          accent="sun"
+          eyebrow="PROPOSAL · SAVE A CARD"
+          title="One last step — your card on file"
+          sub="Your proposal isn't truly submitted until you have a card on file for your firm party. No charge yet."
+        />
+        <div className="page-view" style={{ maxWidth: 520 }}>
+          <ProposerCardForm
+            clientSecret={clientSecret}
+            onSuccess={() => setCardSaved(true)}
+            proposerMinSeats={proposerMinSeats}
+            proposerMaxSeats={proposerMaxSeats}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  if (submittedId && (cardSaved || !clientSecret)) {
     return (
       <div className="page">
         <PageHero

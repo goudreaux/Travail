@@ -4030,20 +4030,36 @@ textarea.input {
 
   .mobile-nav .m-item {
     flex: 1;
+    min-width: 0;             /* allow shrinking on 5-up nav */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 3px;
-    padding: 8px 4px;
+    padding: 8px 2px;         /* tighter horizontal so 5 items fit on iPhone SE */
     color: rgba(255, 255, 255, 0.45);
     font-size: 9.5px;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     font-family: var(--mono);
     cursor: pointer;
     transition: color 0.12s;
     border-radius: 8px;
+    overflow: hidden;         /* ellipsize if a label still doesn't fit */
+  }
+  .mobile-nav .m-item > span:not(.m-item__icon) {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* On phones < 360px shrink the label one more notch — Proposals is
+     the only label that pushes the limit. */
+  @media (max-width: 360px) {
+    .mobile-nav .m-item {
+      font-size: 8.5px;
+      letter-spacing: 0.02em;
+    }
   }
 
   .mobile-nav .m-item.active {

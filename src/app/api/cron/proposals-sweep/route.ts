@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { safeError } from '@/lib/pii-scrub'
+import { sendProposalExpiredEmail } from '@/lib/member-email'
 import type { Database } from '@/lib/supabase/types'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveEmail(db: any, memberId: string): Promise<string | null> {
+  const { data: c } = await db.from('member_sensitive').select('email').eq('member_id', memberId).maybeSingle()
+  if (c?.email && c.email.trim().length > 0) return c.email
+  const { data: m } = await db.from('members').select('user_id').eq('id', memberId).maybeSingle()
+  if (!m?.user_id) return null
+  try {
+    const { data: u } = await db.auth.admin.getUserById(m.user_id)
+    return u?.user?.email ?? null
+  } catch { return null }
+}
 
 // Auto-cancel Trip Proposals that haven't hit their commit minimum
 // by the 5-day Tropic confirmation window. Designed for Vercel Cron
@@ -105,9 +118,28 @@ export async function POST(req: NextRequest) {
           body: `"${p.name}" didn't reach its commit minimum. Your card was never charged. ${reason}`,
           ref: { proposal_id: p.id },
         })
+
+        // Branded "no charge" email per committer.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: mr } = await (db as any).from('members').select('name').eq('id', c.member_id).maybeSingle()
+        const memberEmail = await resolveEmail(db, c.member_id)
+        if (memberEmail) {
+          await sendProposalExpiredEmail({
+            to: memberEmail,
+            memberName: mr?.name ?? 'Member',
+            memberId: c.member_id,
+            proposalId: p.id,
+            proposalName: p.name,
+            tripDate: p.date,
+            isProposer: c.member_id === p.proposer_id,
+            reason,
+          })
+        }
       }
 
-      // Proposer gets their own notification.
+      // Proposer gets their own notification + email (if they had no
+      // commit row — unlikely but possible if create's SetupIntent
+      // step failed before the commit insert).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (db as any).from('notifications').insert({
         member_id: p.proposer_id,
@@ -116,6 +148,24 @@ export async function POST(req: NextRequest) {
         body: `"${p.name}" didn't reach its commit minimum. ${reason} No one was charged. Try a different date or rally the network earlier next time.`,
         ref: { proposal_id: p.id },
       })
+      const proposerInCommits = ((commits ?? []) as { member_id: string }[]).some(c => c.member_id === p.proposer_id)
+      if (!proposerInCommits && p.proposer_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: pr } = await (db as any).from('members').select('name').eq('id', p.proposer_id).maybeSingle()
+        const proposerEmail = await resolveEmail(db, p.proposer_id)
+        if (proposerEmail) {
+          await sendProposalExpiredEmail({
+            to: proposerEmail,
+            memberName: pr?.name ?? 'Member',
+            memberId: p.proposer_id,
+            proposalId: p.id,
+            proposalName: p.name,
+            tripDate: p.date,
+            isProposer: true,
+            reason,
+          })
+        }
+      }
 
       expiredIds.push(p.id)
     } catch (err) {

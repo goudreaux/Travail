@@ -3,7 +3,20 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
+import { sendProposalFundedEmail } from '@/lib/member-email'
 import type { Database } from '@/lib/supabase/types'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveEmail(db: any, memberId: string): Promise<string | null> {
+  const { data: c } = await db.from('member_sensitive').select('email').eq('member_id', memberId).maybeSingle()
+  if (c?.email && c.email.trim().length > 0) return c.email
+  const { data: m } = await db.from('members').select('user_id').eq('id', memberId).maybeSingle()
+  if (!m?.user_id) return null
+  try {
+    const { data: u } = await db.auth.admin.getUserById(m.user_id)
+    return u?.user?.email ?? null
+  } catch { return null }
+}
 
 // Ops locks a Trip Proposal: captures every commit's PaymentIntent,
 // creates the real flight/excursion row, links commits → bookings,
@@ -289,7 +302,7 @@ export async function POST(req: NextRequest) {
       bookingId,
     })
 
-    // Per-member notification.
+    // Per-member notification + branded email.
     if (captured) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (db as any).from('notifications').insert({
@@ -299,6 +312,23 @@ export async function POST(req: NextRequest) {
         body: `"${prop.name}" hit its commit minimum. Your card was charged and your seat is confirmed.`,
         ref: { item_kind: prop.kind, item_id: newTripId, booking_id: bookingId, proposal_id: prop.id },
       })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: mr } = await (db as any).from('members').select('name').eq('id', c.member_id).maybeSingle()
+      const memberEmail = await resolveEmail(db, c.member_id)
+      if (memberEmail) {
+        await sendProposalFundedEmail({
+          to: memberEmail,
+          memberName: mr?.name ?? 'Member',
+          memberId: c.member_id,
+          proposalId: prop.id,
+          proposalName: prop.name,
+          tripDate: prop.date,
+          seats,
+          amountCents: amount,
+          isProposer: c.member_id === prop.proposer_id,
+          newTripId,
+        })
+      }
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (db as any).from('notifications').insert({
