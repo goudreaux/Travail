@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { adaptFlight, adaptExcursion, returnLegIds, fmtMoney, airportCity, DisplayFlight, DisplayExcursion } from '@/lib/data'
+import { isPastBookingCutoff } from '@/lib/trip-timing'
 import { KIND_ICONS, Icons } from '@/lib/icons'
 import { SeatMeter } from '@/components/SeatMeter'
 import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'
@@ -282,8 +283,11 @@ export default function FeedPage() {
   // boarding pass.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isPrivate = (t: any) => Boolean(t?.is_private)
-  const openFlights = flights.filter(f => f.status === 'open' && f.date >= today && f.seatsAvailable > 0 && !openRetIds.has(f.id) && !isPrivate(f))
-  const openExcursions = excursions.filter(e => e.status === 'open' && e.date >= today && e.spotsAvailable > 0 && !isPrivate(e))
+  // `date >= today` is date-only; also drop anything inside the 12h booking
+  // cutoff so the panel never advertises a seat that /reserve will reject
+  // (mirrors the /seats board, which already hides past-cutoff trips).
+  const openFlights = flights.filter(f => f.status === 'open' && f.date >= today && f.seatsAvailable > 0 && !openRetIds.has(f.id) && !isPrivate(f) && !isPastBookingCutoff(f.date, f.depart_time))
+  const openExcursions = excursions.filter(e => e.status === 'open' && e.date >= today && e.spotsAvailable > 0 && !isPrivate(e) && !isPastBookingCutoff(e.date, e.depart_time ?? e.start_time))
 
   const filteredOpenItems = [
     ...((typeFilter === 'all' || typeFilter === 'flight') ? openFlights : [])

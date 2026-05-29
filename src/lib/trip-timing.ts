@@ -46,7 +46,10 @@ export function hoursUntilDeparture(date: string, time?: string | null, now: num
   if (!date) return Infinity
   let hh = 8, mm = 0
   if (time) {
-    const m = time.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i)
+    // Tolerate "HH:MM", "H:MM AM/PM", and the "HH:MM:SS" Postgres `time`
+    // columns serialize to — the seconds are optional and ignored. Without
+    // this the gate silently falls back to 8am and can misjudge the cutoff.
+    const m = time.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i)
     if (m) {
       hh = parseInt(m[1], 10)
       mm = parseInt(m[2], 10)
