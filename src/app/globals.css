@@ -1263,7 +1263,7 @@ body::before {
   }
   .feed-hero__topline { margin-bottom: 14px; }
   .feed-hero__date { font-size: 9.5px; }
-  .feed-hero__welcome { font-size: 26px; }
+  .feed-hero__welcome { font-size: 28px; }
   .feed-hero__brief { flex-direction: column; gap: 6px; align-items: flex-start; }
   .feed-hero__brief-text { font-size: 13.5px; line-height: 1.45; }
   .feed-hero__next { padding: 11px 14px; gap: 10px; }
@@ -5171,7 +5171,9 @@ textarea.input {
 
 /* Bigger, bolder headers on mobile so the sections stand out. */
 @media (max-width: 768px) {
-  .section-ttl { font-size: 30px; }
+  /* Match the .feed-hero__welcome greeting size on phones so the
+     feed page's headers stay visually consistent (was 30px). */
+  .section-ttl { font-size: 28px; }
   .section-head { padding: 18px 18px 14px; }
   .section-head__actions { margin-top: 16px; }
   .section-chev { width: 26px; height: 26px; font-size: 20px; }

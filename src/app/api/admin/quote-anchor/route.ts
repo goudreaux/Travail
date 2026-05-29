@@ -90,7 +90,16 @@ export async function POST(req: NextRequest) {
     .eq('id', submissionId)
   if (updErr) {
     safeError('quote-anchor: update failed', updErr)
-    return NextResponse.json({ error: 'Could not save the quote' }, { status: 500 })
+    // Surface the underlying Postgres error so ops can tell apart "column
+    // doesn't exist" (migration not applied) from "status check rejects
+    // 'quoted'" (042 missing) from generic FK / type issues.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const e = updErr as any
+    const detail = e?.message || e?.details || e?.code || JSON.stringify(e)
+    return NextResponse.json(
+      { error: `Could not save the quote — ${detail}` },
+      { status: 500 },
+    )
   }
 
   // Anchor in-app notification (notify-email Edge Function fans this
