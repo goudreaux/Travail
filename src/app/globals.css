@@ -5506,6 +5506,14 @@ textarea.input {
     0 24px 60px -10px rgba(13, 51, 64, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.94);
   animation: confirm-rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Cap to the viewport and scroll internally — without this the Stripe
+     payment element pushes the Pay button off-screen on short screens and
+     the member can't reach it to check out. */
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .reserve-confirm__close {
   position: absolute;
@@ -5543,6 +5551,10 @@ textarea.input {
     border-radius: 18px 18px 0 0;
     padding: 28px 22px calc(24px + env(safe-area-inset-bottom));
     animation: confirm-slide-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* Leave a sliver of dimmed backdrop up top so it reads as a sheet,
+       and scroll the rest (overflow-y inherited from the base rule). */
+    max-height: 92vh;
+    max-height: 92dvh;
   }
   @keyframes confirm-slide-up {
     from { transform: translateY(100%); }

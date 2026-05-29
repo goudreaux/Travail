@@ -204,6 +204,29 @@ export default function ReservePage() {
     return () => { cancelled = true }
   }, [confirmOpen, seats, itemId, kind, piRoundTrip, piReturnId])
 
+  // Make the device/browser Back gesture dismiss the confirm sheet and
+  // return to the reservation builder — not navigate away to the feed.
+  // The card form lives in a modal, which isn't its own history entry, so
+  // without this Back leaves the page entirely. We push a throwaway entry
+  // when the sheet opens; Back pops it (firing popstate) and just closes it.
+  useEffect(() => {
+    if (!confirmOpen) return
+    window.history.pushState({ tvlReserveConfirm: true }, '')
+    const onPop = () => setConfirmOpen(false)
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [confirmOpen])
+
+  // Closing via the × or backdrop unwinds the pushed entry too, so a later
+  // Back doesn't land on a stale history state.
+  const closeConfirm = () => {
+    if (typeof window !== 'undefined' && (window.history.state as { tvlReserveConfirm?: boolean } | null)?.tvlReserveConfirm) {
+      window.history.back()
+    } else {
+      setConfirmOpen(false)
+    }
+  }
+
   async function joinWaitlist() {
     if (!member) return
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1255,14 +1278,14 @@ export default function ReservePage() {
           className="reserve-confirm"
           role="dialog"
           aria-modal="true"
-          onClick={(e) => { if (e.target === e.currentTarget) setConfirmOpen(false) }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeConfirm() }}
         >
           <div className="reserve-confirm__sheet">
             <button
               type="button"
               className="reserve-confirm__close"
               aria-label="Close"
-              onClick={() => setConfirmOpen(false)}
+              onClick={closeConfirm}
             >
               ×
             </button>
