@@ -182,7 +182,7 @@ export default function EnvelopeSplash({
             </text>
             {/* Sub */}
             <text x="150" y="244" fill="#5a6f73" fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace" fontSize="9.5" letterSpacing="2.4">
-              MEMBERS CLUB · EST. 2025
+              MEMBERS CLUB · EST. 2026
             </text>
             {/* Bottom rule */}
             <line x1="150" y1="290" x2="450" y2="290" stroke="#e3d4ad" strokeWidth="1" />
