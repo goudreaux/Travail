@@ -18,7 +18,8 @@ export default function OnboardingPage() {
   const router = useRouter()
 
   const [status, setStatus] = useState<'loading' | 'ready' | 'invalid'>('loading')
-  const [phase, setPhase] = useState<Phase>('intro')
+  // Envelope splash disabled for now — start straight on the form (no animation).
+  const [phase, setPhase] = useState<Phase>('form')
   const [member, setMember] = useState<Member | null>(null)
   const [name, setName] = useState('')
   const [homeBase, setHomeBase] = useState(HOME_BASES[0])
