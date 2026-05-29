@@ -69,19 +69,19 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
     // they can still reach ops.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const status = (memberData as any).subscription_status ?? null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stripeCustomerId = (memberData as any).stripe_customer_id ?? null
     const OK_STATUSES = ['active', 'trialing', 'incomplete', 'past_due', 'unpaid']
     const exemptPaths = ['/membership', '/contact']
     const isExempt = exemptPaths.some(p => pathname === p || pathname.startsWith(p + '/'))
-    const shouldBounce = !memberData.is_admin && !OK_STATUSES.includes(status) && !isExempt
-    // Diagnostic — remove once we've confirmed the gate is firing in prod.
-    console.log('[sub-gate]', {
-      pathname,
-      memberId: memberData.id,
-      is_admin: memberData.is_admin,
-      status,
-      isExempt,
-      shouldBounce,
-    })
+    // Admins are normally exempt from the subscription wall so ops
+    // accounts don't get trapped — but if an admin has NEVER had a
+    // Stripe customer (no billing history at all), bounce them once
+    // so they're routed through the subscribe flow. After they
+    // complete it (or even start one and cancel), stripe_customer_id
+    // is set and they get the standard admin exemption back.
+    const adminNeedsBilling = memberData.is_admin && !stripeCustomerId && !OK_STATUSES.includes(status)
+    const shouldBounce = (!memberData.is_admin || adminNeedsBilling) && !OK_STATUSES.includes(status) && !isExempt
     if (shouldBounce) {
       router.push('/onboarding/subscribe')
       return
