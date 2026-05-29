@@ -3989,6 +3989,65 @@ textarea.input {
   .admin-aside { display: none !important; }
   .admin-page { padding: 18px 16px; }
 
+  /* ── Ops queue rows on mobile ───────────────────────────────────
+     The queue uses a tight 6-column horizontal layout on desktop
+     (caret · time · member · kind+name · seats · actions). On
+     phones that gets squeezed: the action buttons get cut off,
+     route codes wrap one letter per line, and seat counts crowd
+     the date. Stack the row vertically and let each cluster reflow
+     on its own line. */
+  .q-row {
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    gap: 8px 10px !important;
+    padding: 12px 14px !important;
+  }
+  /* All the "fixed-width" columns (member, seats, actions, etc.)
+     can grow on mobile — drop the minWidth constraints inline
+     styles set. */
+  .q-row > div { min-width: 0 !important; }
+  /* The time-ago cell stays small in the corner. */
+  .q-row > div:first-child + div { min-width: 32px !important; }
+  /* Member name cluster: let it fill the row beside the caret/time. */
+  .q-row--anchor > div:nth-child(3),
+  .q-row--booking > div:nth-child(3) {
+    flex: 1 1 100%;
+  }
+  /* Kind + trip name + route — gets its own full-width line. */
+  .q-row--anchor > div:nth-child(4),
+  .q-row--booking > div:nth-child(4) {
+    flex: 1 1 100%;
+    order: 5;
+  }
+  /* Seats / spots cell — float left of the actions row. */
+  .q-row--anchor > div:nth-child(5),
+  .q-row--booking > div:nth-child(5) {
+    flex: 0 0 auto;
+    order: 6;
+    text-align: left !important;
+    min-width: 0 !important;
+  }
+  /* Action buttons — full width, wrap to next line, stretch. */
+  .q-row--anchor > div:last-child,
+  .q-row--booking > div:last-child,
+  .q-row--cancel  > div:last-child,
+  .q-row--waitlist > div:last-child {
+    flex: 1 1 100%;
+    order: 7;
+    justify-content: flex-end;
+  }
+  .q-row--anchor > div:last-child button,
+  .q-row--booking > div:last-child button,
+  .q-row--cancel  > div:last-child button,
+  .q-row--waitlist > div:last-child button {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  /* Date/route stops trying to wrap KTPF→STR one letter at a time. */
+  .q-row .mono, .q-row [style*="var(--mono)"] {
+    white-space: normal;
+  }
+
   /* Declutter the top bar on phones */
   .topbar .search { display: none; }
   .signout-label { display: none; }

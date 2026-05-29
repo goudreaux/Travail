@@ -816,6 +816,7 @@ export default function QueuePage() {
                   transition: 'border-color 0.15s',
                 }}>
                   <div
+                    className="q-row q-row--booking"
                     style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}
                     onClick={() => setExpanded(expanded === b.id ? null : b.id)}
                   >
@@ -967,7 +968,7 @@ export default function QueuePage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {cancellations.map(c => (
-              <div key={c.id} style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div key={c.id} className="q-row q-row--cancel" style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{ flexShrink: 0, fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: waitColor(c.created_at), minWidth: 38 }}>{timeAgo(c.created_at)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{c.memberName}</div>
@@ -1000,7 +1001,7 @@ export default function QueuePage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {waitlistRows.map(w => (
-              <div key={w.id} style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div key={w.id} className="q-row q-row--waitlist" style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{ flexShrink: 0, fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-light)', minWidth: 38 }}>{timeAgo(w.created_at)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{w.memberName}</div>
@@ -1053,6 +1054,7 @@ export default function QueuePage() {
                 }}>
                   {/* Row */}
                   <div
+                    className="q-row q-row--anchor"
                     style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}
                     onClick={() => openAnchor(a)}
                   >
