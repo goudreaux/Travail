@@ -270,13 +270,21 @@ export default function MembersPage() {
     }
   }
 
-  async function inviteRow(m: Member) {
+  async function inviteRow(m: Member, reinvite = false) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: sens } = await (supabase as any).rpc('admin_get_member_sensitive', { target_id: m.id })
     const email = Array.isArray(sens) && sens[0] ? sens[0].email : null
     if (!email) { showToast('Add an email for this member first', 'error'); return }
+    // Re-inviting a member who already has a login resets that login so they
+    // walk back through onboarding (set a new password + profile). Confirm it.
+    if (reinvite && !confirm(
+      `Send ${m.name} a fresh onboarding invite?\n\nThis resets their current login — they'll set a new password and complete onboarding from the link in their email (${email}).`
+    )) return
     const err = await sendInvite(m.id, email)
-    showToast(err ? `Invite failed: ${err}` : `Invite emailed to ${email}`, err ? 'error' : 'success')
+    showToast(
+      err ? `Invite failed: ${err}` : `Onboarding invite emailed to ${email}`,
+      err ? 'error' : 'success',
+    )
     if (!err) load()
   }
 
@@ -735,14 +743,26 @@ export default function MembersPage() {
                   </td>
                   <td onClick={e => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'inline-flex', gap: 6 }}>
-                      {(!m.user_id || m.user_id === PLACEHOLDER_USER_ID) && contactPresence[m.id]?.has_email && (
-                        <button
-                          className="btn-ghost"
-                          style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--tropic-d)', borderColor: 'rgba(0,179,199,0.3)' }}
-                          onClick={() => inviteRow(m)}
-                        >
-                          Invite
-                        </button>
+                      {contactPresence[m.id]?.has_email && (
+                        (!m.user_id || m.user_id === PLACEHOLDER_USER_ID) ? (
+                          <button
+                            className="btn-ghost"
+                            style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--tropic-d)', borderColor: 'rgba(0,179,199,0.3)' }}
+                            title="Email an onboarding invite — they set a password and complete their profile"
+                            onClick={() => inviteRow(m)}
+                          >
+                            Invite
+                          </button>
+                        ) : (
+                          <button
+                            className="btn-ghost"
+                            style={{ height: 28, padding: '0 10px', fontSize: 12 }}
+                            title="Reset this member's login and send a fresh onboarding invite"
+                            onClick={() => inviteRow(m, true)}
+                          >
+                            Re-invite
+                          </button>
+                        )
                       )}
                       <button
                         className="btn-ghost"

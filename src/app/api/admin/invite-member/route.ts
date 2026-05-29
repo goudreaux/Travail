@@ -3,10 +3,22 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
 
-// Admin-only: email a Supabase invite to a pre-created member and link the new
-// auth user to their member record. Requires SUPABASE_SERVICE_ROLE_KEY on the
-// server and Supabase email/SMTP configured (with /onboarding in the redirect
-// allowlist).
+// Admin-only: email a true Supabase INVITE to a member and link the new auth
+// user to their member record. An invite (type=invite) lands the recipient on
+// /onboarding to set a password and complete their profile — that is the one
+// and only flow this route produces.
+//
+// The tricky case is an email that already exists in auth.users — e.g. from a
+// prior invite/test, or a member whose login we want to reset and send back
+// through onboarding. Supabase refuses to invite an address that already
+// exists, so rather than fall back to a password-RESET email (which drops the
+// recipient on the reset-password screen, not onboarding), we delete the stale
+// auth user and send a fresh invite. members.user_id is `on delete set null`
+// (migration 001), so deleting the auth user only UNLINKS it — the member row,
+// profile, and bookings all survive — and we relink to the new auth user below.
+//
+// Requires SUPABASE_SERVICE_ROLE_KEY on the server and Supabase email/SMTP
+// configured (with /onboarding in the redirect allowlist).
 export async function POST(request: NextRequest) {
   let body: { memberId?: string; email?: string }
   try {
@@ -39,59 +51,71 @@ export async function POST(request: NextRequest) {
   )
 
   const redirectTo = `${request.nextUrl.origin}/onboarding`
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo })
 
-  if (error) {
-    // The most common failure mode: the auth user already exists from a
-    // prior invite/signup that was later deleted from public.members but
-    // not from auth.users. Supabase refuses the invite — the email is
-    // already registered — so we transparently fall back to a recovery
-    // (password-reset) email, which works for existing auth users and
-    // also drops them on /onboarding to walk through profile setup.
-    const msg = (error.message ?? '').toLowerCase()
-    const alreadyExists = msg.includes('already') && (msg.includes('registered') || msg.includes('exist'))
-
-    if (!alreadyExists) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+  // Sends a true invite and links the resulting auth user to the member row.
+  async function inviteAndLink(): Promise<NextResponse> {
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(email!, { redirectTo })
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    if (data.user) {
+      const { error: linkErr } = await admin.from('members').update({ user_id: data.user.id }).eq('id', memberId!)
+      if (linkErr) return NextResponse.json({ error: `Invite sent but linking failed: ${linkErr.message}` }, { status: 500 })
     }
+    return NextResponse.json({ ok: true, mode: 'invite' })
+  }
 
-    // Look up the existing auth user so we can link them to the new
-    // member row, then trigger the recovery email.
-    let authUserId: string | null = null
-    try {
-      // listUsers paginates; the founder cohort is small so the first
-      // page is enough. If the cohort grows past a thousand we'll need
-      // to filter server-side.
-      const { data: list } = await admin.auth.admin.listUsers({ perPage: 200 })
+  // Happy path: brand-new email — invite succeeds outright.
+  const first = await admin.auth.admin.inviteUserByEmail(email, { redirectTo })
+  if (!first.error) {
+    if (first.data.user) {
+      const { error: linkErr } = await admin.from('members').update({ user_id: first.data.user.id }).eq('id', memberId)
+      if (linkErr) return NextResponse.json({ error: `Invite sent but linking failed: ${linkErr.message}` }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true, mode: 'invite' })
+  }
+
+  // Any error other than "already registered" is a real failure.
+  const msg = (first.error.message ?? '').toLowerCase()
+  const alreadyExists = msg.includes('already') && (msg.includes('registered') || msg.includes('exist'))
+  if (!alreadyExists) {
+    return NextResponse.json({ error: first.error.message }, { status: 400 })
+  }
+
+  // The email already has an auth user. Find it so we can clear it and send a
+  // clean invite. listUsers paginates; the member cohort is small, so the first
+  // few pages cover it. (If it ever grows past this, switch to a server-side
+  // filtered lookup.)
+  let existingId: string | null = null
+  try {
+    for (let page = 1; page <= 5 && !existingId; page++) {
+      const { data: list } = await admin.auth.admin.listUsers({ page, perPage: 200 })
       const match = list?.users?.find(u => (u.email ?? '').toLowerCase() === email.toLowerCase())
-      authUserId = match?.id ?? null
-    } catch (e) {
-      return NextResponse.json({
-        error: `User exists in auth but lookup failed: ${(e as Error).message}`,
-      }, { status: 500 })
+      if (match) existingId = match.id
+      if (!list || list.users.length < 200) break
     }
-
-    if (authUserId) {
-      const { error: linkErr } = await admin.from('members').update({ user_id: authUserId }).eq('id', memberId)
-      if (linkErr) {
-        return NextResponse.json({ error: `Linking existing auth user failed: ${linkErr.message}` }, { status: 500 })
-      }
-    }
-
-    // Send a recovery link. Supabase ships it via the configured SMTP /
-    // email provider using the "Reset Password" template.
-    const { error: recoveryErr } = await admin.auth.resetPasswordForEmail(email, { redirectTo })
-    if (recoveryErr) {
-      return NextResponse.json({ error: `Recovery email failed: ${recoveryErr.message}` }, { status: 400 })
-    }
-    return NextResponse.json({ ok: true, mode: 'recovery' })
+  } catch (e) {
+    return NextResponse.json({ error: `User exists in auth but lookup failed: ${(e as Error).message}` }, { status: 500 })
+  }
+  if (!existingId) {
+    // Supabase says it exists but we couldn't find it (e.g. cohort beyond the
+    // pages scanned). Surface a clear, actionable message rather than guessing.
+    return NextResponse.json({
+      error: 'That email already has a login but it could not be located to reset. Remove it in Supabase → Authentication → Users, then re-invite.',
+    }, { status: 409 })
   }
 
-  // Fresh invite path — link the new auth user to the member row.
-  if (data.user) {
-    const { error: linkErr } = await admin.from('members').update({ user_id: data.user.id }).eq('id', memberId)
-    if (linkErr) return NextResponse.json({ error: `Invite sent but linking failed: ${linkErr.message}` }, { status: 500 })
+  // Guard: refuse to hijack an email that belongs to a DIFFERENT member.
+  const { data: linkedMember } = await admin
+    .from('members').select('id, name').eq('user_id', existingId).maybeSingle()
+  if (linkedMember && (linkedMember as { id: string }).id !== memberId) {
+    return NextResponse.json({
+      error: `That email already belongs to another member (${(linkedMember as { name: string }).name}). Use a different email.`,
+    }, { status: 409 })
   }
 
-  return NextResponse.json({ ok: true, mode: 'invite' })
+  // Clear the stale login (FK `on delete set null` just unlinks it) and invite fresh.
+  const { error: delErr } = await admin.auth.admin.deleteUser(existingId)
+  if (delErr) {
+    return NextResponse.json({ error: `Could not reset the existing login: ${delErr.message}` }, { status: 400 })
+  }
+  return inviteAndLink()
 }
