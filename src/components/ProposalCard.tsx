@@ -124,6 +124,9 @@ export function ProposalDeadlineTag({ expiresAt }: { expiresAt: string }) {
 
   const critical = hours <= 24
 
+  // Subtle red-toned chip — soft tinted fill + red ink rather than a
+  // loud solid pill. Escalates only slightly when it's down to the last
+  // day (deeper red, faint fade) so it draws the eye without shouting.
   return (
     <span style={{
       display: 'inline-flex',
@@ -134,21 +137,19 @@ export function ProposalDeadlineTag({ expiresAt }: { expiresAt: string }) {
       fontWeight: 700,
       letterSpacing: '0.14em',
       textTransform: 'uppercase',
-      color: '#fff',
-      background: critical
-        ? 'linear-gradient(135deg, #e8512f 0%, #d94e2a 100%)'
-        : 'linear-gradient(135deg, #f4a72c 0%, #e09418 100%)',
-      padding: '3px 8px',
+      color: critical ? '#c0341a' : '#c4452b',
+      background: critical ? 'rgba(217,78,42,0.12)' : 'rgba(217,78,42,0.07)',
+      border: `1px solid ${critical ? 'rgba(217,78,42,0.32)' : 'rgba(217,78,42,0.18)'}`,
+      padding: '2.5px 7px',
       borderRadius: 5,
-      boxShadow: critical ? '0 1px 4px rgba(217,78,42,0.45)' : '0 1px 4px rgba(224,148,24,0.35)',
-      animation: critical ? 'deadline-pulse 1.4s ease-in-out infinite' : undefined,
+      animation: critical ? 'deadline-fade 1.8s ease-in-out infinite' : undefined,
       whiteSpace: 'nowrap',
     }}>
       ⏳ {label}
       <style>{`
-        @keyframes deadline-pulse {
-          0%,100% { transform: scale(1); }
-          50%     { transform: scale(1.04); }
+        @keyframes deadline-fade {
+          0%,100% { opacity: 1; }
+          50%     { opacity: 0.6; }
         }
       `}</style>
     </span>
