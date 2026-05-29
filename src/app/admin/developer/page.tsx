@@ -1,9 +1,62 @@
 'use client'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import stats from '@/lib/code-stats.json'
 import { MemberStatsPanel } from './MemberStatsPanel'
 import { EnvelopePreviewPanel } from './EnvelopePreviewPanel'
 import { BookingSplashPreviewPanel } from './BookingSplashPreviewPanel'
+
+// Reusable collapsible header — same hit area + chevron rotation pattern
+// as the section-panel on the member feed. Tap anywhere on the header
+// row to toggle. The badge slot is optional ("at N lines" or counts).
+function CollapsibleHead({
+  title,
+  open,
+  onToggle,
+  badge,
+}: {
+  title: React.ReactNode
+  open: boolean
+  onToggle: () => void
+  badge?: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className="panel-head"
+      style={{
+        width: '100%',
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        textAlign: 'left',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+      }}
+    >
+      <h3 style={{ margin: 0 }}>{title}</h3>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {badge}
+        <span
+          aria-hidden
+          style={{
+            display: 'inline-block',
+            fontSize: 16,
+            color: 'var(--ink-light)',
+            transition: 'transform 0.18s',
+            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+          }}
+        >
+          ▾
+        </span>
+      </span>
+    </button>
+  )
+}
 
 // Tech-company comparison rows for the "How we stack up" panel. Numbers
 // are deliberately approximate / well-known — the point is perspective,
@@ -53,6 +106,20 @@ export default function DeveloperDashboard() {
   const days = daysBetween(stats.firstCommitISO, stats.lastCommit.iso)
   const linesPerDay = Math.round(t.totalLines / days)
   const commitsPerDay = (t.commits / days).toFixed(1)
+  // Both heavyweight panels default to closed on mobile (≤ 720px) and
+  // open on desktop. Server-render assumes open so the markup is
+  // stable; an effect collapses them on mount if the viewport is
+  // narrow. Admins can toggle anytime via the header chevron.
+  const [stackOpen, setStackOpen] = useState(true)
+  const [memberStatsOpen, setMemberStatsOpen] = useState(true)
+  useEffect(() => {
+    if (window.matchMedia?.('(max-width: 720px)').matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStackOpen(false)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMemberStatsOpen(false)
+    }
+  }, [])
 
   // "If you typed this out" — assumes 60wpm ≈ 300 chars/min, ~40 chars/line.
   const typingMinutes = Math.round((t.totalLines * 40) / 300)
@@ -104,11 +171,13 @@ export default function DeveloperDashboard() {
 
         {/* Comparisons */}
         <div className="panel" style={{ marginBottom: 24 }}>
-          <div className="panel-head">
-            <h3>How we stack up</h3>
-            <span className="mono" style={{ fontSize: 9.5 }}>at {nf(t.totalLines)} lines</span>
-          </div>
-          <div style={{ padding: '4px 0' }}>
+          <CollapsibleHead
+            title="How we stack up"
+            open={stackOpen}
+            onToggle={() => setStackOpen(o => !o)}
+            badge={<span className="mono" style={{ fontSize: 9.5 }}>at {nf(t.totalLines)} lines</span>}
+          />
+          <div style={{ padding: '4px 0', display: stackOpen ? 'block' : 'none' }}>
             {COMPARISONS.map(c => {
               const ratio = t.totalLines / c.lines
               const ahead = ratio >= 1
@@ -208,7 +277,11 @@ export default function DeveloperDashboard() {
         <EnvelopePreviewPanel />
         <BookingSplashPreviewPanel />
 
-        <MemberStatsPanel />
+        <MemberStatsPanel
+          collapsible
+          open={memberStatsOpen}
+          onToggle={() => setMemberStatsOpen(o => !o)}
+        />
 
         <div style={{ marginTop: 28 }}>
           <Link href="/admin" className="mono" style={{ fontSize: 10.5, color: 'var(--ink-mid)' }}>
