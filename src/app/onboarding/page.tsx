@@ -43,6 +43,12 @@ export default function OnboardingPage() {
   // Verify the invite and load the member behind the scenes while the envelope plays.
   useEffect(() => {
     async function init() {
+      // Capture the URL hash up front. Implicit invite/recovery links carry the
+      // session in the hash (#access_token=&refresh_token=), and Supabase's
+      // detectSessionInUrl clears it the moment any auth call runs — so we grab
+      // it before the getUser() below can wipe it out from under us.
+      const initialHash = typeof window !== 'undefined' ? window.location.hash : ''
+
       // The invite link lands here with credentials. Support PKCE (?code=),
       // OTP (?token_hash=&type=), and implicit (#access_token=) link formats.
       //
@@ -91,8 +97,22 @@ export default function OnboardingPage() {
             // first attempt. Fine as long as that first click's session is
             // still alive; we fall through to the session check below.
           }
+        } else {
+          // Implicit link: the session lives in the hash. Establish it
+          // explicitly rather than trusting detectSessionInUrl, which can race
+          // the getUser() check below or get tripped up by a www↔apex redirect
+          // — either of which dead-ends a valid invite on the "fresh link"
+          // screen. setSession from the captured tokens is deterministic.
+          const hp = new URLSearchParams(initialHash.replace(/^#/, ''))
+          const accessToken = hp.get('access_token')
+          const refreshToken = hp.get('refresh_token')
+          if (accessToken && refreshToken) {
+            if (existingIsAdmin) {
+              await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+            }
+            await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).catch(() => {})
+          }
         }
-        // (implicit hash tokens are picked up automatically by detectSessionInUrl)
       } catch { /* fall through to the session check */ }
 
       const { data: { user } } = await supabase.auth.getUser()
