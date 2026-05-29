@@ -198,7 +198,7 @@ function FlightCard({
           {flight.name || `${flight.origin_code}–${flight.dest_code}`}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span className="trip-card__price">{fmtMoney(flight.price_per_seat)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/seat</span></span>
+          <span className="trip-card__price">{fmtMoney(flight.price_per_seat)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/seat · +3% fee</span></span>
           <CtaButton available={flight.seatsAvailable} waitlisted={waitlisted} onBook={onCTA} onWaitlist={onWaitlist} label="Take seat →" accent={colors.dot} />
         </div>
       </div>
@@ -266,7 +266,7 @@ function RoundTripCard({
           {outbound.name || `${outbound.origin_code}–${outbound.dest_code}`} · round trip
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span className="trip-card__price">{fmtMoney(combined)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/seat round trip</span></span>
+          <span className="trip-card__price">{fmtMoney(combined)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/seat round trip · +3% fee</span></span>
           <CtaButton available={seatsLeft} waitlisted={waitlisted} onBook={onCTA} onWaitlist={onWaitlist} label="Take seat →" accent={colors.dot} />
         </div>
       </div>
@@ -356,7 +356,7 @@ function ExcursionCard({
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {(excursion.price_per_pax || excursion.templateMeta?.price_per_pax) ? (
-            <span className="trip-card__price">{fmtMoney(excursion.price_per_pax || excursion.templateMeta?.price_per_pax || 0)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/person</span></span>
+            <span className="trip-card__price">{fmtMoney(excursion.price_per_pax || excursion.templateMeta?.price_per_pax || 0)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/person · +3% fee</span></span>
           ) : null}
           <CtaButton available={excursion.spotsAvailable} waitlisted={waitlisted} onBook={onCTA} onWaitlist={onWaitlist} label="Reserve spot →" accent={colors.dot} />
         </div>

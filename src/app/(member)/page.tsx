@@ -924,16 +924,16 @@ function EmptyTripsNeg({ memberId, onPlan }: { memberId: string | null; onPlan: 
   const neg = EMPTY_TRIP_NEGS[h % EMPTY_TRIP_NEGS.length]
 
   return (
-    <div className="empty" style={{ padding: '36px 20px 32px', textAlign: 'center' }}>
-      {/* Luggage icon — matches the My Trips entry in the mobile nav
-          so the empty-state and the nav read as one surface. */}
-      <span style={{ display: 'inline-block', opacity: 0.5, transform: 'scale(1.9)', color: 'var(--ink-light)' }} aria-hidden>
+    <div className="empty" style={{ padding: '18px 20px 16px', textAlign: 'center' }}>
+      {/* Compact empty state (F11) — with no upcoming trips this used to eat
+          the whole first screen and push Open Seats below the fold. */}
+      <span style={{ display: 'inline-block', opacity: 0.5, transform: 'scale(1.2)', color: 'var(--ink-light)' }} aria-hidden>
         {Icons.luggage}
       </span>
-      <h3 style={{ marginTop: 12, fontFamily: 'var(--display)', fontStyle: 'italic', fontWeight: 500 }}>
+      <h3 style={{ marginTop: 8, fontFamily: 'var(--display)', fontStyle: 'italic', fontWeight: 500 }}>
         {neg.headline}
       </h3>
-      <p style={{ maxWidth: 360, margin: '6px auto 18px', lineHeight: 1.55 }}>
+      <p style={{ maxWidth: 360, margin: '4px auto 12px', lineHeight: 1.5, fontSize: 13 }}>
         {neg.sub}
       </p>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>

@@ -25,6 +25,9 @@ export default function OnboardingPage() {
   const [interests, setInterests] = useState<string[]>([])
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  // Older members can't reliably type a password they can't see, especially
+  // with a re-confirm. Let them reveal both fields. (F5)
+  const [showPw, setShowPw] = useState(false)
 
   const toggleInterest = (t: string) =>
     setInterests(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])
@@ -310,11 +313,18 @@ export default function OnboardingPage() {
 
                 <div className="field">
                   <label className="field-lab">Password <span className="req">*</span></label>
-                  <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" />
+                  <input className="input" type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" autoComplete="new-password" />
                 </div>
                 <div className="field">
                   <label className="field-lab">Confirm password <span className="req">*</span></label>
-                  <input className="input" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-enter password" />
+                  <input className="input" type={showPw ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-enter password" autoComplete="new-password" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw(s => !s)}
+                    style={{ background: 'none', border: 'none', padding: '6px 2px 0', color: 'var(--tropic-d)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    {showPw ? 'Hide passwords' : 'Show passwords'}
+                  </button>
                 </div>
 
                 {error && (

@@ -21,6 +21,7 @@ export default function ResetPasswordPage() {
   const [status, setStatus] = useState<Status>('verifying')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [showPw, setShowPw] = useState(false) // let members reveal what they type (F5)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -121,7 +122,7 @@ export default function ResetPasswordPage() {
                 <label className="field-lab">New password <span className="req">*</span></label>
                 <input
                   className="input"
-                  type="password"
+                  type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
@@ -133,12 +134,19 @@ export default function ResetPasswordPage() {
                 <label className="field-lab">Confirm new password <span className="req">*</span></label>
                 <input
                   className="input"
-                  type="password"
+                  type={showPw ? 'text' : 'password'}
                   value={confirm}
                   onChange={e => setConfirm(e.target.value)}
                   placeholder="Re-enter password"
                   autoComplete="new-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPw(s => !s)}
+                  style={{ background: 'none', border: 'none', padding: '6px 2px 0', color: 'var(--tropic-d)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {showPw ? 'Hide passwords' : 'Show passwords'}
+                </button>
               </div>
 
               {error && (

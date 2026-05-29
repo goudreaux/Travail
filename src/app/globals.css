@@ -5373,7 +5373,9 @@ textarea.input {
      image on top, form scrolls below. No sticky parallax (it was visually
      unstable on iOS). Mobile .page-view pads 16px so we pull back by -16px. */
   .reserve-hero {
-    height: 290px;
+    /* Was 290px — on a phone that plus the header filled the whole first
+       screen, burying the itinerary and CTA (F13). Keep it a banner. */
+    height: 180px;
     border-radius: 0;
     box-shadow: none;
     /* Negative margins shift the left edge to the viewport but don't grow

@@ -366,6 +366,17 @@ export default function ReservePage() {
     : 0
   const isFull = !loading && maxSeats <= 0
 
+  // Member-bookable capacity (excludes anchor-held seats) so we can show how
+  // many seats the trip actually has, not just the picker (F15).
+  const bookableTotal = flight
+    ? (returnFlight
+        ? Math.min(flight.seats_total - flight.seats_anchor, returnFlight.seats_total - returnFlight.seats_anchor)
+        : flight.seats_total - flight.seats_anchor)
+    : excursion
+    ? excursion.spots_total - excursion.spots_anchor
+    : 0
+  const unitWord = kind === 'flight' ? 'seat' : 'spot'
+
   // Booking cutoff — surface it BEFORE the member fills out the whole flow.
   // The payment endpoint enforces the same 12h gate server-side; checking it
   // here (for both legs of a round trip) means we never let someone build a
@@ -1017,6 +1028,11 @@ export default function ReservePage() {
                   2 · {kind === 'flight' ? 'Seats' : 'Spots'}
                 </span>
               </div>
+              {maxSeats > 0 && bookableTotal > 0 && (
+                <div style={{ fontSize: 11.5, color: 'var(--ink-light)', fontFamily: 'var(--mono)', letterSpacing: '0.04em', margin: '0 0 8px' }}>
+                  {maxSeats} of {bookableTotal} {bookableTotal === 1 ? unitWord : `${unitWord}s`} open
+                </div>
+              )}
               <div className="chips">
                 {Array.from({ length: Math.min(maxSeats, 8) }, (_, i) => i + 1).map(n => (
                   <button
@@ -1230,6 +1246,14 @@ export default function ReservePage() {
               }}>
                 {error}
               </div>
+            )}
+
+            {/* Why-disabled hint — without this the Reserve button just sits
+                greyed out with no explanation when a guest slot is unfilled (F21). */}
+            {seats > 1 && !guestsComplete && (
+              <p style={{ fontSize: 12.5, color: 'var(--sun-d)', fontWeight: 600, margin: '0 0 -2px' }}>
+                Register a guest for each added seat to continue — every seat needs a passenger.
+              </p>
             )}
 
             {/* Desktop CTA — sticky bar handles mobile. Opens the confirm sheet. */}
