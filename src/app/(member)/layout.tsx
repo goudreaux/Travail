@@ -69,32 +69,11 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
       return
     }
 
-    // Subscription wall — any non-admin without an active sub gets bounced
-    // to /onboarding/subscribe. Single source of truth, covers fresh
-    // invites, recovery links, returning members whose sub lapsed, etc.
-    // The /membership page is exempt so cancelled members can hit the
-    // "Start membership" button to resubscribe; /contact is exempt so
-    // they can still reach ops.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const status = (memberData as any).subscription_status ?? null
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const stripeCustomerId = (memberData as any).stripe_customer_id ?? null
-    const OK_STATUSES = ['active', 'trialing', 'incomplete', 'past_due', 'unpaid']
-    const exemptPaths = ['/membership', '/contact']
-    const isExempt = exemptPaths.some(p => pathname === p || pathname.startsWith(p + '/'))
-    // Admins are normally exempt from the subscription wall so ops
-    // accounts don't get trapped — but if an admin has NEVER had a
-    // Stripe customer (no billing history at all), bounce them once
-    // so they're routed through the subscribe flow. After they
-    // complete it (or even start one and cancel), stripe_customer_id
-    // is set and they get the standard admin exemption back.
-    const adminNeedsBilling = memberData.is_admin && !stripeCustomerId && !OK_STATUSES.includes(status)
-    const shouldBounce = (!memberData.is_admin || adminNeedsBilling) && !OK_STATUSES.includes(status) && !isExempt
-    if (shouldBounce) {
-      router.push('/onboarding/subscribe')
-      return
-    }
-
+    // Browse-first model (F6): invited members can explore the whole app
+    // without a subscription — the membership is "pay to book", not "pay to
+    // look". Booking is still gated server-side (assertCanBook → 402 on the
+    // payment/commit routes) and nudged by <SubscriptionBanner>, so we no
+    // longer bounce non-subscribers to /onboarding/subscribe from here.
     setMember(memberData)
 
     const today = new Date().toISOString().slice(0, 10)

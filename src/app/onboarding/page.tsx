@@ -171,10 +171,11 @@ export default function OnboardingPage() {
           .eq('id', member.id)
         if (upErr) throw upErr
       }
-      // After password + profile are set, collect the founder-rate
-      // subscription before dropping them into the app. The subscribe
-      // page is gated to admins-only for the skip path.
-      router.push('/onboarding/subscribe')
+      // Browse-first (F6): drop them straight into the app once password +
+      // profile are set — no forced subscribe step. They can explore, and
+      // the membership banner / booking flow prompts them to subscribe when
+      // they're ready to actually book.
+      router.push('/')
     } catch (e: unknown) {
       setError((e as Error).message ?? 'Something went wrong. Please try again.')
     } finally {

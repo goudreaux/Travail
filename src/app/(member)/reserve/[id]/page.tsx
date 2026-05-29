@@ -44,6 +44,19 @@ function formatPhone(v: string): string {
   return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`
 }
 
+// Guard the guest DOB against the "absolute nonsense" the form used to
+// accept (future dates, impossible ages). DOB feeds the flight manifest,
+// so it has to be a real, plausible past date. (F22)
+function validateDob(dob: string): string | null {
+  const d = new Date(dob + 'T00:00:00')
+  if (Number.isNaN(d.getTime())) return 'Enter a valid date of birth.'
+  const now = new Date()
+  if (d.getTime() > now.getTime()) return 'Date of birth can’t be in the future.'
+  const years = (now.getTime() - d.getTime()) / (365.25 * 24 * 3600 * 1000)
+  if (years > 120) return 'Enter a valid date of birth.'
+  return null
+}
+
 function addMins(t: string | null, mins: number): string {
   if (!t) return '—'
   const [h, m] = t.split(':').map(Number)
@@ -145,6 +158,9 @@ export default function ReservePage() {
   const [legBreakdown, setLegBreakdown] = useState<Array<{ itemId: string; totalCents: number }>>([])
   const [piLoading, setPiLoading] = useState(false)
   const [piError, setPiError] = useState<string | null>(null)
+  // 402 from the payment route → member has no active membership. Browse-first
+  // (F6): prompt them to subscribe rather than showing a dead error.
+  const [piNeedsSub, setPiNeedsSub] = useState(false)
   const [rosterPublic, setRosterPublic] = useState(true)
   const [roster, setRoster] = useState<RosterEntry[]>([])
   const [wlJoined, setWlJoined] = useState(false)
@@ -164,11 +180,13 @@ export default function ReservePage() {
       setPaymentTotalCents(null)
       setLegBreakdown([])
       setPiError(null)
+      setPiNeedsSub(false)
       return
     }
     let cancelled = false
     setPiLoading(true)
     setPiError(null)
+    setPiNeedsSub(false)
     ;(async () => {
       try {
         const res = await fetch('/api/bookings/payment-intent', {
@@ -185,6 +203,7 @@ export default function ReservePage() {
         const json = await res.json()
         if (cancelled) return
         if (!res.ok || !json.clientSecret) {
+          if (res.status === 402) { setPiNeedsSub(true); return }
           setPiError(json.error ?? 'Could not start payment')
           return
         }
@@ -332,7 +351,11 @@ export default function ReservePage() {
     const s = guestSlots[i]
     if (!s.first_name.trim() || !s.last_name.trim()) { setError('Enter a first and last name for the guest.'); return }
     if (!s.date_of_birth) { setError('Enter the guest’s date of birth.'); return }
-    if (s.phone.replace(/\D/g, '').length !== 10) { setError('Enter a 10-digit phone number for the guest.'); return }
+    const dobErr = validateDob(s.date_of_birth)
+    if (dobErr) { setError(dobErr); return }
+    const digits = s.phone.replace(/\D/g, '')
+    if (digits.length !== 10) { setError('Enter a 10-digit phone number for the guest.'); return }
+    if (/^(\d)\1{9}$/.test(digits)) { setError('Enter a real phone number for the guest.'); return }
     setError('')
     setSavingGuest(i)
     try {
@@ -1099,7 +1122,7 @@ export default function ReservePage() {
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                               <label style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-light)' }}>Date of birth *</label>
-                              <input className="input" type="date" value={slot.date_of_birth} onChange={e => updateSlot(i, { date_of_birth: e.target.value })} />
+                              <input className="input" type="date" max={new Date().toISOString().slice(0, 10)} value={slot.date_of_birth} onChange={e => updateSlot(i, { date_of_birth: e.target.value })} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                               <button
@@ -1347,6 +1370,19 @@ export default function ReservePage() {
                 <div className="anchor-card anchor-card--loading">
                   <span className="pending-indicator" />
                   <span>Loading secure payment…</span>
+                </div>
+              )}
+              {piNeedsSub && (
+                <div style={{ textAlign: 'center', padding: '8px 4px 4px' }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tropic-d)', marginBottom: 8, fontWeight: 600 }}>
+                    Membership required
+                  </div>
+                  <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 16px' }}>
+                    Start your membership to book this {kind === 'flight' ? 'seat' : 'spot'}. We&rsquo;ll bring you right back — your selection is saved.
+                  </p>
+                  <button className="btn-primary" style={{ width: '100%', height: 46, justifyContent: 'center' }} onClick={() => router.push('/onboarding/subscribe')}>
+                    Start membership →
+                  </button>
                 </div>
               )}
               {piError && (

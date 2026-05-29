@@ -59,6 +59,7 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [addSeatsOpen, setAddSeatsOpen] = useState(false)
+  const [needsSub, setNeedsSub] = useState(false) // 402 → prompt to subscribe (F6)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -137,7 +138,10 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
         body: JSON.stringify({ proposalId, seats }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? `Commit failed (${res.status})`)
+      if (!res.ok) {
+        if (res.status === 402) { setNeedsSub(true); return }
+        throw new Error(data.error ?? `Commit failed (${res.status})`)
+      }
       setClientSecret(data.clientSecret)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Commit failed')
@@ -340,9 +344,20 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
                 {error}
               </div>
             )}
-            <button className="btn-primary" onClick={startCommit} disabled={submitting} style={{ width: '100%' }}>
-              {submitting ? 'Setting up…' : 'Continue to card on file →'}
-            </button>
+            {needsSub ? (
+              <>
+                <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, marginBottom: 12 }}>
+                  Start your membership to commit a seat. Nothing here is lost — you&rsquo;ll come right back.
+                </div>
+                <button className="btn-primary" onClick={() => router.push('/onboarding/subscribe')} style={{ width: '100%' }}>
+                  Start membership →
+                </button>
+              </>
+            ) : (
+              <button className="btn-primary" onClick={startCommit} disabled={submitting} style={{ width: '100%' }}>
+                {submitting ? 'Setting up…' : 'Continue to card on file →'}
+              </button>
+            )}
           </div>
         )}
 
