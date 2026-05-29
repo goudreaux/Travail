@@ -4868,26 +4868,24 @@ textarea.input {
 /* ─── Fading top bar (mobile) ──────────────────────────────── */
 
 @media (max-width: 768px) {
+  /* Solid white top bar on mobile — gives the brand wordmark a clean
+     paper-like backdrop instead of bleeding into the cream page color.
+     The faint hairline + scrim below preserve the "tucks under the bar"
+     feel without the original cream gradient. */
   .topbar {
-    background: linear-gradient(
-      180deg,
-      rgba(251, 246, 236, 0.96) 0%,
-      rgba(251, 246, 236, 0.84) 65%,
-      rgba(251, 246, 236, 0) 100%
-    );
-    backdrop-filter: saturate(180%) blur(14px);
-    -webkit-backdrop-filter: saturate(180%) blur(14px);
-    border-bottom: none;
+    background: #ffffff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: 1px solid rgba(13, 51, 64, 0.06);
   }
-  /* Soft scrim extending just below the bar so content tucks under it cleanly. */
   .topbar::after {
     content: "";
     position: absolute;
     left: 0;
     right: 0;
     top: 100%;
-    height: 18px;
-    background: linear-gradient(180deg, rgba(251, 246, 236, 0.7), rgba(251, 246, 236, 0));
+    height: 14px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
     pointer-events: none;
   }
 }
