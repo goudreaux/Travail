@@ -59,7 +59,12 @@ async function sendMemberMail(
     // one-line change (swap the recipient back to args.to).
     const auditTo = OPS_PAPER_TRAIL_BCC || process.env.OPS_INBOX_EMAIL || 'ops@travailclub.com'
     const res = await resend.emails.send({
-      from: process.env.RESEND_FROM ?? DEFAULT_FROM,
+      // Always send as Travail Concierge. The prod RESEND_FROM env is set to
+      // "Travail Ops <ops@travailclub.com>", which is exactly the unbranded
+      // sender members must never see — so we ignore the override here and
+      // pin the branded Concierge identity. (concierge@ is on the same
+      // verified travailclub.com domain, so delivery is unaffected.)
+      from: DEFAULT_FROM,
       to: [auditTo],
       subject: `[member copy] ${args.subject}`,
       html: args.html,

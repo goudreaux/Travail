@@ -466,13 +466,11 @@ export default function FeedPage() {
                       const booking = trip.booking
                       const isExpanded = effectiveExpanded === booking.id
                       const onCardClick = (kind: 'flight' | 'excursion') => () => {
+                        void kind
                         if (!isExpanded) {
                           setExpandedTripId(booking.id)
-                        } else if (kind === 'flight') {
-                          const t = trip as Extract<TripItem, { kind: 'flight' }>
-                          router.push(`/reserve/${booking.item_id}?kind=flight${t.roundReturn ? `&return=${t.roundReturn.id}` : ''}`)
                         } else {
-                          router.push(`/reserve/${booking.item_id}?kind=excursion`)
+                          router.push(`/itinerary/${booking.id}`)
                         }
                       }
                       if (trip.kind === 'flight') {

@@ -99,7 +99,7 @@ interface EnrichedSubmission extends AnchorSubmission {
 
 // ─── Booking card ──────────────────────────────────────────────────────────────
 
-function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect, airportName }: { booking: EnrichedBooking; onNavigate: () => void; roundReturn?: Flight; isExpanded: boolean; onSelect: () => void; airportName: Record<string, string> }) {
+function BookingCard({ booking, onNavigate, onItinerary, roundReturn, isExpanded, onSelect, airportName }: { booking: EnrichedBooking; onNavigate: () => void; onItinerary: () => void; roundReturn?: Flight; isExpanded: boolean; onSelect: () => void; airportName: Record<string, string> }) {
   const isBoarding = booking.status === 'approved'
   const isFlight = booking.item_kind === 'flight'
   const f = booking.flight
@@ -130,7 +130,7 @@ function BookingCard({ booking, onNavigate, roundReturn, isExpanded, onSelect, a
     <div
       className={`my-trip-card s-${booking.status}`}
       data-expanded={isExpanded ? '1' : '0'}
-      onClick={() => (isExpanded ? onNavigate() : onSelect())}
+      onClick={() => (isExpanded ? onItinerary() : onSelect())}
     >
       <img className="my-trip-card__img" src={imageUrl} alt="" />
       <div className="my-trip-card__top">
@@ -503,6 +503,7 @@ export default function BookingsPage() {
                       key={b.id}
                       booking={b}
                       onNavigate={() => router.push(`/boarding-pass/${b.id}`)}
+                      onItinerary={() => router.push(`/itinerary/${b.id}`)}
                       roundReturn={b.item_kind === 'flight' ? flightById.get(`${b.item_id}R`) : undefined}
                       isExpanded={effectiveExpanded === b.id}
                       onSelect={() => setExpandedId(b.id)}
