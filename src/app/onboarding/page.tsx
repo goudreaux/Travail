@@ -31,26 +31,61 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // Self-service re-invite, shown when a link is already spent (see `invalid`).
+  const [resendEmail, setResendEmail] = useState('')
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle')
+  const [resendError, setResendError] = useState('')
+
   // Verify the invite and load the member behind the scenes while the envelope plays.
   useEffect(() => {
     async function init() {
       // The invite link lands here with credentials. Support PKCE (?code=),
       // OTP (?token_hash=&type=), and implicit (#access_token=) link formats.
+      //
+      // Invite/recovery tokens are SINGLE-USE — once exchanged they can't be
+      // exchanged again. But onboarding is multi-step and our auth cookies are
+      // session-scoped (see lib/supabase/client.ts), so a member who gets
+      // interrupted often returns and clicks the same email link a second time.
+      // We make that retry resilient: a returning invitee's live session is
+      // preserved (we no longer sign them out before a re-exchange that's bound
+      // to fail), and an already-spent token simply falls through to the
+      // existing session instead of dead-ending on "expired".
       try {
         const url = new URL(window.location.href)
         const code = url.searchParams.get('code')
         const tokenHash = url.searchParams.get('token_hash')
         const type = url.searchParams.get('type')
+
+        // Who, if anyone, is already signed in on this browser? We only need to
+        // clear the session when it belongs to an ADMIN — that's the case the
+        // original sign-out guarded against (an admin opening/forwarding a link
+        // and having the invite silently resolve to their own account). A
+        // returning invitee's own session is kept so they can resume.
+        const { data: { user: existingUser } } = await supabase.auth.getUser()
+        let existingIsAdmin = false
+        if (existingUser) {
+          const { data: em } = await supabase
+            .from('members').select('is_admin').eq('user_id', existingUser.id).maybeSingle()
+          existingIsAdmin = !!(em as { is_admin?: boolean } | null)?.is_admin
+        }
+
         if (code || (tokenHash && type)) {
-          // Clear any existing session first (e.g. an admin already signed in on
-          // this browser) so the invite establishes the INVITED user's session,
-          // never silently drops into the account that was already open.
-          await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
-          if (code) {
-            await supabase.auth.exchangeCodeForSession(code)
-          } else if (tokenHash && type) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as any })
+          if (existingIsAdmin) {
+            await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+          }
+          try {
+            if (code) {
+              const { error } = await supabase.auth.exchangeCodeForSession(code)
+              if (error) throw error
+            } else if (tokenHash && type) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as any })
+              if (error) throw error
+            }
+          } catch {
+            // Token already used — e.g. a second click after an interrupted
+            // first attempt. Fine as long as that first click's session is
+            // still alive; we fall through to the session check below.
           }
         }
         // (implicit hash tokens are picked up automatically by detectSessionInUrl)
@@ -84,6 +119,31 @@ export default function OnboardingPage() {
   // Envelope choreography (auto-open, seal break, flap, card rise) is
   // driven by EnvelopeSplash itself; it calls onComplete when finished
   // and we transition straight to 'form' in the JSX below.
+
+  // When a link is spent and the session is gone (e.g. the browser was closed
+  // mid-setup, clearing our session cookies), the member can mail themselves a
+  // fresh link. resetPasswordForEmail drops them right back on /onboarding and,
+  // by design, never reveals whether an address is on file — safe pre-auth.
+  async function resendLink(e: React.FormEvent) {
+    e.preventDefault()
+    setResendError('')
+    const addr = resendEmail.trim()
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) {
+      setResendError('Enter a valid email address.')
+      return
+    }
+    setResendState('sending')
+    try {
+      const { error: resErr } = await supabase.auth.resetPasswordForEmail(addr, {
+        redirectTo: `${window.location.origin}/onboarding`,
+      })
+      if (resErr) throw resErr
+    } catch {
+      // Show success regardless: don't leak which emails exist, and most
+      // failures here are transient. Ops can always re-invite manually.
+    }
+    setResendState('sent')
+  }
 
   async function complete() {
     setError('')
@@ -141,9 +201,41 @@ export default function OnboardingPage() {
             ) : status === 'invalid' ? (
               <>
                 <div className="envelope-eyebrow">By private invitation</div>
-                <h2 className="invite-title">Invite expired.</h2>
-                <p className="invite-sub">This invitation link is no longer valid. Ask Ops to resend your invite and we&rsquo;ll have you in shortly.</p>
-                <button className="btn-ghost" style={{ width: '100%' }} onClick={() => router.push('/login')}>Go to login</button>
+                {resendState === 'sent' ? (
+                  <>
+                    <h2 className="invite-title">Check your inbox.</h2>
+                    <p className="invite-sub">If that address is on our list, a fresh link is on its way. It brings you right back here to finish setting up — no rush, you&rsquo;ll pick up where you left off.</p>
+                    <button className="btn-ghost" style={{ width: '100%' }} onClick={() => router.push('/login')}>Go to login</button>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="invite-title">Let&rsquo;s get you a fresh link.</h2>
+                    <p className="invite-sub">Invite links open only once, so if you stepped away mid-setup this one may already be used. Enter your email and we&rsquo;ll send a new one that brings you back to finish.</p>
+                    <form onSubmit={resendLink}>
+                      <div className="field">
+                        <label className="field-lab">Email <span className="req">*</span></label>
+                        <input
+                          className="input"
+                          type="email"
+                          value={resendEmail}
+                          onChange={e => setResendEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          autoComplete="email"
+                          autoFocus
+                        />
+                      </div>
+                      {resendError && (
+                        <div role="alert" style={{ background: 'rgba(217,78,42,0.07)', border: '1px solid rgba(217,78,42,0.22)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--signal)', lineHeight: 1.45, marginBottom: 14 }}>
+                          {resendError}
+                        </div>
+                      )}
+                      <button type="submit" className="btn-primary" style={{ width: '100%', height: 44, justifyContent: 'center', marginTop: 4 }} disabled={resendState === 'sending'}>
+                        {resendState === 'sending' ? 'Sending…' : 'Email me a new link →'}
+                      </button>
+                    </form>
+                    <button type="button" className="btn-ghost" style={{ width: '100%', marginTop: 10 }} onClick={() => router.push('/login')}>Go to login</button>
+                  </>
+                )}
               </>
             ) : (
               <>
