@@ -373,6 +373,15 @@ export default function ReservePage() {
         if (s.savedGuestId === NEW_GUEST && (!s.first_name.trim() || !s.last_name.trim() || !s.date_of_birth)) {
           setError('Enter a first name, last name, and date of birth for each new guest.'); return
         }
+        if (s.savedGuestId === NEW_GUEST && !s.email.trim()) {
+          // Email is required on new guests so ops can follow up about
+          // membership conversion + keep ride-day comms going to them
+          // directly. Empty is no longer acceptable.
+          setError('Enter an email address for each new guest — we use it to follow up about membership.'); return
+        }
+        if (s.savedGuestId === NEW_GUEST && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email.trim())) {
+          setError('Please enter a valid email for each new guest.'); return
+        }
       }
     }
 
@@ -1014,7 +1023,7 @@ export default function ReservePage() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                               <input className="input" placeholder="First name *" value={slot.first_name} onChange={e => updateSlot(i, { first_name: e.target.value })} />
                               <input className="input" placeholder="Last name *" value={slot.last_name} onChange={e => updateSlot(i, { last_name: e.target.value })} />
-                              <input className="input" type="email" placeholder="Email" value={slot.email} onChange={e => updateSlot(i, { email: e.target.value })} />
+                              <input className="input" type="email" placeholder="Email *" value={slot.email} onChange={e => updateSlot(i, { email: e.target.value })} />
                               <input className="input" inputMode="numeric" maxLength={12} placeholder="Phone * (xxx-xxx-xxxx)" value={slot.phone} onChange={e => updateSlot(i, { phone: formatPhone(e.target.value) })} />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
