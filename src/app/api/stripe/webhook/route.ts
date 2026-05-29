@@ -133,6 +133,17 @@ export async function POST(req: NextRequest) {
             .from('members').select('id, name')
             .eq('stripe_customer_id', customerId).maybeSingle()
           if (m) {
+            // Branded member email fires off this notification (notify-email
+            // Edge Function); the app email below is ops paper-trail only.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (db as any).from('notifications').insert({
+              member_id: m.id,
+              kind: 'system',
+              title: 'Membership ended',
+              body: `Your Travail membership has been cancelled. You'll keep access through the end of your current billing period. We'd love to have you back — your concierge is one message away.`,
+              ref: { subscription_id: sub.id },
+              read: false,
+            })
             const memberEmail = await resolveEmailForMember(db, m.id)
             if (memberEmail) {
               await sendSubscriptionCancelledEmail({
@@ -172,6 +183,17 @@ export async function POST(req: NextRequest) {
         if (!m) break
 
         if (isFirst) {
+          // Branded welcome email fires off this notification (notify-email
+          // Edge Function); the app email below is ops paper-trail only.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (db as any).from('notifications').insert({
+            member_id: m.id,
+            kind: 'system',
+            title: 'Welcome to Travail',
+            body: `Your membership is active. Browse open seats and excursions and reserve whenever something calls to you — welcome aboard.`,
+            ref: {},
+            read: false,
+          })
           const memberEmail = await resolveEmailForMember(db, m.id)
           // Stripe SDK exposes the subscription on Invoice but the union
           // type erases through expansions; cast to read it.
@@ -213,9 +235,18 @@ export async function POST(req: NextRequest) {
           .eq('stripe_customer_id', customerId).maybeSingle()
         if (!m) break
 
-        // Branded "card needs attention" email with portal link. Stripe
-        // also has a built-in version of this; we keep ours on so the
-        // copy + branding stays consistent.
+        // Branded "card needs attention" email fires off this notification
+        // (notify-email Edge Function); the app email below is ops paper-trail
+        // only. The in-app SubscriptionBanner also nudges past_due members.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (db as any).from('notifications').insert({
+          member_id: m.id,
+          kind: 'system',
+          title: 'Your card needs attention',
+          body: `We couldn't process your latest membership payment. Update your card in the app to keep your booking access — your concierge can help if anything's stuck.`,
+          ref: {},
+          read: false,
+        })
         const memberEmail = await resolveEmailForMember(db, m.id)
         if (memberEmail) {
           await sendSubscriptionPastDueEmail({

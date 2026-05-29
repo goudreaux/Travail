@@ -249,7 +249,20 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Branded "thanks, in the queue" email to the proposer.
+    // Branded member email for this action comes from the notify-email Edge
+    // Function, which fires on this notification insert. (Member delivery in
+    // the app pipeline is off — see lib/member-email.ts.)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db as any).from('notifications').insert({
+      member_id: me.id,
+      kind: 'system',
+      title: 'Proposal submitted',
+      body: `Your proposal "${name}" is in the queue. Ops will set the minimum seats and per-seat price, then it goes live for the network — we'll let you know the moment it does.`,
+      ref: { proposal_id: proposalId },
+      read: false,
+    })
+
+    // Ops paper-trail copy (not delivered to the member).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: contact } = await (db as any)
       .from('member_sensitive').select('email').eq('member_id', me.id).maybeSingle()

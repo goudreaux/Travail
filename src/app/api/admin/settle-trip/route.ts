@@ -341,6 +341,17 @@ export async function POST(req: NextRequest) {
       if (!b.member_id || sentToMembers.has(b.member_id)) continue
       if (b.status !== 'approved' || !(b.paid_amount_cents > 0)) continue
       sentToMembers.add(b.member_id)
+      // Branded "trip wrapped" member email fires off this notification
+      // (notify-email Edge Function); the app email below is ops paper-trail only.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (db as any).from('notifications').insert({
+        member_id: b.member_id,
+        kind: 'system',
+        title: `${trip.name ?? 'Your trip'} — that's a wrap`,
+        body: `Thanks for flying with Travail. "${trip.name ?? (itemKind === 'flight' ? 'your flight' : 'your excursion')}" is complete — your booking summary is in the app whenever you want it.`,
+        ref: { booking_id: b.id },
+        read: false,
+      })
       const { data: paxMember } = await db
         .from('members').select('name').eq('id', b.member_id).maybeSingle()
       const paxEmail = await resolveMemberEmail(b.member_id)

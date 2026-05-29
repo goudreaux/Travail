@@ -84,6 +84,17 @@ export async function POST(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: proposer } = await (db as any)
       .from('members').select('id, name').eq('id', prop.proposer_id).maybeSingle()
+    // Branded member email fires off this notification (notify-email Edge
+    // Function). App pipeline below is ops paper-trail only.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (db as any).from('notifications').insert({
+      member_id: prop.proposer_id,
+      kind: 'system',
+      title: 'Proposal not moving forward',
+      body: `We couldn't move "${prop.name}" forward this time${reason ? `: ${reason}` : '.'} Reach out to your concierge if you'd like to reshape it.`,
+      ref: { proposal_id: proposalId },
+      read: false,
+    })
     if (proposer) {
       const proposerEmail = await resolveEmail(db, proposer.id)
       if (proposerEmail) {

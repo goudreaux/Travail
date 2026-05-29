@@ -49,17 +49,22 @@ async function sendMemberMail(
   let sendError: string | null = null
 
   try {
+    // Member delivery is intentionally OFF (F1/F2). Members now receive exactly
+    // ONE branded email per action from the Supabase `notify-email` Edge
+    // Function (fired on every public.notifications insert, sender: Travail
+    // Concierge). This app pipeline used to ALSO email members from the prod
+    // ops@ sender — the duplicate, off-brand mail testers reported. We still
+    // send this record to the ops paper-trail address so the audit thread is
+    // unbroken, but never to the member. Re-enabling member delivery is a
+    // one-line change (swap the recipient back to args.to).
+    const auditTo = OPS_PAPER_TRAIL_BCC || process.env.OPS_INBOX_EMAIL || 'ops@travailclub.com'
     const res = await resend.emails.send({
       from: process.env.RESEND_FROM ?? DEFAULT_FROM,
-      to: [args.to],
-      subject: args.subject,
+      to: [auditTo],
+      subject: `[member copy] ${args.subject}`,
       html: args.html,
       text: args.text,
-      replyTo: args.replyTo ?? process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
-      // BCC ops on every member email for the paper trail. Member never
-      // sees this address — Resend strips the BCC header from the
-      // delivered envelope.
-      ...(OPS_PAPER_TRAIL_BCC ? { bcc: [OPS_PAPER_TRAIL_BCC] } : {}),
+      replyTo: process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
     })
     // Resend's SDK returns { data: { id }, error } — capture id when present.
     resendId = (res as { data?: { id?: string | null } | null })?.data?.id ?? null
