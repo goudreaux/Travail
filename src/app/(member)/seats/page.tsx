@@ -284,12 +284,18 @@ function ExcursionCard({
   const colors = getExcursionColors(icon)
   const kindLabel = icon === 'golf' ? 'GOLF' : icon === 'quail' ? 'QUAIL HUNT' : icon === 'hog' ? 'HOG HUNT' : icon === 'fish' ? 'FISHING' : icon === 'snorkel' ? 'DIVING' : icon === 'sail' ? 'SAILING' : 'EXCURSION'
 
+  const isSponsored = !!excursion.sponsor
   return (
     <div
-      className="trip-card"
+      className={`trip-card${isSponsored ? ' trip-card--sponsored' : ''}`}
       style={{ marginBottom: 12 }}
       onClick={onCTA}
     >
+      {isSponsored && (
+        <span className="sponsored-ribbon" aria-label="Travail sponsored event">
+          ★ Travail Sponsored
+        </span>
+      )}
       <div className="trip-card__main">
         <div className="trip-card__date">
           <div className="trip-card__date-mo">{dp.mo}</div>
@@ -306,14 +312,24 @@ function ExcursionCard({
           <div className="trip-card__title" style={{ color: colors.accent }}>{kindLabel} · FROM {placeName(excursion.origin_code, names).toUpperCase()}</div>
           <div className="trip-card__name">{excursion.name}</div>
           {excursion.sponsor && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 6, marginBottom: 2 }}>
-              <SponsorBadge sponsor={excursion.sponsor} size="pill" />
-              <span style={{
-                fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.16em', textTransform: 'uppercase',
-                color: 'var(--sun-d)', fontWeight: 700,
+            <div style={{ marginTop: 7, marginBottom: 2 }}>
+              {/* Sponsor presentation: brand badge (Field & Stream when
+                  detected) + a golden "special event — first to commit"
+                  line so members know the seats move fast. */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <SponsorBadge sponsor={excursion.sponsor} size="pill" />
+                <span style={{
+                  fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase',
+                  color: 'var(--sun-d)', fontWeight: 700,
+                }}>
+                  Sponsored · {excursion.sponsor}
+                </span>
+              </div>
+              <div style={{
+                marginTop: 5, fontSize: 11, color: '#8a5a06', fontWeight: 600, lineHeight: 1.4,
               }}>
-                Sponsored · {excursion.sponsor}
-              </span>
+                ✦ Special event with special accommodations — first to commit gets a seat.
+              </div>
             </div>
           )}
           <div className="trip-card__meta">
