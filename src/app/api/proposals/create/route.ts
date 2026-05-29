@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
-import { PROPOSAL_MIN_LEAD_DAYS, MAX_ACTIVE_PROPOSALS_PER_MEMBER } from '@/lib/proposals'
+import { MAX_ACTIVE_PROPOSALS_PER_MEMBER } from '@/lib/proposals'
+import { canPropose } from '@/lib/trip-timing'
 import { notifyOps } from '@/lib/ops-notify'
 import { assertCanBook } from '@/lib/can-book'
 import { sendProposalSubmittedEmail } from '@/lib/member-email'
@@ -105,10 +106,15 @@ export async function POST(req: NextRequest) {
   if (!date) return NextResponse.json({ error: 'Date required' }, { status: 400 })
   if (!originCode) return NextResponse.json({ error: 'Origin airport required' }, { status: 400 })
   const lead = dayDiff(date)
-  if (lead < PROPOSAL_MIN_LEAD_DAYS) {
-    return NextResponse.json({
-      error: `Proposals need at least ${PROPOSAL_MIN_LEAD_DAYS} days of lead time so the network has a chance to commit before the ${PROPOSAL_MIN_LEAD_DAYS}-day Tropic confirmation window.`,
-    }, { status: 400 })
+  // Shared timing gate — inside the proposal lead window a trip can't
+  // gather a group in time, so it's anchor-only. `suggestAnchor` lets
+  // the wizard deep-link the member straight to the anchor flow.
+  const propGate = canPropose(date)
+  if (!propGate.ok) {
+    return NextResponse.json(
+      { error: propGate.reason, suggestAnchor: !!propGate.suggestAnchor },
+      { status: 400 },
+    )
   }
 
   const db = admin()

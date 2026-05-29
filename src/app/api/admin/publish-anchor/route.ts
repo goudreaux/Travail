@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
 import { notifyOps } from '@/lib/ops-notify'
+import { canAnchor } from '@/lib/trip-timing'
 import type { Database } from '@/lib/supabase/types'
 
 // Ops-publish endpoint for an anchored trip.
@@ -139,6 +140,16 @@ export async function POST(req: NextRequest) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const body = (sub.payload ?? {}) as any
+
+  // ─── Sourcing-floor guard ──────────────────────────────────────────────────
+  // The capture is the point of no return — refuse to publish (and
+  // charge the anchor) for a departure that's now inside the window
+  // where Tropic can no longer confirm the charter. Catches a stale
+  // queue item ops gets to too late.
+  const anchorGate = canAnchor(body.date, body.departTime ?? body.startTime)
+  if (!anchorGate.ok) {
+    return NextResponse.json({ error: anchorGate.reason }, { status: 409 })
+  }
 
   // ─── Compute charter total ─────────────────────────────────────────────────
   // Flight wizards write seatsTotal / seatsAnchor; excursion wizards

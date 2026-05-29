@@ -61,7 +61,7 @@ export default function ProposeFlightPage() {
   async function submit() {
     setError(null)
     if (!date) { setError('Pick a date.'); return }
-    if (date < minDate) { setError(`Proposals need at least ${PROPOSAL_MIN_LEAD_DAYS} days of lead time so the network has a chance to commit.`); return }
+    if (date < minDate) { setError(`Proposals need at least ${PROPOSAL_MIN_LEAD_DAYS} days of lead time so the network has a chance to commit. For a trip sooner than that, anchor it instead — you commit the charter and open the extra seats.`); return }
     if (isCustomDest && !customDestName.trim()) { setError('Tell us where you want to go, ops will confirm with Tropic.'); return }
     if (!isCustomDest && origin === destCode) { setError('Origin and destination must be different.'); return }
     if (proposerMaxSeats < proposerMinSeats) { setError('Your maximum coverage must be at least your party size.'); return }

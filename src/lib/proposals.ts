@@ -58,16 +58,10 @@ export interface TripProposalCommit {
   captured_at: string | null
 }
 
-// The 5-day operational runway. Proposals auto-expire if they haven't
-// hit min_seats by this many days before departure.
-export const PROPOSAL_RUNWAY_DAYS = 5
-
-// Minimum days between submit and trip date — the proposal needs at
-// least PROPOSAL_RUNWAY_DAYS to gather commits before the auto-expire
-// window starts. We require a couple of days of slack on top so very
-// edge-case proposals don't get reviewed and auto-cancelled in the
-// same hour.
-export const PROPOSAL_MIN_LEAD_DAYS = 7
+// Proposal timing lives in the shared trip-timing module (single source
+// of truth across anchors / proposals / bookings). Re-exported here so
+// existing `@/lib/proposals` imports keep working unchanged.
+export { PROPOSAL_RUNWAY_DAYS, PROPOSAL_MIN_LEAD_DAYS } from './trip-timing'
 
 // Per-member cap on active proposals (pending_ops_review + open).
 // Keeps the queue manageable and prevents one member from drowning

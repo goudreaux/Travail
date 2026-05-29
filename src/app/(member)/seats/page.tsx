@@ -9,6 +9,7 @@ import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster
 import { SeatMeter } from '@/components/SeatMeter'
 import { SponsorBadge } from '@/components/SponsorBadge'
 import { ProposalCard, loadOpenProposals, type ProposalCardData } from '@/components/ProposalCard'
+import { isPastBookingCutoff } from '@/lib/trip-timing'
 import { UrgencyTag } from '@/components/UrgencyTag'
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 import type { DisplayFlight, DisplayExcursion } from '@/lib/data'
@@ -515,8 +516,12 @@ export default function SeatsPage() {
   // the private ones members can't book.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isPrivate = (t: any) => Boolean(t?.is_private)
-  const publicFlights = flights.filter(f => !isPrivate(f))
-  const publicExcursions = excursions.filter(e => !isPrivate(e))
+  // Booking cutoff — a trip inside the window before takeoff can no
+  // longer be booked (the payment route 409s), so drop it from the
+  // bookable board rather than show a dead Reserve CTA. liveCount below
+  // still counts everything for the network-activity pill.
+  const publicFlights = flights.filter(f => !isPrivate(f) && !isPastBookingCutoff(f.date, f.depart_time))
+  const publicExcursions = excursions.filter(e => !isPrivate(e) && !isPastBookingCutoff(e.date, e.depart_time ?? e.start_time))
   const flightEntries = buildFlightEntries(publicFlights)
   // Sponsored is a cross-cutting filter — flights are never sponsored
   // today, so it resolves to sponsored excursions only.

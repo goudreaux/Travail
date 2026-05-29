@@ -4,7 +4,9 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import PageHero from '@/components/PageHero'
 import { AnchorCardSetup } from '@/components/AnchorCardSetup'
+import { LastMinuteNotice } from '@/components/LastMinuteNotice'
 import TimeInput from '@/components/TimeInput'
+import { canAnchor } from '@/lib/trip-timing'
 import type { AirportMeta } from '@/lib/data'
 import type { ExcursionTemplate } from '@/lib/supabase/types'
 
@@ -150,6 +152,8 @@ export default function AnchorExcursionPage() {
       if (!date) return 'Select a date.'
       if (isOvernight && !returnDate) return 'Select a return date.'
       if (isOvernight && returnDate < date) return 'Return date must be on or after the start date.'
+      const gate = canAnchor(date, departTime ?? startTime)
+      if (!gate.ok) return gate.reason
     }
     if (s === 4) {
       for (const g of guests) {
@@ -368,6 +372,7 @@ export default function AnchorExcursionPage() {
                 <TimeInput label="Experience start" value={startTime} onChange={setStartTime} />
               </div>
               <TimeInput label="Return (flight back)" value={returnTime} onChange={setReturnTime} />
+              <LastMinuteNotice date={date} time={departTime ?? startTime} />
             </div>
           )}
 
@@ -473,6 +478,8 @@ export default function AnchorExcursionPage() {
                   Ops will confirm the operator pricing, add Travail&apos;s 3% service fee, and send the quote for your review. <strong style={{ color: 'var(--ink)' }}>No card is captured until you accept the quote</strong>. You&apos;ll get a notification with the total.
                 </p>
               </div>
+
+              <LastMinuteNotice date={date} time={departTime ?? startTime} />
 
               <div style={{ marginTop: 14 }}>
                 <AnchorCardSetup onCardReady={() => setHasCard(true)} />

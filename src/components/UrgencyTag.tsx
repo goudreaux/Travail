@@ -5,28 +5,14 @@
 // "DEPARTS IN Xh" / "TOMORROW" / "TODAY" pill on any trip within the
 // urgency window (default 72h).
 
-const URGENCY_WINDOW_HOURS = 72
+// Departure clock lives in the shared trip-timing module so the tag,
+// the booking cutoff, and the anchor/proposal gates all read the same
+// wall clock. Re-exported for the existing call sites that import it
+// from here.
+import { hoursUntilDeparture } from '@/lib/trip-timing'
+export { hoursUntilDeparture }
 
-// Hours from now until the trip's departure. Uses the date + optional
-// depart time ("09:00" or "9:00 AM"); falls back to 8am local when no
-// time is given so an all-day-out trip doesn't read as midnight.
-export function hoursUntilDeparture(date: string, time?: string | null): number {
-  if (!date) return Infinity
-  let hh = 8, mm = 0
-  if (time) {
-    const m = time.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i)
-    if (m) {
-      hh = parseInt(m[1], 10)
-      mm = parseInt(m[2], 10)
-      const ap = m[3]?.toUpperCase()
-      if (ap === 'PM' && hh < 12) hh += 12
-      if (ap === 'AM' && hh === 12) hh = 0
-    }
-  }
-  const target = new Date(`${date}T00:00:00`)
-  target.setHours(hh, mm, 0, 0)
-  return (target.getTime() - Date.now()) / 3_600_000
-}
+const URGENCY_WINDOW_HOURS = 72
 
 export function isWithinUrgencyWindow(date: string, time?: string | null): boolean {
   const h = hoursUntilDeparture(date, time)
