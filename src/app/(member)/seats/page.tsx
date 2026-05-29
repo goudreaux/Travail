@@ -21,7 +21,7 @@ function placeName(code: string, names: Record<string, string>): string {
 
 // ─── Color helpers ─────────────────────────────────────────────────────────────
 
-type ActivityFilter = 'all' | 'sponsored' | 'flight' | 'fish' | 'sail' | 'surf' | 'snorkel' | 'golf' | 'hunt' | 'wildlife' | 'leisure'
+type ActivityFilter = 'all' | 'sponsored' | 'proposal' | 'flight' | 'fish' | 'sail' | 'surf' | 'snorkel' | 'golf' | 'hunt' | 'wildlife' | 'leisure'
 
 function getFlightColors() {
   return { accent: 'var(--tropic-d)', bg: 'var(--tropic-glow)', dot: 'var(--tropic)' }
@@ -67,6 +67,7 @@ function excursionFilter(icon: string): ActivityFilter {
 const FILTERS: { key: ActivityFilter; label: string; icon?: string }[] = [
   { key: 'all',       label: 'All' },
   { key: 'sponsored', label: '★ Sponsored' },
+  { key: 'proposal',  label: 'Proposals' },
   { key: 'flight',   label: 'Flights',  icon: 'flight' },
   { key: 'fish',     label: 'Fishing',  icon: 'fish' },
   { key: 'sail',     label: 'Sailing',  icon: 'sail' },
@@ -523,12 +524,16 @@ export default function SeatsPage() {
   const visibleExcursions = publicExcursions.filter(e => {
     if (filter === 'all') return true
     if (filter === 'sponsored') return !!e.sponsor
-    if (filter === 'flight') return false
+    if (filter === 'flight' || filter === 'proposal') return false
     const icon = e.templateMeta?.icon ?? 'fish'
     return excursionFilter(icon) === filter
   })
+  // Proposals show on "All" and on the dedicated "Proposals" filter;
+  // any other specific filter (flight / sponsored / an activity) hides
+  // them so the board stays focused on what was filtered for.
+  const visibleProposals = (filter === 'all' || filter === 'proposal') ? proposals : []
 
-  const totalOpen = visibleFlightEntries.length + visibleExcursions.length
+  const totalOpen = visibleFlightEntries.length + visibleExcursions.length + visibleProposals.length
   // Live count includes private charters so the pill reflects the full
   // network activity, not just publicly bookable seats.
   const liveCount = buildFlightEntries(flights).length + excursions.length
@@ -539,6 +544,7 @@ export default function SeatsPage() {
   // excursion maps to that category.
   const activeFilterKeys: ActivityFilter[] = ['all']
   if (publicExcursions.some(e => e.sponsor)) activeFilterKeys.push('sponsored')
+  if (proposals.length > 0) activeFilterKeys.push('proposal')
   if (flightEntries.length > 0) activeFilterKeys.push('flight')
   const seen = new Set<ActivityFilter>()
   for (const e of excursions) {
@@ -615,7 +621,7 @@ export default function SeatsPage() {
             {/* Trip Proposals — visually distinct from active trips so
                 the network reads "this could happen if we commit" not
                 "this is happening." */}
-            {proposals.length > 0 && (
+            {visibleProposals.length > 0 && (
               <section style={{ marginBottom: 32 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <span style={{
@@ -626,10 +632,10 @@ export default function SeatsPage() {
                   }}>
                     PROPOSALS
                   </span>
-                  <p className="mono" style={{ margin: 0 }}>OPEN PROPOSALS · {proposals.length}</p>
+                  <p className="mono" style={{ margin: 0 }}>OPEN PROPOSALS · {visibleProposals.length}</p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {proposals.map(p => (
+                  {visibleProposals.map(p => (
                     <ProposalCard key={p.id} p={p} onOpen={() => router.push(`/reserve/${p.id}?kind=proposal`)} />
                   ))}
                 </div>
