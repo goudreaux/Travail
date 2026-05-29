@@ -1167,6 +1167,25 @@ export default function TripsPage() {
               <input className="input" value={EF.pitch} onChange={e => setExcForm(f => ({ ...f, pitch: e.target.value }))} placeholder="An unforgettable escape…" />
             </div>
 
+            {/* Sponsor line — fills this in to flag the trip as a
+                Travail-sponsored special event. Gives the card a golden
+                glow + ribbon on the member board, and renders the
+                Field & Stream badge when the line includes them. */}
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label className="field-lab">
+                Sponsor line <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>(optional — marks this a sponsored special event)</span>
+              </label>
+              <input
+                className="input"
+                value={EF.sponsor}
+                onChange={e => setExcForm(f => ({ ...f, sponsor: e.target.value }))}
+                placeholder="e.g. Travail × Tropic × Field &amp; Stream"
+              />
+              <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4 }}>
+                Including &ldquo;Field &amp; Stream&rdquo; shows their badge on the card.
+              </div>
+            </div>
+
             {/* ─── Day plan editor ─────────────────────────────────────────── */}
             <ItineraryEditor
               steps={EF.itinerary}
