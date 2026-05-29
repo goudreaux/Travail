@@ -23,7 +23,7 @@ const STEPS: TutorialStep[] = [
   {
     eyebrow: 'WHAT THIS IS',
     title: 'A members club for private aviation + curated experiences.',
-    body: "Open seats on charter flights, member-anchored excursions, and network-proposed trips. Founders rate is $200/month. You're already in.",
+    body: "Open seats on charter flights, member-anchored excursions, and network-proposed trips. $200/month, locked for life as long as your membership stays active. You're already in.",
     icon: <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><g transform="rotate(35 12 12)"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></g></svg>,
   },
   {

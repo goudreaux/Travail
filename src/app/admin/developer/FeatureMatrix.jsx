@@ -41,7 +41,7 @@ const SECTIONS = [
       'Trips & Excursions admin — create, edit, force-settle (test mode), force-cancel with full refunds',
       'Sponsored Excursions — Travail-funded trips (no anchor) with reserved seats for partners',
       'People management — members, guests, referrals tabs with conversion-to-member workflow',
-      'Subscriptions roster — past-due surfaces first, founder badge, manage from member detail',
+      'Subscriptions roster — past-due surfaces first, early-cohort badge, manage from member detail',
       'Phone-only cancellation — ops cancels on member’s behalf with typed CANCEL + reason logging',
       'Email log audit table — every Resend send captured with refs, status, and Resend ID',
       'Activity log — append-only audit of every booking, anchor, member event',
@@ -111,7 +111,7 @@ const SECTIONS = [
       'SET NULL cascade for terminal bookings + proposals on member delete (preserves audit)',
       'Locking sentinel on trip proposals — atomic CAS prevents double-locks across ops tabs',
       'Subscription reuse logic — incomplete subs are continued, not stacked, on returning members',
-      'Founders price grandfathering via Stripe Price metadata — public price hikes don’t touch founders',
+      'Early-cohort price grandfathering via Stripe Price metadata — public price hikes don’t touch the original cohort',
       'Vercel Cron + custom Bearer-token auth for safe scheduled jobs',
       'Type-safe DB layer (Supabase generated types) + ESLint + TypeScript strict mode',
     ],
@@ -217,7 +217,7 @@ export function FeatureMatrix() {
             fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.6,
           }}>
             <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>Bottom line.</strong>{' '}
-            Single-developer build. Production-grade payments, audit trail, RLS, idempotent cron jobs, and atomic state changes throughout. Sized for a founders cohort today; the same architecture scales to thousands of members without re-platforming.
+            Single-developer build. Production-grade payments, audit trail, RLS, idempotent cron jobs, and atomic state changes throughout. Sized for the early cohort today; the same architecture scales to thousands of members without re-platforming.
           </div>
         </div>
       )}

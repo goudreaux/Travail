@@ -852,7 +852,7 @@ function FeedProposalsSection({ memberId, defaultOpen = true }: { memberId: stri
 const EMPTY_TRIP_NEGS: { headline: string; sub: string }[] = [
   {
     headline: 'Nothing on the books.',
-    sub: 'A founder without a flight is just a tourist with good taste. Plan something.',
+    sub: 'A traveler without a trip is just a tourist with good taste. Plan something.',
   },
   {
     headline: 'Suspiciously quiet here.',
@@ -875,8 +875,16 @@ const EMPTY_TRIP_NEGS: { headline: string; sub: string }[] = [
     sub: 'Float a proposal — no risk if it doesn’t fund. Worst case: a date on the calendar.',
   },
   {
-    headline: 'No trips yet?',
-    sub: 'A respectable founders-club calendar has at least one item on it. We won’t tell anyone, but consider this notice.',
+    headline: 'Wayfarers don’t sit still.',
+    sub: 'A respectable adventurer’s calendar has at least one item on it. We won’t tell anyone — but consider this notice.',
+  },
+  {
+    headline: 'An adventurer in name only is still on the ground.',
+    sub: 'Open seats, member-anchored trips, and live proposals are one tap away. Pick something.',
+  },
+  {
+    headline: 'You joined a club for travelers.',
+    sub: 'The cabin doesn’t fill itself. Plan something, or ride along on someone else’s plan.',
   },
 ]
 
