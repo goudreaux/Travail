@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
 import { assertCanBook } from '@/lib/can-book'
+import { canBookSeat } from '@/lib/trip-timing'
 import type { Database } from '@/lib/supabase/types'
 
 // Create a PaymentIntent for a pax seat reservation.
@@ -147,24 +148,44 @@ export async function POST(req: NextRequest) {
   const db = admin()
 
   // Load trip(s) server-side so the client can't underpay. Excursions
-  // use price_per_pax; flights use price_per_seat.
-  async function loadLeg(id: string): Promise<{ priceCents: number; name: string } | null> {
+  // use price_per_pax; flights use price_per_seat. We also pull
+  // date + departure time so the booking cutoff is enforced here — the
+  // money path is the authoritative gate, not just the board's UI.
+  type Leg = { priceCents: number; name: string; closed: boolean }
+  async function loadLeg(id: string): Promise<Leg | null> {
     if (kind === 'flight') {
       const { data } = await db
-        .from('flights').select('id, price_per_seat, name, status').eq('id', id).maybeSingle()
+        .from('flights').select('id, price_per_seat, name, status, date, depart_time').eq('id', id).maybeSingle()
       if (!data || data.status === 'cancelled' || data.status === 'departed') return null
-      return { priceCents: Math.round((data.price_per_seat ?? 0) * 100), name: data.name ?? 'Flight' }
+      return {
+        priceCents: Math.round((data.price_per_seat ?? 0) * 100),
+        name: data.name ?? 'Flight',
+        closed: !canBookSeat(data.date, data.depart_time).ok,
+      }
     }
     const { data } = await db
-      .from('excursions').select('id, price_per_pax, name, status').eq('id', id).maybeSingle()
+      .from('excursions').select('id, price_per_pax, name, status, date, depart_time, start_time').eq('id', id).maybeSingle()
     if (!data || data.status === 'cancelled' || data.status === 'completed') return null
-    return { priceCents: Math.round((data.price_per_pax ?? 0) * 100), name: data.name ?? 'Excursion' }
+    return {
+      priceCents: Math.round((data.price_per_pax ?? 0) * 100),
+      name: data.name ?? 'Excursion',
+      closed: !canBookSeat(data.date, data.depart_time ?? data.start_time).ok,
+    }
   }
 
   const outbound = await loadLeg(itemId)
   if (!outbound) return NextResponse.json({ error: 'Trip not available' }, { status: 404 })
   const ret = isRoundTrip && returnItemId ? await loadLeg(returnItemId) : null
   if (isRoundTrip && !ret) return NextResponse.json({ error: 'Return leg not available' }, { status: 404 })
+
+  // Booking cutoff — once a leg is inside the window before takeoff it's
+  // locked. 409 so the client can surface "this departure just closed."
+  const closedLeg = outbound.closed ? outbound : (ret?.closed ? ret : null)
+  if (closedLeg) {
+    return NextResponse.json({
+      error: `Booking for "${closedLeg.name}" has closed — it departs too soon to add seats.`,
+    }, { status: 409 })
+  }
 
   const breakdown: LegBreakdown[] = []
   const addLeg = (id: string, legPriceCents: number) => {

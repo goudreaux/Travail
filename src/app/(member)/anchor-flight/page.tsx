@@ -6,6 +6,8 @@ import { fmtDur } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import TimeInput from '@/components/TimeInput'
 import { AnchorCardSetup } from '@/components/AnchorCardSetup'
+import { LastMinuteNotice } from '@/components/LastMinuteNotice'
+import { canAnchor } from '@/lib/trip-timing'
 import type { AirportMeta } from '@/lib/data'
 
 // Tropic Ocean Airways' scheduled-flight routes — the bases they fly
@@ -174,6 +176,8 @@ export default function AnchorFlightPage() {
       if (!date) return 'Select a departure date.'
       if (isRoundTrip && !returnDate) return 'Select a return date.'
       if (isRoundTrip && returnDate < date) return 'Return date must be on or after departure.'
+      const gate = canAnchor(date, departTime)
+      if (!gate.ok) return gate.reason
     }
     if (s === 3) {
       for (const g of guests) {
@@ -427,6 +431,7 @@ export default function AnchorFlightPage() {
                   </div>
                 </>
               )}
+              <LastMinuteNotice date={date} time={departTime} />
             </div>
           )}
 
@@ -543,6 +548,8 @@ export default function AnchorFlightPage() {
                   Ops will source a Tropic quote, add Travail&apos;s 3% service fee, and send it to you for review. <strong style={{ color: 'var(--ink)' }}>No card is captured until you accept the quote</strong>. You&apos;ll get a notification with the total to review.
                 </p>
               </div>
+
+              <LastMinuteNotice date={date} time={departTime} />
 
               <div style={{ marginTop: 14 }}>
                 <AnchorCardSetup onCardReady={() => setHasCard(true)} />

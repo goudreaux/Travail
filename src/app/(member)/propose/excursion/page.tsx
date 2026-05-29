@@ -54,7 +54,7 @@ export default function ProposeExcursionPage() {
     setError(null)
     if (!name.trim()) { setError('Pick a name.'); return }
     if (!date) { setError('Pick a date.'); return }
-    if (date < minDate) { setError(`Proposals need at least ${PROPOSAL_MIN_LEAD_DAYS} days of lead time.`); return }
+    if (date < minDate) { setError(`Proposals need at least ${PROPOSAL_MIN_LEAD_DAYS} days of lead time so the network has a chance to commit. For a trip sooner than that, anchor it instead — you commit the charter and open the extra seats.`); return }
     if (proposerMaxSeats < proposerMinSeats) { setError('Your maximum coverage must be at least your party size.'); return }
     if (proposerMaxSeats > suggestedCapacity) { setError('Your max coverage can\'t exceed capacity.'); return }
 
