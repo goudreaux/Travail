@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
 
   if (!trip.anchor_payment_intent_id || !trip.anchor_captured_cents) {
     return NextResponse.json({
-      error: 'Trip was not captured via the anchor flow — nothing to settle.',
+      error: 'Trip was not captured via the anchor flow, nothing to settle.',
     }, { status: 409 })
   }
 
@@ -393,7 +393,7 @@ export async function POST(req: NextRequest) {
     actor_member_id: meRow.id,
     subject_member_id: trip.anchor_member_id,
     action: 'trip_settled',
-    summary: `Settled ${itemKind} "${trip.name ?? itemId}" — anchor net $${(anchorNetPaidCents / 100).toFixed(2)}, refund $${(anchorRefundCents / 100).toFixed(2)}.`,
+    summary: `Settled ${itemKind} "${trip.name ?? itemId}": anchor net $${(anchorNetPaidCents / 100).toFixed(2)}, refund $${(anchorRefundCents / 100).toFixed(2)}.`,
     item_kind: itemKind,
     item_id: itemId,
     meta: {

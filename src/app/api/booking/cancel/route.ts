@@ -177,8 +177,8 @@ export async function POST(req: NextRequest) {
     subject_member_id: booking.member_id,
     action: wasForfeit ? 'booking_forfeit' : 'booking_cancelled_with_refund',
     summary: wasForfeit
-      ? `Cancelled inside ${windowHours}h window — seat forfeited (no refund).`
-      : `Cancelled outside ${windowHours}h window — full refund issued.`,
+      ? `Cancelled inside ${windowHours}h window, seat forfeited (no refund).`
+      : `Cancelled outside ${windowHours}h window, full refund issued.`,
     booking_id: booking.id,
     item_kind: booking.item_kind,
     item_id: booking.item_id,
@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
   await (db.from('notifications') as any).insert({
     member_id: booking.member_id,
     kind: 'booking',
-    title: wasForfeit ? 'Reservation cancelled — seat forfeited' : 'Reservation cancelled & refunded',
+    title: wasForfeit ? 'Reservation cancelled, seat forfeited' : 'Reservation cancelled & refunded',
     body: wasForfeit
       ? `Your reservation was cancelled inside the ${windowHours}-hour window. Per our policy, the seat is forfeited and no refund is issued.`
       : `Your reservation was cancelled outside the ${windowHours}-hour window. A full refund of $${(refundAmountCents / 100).toFixed(2)} has been issued and should appear on your card within 5-10 business days.`,
@@ -229,8 +229,8 @@ export async function POST(req: NextRequest) {
         ...(reason ? { 'Member reason': reason } : {}),
       },
       note: wasForfeit
-        ? 'Pax cancelled inside the policy window — seat forfeited, no refund. Money stays on Travail\'s books and offsets the anchor\'s settlement.'
-        : 'Pax cancelled outside the policy window — full Stripe refund issued. Seat returns to open pool.',
+        ? 'Pax cancelled inside the policy window, seat forfeited, no refund. Money stays on Travail\'s books and offsets the anchor\'s settlement.'
+        : 'Pax cancelled outside the policy window, full Stripe refund issued. Seat returns to open pool.',
     })
   } catch (e) {
     safeError('cancel: notifyOps failed (non-fatal)', e)

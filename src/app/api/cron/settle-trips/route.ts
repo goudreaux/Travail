@@ -121,7 +121,7 @@ async function settleOne(db: any, itemKind: 'flight' | 'excursion', trip: any) {
     actor_member_id: null,
     subject_member_id: trip.anchor_member_id,
     action: 'trip_settled',
-    summary: `Auto-settled ${itemKind} "${trip.name ?? trip.id}" — anchor net $${(anchorNetPaidCents / 100).toFixed(2)}, refund $${(anchorRefundCents / 100).toFixed(2)}.`,
+    summary: `Auto-settled ${itemKind} "${trip.name ?? trip.id}": anchor net $${(anchorNetPaidCents / 100).toFixed(2)}, refund $${(anchorRefundCents / 100).toFixed(2)}.`,
     item_kind: itemKind,
     item_id: trip.id,
     meta: { charter_total_cents: charterTotalCents, paid_revenue_cents: paidRevenueCents, anchor_refund_cents: anchorRefundCents, anchor_net_paid_cents: anchorNetPaidCents, refund_id: refundId, source: 'cron' },

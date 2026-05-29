@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   const body = (sub.payload ?? {}) as any
   const seatsTotal = Number(body.seatsTotal ?? body.spotsTotal ?? body.seats_total ?? body.spots_total ?? 0)
   if (!seatsTotal) {
-    return NextResponse.json({ error: 'Submission has no seats/spots count — fix the submission first' }, { status: 400 })
+    return NextResponse.json({ error: 'Submission has no seats/spots count, fix the submission first' }, { status: 400 })
   }
 
   // Lock the quoted total onto the submission. Per-pax math is derived.
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     const e = updErr as any
     const detail = e?.message || e?.details || e?.code || JSON.stringify(e)
     return NextResponse.json(
-      { error: `Could not save the quote — ${detail}` },
+      { error: `Could not save the quote: ${detail}` },
       { status: 500 },
     )
   }

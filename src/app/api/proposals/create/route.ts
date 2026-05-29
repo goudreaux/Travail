@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
         memberCode: me.member_no ? `#${me.member_no}` : null,
       },
       item: { kind, id: proposalId, name, date },
-      note: `New TRIP PROPOSAL — needs review. Proposer suggested capacity ${suggestedCapacity}, min ${suggestedMinSeats}.`,
+      note: `New TRIP PROPOSAL, needs review. Proposer suggested capacity ${suggestedCapacity}, min ${suggestedMinSeats}.`,
       details: {
         Action: 'PROPOSAL submitted',
         Origin: originCode,
