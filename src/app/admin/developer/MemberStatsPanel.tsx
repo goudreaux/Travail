@@ -65,7 +65,15 @@ function fmtMinutes(min: number): string {
   return m ? `${h}h ${m}m` : `${h}h`
 }
 
-export function MemberStatsPanel() {
+export function MemberStatsPanel({
+  collapsible = false,
+  open = true,
+  onToggle,
+}: {
+  collapsible?: boolean
+  open?: boolean
+  onToggle?: () => void
+} = {}) {
   const supabase = createClient()
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
@@ -170,19 +178,57 @@ export function MemberStatsPanel() {
     )
   }
 
+  // When collapsed, swap the header for a button-based toggle and hide
+  // everything below. When the parent isn't passing the collapsible
+  // prop, render the original always-open header with the inline search.
+  const showBody = !collapsible || open
   return (
     <div className="panel" style={{ marginBottom: 24 }}>
-      <div className="panel-head">
-        <h3>Member stats</h3>
-        <input
-          className="input"
-          placeholder="Search by name or member id…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ maxWidth: 240, height: 32, fontSize: 12 }}
-        />
-      </div>
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="panel-head"
+          style={{
+            width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
+            textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          }}
+        >
+          <h3 style={{ margin: 0 }}>Member stats</h3>
+          <span aria-hidden style={{
+            fontSize: 16, color: 'var(--ink-light)',
+            transition: 'transform 0.18s',
+            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+            display: 'inline-block',
+          }}>▾</span>
+        </button>
+      ) : (
+        <div className="panel-head">
+          <h3>Member stats</h3>
+          <input
+            className="input"
+            placeholder="Search by name or member id…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ maxWidth: 240, height: 32, fontSize: 12 }}
+          />
+        </div>
+      )}
 
+      {showBody && collapsible && (
+        <div style={{ padding: '14px 20px 0' }}>
+          <input
+            className="input"
+            placeholder="Search by name or member id…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ maxWidth: 320, height: 32, fontSize: 12 }}
+          />
+        </div>
+      )}
+
+      {showBody && (<>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, padding: '14px 20px 0' }}>
         <Stat label="Active · 7 days"   value={activeLast7} />
         <Stat label="Active · 30 days"  value={activeLast30} />
@@ -245,6 +291,7 @@ export function MemberStatsPanel() {
           </table>
         )}
       </div>
+      </>)}
     </div>
   )
 }

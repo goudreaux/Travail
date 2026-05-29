@@ -11,9 +11,9 @@ import EnvelopeSplash from '@/components/EnvelopeSplash'
 
 export function EnvelopePreviewPanel() {
   const [runId, setRunId] = useState(0)            // bumped to remount
-  const [monogram, setMonogram] = useState('T')
+  const [inviteLabel, setInviteLabel] = useState("You're Invited")
   const [autoOpen, setAutoOpen] = useState(true)
-  const [holdMs, setHoldMs] = useState(650)
+  const [holdMs, setHoldMs] = useState(700)
   const [bg, setBg] = useState('cream')            // 'cream' | 'dark'
   const [completed, setCompleted] = useState(false)
 
@@ -42,13 +42,12 @@ export function EnvelopePreviewPanel() {
         {/* Knobs */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 10, marginBottom: 14 }}>
           <div className="field" style={{ margin: 0 }}>
-            <label className="field-lab">Monogram</label>
+            <label className="field-lab">Invitation label</label>
             <input
               className="input"
-              maxLength={2}
-              value={monogram}
-              onChange={(e) => setMonogram(e.target.value.toUpperCase().slice(0, 2))}
-              style={{ textAlign: 'center', fontFamily: 'Georgia, serif', fontStyle: 'italic' }}
+              value={inviteLabel}
+              onChange={(e) => setInviteLabel(e.target.value)}
+              style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', fontStyle: 'italic' }}
             />
           </div>
           <div className="field" style={{ margin: 0 }}>
@@ -105,7 +104,7 @@ export function EnvelopePreviewPanel() {
           {/* The key prop forces a remount on every Play, restarting timers. */}
           <EnvelopeSplash
             key={runId}
-            monogram={monogram || 'T'}
+            inviteLabel={inviteLabel || "You're Invited"}
             autoOpen={autoOpen}
             autoCompleteAfterMs={holdMs}
             onComplete={() => setCompleted(true)}

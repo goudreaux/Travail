@@ -128,8 +128,7 @@ export default function OnboardingPage() {
         {phase !== 'form' ? (
           <EnvelopeSplash
             autoOpen
-            autoCompleteAfterMs={650}
-            monogram="T"
+            autoCompleteAfterMs={700}
             onComplete={() => setPhase('form')}
           />
         ) : (
