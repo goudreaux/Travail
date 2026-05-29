@@ -10,6 +10,7 @@ import MobileNav from '@/components/MobileNav'
 import PullToRefresh from '@/components/PullToRefresh'
 import ToastHost from '@/components/ToastHost'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
+import { MaintenanceBanner } from '@/components/MaintenanceBanner'
 import { FirstLoginTutorial } from '@/components/FirstLoginTutorial'
 import { useActivityBeacon, useLoginStamp } from '@/lib/use-activity-beacon'
 import { useActionItems } from '@/lib/use-action-items'
@@ -145,6 +146,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
     <div className="app">
       <Sidebar pathname={pathname} member={member} pendingCount={pendingCount} openSeatsCount={openSeatsCount} unreadCount={unreadCount} tripsAlertCount={actionItems.tripsCount} proposalsAlertCount={actionItems.proposalsCount} />
       <main className="main">
+        <MaintenanceBanner />
         <SubscriptionBanner status={member?.subscription_status} />
         <TopBar
           member={member}

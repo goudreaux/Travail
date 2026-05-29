@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
 import { sendProposalFundedEmail } from '@/lib/member-email'
+import { assertTransactionsAllowed } from '@/lib/maintenance'
 import type { Database } from '@/lib/supabase/types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -61,6 +62,12 @@ export async function POST(req: NextRequest) {
   if (!proposalId) return NextResponse.json({ error: 'proposalId required' }, { status: 400 })
 
   const db = admin()
+
+  // Maintenance kill switch — locking captures every committer's card.
+  // Freeze it while closed.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const maint = await assertTransactionsAllowed(db as any)
+  if (!maint.ok) return NextResponse.json({ error: maint.message }, { status: 503 })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: prop } = await (db as any)

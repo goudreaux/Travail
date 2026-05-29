@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
 import { assertCanBook } from '@/lib/can-book'
+import { assertTransactionsAllowed } from '@/lib/maintenance'
 import type { Database } from '@/lib/supabase/types'
 
 // Anchor card-on-file flow.
@@ -174,6 +175,11 @@ export async function POST() {
       { status: 402 },
     )
   }
+
+  // Maintenance kill switch — freeze anchor card setup.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const maint = await assertTransactionsAllowed(admin() as any)
+  if (!maint.ok) return NextResponse.json({ error: maint.message }, { status: 503 })
 
   try {
     const customerId = await ensureStripeCustomer(r.member.id, r.member.name, r.email)

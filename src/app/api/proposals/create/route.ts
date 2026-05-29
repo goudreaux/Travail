@@ -7,6 +7,7 @@ import { MAX_ACTIVE_PROPOSALS_PER_MEMBER } from '@/lib/proposals'
 import { canPropose } from '@/lib/trip-timing'
 import { notifyOps } from '@/lib/ops-notify'
 import { assertCanBook } from '@/lib/can-book'
+import { assertTransactionsAllowed } from '@/lib/maintenance'
 import { sendProposalSubmittedEmail } from '@/lib/member-email'
 import type { Database } from '@/lib/supabase/types'
 
@@ -89,6 +90,12 @@ export async function POST(req: NextRequest) {
       { status: 402 },
     )
   }
+
+  // Maintenance kill switch — a proposal sets up the proposer's card, so
+  // it's a transaction path; freeze it.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const maint = await assertTransactionsAllowed(admin() as any)
+  if (!maint.ok) return NextResponse.json({ error: maint.message }, { status: 503 })
 
   let body: Payload
   try { body = await req.json() }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { safeError } from '@/lib/pii-scrub'
+import { assertTransactionsAllowed } from '@/lib/maintenance'
 import type { Database } from '@/lib/supabase/types'
 
 // Existing committer (proposer included) adds more seats to their
@@ -56,6 +57,11 @@ export async function POST(req: NextRequest) {
   if (!proposalId) return NextResponse.json({ error: 'proposalId required' }, { status: 400 })
 
   const db = admin()
+
+  // Maintenance kill switch — adding seats increases a billable commitment.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const maint = await assertTransactionsAllowed(db as any)
+  if (!maint.ok) return NextResponse.json({ error: maint.message }, { status: 503 })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: prop } = await (db as any)
