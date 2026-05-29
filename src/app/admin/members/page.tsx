@@ -103,6 +103,10 @@ export default function MembersPage() {
   const [convertGuestId, setConvertGuestId] = useState<string | null>(null)
   const [peopleTab, setPeopleTab] = useState<'members' | 'guests' | 'referrals'>('members')
   const [convertReferralId, setConvertReferralId] = useState<string | null>(null)
+  // Generated invite-code dialog: { name, code, url }.
+  const [codeModal, setCodeModal] = useState<{ name: string; code: string; url: string } | null>(null)
+  const [codeBusy, setCodeBusy] = useState<string | null>(null)
+  const [copied, setCopied] = useState<'code' | 'link' | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
   const searchParams = useSearchParams()
 
@@ -267,6 +271,38 @@ export default function MembersPage() {
       return res.ok ? null : (json.error ?? 'Invite failed')
     } catch (e) {
       return (e as Error).message ?? 'Invite failed'
+    }
+  }
+
+  // Mint a per-member invite code and show it for copying. This is the
+  // path-of-least-resistance signup: the member opens the link, sets a
+  // password, and is dropped straight into the app — no email link involved.
+  async function genCode(m: Member) {
+    setCodeBusy(m.id)
+    try {
+      const res = await fetch('/api/admin/invite-codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: m.id }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.ok) { showToast(json.error ?? 'Could not create code', 'error'); return }
+      setCopied(null)
+      setCodeModal({ name: m.name, code: json.code, url: json.joinUrl })
+    } catch (e) {
+      showToast((e as Error).message ?? 'Could not create code', 'error')
+    } finally {
+      setCodeBusy(null)
+    }
+  }
+
+  async function copyText(text: string, which: 'code' | 'link') {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(which)
+      setTimeout(() => setCopied(null), 1800)
+    } catch {
+      showToast('Copy failed — select and copy manually', 'error')
     }
   }
 
@@ -472,6 +508,46 @@ export default function MembersPage() {
   return (
     <div className="admin-page">
       {toast && <Toast msg={toast.msg} kind={toast.kind} />}
+
+      {codeModal && (
+        <div
+          onClick={() => setCodeModal(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(20,30,34,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 16, padding: 28, maxWidth: 440, width: '100%', boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
+          >
+            <div className="envelope-eyebrow" style={{ marginBottom: 6 }}>Invite code</div>
+            <h3 style={{ fontFamily: 'var(--display)', fontSize: 22, margin: '0 0 6px', color: 'var(--ink)' }}>
+              {codeModal.name} is ready to join
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--ink-light)', margin: '0 0 18px', lineHeight: 1.5 }}>
+              Share this with them. They open the link, set a password, and they&rsquo;re in — no email link to chase. Single-use, expires in 30 days.
+            </p>
+
+            <label className="field-lab">Code</label>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 22, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--tropic-d)', background: 'var(--tropic-glow)', borderRadius: 10, padding: '12px 16px', textAlign: 'center' }}>
+                {codeModal.code}
+              </div>
+              <button className="btn-ghost" style={{ flexShrink: 0 }} onClick={() => copyText(codeModal.code, 'code')}>
+                {copied === 'code' ? 'Copied ✓' : 'Copy'}
+              </button>
+            </div>
+
+            <label className="field-lab">Shareable link</label>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              <input className="input" readOnly value={codeModal.url} style={{ flex: 1, fontSize: 12.5, fontFamily: 'var(--mono)' }} onFocus={e => e.target.select()} />
+              <button className="btn-primary" style={{ flexShrink: 0 }} onClick={() => copyText(codeModal.url, 'link')}>
+                {copied === 'link' ? 'Copied ✓' : 'Copy link'}
+              </button>
+            </div>
+
+            <button className="btn-ghost" style={{ width: '100%' }} onClick={() => setCodeModal(null)}>Done</button>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
@@ -743,11 +819,22 @@ export default function MembersPage() {
                   </td>
                   <td onClick={e => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'inline-flex', gap: 6 }}>
+                      {contactPresence[m.id]?.has_email && (!m.user_id || m.user_id === PLACEHOLDER_USER_ID) && (
+                        <button
+                          className="btn-ghost"
+                          style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--tropic-d)', borderColor: 'rgba(0,179,199,0.3)' }}
+                          title="Generate an invite code — they open the link, set a password, and they're in (no email link needed)"
+                          disabled={codeBusy === m.id}
+                          onClick={() => genCode(m)}
+                        >
+                          {codeBusy === m.id ? 'Code…' : 'Code'}
+                        </button>
+                      )}
                       {contactPresence[m.id]?.has_email && (
                         (!m.user_id || m.user_id === PLACEHOLDER_USER_ID) ? (
                           <button
                             className="btn-ghost"
-                            style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--tropic-d)', borderColor: 'rgba(0,179,199,0.3)' }}
+                            style={{ height: 28, padding: '0 10px', fontSize: 12 }}
                             title="Email an onboarding invite — they set a password and complete their profile"
                             onClick={() => inviteRow(m)}
                           >

@@ -3,9 +3,11 @@ import { updateSession } from '@/lib/supabase/middleware'
 
 // Public routes that must work without (or before) a session:
 //  - /login: the sign-in page
+//  - /join: invite-code signup — creates the account server-side, no session yet
 //  - /onboarding: the invite link lands here and exchanges its token CLIENT-side,
 //    so there is no session yet — never redirect it away.
-const PUBLIC_PREFIXES = ['/login', '/onboarding']
+//  - /reset-password: the recovery link lands here before a full session exists.
+const PUBLIC_PREFIXES = ['/login', '/join', '/onboarding', '/reset-password']
 
 function isPublic(pathname: string) {
   return PUBLIC_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))
