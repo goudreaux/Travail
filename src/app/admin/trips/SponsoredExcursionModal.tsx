@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
 import { ItineraryEditor } from './page'
+import { TripPhotoPicker } from '@/components/TripPhotoPicker'
 
 // Focused create/edit modal for Travail-sponsored excursions.
 //
@@ -246,9 +247,12 @@ export function SponsoredExcursionModal({
             <textarea className="input" rows={3} value={form.pitch} onChange={e => patch('pitch', e.target.value)} placeholder="What's the day look like? Why is this special?" />
           </div>
 
-          <div className="field" style={{ margin: 0, gridColumn: '1 / -1' }}>
-            <label className="field-lab">Hero image URL</label>
-            <input className="input" value={form.image_url} onChange={e => patch('image_url', e.target.value)} placeholder="https://…" />
+          <div style={{ gridColumn: '1 / -1' }}>
+            <TripPhotoPicker
+              value={form.image_url}
+              onChange={(url) => patch('image_url', url)}
+              locationCode={form.origin_code || null}
+            />
           </div>
         </div>
 
