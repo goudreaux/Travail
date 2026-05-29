@@ -1,13 +1,13 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './types'
 
-// We write Supabase auth as SESSION cookies (no Max-Age / Expires) so that
-// closing the browser clears them and the member has to log in again. The
-// @supabase/ssr default writes persistent cookies (400-day Max-Age), so we
-// supply our own cookie adapter that omits the expiry on writes (and keeps an
-// expiry on removals so sign-out still clears them). Encoding mirrors the
-// `cookie` package the library uses by default (encode/decodeURIComponent),
-// so existing persistent cookies are read back correctly.
+// We write Supabase auth as PERSISTENT cookies with a 30-day Max-Age so a
+// member who closes the tab/browser isn't silently signed out (F32 — the old
+// behaviour used session cookies that cleared on close, which testers found
+// hostile). Sign-out still clears them (removals keep Max-Age=0). Encoding
+// mirrors the `cookie` package the library uses by default
+// (encode/decodeURIComponent), so existing cookies are read back correctly.
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
 
 type CookieToSet = { name: string; value: string; options?: Record<string, unknown> }
 
@@ -32,7 +32,7 @@ function setAll(cookies: CookieToSet[]) {
     if (o.domain) str += `; Domain=${o.domain}`
     if (o.secure) str += '; Secure'
     if (removing) str += '; Max-Age=0'
-    // else: no Max-Age / Expires → session cookie, cleared when the browser closes
+    else str += `; Max-Age=${SESSION_MAX_AGE}` // persist across browser restarts (F32)
     document.cookie = str
   }
 }

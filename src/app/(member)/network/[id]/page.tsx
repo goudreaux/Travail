@@ -802,7 +802,7 @@ export default function MemberProfilePage() {
                       </span>
                       <p style={{ fontSize: 12.5, color: 'var(--ink-mid)', margin: 0, lineHeight: 1.5, flex: 1 }}>
                         {member.name.split(' ')[0]} keeps contact private. Coordinate through{' '}
-                        <Link href="/contact" style={{ color: 'var(--tropic-d)', textDecoration: 'underline' }}>Ops</Link>.
+                        <Link href="/contact" style={{ color: 'var(--tropic-d)', textDecoration: 'underline' }}>your concierge</Link>.
                       </p>
                     </div>
                   ) : (

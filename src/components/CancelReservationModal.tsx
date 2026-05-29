@@ -137,7 +137,7 @@ export function CancelReservationModal({
               background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)',
               borderRadius: 10, padding: '14px 16px', color: 'var(--signal)', fontSize: 14, fontWeight: 600,
             }}>
-              This trip has already departed. Reservations can't be cancelled after wheels-up, so contact Ops if you need to discuss.
+              This trip has already departed. Reservations can't be cancelled after wheels-up, so contact your concierge if you need to discuss.
             </div>
           ) : insideWindow ? (
             <>

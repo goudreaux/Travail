@@ -9,6 +9,7 @@ import TopBar from '@/components/TopBar'
 import MobileNav from '@/components/MobileNav'
 import PullToRefresh from '@/components/PullToRefresh'
 import ToastHost from '@/components/ToastHost'
+import AddToHomeScreen from '@/components/AddToHomeScreen'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import { MaintenanceBanner } from '@/components/MaintenanceBanner'
 import { FirstLoginTutorial } from '@/components/FirstLoginTutorial'
@@ -107,7 +108,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
         <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 18, padding: '40px 44px', maxWidth: 440, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(13,51,64,0.08)' }}>
           <h2 className="display-i" style={{ fontSize: 26, color: 'var(--ink)', margin: '0 0 10px' }}>Almost there.</h2>
           <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 22px' }}>
-            Your login isn&rsquo;t linked to a member profile yet. Text or email Ops with the address you signed in with and we&rsquo;ll finish your setup.
+            Your login isn&rsquo;t linked to a member profile yet. Text or email your Travail concierge with the address you signed in with and we&rsquo;ll finish your setup.
           </p>
           <button
             className="btn-ghost"
@@ -137,6 +138,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
       <MobileNav pathname={pathname} isAdmin={!!member?.is_admin} openSeatsCount={openSeatsCount} tripsAlertCount={actionItems.tripsCount} proposalsAlertCount={actionItems.proposalsCount} />
       <PullToRefresh />
       <ToastHost />
+      <AddToHomeScreen />
       {/* One-shot welcome tutorial on first sign-in. Persistence is
           server-side via members.tutorial_completed_at (migration 054)
           so switching devices doesn't re-trigger it. */}

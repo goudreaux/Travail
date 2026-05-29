@@ -71,7 +71,7 @@ export default function BoardingPassPage() {
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setCancelError(json.error ?? 'Cancellation failed. Try again or contact Ops.')
+        setCancelError(json.error ?? 'Cancellation failed. Try again or contact your concierge.')
         return
       }
       setCancelResult({ wasForfeit: !!json.was_forfeit, refundCents: json.refund_amount_cents ?? 0 })

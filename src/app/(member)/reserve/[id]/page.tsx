@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { fmtDate, fmtDur, fmtMoney, fmtTime, fmtHomeBase, memberCode, airportCity } from '@/lib/data'
+import { fmtDate, fmtDur, fmtMoney, fmtTime, airportCity } from '@/lib/data'
 import { logActivity } from '@/lib/activity'
 import { safeError } from '@/lib/pii-scrub'
 import { asItinerary, fmtItineraryTime, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
@@ -1156,56 +1156,15 @@ export default function ReservePage() {
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 10 }}>
                   3 · Passenger
                 </div>
-                <div style={{
-                  background: 'var(--card)',
-                  border: '1px solid var(--hair)',
-                  borderRadius: 10,
-                  padding: '14px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                }}>
-                  {member.avatar_url ? (
-                    <img
-                      src={member.avatar_url}
-                      alt={member.name}
-                      style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                    />
-                  ) : (
-                    <div style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '50%',
-                      background: 'var(--night)',
-                      color: 'var(--tropic)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontFamily: 'var(--mono)',
-                      fontSize: 13,
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}>
-                      {member.initials}
-                    </div>
-                  )}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>
-                      {member.name}
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <span className="mono" style={{ fontSize: 9.5 }}>
-                        {memberCode(member)}
-                      </span>
-                      {member.kyc_verified && (
-                        <span className="pill moss" style={{ fontSize: 9, height: 17 }}>Verified</span>
-                      )}
-                    </div>
+                {/* Compact confirmation — members told us the full profile
+                    card here was needless ("I know I'm the passenger"). Just
+                    confirm who's flying. (F14/F20) */}
+                <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ fontSize: 14, color: 'var(--ink)' }}>
+                    Flying as <strong>{member.name}</strong>{seats > 1 ? ' · seat 1' : ''}
                   </div>
-                  {fmtHomeBase(member.home_base_code) && (
-                    <span style={{ fontSize: 11, color: 'var(--ink-mid)' }}>
-                      {fmtHomeBase(member.home_base_code)}
-                    </span>
+                  {member.kyc_verified && (
+                    <span className="pill moss" style={{ fontSize: 9, height: 17, flexShrink: 0 }}>Verified</span>
                   )}
                 </div>
               </div>
