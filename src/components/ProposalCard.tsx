@@ -266,6 +266,147 @@ export function ProposalCard({ p, onOpen }: { p: ProposalCardData; onOpen: () =>
   )
 }
 
+// Status the proposer sees while their proposal moves through the
+// pipeline. Each maps to a pill + a plain-language line so the proposer
+// always knows where things stand and what happens next.
+const MY_PROPOSAL_STATUS: Record<string, { label: string; color: string; bg: string; note: string }> = {
+  pending_ops_review: {
+    label: 'PENDING REVIEW', color: '#8a5a06', bg: 'rgba(244,167,44,0.14)',
+    note: "We're pricing this with the operator and setting the seat minimum. You'll get a notification the moment it goes live for the network.",
+  },
+  open: {
+    label: 'LIVE', color: 'var(--tropic-d)', bg: 'rgba(0,179,199,0.12)',
+    note: 'Live on the board now. The network is committing seats. If it hits the minimum before the window closes, it locks in and everyone is charged.',
+  },
+  funded: {
+    label: 'FUNDED', color: '#2f6f56', bg: 'rgba(62,140,109,0.14)',
+    note: 'It made the minimum and locked in. Everyone committed has been charged. Find it in My Trips.',
+  },
+  expired: {
+    label: 'EXPIRED', color: 'var(--ink-light)', bg: 'var(--paper)',
+    note: "It didn't reach the seat minimum in time, so it expired. No one was charged. Feel free to propose it again with more lead time.",
+  },
+  declined: {
+    label: 'DECLINED', color: '#a23a23', bg: 'rgba(217,78,42,0.10)',
+    note: 'Ops could not move this one forward.',
+  },
+  withdrawn: {
+    label: 'WITHDRAWN', color: 'var(--ink-light)', bg: 'var(--paper)',
+    note: 'You withdrew this proposal. No one was charged.',
+  },
+}
+
+export interface MyProposalData {
+  id: string
+  kind: 'flight' | 'excursion'
+  name: string
+  date: string
+  origin_code: string
+  payload: Record<string, unknown>
+  status: string
+  min_seats: number | null
+  capacity_total: number | null
+  committed_seats: number
+  expires_at: string | null
+  decline_reason: string | null
+}
+
+// Compact status row for the proposer's own proposals, across every
+// status. This is the "track your proposal through the process" view,
+// distinct from the rich browse cards on the live board below.
+export function MyProposalRow({ p, onOpen }: { p: MyProposalData; onOpen: () => void }) {
+  const dp = fmtDate(p.date)
+  const s = MY_PROPOSAL_STATUS[p.status] ?? MY_PROPOSAL_STATUS.pending_ops_review
+  const min = p.min_seats ?? 0
+  const destName = (p.payload?.destName as string) || (p.payload?.destCode as string) || null
+  const title = p.kind === 'flight'
+    ? `${airportCity(p.origin_code, {})}${destName ? ` → ${destName}` : ''}`
+    : p.name
+  const note = p.status === 'declined' && p.decline_reason ? p.decline_reason : s.note
+
+  return (
+    <div
+      onClick={onOpen}
+      style={{
+        display: 'flex', gap: 12, alignItems: 'flex-start',
+        background: 'var(--card)', border: '1px solid var(--hair-2)',
+        borderRadius: 12, padding: '13px 15px', cursor: 'pointer',
+      }}
+    >
+      <div style={{
+        flexShrink: 0, width: 46, textAlign: 'center',
+        fontFamily: 'var(--mono)', lineHeight: 1.15,
+      }}>
+        <div style={{ fontSize: 10, color: 'var(--ink-faint)', letterSpacing: '0.08em' }}>{dp.mo}</div>
+        <div style={{ fontSize: 18, color: 'var(--ink)', fontWeight: 700 }}>{dp.day}</div>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+          <span style={{
+            fontFamily: 'var(--mono)', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.14em',
+            color: s.color, background: s.bg, padding: '2px 7px', borderRadius: 4,
+          }}>{s.label}</span>
+          {p.status === 'open' && (
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-light)' }}>
+              {p.committed_seats}/{min} committed
+            </span>
+          )}
+          {p.status === 'open' && p.expires_at && (
+            <ProposalCountdown expiresAt={p.expires_at} />
+          )}
+        </div>
+        <div style={{ fontFamily: 'var(--display)', fontSize: 15.5, color: 'var(--ink)', lineHeight: 1.25, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {title}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.45 }}>{note}</div>
+      </div>
+      <span style={{ flexShrink: 0, color: 'var(--ink-faint)', fontSize: 18, alignSelf: 'center' }}>›</span>
+    </div>
+  )
+}
+
+// Loader for the proposer's own proposals across every status. RLS
+// already lets a member read their own rows in any state, so this is a
+// single proposer-scoped query plus a commit tally for the live ones.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function loadMyProposals(supabase: any, memberId: string | null): Promise<MyProposalData[]> {
+  if (!memberId) return []
+  const { data: rows } = await supabase
+    .from('trip_proposals')
+    .select('id, kind, name, date, origin_code, payload, status, min_seats, capacity_total, expires_at, decline_reason')
+    .eq('proposer_id', memberId)
+    .order('created_at', { ascending: false })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const list = (rows ?? []) as any[]
+  if (list.length === 0) return []
+
+  // Tally committed seats per proposal so the LIVE rows show progress.
+  const ids = list.map(p => p.id)
+  const committed: Record<string, number> = {}
+  const { data: cms } = await supabase
+    .from('trip_proposal_commits').select('proposal_id, seats, status').in('proposal_id', ids)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const c of ((cms ?? []) as any[])) {
+    if (c.status !== 'committed' && c.status !== 'captured') continue
+    committed[c.proposal_id] = (committed[c.proposal_id] ?? 0) + (c.seats ?? 1)
+  }
+
+  return list.map(p => ({
+    id: p.id,
+    kind: p.kind,
+    name: p.name,
+    date: p.date,
+    origin_code: p.origin_code,
+    payload: (p.payload ?? {}) as Record<string, unknown>,
+    status: p.status,
+    min_seats: p.min_seats,
+    capacity_total: p.capacity_total,
+    committed_seats: committed[p.id] ?? 0,
+    expires_at: p.expires_at,
+    decline_reason: p.decline_reason ?? null,
+  }))
+}
+
 // Shared loader: fetches all status='open' proposals + commit counts
 // + proposer names + the committer roster (so friend highlighting
 // works the same as flight/excursion cards). Single query family for

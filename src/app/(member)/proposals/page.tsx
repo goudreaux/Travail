@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import PageHero from '@/components/PageHero'
-import { ProposalCard, loadOpenProposals, type ProposalCardData } from '@/components/ProposalCard'
+import { ProposalCard, MyProposalRow, loadOpenProposals, loadMyProposals, type ProposalCardData, type MyProposalData } from '@/components/ProposalCard'
 
 // Dedicated Trip Proposals board. Same card renderer as /seats; this
 // page exists so the proposals model has its own dedicated home on
@@ -18,6 +18,7 @@ export default function ProposalsPage() {
   const router = useRouter()
   const supabase = createClient()
   const [proposals, setProposals] = useState<ProposalCardData[]>([])
+  const [mine, setMine] = useState<MyProposalData[]>([])
   const [memberId, setMemberId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
@@ -32,8 +33,12 @@ export default function ProposalsPage() {
       mid = m?.id ?? null
     }
     setMemberId(mid)
-    const list = await loadOpenProposals(supabase, mid)
+    const [list, myList] = await Promise.all([
+      loadOpenProposals(supabase, mid),
+      loadMyProposals(supabase, mid),
+    ])
     setProposals(list)
+    setMine(myList)
     setLoading(false)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -72,6 +77,30 @@ export default function ProposalsPage() {
       />
 
       <div className="page-view">
+        {/* Your proposals — the proposer's own pipeline across every
+            status (pending review, live, funded, expired, declined,
+            withdrawn) so they can always see where a proposal stands and
+            what happens next. The live board below is the network view. */}
+        {!loading && mine.length > 0 && (
+          <div style={{ marginBottom: 26 }}>
+            <div style={{
+              fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.16em',
+              textTransform: 'uppercase', color: 'var(--ink-light)', marginBottom: 10,
+            }}>
+              Your proposals
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {mine.map(p => (
+                <MyProposalRow
+                  key={p.id}
+                  p={p}
+                  onOpen={() => router.push(`/reserve/${p.id}?kind=proposal`)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Filter chips */}
         {proposals.length > 0 && (
           <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
