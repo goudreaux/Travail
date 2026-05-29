@@ -84,10 +84,16 @@ export default function AdminProposalsPage() {
     }
     const proposerIds = [...new Set(proposals.map(p => p.proposer_id).filter(Boolean))]
     let nameById: Record<string, string> = {}
+    const contactById: Record<string, { email: string | null; phone: string | null }> = {}
     if (proposerIds.length) {
       const { data: ms } = await db.from('members').select('id, name').in('id', proposerIds)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const m of ((ms ?? []) as any[])) nameById[m.id] = m.name ?? ''
+      // Contact lives in member_sensitive; admins can read it via RLS.
+      // Ops needs it to reach the proposer while coordinating vendors.
+      const { data: cts } = await db.from('member_sensitive').select('member_id, email, phone').in('member_id', proposerIds)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const c of ((cts ?? []) as any[])) contactById[c.member_id] = { email: c.email ?? null, phone: c.phone ?? null }
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const list: ProposalRow[] = proposals.map((p: any) => {
@@ -340,17 +346,22 @@ function ProposalRowCard({
       {row.status === 'open' && (
         <>
           <div style={{ marginBottom: 10, fontSize: 13, color: 'var(--ink-soft)' }}>
-            <strong style={{ color: 'var(--ink)' }}>{row.committed_seats}</strong>/{row.min_seats ?? '?'} committed
+            <strong style={{ color: 'var(--ink)' }}>{row.network_seats}</strong>/{row.min_seats ?? '?'} network commits
+            {' · '}{row.proposer_seats_now} firm from proposer
             {' · expires '}{row.expires_at ? new Date(row.expires_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
             {row.price_per_seat_cents != null && ` · $${(row.price_per_seat_cents / 100).toFixed(0)}/seat`}
           </div>
+          {/* Lock fires when NETWORK commits hit min. The proposer's
+              firm seats are guaranteed but don't count toward the
+              network threshold; the deadline spread (cron) handles the
+              fallback case where network falls short. */}
           <button
             className="btn-primary"
-            disabled={busy || (row.min_seats == null || row.committed_seats < row.min_seats)}
+            disabled={busy || (row.min_seats == null || row.network_seats < row.min_seats)}
             onClick={onLock}
-            title={row.min_seats != null && row.committed_seats >= row.min_seats ? '' : 'Waiting on commits to hit minimum'}
+            title={row.min_seats != null && row.network_seats >= row.min_seats ? '' : 'Waiting on network commits to hit minimum'}
           >
-            {busy ? 'Locking…' : row.committed_seats >= (row.min_seats ?? Infinity) ? 'Lock & capture all commits' : 'Waiting on commits'}
+            {busy ? 'Locking…' : row.network_seats >= (row.min_seats ?? Infinity) ? 'Lock & capture all commits' : 'Waiting on network commits'}
           </button>
         </>
       )}

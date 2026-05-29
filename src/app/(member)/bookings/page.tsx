@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { fmtDate, fmtTime, fmtMoney, returnLegIds, airportCity } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import { KIND_ICONS } from '@/lib/icons'
+import { MyProposalCommitRow, loadMyProposalCommits, type MyProposalCommitData } from '@/components/ProposalCard'
 import type {
   Booking,
   AnchorSubmission,
@@ -268,6 +269,7 @@ export default function BookingsPage() {
 
   const [bookings, setBookings] = useState<EnrichedBooking[]>([])
   const [anchors, setAnchors] = useState<EnrichedSubmission[]>([])
+  const [proposalCommits, setProposalCommits] = useState<MyProposalCommitData[]>([])
   const [airportName, setAirportName] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [showHistory, setShowHistory] = useState(false)
@@ -292,6 +294,10 @@ export default function BookingsPage() {
         router.push('/login')
         return
       }
+
+      // Live proposal commits surface on My Trips so a member can
+      // track a proposal they're tied to without going hunting.
+      loadMyProposalCommits(supabase, member.id).then(setProposalCommits).catch(() => {})
 
       const [
         { data: rawBookings },
@@ -456,6 +462,23 @@ export default function BookingsPage() {
                 </section>
               )
             })()}
+
+            {/* Your Proposal Commits — live proposals you've put a
+                card on file for. They aren't bookings yet (no charge,
+                nothing to board), but you're tied to the trip and
+                should see how the network's filling it. */}
+            {proposalCommits.length > 0 && (
+              <section style={{ marginBottom: 22 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <p className="mono" style={{ margin: 0 }}>YOUR PROPOSAL COMMITS · {proposalCommits.length}</p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {proposalCommits.map(c => (
+                    <MyProposalCommitRow key={c.proposalId} c={c} onOpen={() => router.push(`/reserve/${c.proposalId}?kind=proposal`)} />
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* Your Active Bookings */}
             <section>

@@ -5,7 +5,7 @@ import { adaptFlight, adaptExcursion, returnLegIds, fmtMoney, airportCity, Displ
 import { KIND_ICONS, Icons } from '@/lib/icons'
 import { SeatMeter } from '@/components/SeatMeter'
 import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'
-import { ProposalCard, loadOpenProposals, type ProposalCardData } from '@/components/ProposalCard'
+import { ProposalCard, MyProposalCommitRow, loadOpenProposals, loadMyProposalCommits, type ProposalCardData, type MyProposalCommitData } from '@/components/ProposalCard'
 import { SponsorBadge } from '@/components/SponsorBadge'
 import { UrgencyTag } from '@/components/UrgencyTag'
 import Link from 'next/link'
@@ -99,6 +99,7 @@ function excursionMatchesFilter(e: DisplayExcursion, filter: TypeFilter): boolea
 
 export default function FeedPage() {
   const [member, setMember] = useState<Member | null>(null)
+  const [proposalCommits, setProposalCommits] = useState<MyProposalCommitData[]>([])
   const [flights, setFlights] = useState<DisplayFlight[]>([])
   const [excursions, setExcursions] = useState<DisplayExcursion[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -110,13 +111,16 @@ export default function FeedPage() {
   // iOS Wallet-style stack: only one trip is expanded at a time. Null = "use
   // the first trip" (so the most-recent is open by default).
   const [expandedTripId, setExpandedTripId] = useState<string | null>(null)
-  // Mobile-friendly collapsible sections on the feed.
+  // Mobile-friendly collapsible sections on the feed. Everything opens
+  // expanded — My Trips, Open Seats, and Open Proposals — so a member
+  // sees the whole board the moment they log in, mobile included.
+  // (When the board scales to many trips we can revisit collapsing
+  // Open Seats / Proposals on mobile first-load to keep it scannable.)
   const [myTripsOpen, setMyTripsOpen] = useState(true)
   const [openSeatsOpen, setOpenSeatsOpen] = useState(true)
   // The proposals panel below renders its own collapse state — we lift
-  // the initial value here so the feed can collapse it on mobile load
-  // alongside Open Seats. My Trips stays open by default on every
-  // viewport since it's the personal-priority surface.
+  // the initial value here so the feed controls its default. Open on
+  // every viewport for now.
   const [proposalsOpenInitial, setProposalsOpenInitial] = useState(true)
   // How many in-flight anchor submissions the pending-anchors strip
   // rendered. When > 0 we suppress the "nothing on the books" neg even
@@ -124,19 +128,6 @@ export default function FeedPage() {
   const [pendingAnchorCount, setPendingAnchorCount] = useState(0)
   const supabase = createClient()
   const router = useRouter()
-
-  // Mobile first-load: collapse Open Seats + Open Proposals so the
-  // feed opens with My Trips visible above the fold. My Trips stays
-  // expanded because it's the personal-priority surface — what's on
-  // *my* board matters more than what's on the network's.
-  useEffect(() => {
-    if (window.matchMedia?.('(max-width: 720px)').matches) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setOpenSeatsOpen(false)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setProposalsOpenInitial(false)
-    }
-  }, [])
 
   useEffect(() => {
     async function load() {
@@ -151,6 +142,9 @@ export default function FeedPage() {
       if (!memberRaw) { router.push('/login'); return }
       const memberData = memberRaw as unknown as Member
       setMember(memberData)
+      // Best-effort: surface this member's live proposal commits on
+      // the feed's My Trips panel. Failure is silent.
+      loadMyProposalCommits(supabase, memberData.id).then(setProposalCommits).catch(() => {})
 
       const myId = memberData.id
 
@@ -442,11 +436,22 @@ export default function FeedPage() {
             {!loading && member && (
               <PendingAnchorsStrip memberId={member.id} airportName={airportName} onOpen={(href) => router.push(href)} onCount={setPendingAnchorCount} />
             )}
+            {/* Live proposal commits — the member is tied to these
+                trips (card on file) even though they aren't yet a
+                bookable seat. Surface them right alongside pending
+                anchors so My Trips reflects every commitment. */}
+            {!loading && proposalCommits.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {proposalCommits.map(c => (
+                  <MyProposalCommitRow key={c.proposalId} c={c} onOpen={() => router.push(`/reserve/${c.proposalId}?kind=proposal`)} />
+                ))}
+              </div>
+            )}
             {loading ? (
               <div style={{ padding: '32px 0', display: 'flex', justifyContent: 'center' }}>
                 <div className="pending-indicator" />
               </div>
-            ) : tripItems.length === 0 && pendingAnchorCount === 0 ? (
+            ) : tripItems.length === 0 && pendingAnchorCount === 0 && proposalCommits.length === 0 ? (
               <EmptyTripsNeg memberId={member?.id ?? null} onPlan={() => router.push('/plan')} />
             ) : tripItems.length === 0 ? null : (
               (() => {
