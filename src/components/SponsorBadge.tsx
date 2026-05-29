@@ -57,3 +57,15 @@ export const SPONSORS = [
 ] as const
 
 export type SponsorKey = typeof SPONSORS[number]['key']
+
+// Preset sponsor lines for the ops trip-form dropdown. These are the
+// full collab strings stored on the excursion's `sponsor` field — the
+// card detects "Field & Stream" in any of them and renders the badge.
+// Picking from a list keeps the badge trigger typo-proof; "Custom…"
+// reveals a free-text input for one-off collabs.
+export const SPONSOR_LINE_PRESETS: string[] = [
+  'Travail × Tropic × Field & Stream',
+  'Travail × Field & Stream',
+  'Travail × Tropic',
+  'Field & Stream',
+]
