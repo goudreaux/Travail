@@ -54,6 +54,38 @@ export async function createFounderSubscription(
     throw new Error('STRIPE_PRICE_FOUNDING env var not set')
   }
 
+  // Reuse any in-flight incomplete subscription before minting a new
+  // one. Stripe auto-expires `incomplete` subs after 23 hours; if a
+  // member's first card-collect never confirmed and they came back to
+  // /onboarding/subscribe, we'd otherwise stack a fresh subscription
+  // on top of their existing one. Reusing keeps the customer record
+  // clean and lets the member finish what they started.
+  try {
+    const existing = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'incomplete',
+      limit: 5,
+      expand: ['data.latest_invoice.payment_intent', 'data.latest_invoice.confirmation_secret'],
+    })
+    for (const sub of existing.data) {
+      // Only reuse if it's our founder price — if Stripe data is
+      // weird (different price), let the new subscription happen.
+      const itemPrice = sub.items?.data?.[0]?.price?.id
+      if (itemPrice !== STRIPE_PRICE_FOUNDING) continue
+      const invoice = sub.latest_invoice as unknown as {
+        confirmation_secret?: { client_secret?: string | null } | null
+        payment_intent?: { client_secret?: string | null } | null
+      } | null
+      const cs =
+        invoice?.confirmation_secret?.client_secret
+        ?? invoice?.payment_intent?.client_secret
+        ?? null
+      if (cs) return { subscription: sub, clientSecret: cs }
+    }
+  } catch {
+    // Listing is a soft-fail — fall through to create a fresh one.
+  }
+
   const subscription = await stripe.subscriptions.create({
     customer: customerId,
     items: [{ price: STRIPE_PRICE_FOUNDING }],

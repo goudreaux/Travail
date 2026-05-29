@@ -67,6 +67,7 @@ export type OpsNotifyKind =
   | 'payment_failed'        // Stripe declined a charge
   | 'payment_dispute'       // Stripe chargeback initiated
   | 'anchor_submission'     // New anchor pending Ops review
+  | 'proposal_submission'   // New Trip Proposal pending Ops review (Kickstarter-style)
   | 'member_contact'        // Member sent a note via /contact
   | 'subscription_started'        // New member's first invoice paid
   | 'subscription_payment_failed' // Renewal failed — ops calls to resolve
@@ -101,6 +102,7 @@ const KIND_META: Record<OpsNotifyKind, { label: string; accent: string; sign: 'i
   payment_failed:       { label: 'PAYMENT FAILED',           accent: '#d94e2a', sign: 'neutral' },
   payment_dispute:      { label: 'PAYMENT DISPUTE',          accent: '#d94e2a', sign: 'neutral' },
   anchor_submission:           { label: 'NEW ANCHOR SUBMISSION',    accent: '#f4a72c', sign: 'neutral' },
+  proposal_submission:         { label: 'NEW TRIP PROPOSAL',        accent: '#e09418', sign: 'neutral' },
   member_contact:              { label: 'MEMBER CONTACT',           accent: '#7c9aa6', sign: 'neutral' },
   subscription_started:        { label: 'MEMBERSHIP STARTED',       accent: '#3e8c6d', sign: 'in' },
   subscription_payment_failed: { label: 'MEMBERSHIP PAYMENT FAILED', accent: '#d94e2a', sign: 'neutral' },

@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
 
     // Ping ops — they review and set the actual capacity/min/price.
     await notifyOps({
-      kind: 'anchor_submission',   // closest existing kind; future migration can add 'proposal_submission'
+      kind: 'proposal_submission',
       member: {
         name: me.name ?? null,
         memberCode: me.member_no ? `#${me.member_no}` : null,
