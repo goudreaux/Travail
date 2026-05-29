@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
 import { ItineraryEditor } from './page'
 import { TripPhotoPicker } from '@/components/TripPhotoPicker'
+import { SPONSOR_LINE_PRESETS } from '@/components/SponsorBadge'
 
 // Focused create/edit modal for Travail-sponsored excursions.
 //
@@ -182,7 +183,24 @@ export function SponsoredExcursionModal({
           </div>
           <div className="field" style={{ margin: 0, gridColumn: '1 / -1' }}>
             <label className="field-lab">Sponsor line <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}>(rendered on member cards)</span></label>
-            <input className="input" value={form.sponsor} onChange={e => patch('sponsor', e.target.value)} placeholder="Travail × Tropic × Field & Stream" />
+            <select
+              className="input"
+              value={form.sponsor === '' || SPONSOR_LINE_PRESETS.includes(form.sponsor) ? form.sponsor : '__custom__'}
+              onChange={e => patch('sponsor', e.target.value === '__custom__' ? ' ' : e.target.value)}
+            >
+              <option value="">Choose a sponsor…</option>
+              {SPONSOR_LINE_PRESETS.map(p => <option key={p} value={p}>{p}</option>)}
+              <option value="__custom__">Custom…</option>
+            </select>
+            {form.sponsor !== '' && !SPONSOR_LINE_PRESETS.includes(form.sponsor) && (
+              <input
+                className="input"
+                style={{ marginTop: 8 }}
+                value={form.sponsor.trim() === '' ? '' : form.sponsor}
+                onChange={e => patch('sponsor', e.target.value)}
+                placeholder="e.g. Travail × Orvis"
+              />
+            )}
           </div>
           <div className="field" style={{ margin: 0 }}>
             <label className="field-lab">Date</label>

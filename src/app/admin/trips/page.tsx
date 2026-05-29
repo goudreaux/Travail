@@ -9,6 +9,7 @@ import type { Flight, Excursion, Aircraft, Member, Airport, ExcursionTemplate, B
 import { SponsoredExcursionModal, type SponsoredExcursion } from './SponsoredExcursionModal'
 import { TripPhotoPicker } from '@/components/TripPhotoPicker'
 import { PhotoLibraryPanel } from './PhotoLibraryPanel'
+import { SPONSOR_LINE_PRESETS } from '@/components/SponsorBadge'
 
 type FlightRow = Flight
 type ExcursionRow = Excursion
@@ -17,6 +18,44 @@ const CUSTOM = '__custom__'
 
 function Toast({ msg, kind }: { msg: string; kind: 'success' | 'error' | 'info' }) {
   return <div className={`toast ${kind}`}>{msg}</div>
+}
+
+// Sponsor-line picker: a dropdown of preset collab lines plus a
+// "Custom…" option that reveals a free-text input. Keeps the
+// badge-trigger string ("Field & Stream") typo-proof while still
+// allowing one-off collabs.
+function SponsorLinePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const isPreset = value === '' || SPONSOR_LINE_PRESETS.includes(value)
+  // 'custom' sentinel when the current value isn't a known preset and
+  // isn't empty — keeps the free-text box open while editing.
+  const selectValue = value === '' ? '' : (isPreset ? value : '__custom__')
+  return (
+    <div>
+      <select
+        className="select"
+        value={selectValue}
+        onChange={(e) => {
+          const v = e.target.value
+          if (v === '__custom__') onChange(' ')        // open custom box (non-empty so it stays in custom mode)
+          else onChange(v)                              // '' = not sponsored, or a preset line
+        }}
+      >
+        <option value="">Not sponsored</option>
+        {SPONSOR_LINE_PRESETS.map(p => <option key={p} value={p}>{p}</option>)}
+        <option value="__custom__">Custom…</option>
+      </select>
+      {selectValue === '__custom__' && (
+        <input
+          className="input"
+          style={{ marginTop: 8 }}
+          autoFocus
+          value={value.trim() === '' ? '' : value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="e.g. Travail × Orvis"
+        />
+      )}
+    </div>
+  )
 }
 
 function addMins(t: string, mins: number): string {
@@ -1175,14 +1214,9 @@ export default function TripsPage() {
               <label className="field-lab">
                 Sponsor line <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>(optional — marks this a sponsored special event)</span>
               </label>
-              <input
-                className="input"
-                value={EF.sponsor}
-                onChange={e => setExcForm(f => ({ ...f, sponsor: e.target.value }))}
-                placeholder="e.g. Travail × Tropic × Field &amp; Stream"
-              />
+              <SponsorLinePicker value={EF.sponsor} onChange={(v) => setExcForm(f => ({ ...f, sponsor: v }))} />
               <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4 }}>
-                Including &ldquo;Field &amp; Stream&rdquo; shows their badge on the card.
+                Pick a sponsor collab or choose Custom. Any line including &ldquo;Field &amp; Stream&rdquo; shows their badge on the card.
               </div>
             </div>
 
