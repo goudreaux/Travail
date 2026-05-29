@@ -12,6 +12,7 @@ import { BookingSuccessSplash } from '@/components/BookingSuccessSplash'
 import { AnchorLiability } from '@/components/AnchorLiability'
 import { ReservePaymentForm } from '@/components/ReservePaymentForm'
 import { fetchRosters, type RosterEntry } from '@/components/Roster'
+import { ProposalReserveView } from './ProposalReserveView'
 
 // Roster avatar (image or initials) for the FOMO "who's going" block.
 function rosterAvatar(e: RosterEntry, size: number) {
@@ -102,7 +103,12 @@ export default function ReservePage() {
   const supabase = createClient()
 
   const itemId = params.id as string
-  const kind = (searchParams.get('kind') ?? 'flight') as 'flight' | 'excursion'
+  const kindRaw = (searchParams.get('kind') ?? 'flight') as 'flight' | 'excursion' | 'proposal'
+  // Trip Proposals own their own commit flow (SetupIntent only, no
+  // immediate charge). Short-circuit here so the existing reserve
+  // route doesn't try to load a flight/excursion row.
+  if (kindRaw === 'proposal') return <ProposalReserveView proposalId={itemId} />
+  const kind = kindRaw as 'flight' | 'excursion'
   const returnId = searchParams.get('return')
 
   const [member, setMember] = useState<Member | null>(null)

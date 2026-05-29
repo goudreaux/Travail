@@ -64,6 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const nav = [
     { href: '/admin', label: 'Overview', exact: true },
     { href: '/admin/queue', label: 'Queue', badge: pendingCount > 0 ? pendingCount : undefined },
+    { href: '/admin/proposals', label: 'Proposals' },
     { href: '/admin/trips', label: 'Trips & Excursions' },
     { href: '/admin/bookings', label: 'Bookings' },
     { href: '/admin/members', label: 'People' },
