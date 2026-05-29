@@ -153,7 +153,19 @@ function InstallInstructions() {
   )
 }
 
-export function FirstLoginTutorial({ memberId, onDone }: { memberId: string; onDone: () => void }) {
+export function FirstLoginTutorial({
+  memberId,
+  onDone,
+  previewMode = false,
+}: {
+  memberId: string
+  onDone: () => void
+  // Skip the DB stamp on close so an admin previewing the tutorial
+  // from /admin/developer doesn't accidentally mark their own account
+  // tutorial-complete and miss seeing it on their actual first
+  // sign-in. The button visuals + flow are identical otherwise.
+  previewMode?: boolean
+}) {
   const supabase = createClient()
   const [step, setStep] = useState(0)
   const [closing, setClosing] = useState(false)
@@ -169,12 +181,14 @@ export function FirstLoginTutorial({ memberId, onDone }: { memberId: string; onD
   async function finish() {
     if (closing) return
     setClosing(true)
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('members') as any)
-        .update({ tutorial_completed_at: new Date().toISOString() })
-        .eq('id', memberId)
-    } catch { /* swallow — not worth blocking the close on a DB hiccup */ }
+    if (!previewMode) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('members') as any)
+          .update({ tutorial_completed_at: new Date().toISOString() })
+          .eq('id', memberId)
+      } catch { /* swallow — not worth blocking the close on a DB hiccup */ }
+    }
     onDone()
   }
 
