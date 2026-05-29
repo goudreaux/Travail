@@ -690,15 +690,19 @@ export default function FeedPage() {
   )
 }
 
-// Trip Proposals strip on the main feed — collapsible, dashed amber
-// to match the rest of the proposal styling. Loads independently so
-// the feed render doesn't wait on the proposals query.
+// Trip Proposals strip on the main feed — uses the SAME section-panel /
+// section-head / pill / chevron / chip-bar shell as the Open seats
+// section above so it reads as a peer panel, not an afterthought.
+// Reuses the shared ProposalCard which already mirrors the trip-card
+// format used by Open Seats. Shows even when empty so the network
+// always sees the "+ propose your own" entry point.
 function FeedProposalsSection({ memberId }: { memberId: string | null }) {
   const supabase = createClient()
   const router = useRouter()
   const [proposals, setProposals] = useState<ProposalCardData[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(true)
+  const [filter, setFilter] = useState<'all' | 'flight' | 'excursion' | 'mine'>('all')
 
   useEffect(() => {
     let cancelled = false
@@ -715,62 +719,105 @@ function FeedProposalsSection({ memberId }: { memberId: string | null }) {
     return () => { cancelled = true }
   }, [memberId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!loading && proposals.length === 0) return null
-
-  // Cap to the 4 most pressing (smallest expires_at) on the feed; the
-  // dedicated /proposals page shows the rest.
-  const top = proposals.slice().sort((a, b) => {
+  // Sort by urgency (smallest expires_at first), then filter, then cap.
+  const sorted = proposals.slice().sort((a, b) => {
     const ea = a.expires_at ? new Date(a.expires_at).getTime() : Infinity
     const eb = b.expires_at ? new Date(b.expires_at).getTime() : Infinity
     return ea - eb
-  }).slice(0, 4)
+  })
+  const filtered = sorted.filter(p => {
+    if (filter === 'all') return true
+    if (filter === 'flight') return p.kind === 'flight'
+    if (filter === 'excursion') return p.kind === 'excursion'
+    if (filter === 'mine') return p.am_proposer || p.is_my_commit
+    return true
+  })
+  const top = filtered.slice(0, 4)
+
+  // The chips only show categories that have at least one proposal —
+  // same pattern as Open seats' availableFeedFilters.
+  const hasFlights = proposals.some(p => p.kind === 'flight')
+  const hasExcursions = proposals.some(p => p.kind === 'excursion')
+  const myCount = proposals.filter(p => p.am_proposer || p.is_my_commit).length
+  const chips: { key: typeof filter; label: string; show: boolean }[] = [
+    { key: 'all',       label: 'All',        show: true },
+    { key: 'flight',    label: 'Flights',    show: hasFlights },
+    { key: 'excursion', label: 'Excursions', show: hasExcursions },
+    { key: 'mine',      label: 'Yours',      show: myCount > 0 },
+  ]
 
   return (
     <div className="panel section-panel" data-collapsed={!open} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
       <button type="button" className="panel-head section-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
         <div className="section-head__main">
-          <div className="section-head__eyebrow" style={{ color: 'var(--sun-d)' }}>
-            Network proposals
-          </div>
+          <div className="section-head__eyebrow section-head__eyebrow--sun">Network proposals</div>
           <div className="ttl section-ttl">
-            Trip <em>proposals</em>
+            Open <em>proposals</em>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{
-            fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.22em',
-            textTransform: 'uppercase', color: '#1a0e02', fontWeight: 700,
-            background: 'linear-gradient(135deg, #f4a72c 0%, #e09418 100%)',
-            padding: '3px 8px', borderRadius: 4,
-          }}>
-            {proposals.length} OPEN
+        <div className="section-head__actions">
+          <span
+            className="pill sun"
+            onClick={(e) => { e.stopPropagation(); router.push('/proposals') }}
+            style={{ cursor: 'pointer' }}
+          >
+            VIEW ALL →
           </span>
-          <span style={{ fontSize: 16, color: 'var(--ink-light)', transition: 'transform 0.18s', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+          <span className="section-chev" aria-hidden>›</span>
         </div>
       </button>
+
+      {/* Filter chips — same layout as the Open seats chip bar above */}
+      {proposals.length > 0 && (
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--hair)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {chips.filter(c => c.show).map(c => {
+            const active = filter === c.key
+            return (
+              <button
+                key={c.key}
+                onClick={(e) => { e.stopPropagation(); setFilter(c.key) }}
+                style={{
+                  padding: '6px 14px', borderRadius: 20, fontSize: 12.5,
+                  fontFamily: 'var(--ui)', fontWeight: active ? 600 : 400,
+                  border: `1px solid ${active ? 'var(--sun-d)' : 'var(--hair-2)'}`,
+                  background: active ? 'rgba(244,167,44,0.10)' : 'transparent',
+                  color: active ? 'var(--sun-d)' : 'var(--ink-light)',
+                  cursor: 'pointer',
+                }}
+              >
+                {c.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       <div style={{ padding: '14px 16px 18px', display: open ? 'flex' : 'none', flexDirection: 'column', gap: 12 }}>
         {loading ? (
           <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>Loading…</div>
+        ) : proposals.length === 0 ? (
+          <div style={{ padding: '24px 16px', textAlign: 'center' }}>
+            <div style={{ fontSize: 13.5, color: 'var(--ink-soft)', marginBottom: 14 }}>
+              No live proposals right now. Pitch a date and rally the network — you only pay if commits hit the minimum.
+            </div>
+            <Link href="/propose" className="cta-outline" style={{ color: 'var(--sun-d)', borderColor: 'var(--sun-d)', textDecoration: 'none' }}>
+              Propose a trip →
+            </Link>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '16px 8px', textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>
+            No proposals match this filter.
+          </div>
         ) : (
           <>
             {top.map(p => (
               <ProposalCard key={p.id} p={p} onOpen={() => router.push(`/reserve/${p.id}?kind=proposal`)} />
             ))}
-            {proposals.length > top.length && (
+            {filtered.length > top.length && (
               <Link href="/proposals" style={{ textAlign: 'center', fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--sun-d)', textDecoration: 'none', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: 8 }}>
-                View all {proposals.length} proposals →
+                View all {filtered.length} proposals →
               </Link>
             )}
-            <Link href="/propose" style={{
-              border: '1px dashed rgba(244,167,44,0.40)',
-              borderRadius: 10, padding: '10px 14px',
-              fontFamily: 'var(--mono)', fontSize: 11,
-              color: 'var(--sun-d)', textDecoration: 'none', fontWeight: 700,
-              letterSpacing: '0.1em', textTransform: 'uppercase',
-              textAlign: 'center',
-            }}>
-              + Propose your own trip
-            </Link>
           </>
         )}
       </div>
