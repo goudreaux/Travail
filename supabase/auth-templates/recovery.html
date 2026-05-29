@@ -1,0 +1,77 @@
+<!-- Supabase Auth → Email Templates → "Reset Password" (Recovery)
+     Subject:  Reset your Travail password
+     Variable: {{ .ConfirmationURL }} – lands on /reset-password -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light only"/>
+<meta name="supported-color-schemes" content="light"/>
+<title>Reset your Travail password</title>
+</head>
+<body style="margin:0;padding:0;background:#fbf6ec;font-family:-apple-system,BlinkMacSystemFont,'Inter Tight','Inter','Segoe UI',sans-serif;color:#0d3340;-webkit-font-smoothing:antialiased;">
+  <div style="display:none;max-height:0;overflow:hidden;color:transparent;visibility:hidden;mso-hide:all;">
+    Tap the button to set a new password. The link is good for one hour.
+  </div>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fbf6ec;">
+    <tr><td align="center" style="padding:36px 14px 24px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background:#fffbf0;border-radius:18px;overflow:hidden;box-shadow:0 18px 48px rgba(13,51,64,0.10),0 2px 6px rgba(13,51,64,0.04);">
+
+        <tr><td style="background:linear-gradient(135deg,#042128 0%,#0a3340 52%,#073744 100%);padding:26px 32px 24px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:18px;">
+            <tr>
+              <td align="left" valign="middle" style="line-height:0;">
+                <img src="https://travailclub.com/travail-wordmark.png" alt="Travail" width="116" height="28" style="display:inline-block;height:28px;width:auto;vertical-align:middle;filter:brightness(0) invert(1);" />
+                <span style="display:inline-block;color:rgba(251,246,236,0.45);font-family:Georgia,serif;font-style:italic;font-size:16px;margin:0 8px 0 10px;vertical-align:middle;line-height:1;">×</span>
+                <img src="https://travailclub.com/tropic-logo.png" alt="Tropic Ocean Air" width="24" height="24" style="display:inline-block;height:24px;width:24px;vertical-align:middle;filter:brightness(0) invert(1);" />
+              </td>
+              <td align="right" valign="middle" style="font-family:'JetBrains Mono','Courier New',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:#00b3c7;font-weight:700;">
+                Password reset
+              </td>
+            </tr>
+          </table>
+          <div style="font-family:Georgia,'Cormorant Garamond','Times New Roman',serif;font-style:italic;font-size:30px;line-height:1.12;color:#fffbf0;letter-spacing:-0.015em;">
+            Set a new password.
+          </div>
+        </td></tr>
+
+        <tr><td style="padding:28px 32px 8px;">
+          <p style="font-size:15.5px;line-height:1.65;color:#1f4b5b;margin:0 0 18px;">
+            We got a request to reset your Travail password. Tap below to choose a new one. This link is good for one hour — if you didn't ask for it, you can ignore this email.
+          </p>
+        </td></tr>
+
+        <tr><td align="left" style="padding:0 32px 28px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+            <tr><td style="background:#00b3c7;border-radius:10px;">
+              <a href="{{ .ConfirmationURL }}" target="_blank" rel="noopener" style="display:inline-block;color:#ffffff;text-decoration:none;font-family:-apple-system,'Inter Tight','Inter','Segoe UI',sans-serif;font-weight:600;font-size:14px;letter-spacing:0.01em;padding:13px 22px;line-height:1;">
+                Set a new password →
+              </a>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td style="padding:0 32px;">
+          <div style="height:1px;background:linear-gradient(90deg,transparent 0%,rgba(0,179,199,0.14) 25%,rgba(0,179,199,0.14) 75%,transparent 100%);"></div>
+        </td></tr>
+
+        <tr><td style="padding:18px 32px 22px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="font-family:'JetBrains Mono','Courier New',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#7c9aa6;line-height:1.6;">
+                Travail Members Club<br/>
+                Private aviation &amp; experiences
+              </td>
+              <td align="right" style="font-family:'JetBrains Mono','Courier New',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#7c9aa6;">
+                <a href="https://travailclub.com" target="_blank" rel="noopener" style="color:#0d3340;text-decoration:none;">travailclub.com</a>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

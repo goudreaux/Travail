@@ -183,17 +183,10 @@ export async function POST(req: NextRequest) {
         if (!m) break
 
         if (isFirst) {
-          // Branded welcome email fires off this notification (notify-email
-          // Edge Function); the app email below is ops paper-trail only.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (db as any).from('notifications').insert({
-            member_id: m.id,
-            kind: 'system',
-            title: 'Welcome to Travail',
-            body: `Your membership is active. Browse open seats and excursions and reserve whenever something calls to you — welcome aboard.`,
-            ref: {},
-            read: false,
-          })
+          // Intentionally NO member notification/email on activation — members
+          // shouldn't get an "account activated / membership is active" message
+          // (browse-first: there's no jarring activation moment). Ops still
+          // gets the audit copy + notifyOps below.
           const memberEmail = await resolveEmailForMember(db, m.id)
           // Stripe SDK exposes the subscription on Invoice but the union
           // type erases through expansions; cast to read it.
