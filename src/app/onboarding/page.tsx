@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { TRIP_TYPES, canonicalInterests } from '@/lib/data'
 import { TRIP_TYPE_ICONS } from '@/lib/icons'
+import EnvelopeSplash from '@/components/EnvelopeSplash'
 import type { Member } from '@/lib/supabase/types'
 
 const HOME_BASES = ['Tampa Bay', 'SFL']
@@ -80,23 +81,9 @@ export default function OnboardingPage() {
     }
   }, [])
 
-  // Auto-open the envelope shortly after it appears.
-  useEffect(() => {
-    if (phase !== 'intro') return
-    const t = setTimeout(() => setPhase(p => (p === 'intro' ? 'opening' : p)), 4000)
-    return () => clearTimeout(t)
-  }, [phase])
-
-  // After the opening animation, reveal the letter (form).
-  useEffect(() => {
-    if (phase !== 'opening') return
-    const t = setTimeout(() => setPhase('form'), 1050)
-    return () => clearTimeout(t)
-  }, [phase])
-
-  function openEnvelope() {
-    setPhase(p => (p === 'intro' ? 'opening' : p))
-  }
+  // Envelope choreography (auto-open, seal break, flap, card rise) is
+  // driven by EnvelopeSplash itself; it calls onComplete when finished
+  // and we transition straight to 'form' in the JSX below.
 
   async function complete() {
     setError('')
@@ -139,26 +126,12 @@ export default function OnboardingPage() {
 
       <div className="invite-stage">
         {phase !== 'form' ? (
-          <div className="envelope-scene">
-            <div className="envelope-eyebrow">By private invitation</div>
-            <div className="envelope-headline">You&rsquo;re invited.</div>
-
-            <div
-              className={`envelope${phase === 'opening' ? ' is-open' : ''}`}
-              role="button"
-              tabIndex={0}
-              aria-label="Open your invitation"
-              onClick={openEnvelope}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEnvelope() } }}
-            >
-              <div className="env-body" />
-              <div className="env-pocket" />
-              <div className="env-flap" />
-              <div className="env-seal">T</div>
-            </div>
-
-            <div className="envelope-hint">{phase === 'opening' ? 'Opening…' : 'Tap to open'}</div>
-          </div>
+          <EnvelopeSplash
+            autoOpen
+            autoCompleteAfterMs={650}
+            monogram="T"
+            onComplete={() => setPhase('form')}
+          />
         ) : (
           <div className="invite-card is-rising">
             {status === 'loading' ? (
