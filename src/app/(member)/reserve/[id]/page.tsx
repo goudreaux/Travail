@@ -1177,17 +1177,29 @@ export default function ReservePage() {
               </div>
               {/* Pax checkout collects/confirms the card via Stripe at the
                   confirm step — there's no stored "card on file" gate here.
-                  Set honest expectations instead of the old (misleading)
-                  "No card on file, contact Ops" row + dead toggle. */}
-              <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: '13px 16px' }}>
-                <div className="t-lab">
-                  {member?.card_last4 ? `Card ending ${member.card_last4}` : 'Secure checkout'}
+                  Clean payment-method row instead of plain text. */}
+              <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 13 }}>
+                <div style={{ width: 42, height: 30, borderRadius: 7, background: 'linear-gradient(135deg,#0a3340 0%,#073744 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden>
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5fc7d6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="5" width="20" height="14" rx="2" />
+                    <line x1="2" y1="10" x2="22" y2="10" />
+                  </svg>
                 </div>
-                <div className="t-sub" style={{ marginTop: 2 }}>
-                  {member?.card_last4
-                    ? 'Confirm or update your card on the next step. Nothing is charged until you tap Pay & confirm.'
-                    : 'You’ll enter your card securely on the next step. Nothing is charged until you tap Pay & confirm.'}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
+                    {member?.card_last4 ? `Card ending in ${member.card_last4}` : 'Secure checkout'}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-light)', marginTop: 2, lineHeight: 1.45 }}>
+                    {member?.card_last4 ? 'Confirm or update it on the next step.' : 'Add your card on the next step.'} Nothing&rsquo;s charged until you tap Pay.
+                  </div>
                 </div>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-faint)', flexShrink: 0 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <rect x="4" y="11" width="16" height="10" rx="2" />
+                    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                  </svg>
+                  Stripe
+                </span>
               </div>
             </div>
 
@@ -1214,6 +1226,24 @@ export default function ReservePage() {
                   </div>
                   <div className={`toggle${rosterPublic ? ' active' : ''}`} />
                 </div>
+              </div>
+            </div>
+
+            {/* Subtle running price summary — so the breakdown + total are
+                visible before the member commits to Reserve. Hairline only,
+                no heavy box. Updates live with the seat count. */}
+            <div style={{ borderTop: '1px solid var(--hair)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--ink-light)' }}>
+                <span>{seats} {seats === 1 ? unitWord : `${unitWord}s`} × {fmtMoney(pricePerSeat)}</span>
+                <span>{fmtMoney(subtotal)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--ink-light)' }}>
+                <span>Service fee (3%)</span>
+                <span>{fmtMoney(serviceFee)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 1 }}>
+                <span style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>Total</span>
+                <span style={{ fontFamily: 'var(--ui)', fontSize: 17, color: 'var(--ink)', fontWeight: 700, letterSpacing: '-0.01em' }}>{fmtMoney(total)}</span>
               </div>
             </div>
 
