@@ -42,6 +42,22 @@ export async function POST(req: NextRequest) {
 
   const db = admin()
 
+  // Refuse if ops is mid-lock — the capture loop may already be
+  // running and pulling this member's card. Same lock_started_at
+  // sentinel the lock route flips atomically.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: propGuard } = await (db as any)
+    .from('trip_proposals')
+    .select('id, status, lock_started_at')
+    .eq('id', proposalId)
+    .maybeSingle()
+  if (!propGuard) return NextResponse.json({ error: 'Proposal not found' }, { status: 404 })
+  if (propGuard.lock_started_at) {
+    return NextResponse.json({
+      error: 'Ops is currently locking this proposal — too late to withdraw. Contact Ops if you need to roll back.',
+    }, { status: 409 })
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: commit } = await (db as any)
     .from('trip_proposal_commits')

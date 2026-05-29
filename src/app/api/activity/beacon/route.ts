@@ -96,22 +96,22 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Always bump last_active_at + add to total session minutes
-    // (delta = minutes since last beacon, capped at the continuation
-    // window so a long-idle tab doesn't inflate the count).
+    // Atomic bump via the bump_member_activity RPC (migration 052).
+    // Read-then-write would lose minutes when multiple tabs ping
+    // concurrently; the RPC runs as a single `column = column + delta`
+    // UPDATE so the count stays correct. Delta is the minutes since
+    // last beacon, capped at the continuation window so a long-idle
+    // tab doesn't inflate the count.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: m } = await (db as any)
-      .from('members').select('last_active_at, total_session_minutes').eq('id', memberId).maybeSingle()
+      .from('members').select('last_active_at').eq('id', memberId).maybeSingle()
     let delta = 1
     if (m?.last_active_at) {
       const ms = Date.now() - new Date(m.last_active_at).getTime()
       delta = Math.min(SESSION_CONTINUATION_MINUTES, Math.max(0, Math.round(ms / 60_000)))
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any).from('members').update({
-      last_active_at: now,
-      total_session_minutes: (m?.total_session_minutes ?? 0) + delta,
-    }).eq('id', memberId)
+    await (db as any).rpc('bump_member_activity', { p_member_id: memberId, p_delta_minutes: delta })
 
     return new NextResponse(null, { status: 204 })
   } catch (err) {

@@ -57,6 +57,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Proposal is ${prop.status}; only 'open' can be locked.` }, { status: 400 })
   }
 
+  // ─── Atomic lock guard ──────────────────────────────────────────────────
+  // Idempotency: this is the only place that can flip lock_started_at
+  // from NULL → now() on an open proposal. If two ops clicks (or two
+  // tabs) race in here, exactly one update returns a row — the loser
+  // bails with 409 and the winner runs the capture loop.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: lockedRows } = await (db as any)
+    .from('trip_proposals')
+    .update({ lock_started_at: new Date().toISOString() })
+    .eq('id', proposalId)
+    .eq('status', 'open')
+    .is('lock_started_at', null)
+    .select('id')
+  if (!lockedRows || lockedRows.length === 0) {
+    return NextResponse.json({
+      error: 'This proposal is already being locked (or was just locked by another admin). Refresh to see the latest state.',
+    }, { status: 409 })
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: rawCommits } = await (db as any)
     .from('trip_proposal_commits')
