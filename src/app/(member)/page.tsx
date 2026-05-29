@@ -111,13 +111,16 @@ export default function FeedPage() {
   // iOS Wallet-style stack: only one trip is expanded at a time. Null = "use
   // the first trip" (so the most-recent is open by default).
   const [expandedTripId, setExpandedTripId] = useState<string | null>(null)
-  // Mobile-friendly collapsible sections on the feed.
+  // Mobile-friendly collapsible sections on the feed. Everything opens
+  // expanded — My Trips, Open Seats, and Open Proposals — so a member
+  // sees the whole board the moment they log in, mobile included.
+  // (When the board scales to many trips we can revisit collapsing
+  // Open Seats / Proposals on mobile first-load to keep it scannable.)
   const [myTripsOpen, setMyTripsOpen] = useState(true)
   const [openSeatsOpen, setOpenSeatsOpen] = useState(true)
   // The proposals panel below renders its own collapse state — we lift
-  // the initial value here so the feed can collapse it on mobile load
-  // alongside Open Seats. My Trips stays open by default on every
-  // viewport since it's the personal-priority surface.
+  // the initial value here so the feed controls its default. Open on
+  // every viewport for now.
   const [proposalsOpenInitial, setProposalsOpenInitial] = useState(true)
   // How many in-flight anchor submissions the pending-anchors strip
   // rendered. When > 0 we suppress the "nothing on the books" neg even
@@ -125,19 +128,6 @@ export default function FeedPage() {
   const [pendingAnchorCount, setPendingAnchorCount] = useState(0)
   const supabase = createClient()
   const router = useRouter()
-
-  // Mobile first-load: collapse Open Seats + Open Proposals so the
-  // feed opens with My Trips visible above the fold. My Trips stays
-  // expanded because it's the personal-priority surface — what's on
-  // *my* board matters more than what's on the network's.
-  useEffect(() => {
-    if (window.matchMedia?.('(max-width: 720px)').matches) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setOpenSeatsOpen(false)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setProposalsOpenInitial(false)
-    }
-  }, [])
 
   useEffect(() => {
     async function load() {
