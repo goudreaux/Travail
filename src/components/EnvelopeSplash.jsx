@@ -171,7 +171,10 @@ export default function EnvelopeSplash({
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 22px;
+          /* No vertical gap — we want the SVG to overlap the label
+             area so the rotating flap layers IN FRONT of the
+             "You're Invited" text as it sweeps up. */
+          gap: 0;
           width: 100%;
           max-width: 560px;
           margin: 0 auto;
@@ -193,7 +196,16 @@ export default function EnvelopeSplash({
           width: 100%;
           height: auto;
           display: block;
+          /* overflow: visible lets the rotating flap render above the
+             SVG's top edge — without it, the flap gets clipped at the
+             viewBox and the open envelope reads as a flat trapezoid
+             that's been cut off from the lettering. */
+          overflow: visible;
           perspective: 1400px;
+          /* Pull the SVG up so its top edge sits underneath the script
+             label. The flap then rotates straight into the label area
+             instead of into empty space. */
+          margin-top: -22px;
         }
 
         .tv-envelope__glow {
