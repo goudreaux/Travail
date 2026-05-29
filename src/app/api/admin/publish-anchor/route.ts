@@ -108,7 +108,12 @@ export async function POST(req: NextRequest) {
   catch { return NextResponse.json({ error: 'Invalid payload' }, { status: 400 }) }
 
   const submissionId = (payload.anchor_submission_id ?? '').trim()
-  const pricePerSeat = Number(payload.price_per_seat)
+  // flights.price_per_seat + excursions.price_per_pax are integer
+  // columns (whole dollars). Old callers sometimes hand us a fractional
+  // value derived from `quoted_total_cents / seats`; round here so a
+  // forgotten round at the call site can't blow up the trip insert
+  // mid-transaction and roll back a real Stripe capture.
+  const pricePerSeat = Math.round(Number(payload.price_per_seat))
   if (!submissionId) return NextResponse.json({ error: 'anchor_submission_id required' }, { status: 400 })
   if (!Number.isFinite(pricePerSeat) || pricePerSeat <= 0) {
     return NextResponse.json({ error: 'price_per_seat must be a positive number (dollars)' }, { status: 400 })

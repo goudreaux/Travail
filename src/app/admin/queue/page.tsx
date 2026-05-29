@@ -636,7 +636,13 @@ export default function QueuePage() {
         showToast('Quote details missing — re-quote first', 'error')
         return
       }
-      const pricePerSeat = (quotedCents / 100) / seats
+      // flights.price_per_seat / excursions.price_per_pax are integer
+      // (whole dollars). A quote of $3605 over 4 seats works out to
+      // $901.25/seat — rounding to a whole dollar costs <$1 across the
+      // whole boat and keeps the schema happy. The locked
+      // anchor_captured_cents stays the truth-of-record for the
+      // capture amount; per-seat is just the pax sticker.
+      const pricePerSeat = Math.round((quotedCents / 100) / seats)
       const res = await fetch('/api/admin/publish-anchor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
