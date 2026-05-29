@@ -198,7 +198,7 @@ function CardForm({ onComplete, onCancel }: { onComplete: () => Promise<void>; o
       // Catches things Stripe doesn't surface via { error } — network
       // blips, browser security policies, etc. Without this the button
       // sticks on "Saving…" forever.
-      setError((e as Error)?.message ?? 'Network error — please try again.')
+      setError((e as Error)?.message ?? 'Network error. Please try again.')
       setSubmitting(false)
     }
   }

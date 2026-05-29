@@ -47,7 +47,7 @@ export function AnchorLiability({
             <span className="anchor-liability__amount">{fmt(currentOwedCents)}</span>
             <span className="anchor-liability__caption">
               {paxSeatsRemaining === 0
-                ? 'final — trip is full'
+                ? 'final, trip is full'
                 : `if no more seats sell · ${paxSeatsRemaining} left`}
             </span>
           </div>
@@ -68,7 +68,7 @@ export function AnchorLiability({
       <div className="anchor-liability__legend">
         <span>
           <span className="anchor-liability__legend-dot" style={{ background: 'var(--moss)' }} />
-          {paxSeatsSold}/{paxSeatsTotal} pax seats sold — {fmt(refundSoFarCents)} already coming back to you at settlement
+          {paxSeatsSold}/{paxSeatsTotal} pax seats sold, {fmt(refundSoFarCents)} already coming back to you at settlement
         </span>
         <span className="anchor-liability__legend-perseat">
           {fmt(perSeatCents)} per seat

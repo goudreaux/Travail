@@ -377,7 +377,7 @@ export default function ReservePage() {
           // Email is required on new guests so ops can follow up about
           // membership conversion + keep ride-day comms going to them
           // directly. Empty is no longer acceptable.
-          setError('Enter an email address for each new guest — we use it to follow up about membership.'); return
+          setError('Enter an email address for each new guest, we use it to follow up about membership.'); return
         }
         if (s.savedGuestId === NEW_GUEST && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email.trim())) {
           setError('Please enter a valid email for each new guest.'); return
@@ -666,7 +666,7 @@ export default function ReservePage() {
             )}
             {wlJoined ? (
               <div style={{ background: 'var(--tropic-glow)', borderRadius: 10, padding: '12px 16px', fontSize: 13.5, color: 'var(--tropic-d)', marginBottom: 16 }}>
-                You&rsquo;re on the waitlist — we&rsquo;ll be in touch.
+                You&rsquo;re on the waitlist, we&rsquo;ll be in touch.
               </div>
             ) : (
               <button className="btn-ghost" style={{ width: '100%', height: 44, justifyContent: 'center', marginBottom: 10 }} onClick={joinWaitlist}>
@@ -810,7 +810,7 @@ export default function ReservePage() {
             <div>
               <div className="field-lab" style={{ marginBottom: 10 }}>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600 }}>
-                  1 — Itinerary
+                  1 · Itinerary
                 </span>
               </div>
               <div className="reserve-card">
@@ -881,7 +881,7 @@ export default function ReservePage() {
                 <div>
                   <div className="field-lab" style={{ marginBottom: 10 }}>
                     <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600 }}>
-                      2 — Day plan
+                      2 · Day plan
                     </span>
                     {allTBD && (
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.10em', color: 'var(--sun-d)', marginLeft: 10, fontWeight: 700 }}>
@@ -959,7 +959,7 @@ export default function ReservePage() {
             <div className="field">
               <div className="field-lab">
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600 }}>
-                  2 — {kind === 'flight' ? 'Seats' : 'Spots'}
+                  2 · {kind === 'flight' ? 'Seats' : 'Spots'}
                 </span>
               </div>
               <div className="chips">
@@ -981,7 +981,7 @@ export default function ReservePage() {
               )}
               {maxSeats > 1 && seats === 1 && (
                 <p style={{ fontSize: 12, color: 'var(--ink-light)', margin: '8px 0 0' }}>
-                  Bringing guests? You&rsquo;re seat 1 — add a seat for each guest and you&rsquo;ll register them below.
+                  Bringing guests? You&rsquo;re seat 1, add a seat for each guest and you&rsquo;ll register them below.
                 </p>
               )}
             </div>
@@ -993,7 +993,7 @@ export default function ReservePage() {
                   Guests · {seats - 1}
                 </div>
                 <p style={{ fontSize: 12.5, color: 'var(--ink-light)', margin: '0 0 12px', lineHeight: 1.5 }}>
-                  You hold seat 1. Register {seats - 1} guest{seats - 1 !== 1 ? 's' : ''} — pick from your saved guests, or add a new one and tap <strong>Save guest</strong>. New guests are saved for next time.
+                  You hold seat 1. Register {seats - 1} guest{seats - 1 !== 1 ? 's' : ''}: pick from your saved guests, or add a new one and tap <strong>Save guest</strong>. New guests are saved for next time.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {guestSlots.map((slot, i) => {
@@ -1060,7 +1060,7 @@ export default function ReservePage() {
             {member && (
               <div>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 10 }}>
-                  3 — Passenger
+                  3 · Passenger
                 </div>
                 <div style={{
                   background: 'var(--card)',
@@ -1120,7 +1120,7 @@ export default function ReservePage() {
             {/* 4. Payment */}
             <div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 10 }}>
-                4 — Payment
+                4 · Payment
               </div>
               <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
                 {/* Card on file */}
@@ -1133,7 +1133,7 @@ export default function ReservePage() {
                     <div className="t-sub">
                       {member?.card_last4
                         ? `••••  ••••  ••••  ${member.card_last4}`
-                        : 'No card on file — contact Ops'}
+                        : 'No card on file, contact Ops'}
                     </div>
                   </div>
                   <div className={`toggle${paymentMethod === 'card' ? ' active' : ''}`} style={{ pointerEvents: 'none' }} />
@@ -1144,7 +1144,7 @@ export default function ReservePage() {
             {/* 5. Flight roster visibility */}
             <div>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 10 }}>
-                5 — Flight roster
+                5 · Flight roster
               </div>
               <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
                 <div
@@ -1155,7 +1155,7 @@ export default function ReservePage() {
                   onClick={() => setRosterPublic(v => !v)}
                 >
                   <div>
-                    <div className="t-lab">{rosterPublic ? 'Public — listed on the roster' : 'Private — hidden'}</div>
+                    <div className="t-lab">{rosterPublic ? 'Public, listed on the roster' : 'Private, hidden'}</div>
                     <div className="t-sub">
                       {rosterPublic
                         ? 'Other members can see you’re on this trip and open your profile.'

@@ -127,7 +127,7 @@ export default function OnboardingSubscribePage() {
         )}
 
         <div style={{ marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--hair)', fontSize: 11.5, color: 'var(--ink-faint)', lineHeight: 1.6, fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
-          Charged monthly until you cancel. Cancel anytime by phone — see Membership for details.
+          Charged monthly until you cancel. Cancel anytime by phone, see Membership for details.
         </div>
 
         {isAdmin && (
@@ -137,7 +137,7 @@ export default function OnboardingSubscribePage() {
               style={{ fontSize: 11, color: 'var(--ink-faint)' }}
               onClick={() => router.push('/')}
             >
-              Skip — admin testing
+              Skip (admin testing)
             </button>
           </div>
         )}

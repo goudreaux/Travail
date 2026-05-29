@@ -170,7 +170,7 @@ export default function OnboardingPage() {
 
                 <div className="envelope-eyebrow">Your membership begins</div>
                 <h2 className="invite-title">Welcome to Travail.</h2>
-                <p className="invite-sub">Choose a password and finish your profile. This is yours — make it feel like home.</p>
+                <p className="invite-sub">Choose a password and finish your profile. This is yours, so make it feel like home.</p>
 
                 <div className="field">
                   <label className="field-lab">Full name <span className="req">*</span></label>
@@ -195,7 +195,7 @@ export default function OnboardingPage() {
                 <div className="field">
                   <label className="field-lab">
                     What you&rsquo;re into
-                    <span style={{ fontWeight: 400, color: 'var(--ink-light)', marginLeft: 6, textTransform: 'none', letterSpacing: 0 }}>— pick any</span>
+                    <span style={{ fontWeight: 400, color: 'var(--ink-light)', marginLeft: 6, textTransform: 'none', letterSpacing: 0 }}>(pick any)</span>
                   </label>
                   <div className="onboarding-interests" role="group" aria-label="Activity interests">
                     {TRIP_TYPES.map(t => {

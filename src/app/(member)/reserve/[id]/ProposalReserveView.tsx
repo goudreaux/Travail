@@ -246,7 +246,7 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
             <div style={{ fontSize: 15, color: 'var(--ink)', marginBottom: 12 }}>
               {amProposer
                 ? <>You proposed this trip. Your card is on file for <strong>{proposerSeatsBestCase}–{proposerSeatsWorstCase} seats</strong> ({proposerSeatsBestCase === proposerSeatsWorstCase ? `your firm party of ${proposerSeatsBestCase}` : `firm ${proposerSeatsBestCase}, up to ${proposerSeatsWorstCase} if the network underfills`}). With current commits you'd be charged for <strong>{proposerSeatsNow}</strong>.</>
-                : <>You&apos;ve committed <strong>{myCommit.seats}</strong> seat{myCommit.seats === 1 ? '' : 's'}. Card on file — you won&apos;t be charged unless ops locks the trip.</>}
+                : <>You&apos;ve committed <strong>{myCommit.seats}</strong> seat{myCommit.seats === 1 ? '' : 's'}. Card on file, you won&apos;t be charged unless ops locks the trip.</>}
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink-light)', lineHeight: 1.55, marginBottom: 16 }}>
               {amProposer
@@ -322,7 +322,7 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
               </div>
             </div>
             <div style={{ background: 'rgba(0,179,199,0.06)', border: '1px solid rgba(0,179,199,0.20)', borderRadius: 10, padding: '12px 14px', fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.55, marginTop: 4, marginBottom: 16 }}>
-              We&apos;ll save a card on file but won&apos;t charge it until ops confirms the trip with Tropic — and they only do that once the proposal hits its minimum {min} commit{min === 1 ? '' : 's'}.
+              We&apos;ll save a card on file but won&apos;t charge it until ops confirms the trip with Tropic, and they only do that once the proposal hits its minimum {min} commit{min === 1 ? '' : 's'}.
             </div>
             {error && (
               <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--signal)', marginBottom: 12 }}>
@@ -569,7 +569,7 @@ function AddSeatsPanel({
 
         {maxAdditional === 0 ? (
           <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--signal)', marginBottom: 14 }}>
-            No seats left to add — proposal is at capacity for you.
+            No seats left to add, proposal is at capacity for you.
           </div>
         ) : (
           <div className="field">

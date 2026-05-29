@@ -351,7 +351,7 @@ export default function MembershipPage() {
                   </div>
 
                   <div className="field">
-                    <label className="field-lab">Interests <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>— pick the trip types you&rsquo;re into</span></label>
+                    <label className="field-lab">Interests <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>(pick the trip types you&rsquo;re into)</span></label>
                     <div className="chips" style={{ flexWrap: 'wrap' }}>
                       {TRIP_TYPES.map(t => (
                         <button
@@ -650,13 +650,13 @@ function SubscriptionPanel({ member }: { member: Member }) {
 
         {isFounding && (
           <div style={{ background: 'rgba(244,167,44,0.10)', border: '1px solid rgba(244,167,44,0.30)', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, marginBottom: 14 }}>
-            <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>$200/month founding rate</strong> — locked for as long as your membership stays active.
+            <strong style={{ color: 'var(--ink)', fontWeight: 700 }}>$200/month founding rate</strong>, locked for as long as your membership stays active.
           </div>
         )}
 
         {isPastDue && (
           <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: 'var(--signal)', lineHeight: 1.5, marginBottom: 14 }}>
-            Your last renewal failed. Bookings are paused until the card clears. Update your card below — ops will be in touch shortly either way.
+            Your last renewal failed. Bookings are paused until the card clears. Update your card below, ops will be in touch shortly either way.
           </div>
         )}
 
@@ -685,7 +685,7 @@ function SubscriptionPanel({ member }: { member: Member }) {
               To cancel
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.6 }}>
-              Call ops at <a href="tel:+14085073523" style={{ color: 'var(--ink)', fontWeight: 600, textDecoration: 'none' }}>(408) 507-3523</a>. We&apos;ll process it on the call. Your access continues through the end of the current billing period — no partial refund.
+              Call ops at <a href="tel:+14085073523" style={{ color: 'var(--ink)', fontWeight: 600, textDecoration: 'none' }}>(408) 507-3523</a>. We&apos;ll process it on the call. Your access continues through the end of the current billing period, no partial refund.
               {isFounding && <> Re-subscribing later will be at the then-current public rate, not the founding rate.</>}
             </div>
           </div>

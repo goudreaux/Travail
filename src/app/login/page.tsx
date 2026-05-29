@@ -123,8 +123,8 @@ export default function LoginPage() {
               </div>
               <h3>Check your inbox.</h3>
               <p>
-                We sent a reset link to <strong>{email}</strong>. Tap it to set a new password —
-                the link is good for one hour.
+                We sent a reset link to <strong>{email}</strong>. Tap it to set a new password.
+                The link is good for one hour.
               </p>
               <button type="button" className="login-link" onClick={backToSignIn}>← Back to sign in</button>
             </div>

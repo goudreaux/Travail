@@ -353,10 +353,10 @@ export default function FeedPage() {
   if (nextTrip && daysUntilNext !== null) {
     briefLines.push(
       daysUntilNext === 0
-        ? `Wheels up today — ${nextLabel}`
+        ? `Wheels up today, ${nextLabel}`
         : daysUntilNext === 1
-        ? `Tomorrow — ${nextLabel}`
-        : `${daysUntilNext} days out — ${nextLabel}`,
+        ? `Tomorrow, ${nextLabel}`
+        : `${daysUntilNext} days out, ${nextLabel}`,
     )
   } else {
     // Cheeky nudge for members with an empty itinerary — picked once per
@@ -365,7 +365,7 @@ export default function FeedPage() {
       'Your calendar looks suspiciously open.',
       'Pilots are caffeinated. Where to?',
       'A blank itinerary is a kind of invitation.',
-      'The cabin’s prepped — just missing a passenger.',
+      'The cabin’s prepped, just missing a passenger.',
       'Founders fly first. Pick a date.',
     ]
     briefLines.push(nudges[Math.floor(Math.random() * nudges.length)])
@@ -682,7 +682,7 @@ export default function FeedPage() {
                             <div style={{ marginTop: 6, maxWidth: '52%' }}>
                               <SponsorBadge sponsor={e.sponsor} size="pill" />
                               <div style={{ marginTop: 4, fontSize: 11, color: '#8a5a06', fontWeight: 700, lineHeight: 1.4 }}>
-                                ✦ Special event — first to commit gets a seat.
+                                ✦ Special event, first to commit gets a seat.
                               </div>
                             </div>
                           )}
@@ -852,7 +852,7 @@ function FeedProposalsSection({ memberId, defaultOpen = true }: { memberId: stri
         ) : proposals.length === 0 ? (
           <div style={{ padding: '24px 16px', textAlign: 'center' }}>
             <div style={{ fontSize: 13.5, color: 'var(--ink-soft)', marginBottom: 14 }}>
-              No live proposals right now. Pitch a date and rally the network — you only pay if commits hit the minimum.
+              No live proposals right now. Pitch a date and rally the network, you only pay if commits hit the minimum.
             </div>
             <Link href="/propose" className="cta-outline" style={{ color: 'var(--sun-d)', borderColor: 'var(--sun-d)', textDecoration: 'none' }}>
               Propose a trip →
@@ -890,7 +890,7 @@ const EMPTY_TRIP_NEGS: { headline: string; sub: string }[] = [
     sub: 'Your manifest is empty. The cabin is not. Anchor a trip or take an open seat before someone else does.',
   },
   {
-    headline: 'We checked twice — still nothing.',
+    headline: 'We checked twice, still nothing.',
     sub: 'The point of a private aviation club is the flying. Just saying.',
   },
   {
@@ -899,11 +899,11 @@ const EMPTY_TRIP_NEGS: { headline: string; sub: string }[] = [
   },
   {
     headline: 'Your boarding pass slot is gathering dust.',
-    sub: 'Float a proposal — no risk if it doesn’t fund. Worst case: a date on the calendar.',
+    sub: 'Float a proposal, no risk if it doesn’t fund. Worst case: a date on the calendar.',
   },
   {
     headline: 'Wayfarers don’t sit still.',
-    sub: 'A respectable adventurer’s calendar has at least one item on it. We won’t tell anyone — but consider this notice.',
+    sub: 'A respectable adventurer’s calendar has at least one item on it. We won’t tell anyone, but consider this notice.',
   },
 ]
 
@@ -950,8 +950,8 @@ const ANCHOR_FEED_STATES = ['pending', 'pending_ops_review', 'quoted', 'quote_ac
 
 function anchorFeedLabel(status: string): { label: string; pill: string; action: boolean } {
   switch (status) {
-    case 'quoted':           return { label: 'QUOTE READY — REVIEW', pill: 'tropic', action: true }
-    case 'quote_accepted':   return { label: 'ACCEPTED — PUBLISHING SOON', pill: 'tropic', action: false }
+    case 'quoted':           return { label: 'QUOTE READY: REVIEW', pill: 'tropic', action: true }
+    case 'quote_accepted':   return { label: 'ACCEPTED: PUBLISHING SOON', pill: 'tropic', action: false }
     case 'pending':
     case 'pending_ops_review': return { label: 'IN OPS REVIEW', pill: 'sun', action: false }
     default:                 return { label: status.toUpperCase(), pill: '', action: false }

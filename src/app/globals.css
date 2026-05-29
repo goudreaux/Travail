@@ -4433,6 +4433,13 @@ textarea.input {
     pointer-events: none;
     z-index: 3;
   }
+  /* On sponsored cards the gold "Travail Sponsored" ribbon owns the
+     top-right corner, so drop the activity watermark to the bottom-right
+     of the banner — otherwise the two stack on top of each other on
+     mobile. Banner is a fixed 136px tall: 30px mark + 12px inset = top 94px. */
+  .trip-card--sponsored .trip-card__stamp {
+    top: 94px;
+  }
   /* Hide the stamp on retracted wallet cards (the image is gone). */
   .my-trip-card[data-expanded="0"] .my-trip-card__stamp { display: none; }
 

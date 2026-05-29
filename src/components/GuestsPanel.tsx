@@ -50,7 +50,7 @@ export default function GuestsPanel({ onConvert }: { onConvert: (g: Guest) => vo
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error, data } = await (supabase as any).from('guests').delete().eq('id', g.id).select()
     if (error) { showToast(error.message, 'error'); return }
-    if (!data || data.length === 0) { showToast('Delete blocked — check the admin RLS policy on guests', 'error'); return }
+    if (!data || data.length === 0) { showToast('Delete blocked, check the admin RLS policy on guests', 'error'); return }
     showToast('Guest deleted')
     load()
   }

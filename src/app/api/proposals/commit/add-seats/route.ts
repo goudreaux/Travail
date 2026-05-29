@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Proposal is ${prop.status} and not accepting more seats.` }, { status: 400 })
   }
   if (prop.lock_started_at) {
-    return NextResponse.json({ error: 'Ops is currently locking — too late to add seats.' }, { status: 409 })
+    return NextResponse.json({ error: 'Ops is currently locking, too late to add seats.' }, { status: 409 })
   }
 
   // Pull all commits to check capacity headroom and find ours.
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     const headroom = Math.max(0, prop.capacity_total - otherSeats - mine.seats)
     return NextResponse.json({
       error: headroom === 0
-        ? 'No seats left to add — proposal is at capacity.'
+        ? 'No seats left to add, proposal is at capacity.'
         : `Only ${headroom} seat${headroom === 1 ? '' : 's'} left to add.`,
     }, { status: 400 })
   }

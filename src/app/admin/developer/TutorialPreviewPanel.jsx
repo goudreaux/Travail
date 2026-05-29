@@ -32,7 +32,7 @@ export function TutorialPreviewPanel() {
         <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 0, marginBottom: 14 }}>
           The 7-step welcome that lands on every member&apos;s first sign-in (and never again).
           Plays full-screen here so you can review the copy + the platform-aware home-screen
-          install instructions. <strong style={{ color: 'var(--ink)' }}>Preview mode is on</strong> —
+          install instructions. <strong style={{ color: 'var(--ink)' }}>Preview mode is on</strong>,
           finishing the tutorial does not stamp your account, so you can replay as many times
           as you want without losing your own first-login moment.
         </p>

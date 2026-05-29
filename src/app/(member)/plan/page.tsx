@@ -34,7 +34,7 @@ export default function PlanPage() {
       icon: Icons.compass,
       eyebrow: 'No-risk pitch',
       title: 'Propose a Trip',
-      sub: 'Pitch a date and rally the network. You only pay if commits hit the minimum — nobody charged if it falls through.',
+      sub: 'Pitch a date and rally the network. You only pay if commits hit the minimum, nobody charged if it falls through.',
       accent: 'var(--moss)',
       glow: 'rgba(62,140,109,0.16)',
     },
@@ -42,7 +42,7 @@ export default function PlanPage() {
 
   return (
     <div className="page">
-      <PageHero accent="sun" eyebrow="PLAN A TRIP" title="What are you planning?" sub="Choose a trip type to get started — we'll walk you through the rest." />
+      <PageHero accent="sun" eyebrow="PLAN A TRIP" title="What are you planning?" sub="Choose a trip type to get started, we'll walk you through the rest." />
       <div className="page-view">
         <div className="wiz">
           <div className="plan-choices">

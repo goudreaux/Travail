@@ -211,7 +211,7 @@ export default function TopBar({ notifications, onOpenBookings }: Props) {
             ref={bellRef}
             className={`icon-btn${hasUnread ? ' has-dot' : ''}`}
             onClick={() => setDrawerOpen(o => !o)}
-            aria-label={`Notifications${hasUnread ? ` — ${unreadCount} unread` : ''}`}
+            aria-label={`Notifications${hasUnread ? `, ${unreadCount} unread` : ''}`}
             aria-expanded={drawerOpen}
           >
             {Icons.bell}

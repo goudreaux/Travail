@@ -99,7 +99,7 @@ export function SponsoredExcursionModal({
   async function save() {
     setError(null)
     if (!form.name.trim()) { setError('Name is required.'); return }
-    if (!form.sponsor.trim()) { setError('Sponsor line is required — that is what makes it a sponsored excursion.'); return }
+    if (!form.sponsor.trim()) { setError('Sponsor line is required, that is what makes it a sponsored excursion.'); return }
     if (!form.date) { setError('Date is required.'); return }
     if (!form.origin_code) { setError('Origin airport is required.'); return }
     if (form.spots_anchor > form.spots_total) { setError('Reserved seats cannot exceed total capacity.'); return }
@@ -227,7 +227,7 @@ export function SponsoredExcursionModal({
             <label className="field-lab">Price per pax (cents)</label>
             <input className="input" type="number" min={0} value={form.price_per_pax} onChange={e => patch('price_per_pax', Number(e.target.value) || 0)} />
             <div style={{ fontSize: 10.5, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
-              Usually 0 — sponsored seats are free to members.
+              Usually 0, sponsored seats are free to members.
             </div>
           </div>
 

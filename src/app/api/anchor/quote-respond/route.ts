@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     item: { kind: sub.kind as 'flight' | 'excursion', id: submissionId, name: tripName, date: body.date ?? null },
     amountCents: totalCents,
     details: {
-      Action: action === 'accept' ? 'Quote ACCEPTED — ready to publish' : 'Quote DECLINED',
+      Action: action === 'accept' ? 'Quote ACCEPTED, ready to publish' : 'Quote DECLINED',
       ...(action === 'decline' ? { 'Decline reason': reason } : {}),
     },
     note: action === 'accept'

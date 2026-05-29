@@ -107,7 +107,7 @@ export default function AdminSubscriptionsPage() {
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Subscriptions</h1>
         <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>
-          Membership roster. Past-due surfaces first — call ops gets the queue each morning.
+          Membership roster. Past-due surfaces first, call ops gets the queue each morning.
         </p>
       </div>
 

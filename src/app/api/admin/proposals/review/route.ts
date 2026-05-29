@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     .from('trip_proposals').select('*').eq('id', proposalId).maybeSingle()
   if (!prop) return NextResponse.json({ error: 'Proposal not found' }, { status: 404 })
   if (prop.status !== 'pending_ops_review') {
-    return NextResponse.json({ error: `Proposal is ${prop.status} — already reviewed.` }, { status: 400 })
+    return NextResponse.json({ error: `Proposal is ${prop.status}, already reviewed.` }, { status: 400 })
   }
 
   if (body.decision === 'decline') {
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
     await (db as any).from('notifications').insert({
       member_id: prop.proposer_id,
       kind: 'approval',
-      title: 'Proposal approved — go live',
+      title: 'Proposal approved, go live',
       body: `Your "${prop.name}" proposal is live on the board. Needs ${minSeats} commits by ${new Date(expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} to fund. Be the first to commit a seat.`,
       ref: { proposal_id: proposalId },
     })

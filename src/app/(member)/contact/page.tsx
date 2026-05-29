@@ -72,7 +72,7 @@ export default function ContactPage() {
         accent="signal"
         eyebrow="Concierge"
         title="Operations Team"
-        sub="Drop us a line — we'll take care of the rest. Replies usually within minutes during desk hours."
+        sub="Drop us a line, we'll take care of the rest. Replies usually within minutes during desk hours."
       />
 
       <div className="page-view contact-page">

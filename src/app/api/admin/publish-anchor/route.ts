@@ -231,7 +231,7 @@ export async function POST(req: NextRequest) {
     const err = e as any
     safeError('Anchor charter capture failed:', e)
     return NextResponse.json({
-      error: err?.raw?.message ?? err?.message ?? 'Card declined — try a different card or contact the anchor.',
+      error: err?.raw?.message ?? err?.message ?? 'Card declined, try a different card or contact the anchor.',
       decline_code: err?.raw?.decline_code ?? null,
     }, { status: 402 })
   }
@@ -371,7 +371,7 @@ export async function POST(req: NextRequest) {
     kind: 'approval',
     title: `Your ${sub.kind} is live`,
     body:
-      `Ops published "${body.name ?? sub.kind}" and held $${(charterTotalCents / 100).toFixed(2)} on your card — the full charter cost. ` +
+      `Ops published "${body.name ?? sub.kind}" and held $${(charterTotalCents / 100).toFixed(2)} on your card, the full charter cost. ` +
       `At trip departure you'll be rebated for every seat the network books at $${seatCostDollars} each. ` +
       `You'll always pay for your own ${seatsAnchor} seat${seatsAnchor === 1 ? '' : 's'} ` +
       `plus any seats that don't sell.`,

@@ -317,7 +317,7 @@ export async function sendTripCancelledEmail(p: TripCancelledEmailParams): Promi
     p.tripDate ? `Trip date: ${p.tripDate}` : null,
     '',
     p.refundCents > 0
-      ? `A full refund of ${fmtMoney(p.refundCents)} has been issued to your card — including any service fees. Travail eats those on a force-cancel; you're not out anything.`
+      ? `A full refund of ${fmtMoney(p.refundCents)} has been issued to your card, including any service fees. Travail eats those on a force-cancel; you're not out anything.`
       : 'No payment was on file to refund.',
     '',
     p.reason ? `Reason from Ops: ${p.reason}` : null,
@@ -355,7 +355,7 @@ function brandedTripCancelledEmail(p: TripCancelledEmailParams): string {
     : 'Cancelled'
   const subhead = p.role === 'anchor'
     ? (p.refundCents > 0
-        ? 'Your full capture — charter + 3% service fee — has been refunded.'
+        ? 'Your full capture (charter + 3% service fee) has been refunded.'
         : 'Your anchor was cancelled. No capture was on file to refund.')
     : (p.refundCents > 0
         ? `Your full payment, including any service fees, has been refunded.`
@@ -388,8 +388,8 @@ function brandedTripCancelledEmail(p: TripCancelledEmailParams): string {
         <tr><td style="padding:8px 36px 22px;">
           <div style="font-size:14px;color:#1f4856;line-height:1.6;">
             ${p.role === 'anchor'
-              ? `Travail Ops cancelled <strong>${escapeHtml(p.tripName)}</strong>. Because Travail initiated the cancel, your full capture has been refunded — including the 3% service fee that's normally non-refundable.`
-              : `Travail Ops cancelled <strong>${escapeHtml(p.tripName)}</strong>. Because Travail initiated the cancel, your full payment has been refunded — including any service fees.`}
+              ? `Travail Ops cancelled <strong>${escapeHtml(p.tripName)}</strong>. Because Travail initiated the cancel, your full capture has been refunded, including the 3% service fee that's normally non-refundable.`
+              : `Travail Ops cancelled <strong>${escapeHtml(p.tripName)}</strong>. Because Travail initiated the cancel, your full payment has been refunded, including any service fees.`}
           </div>
           ${p.reason ? `<div style="background:rgba(244,167,44,0.08);border-left:3px solid #f4a72c;border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:#1f4b5b;line-height:1.55;margin-top:18px;">
             <strong style="color:#0d3340;font-weight:700;">Note from Ops:</strong> ${escapeHtml(p.reason)}
@@ -573,7 +573,7 @@ export async function sendSettlementEmail(p: SettlementEmailParams): Promise<voi
     '──────────────────────────────────────────',
     '',
     fullFill
-      ? `The trip filled completely — your final cost was just your own ${p.anchorSeats} seat${p.anchorSeats === 1 ? '' : 's'}.`
+      ? `The trip filled completely, so your final cost was just your own ${p.anchorSeats} seat${p.anchorSeats === 1 ? '' : 's'}.`
       : filled
       ? `${p.paxSeatsSold} pax seat${p.paxSeatsSold === 1 ? '' : 's'} sold at ${fmtMoney(p.perSeatCents)} each. Your refund covers what the network filled; you're responsible for your own ${p.anchorSeats} seat${p.anchorSeats === 1 ? '' : 's'} plus any that didn't sell.`
       : `No other members booked, so you paid the full charter cost. The hold on your card has been released.`,
@@ -669,7 +669,7 @@ function brandedSettlementEmail(p: SettlementEmailParams, filled: boolean, fullF
         <!-- Explainer panel -->
         <tr><td style="padding:6px 36px 24px;">
           <div style="background:rgba(0,179,199,0.06);border-left:3px solid #00b3c7;border-radius:0 8px 8px 0;padding:14px 16px;font-size:13px;color:#1f4b5b;line-height:1.55;">
-            <strong style="color:#0d3340;font-weight:700;">How the math works.</strong> When you anchored the trip we captured ${fmtMoney(p.charterTotalCents)} on your card${p.serviceFeeCents && p.serviceFeeCents > 0 ? ` — the ${fmtMoney(p.charterCostCents ?? 0)} charter plus the 3% Travail service fee` : ''}. As members booked, the charter portion of their seats covered cost; that's what's refunded to you at trip departure. You're always responsible for your own seat${p.anchorSeats === 1 ? '' : 's'} and any that didn't sell${p.serviceFeeCents && p.serviceFeeCents > 0 ? ', plus the service fee' : ''}.
+            <strong style="color:#0d3340;font-weight:700;">How the math works.</strong> When you anchored the trip we captured ${fmtMoney(p.charterTotalCents)} on your card${p.serviceFeeCents && p.serviceFeeCents > 0 ? `, the ${fmtMoney(p.charterCostCents ?? 0)} charter plus the 3% Travail service fee` : ''}. As members booked, the charter portion of their seats covered cost; that's what's refunded to you at trip departure. You're always responsible for your own seat${p.anchorSeats === 1 ? '' : 's'} and any that didn't sell${p.serviceFeeCents && p.serviceFeeCents > 0 ? ', plus the service fee' : ''}.
           </div>
         </td></tr>
 
@@ -731,7 +731,7 @@ export async function sendSubscriptionWelcomeEmail(p: SubscriptionWelcomeParams)
     `Hi ${p.memberName.split(' ')[0]},`,
     '',
     p.isFounding
-      ? `You're in — and you're a founding member. Your rate of ${fmtMoney(p.amountCents)}/month is locked. Even as Travail's public pricing rises, your card keeps billing the founder rate.`
+      ? `You're in, and you're a founding member. Your rate of ${fmtMoney(p.amountCents)}/month is locked. Even as Travail's public pricing rises, your card keeps billing the founder rate.`
       : `You're in. Your membership of ${fmtMoney(p.amountCents)}/month is active.`,
     '',
     'What you can do now:',
@@ -784,14 +784,14 @@ function brandedSubscriptionWelcomeEmail(p: SubscriptionWelcomeParams): string {
         <tr><td style="padding:8px 36px 18px;">
           <div style="font-size:14px;color:#1f4856;line-height:1.65;">
             ${p.isFounding
-              ? `You're one of the first members of Travail — and your rate is locked at <strong>${fmtMoney(p.amountCents)}/month for as long as you stay subscribed</strong>. Even as the public price rises, your card keeps billing the founding rate.`
+              ? `You're one of the first members of Travail, and your rate is locked at <strong>${fmtMoney(p.amountCents)}/month for as long as you stay subscribed</strong>. Even as the public price rises, your card keeps billing the founding rate.`
               : `Your membership is live. You're ready to book any open trip, anchor your own, and connect with the network.`}
           </div>
         </td></tr>
 
         ${p.isFounding ? `<tr><td style="padding:0 36px 22px;">
           <div style="background:rgba(244,167,44,0.10);border-left:3px solid #f4a72c;border-radius:0 8px 8px 0;padding:14px 16px;font-size:13px;color:#1f4b5b;line-height:1.55;">
-            <strong style="color:#0d3340;font-weight:700;">A note on the founding rate.</strong> Cancel anytime — but resubscribing later will be at the then-current public rate, not ${fmtMoney(p.amountCents)}. Worth remembering.
+            <strong style="color:#0d3340;font-weight:700;">A note on the founding rate.</strong> Cancel anytime, but resubscribing later will be at the then-current public rate, not ${fmtMoney(p.amountCents)}. Worth remembering.
           </div>
         </td></tr>` : ''}
 
@@ -834,7 +834,7 @@ export async function sendSubscriptionPastDueEmail(p: SubscriptionPastDueParams)
     '',
     p.hostedInvoiceUrl ? `Update your card or pay this invoice directly: ${p.hostedInvoiceUrl}` : 'Update your card from your membership page in the app.',
     '',
-    'Ops has been notified and will reach out shortly. Questions in the meantime — reply to this email.',
+    'Ops has been notified and will reach out shortly. Questions in the meantime? Reply to this email.',
   ].join('\n')
 
   const html = brandedSubscriptionPastDueEmail(p)
@@ -858,7 +858,7 @@ export async function sendSubscriptionPastDueEmail(p: SubscriptionPastDueParams)
 function brandedSubscriptionPastDueEmail(p: SubscriptionPastDueParams): string {
   const retryLine = p.nextAttemptAt
     ? `We'll automatically retry on <strong>${new Date(p.nextAttemptAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</strong>.`
-    : `We won't retry automatically — please update your card so we can run it again.`
+    : `We won't retry automatically, so please update your card so we can run it again.`
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="color-scheme" content="light only"/>
@@ -879,12 +879,12 @@ function brandedSubscriptionPastDueEmail(p: SubscriptionPastDueParams): string {
         </td></tr>
 
         <tr><td style="padding:8px 36px 18px;">
-          <div style="font-size:14px;color:#1f4856;line-height:1.65;">We tried to renew your Travail membership for <strong>${fmtMoney(p.amountCents)}</strong> and the card was declined. Could be expired, could be your bank holding it for review — usually a 30-second fix.</div>
+          <div style="font-size:14px;color:#1f4856;line-height:1.65;">We tried to renew your Travail membership for <strong>${fmtMoney(p.amountCents)}</strong> and the card was declined. Could be expired, could be your bank holding it for review. Usually a 30-second fix.</div>
         </td></tr>
 
         <tr><td style="padding:0 36px 18px;">
           <div style="background:rgba(244,167,44,0.10);border-left:3px solid #f4a72c;border-radius:0 8px 8px 0;padding:13px 16px;font-size:13px;color:#1f4b5b;line-height:1.55;">
-            <strong style="color:#0d3340;font-weight:700;">App access continues.</strong> You can still sign in. New bookings are paused until the card clears — we'll lift that the moment we see a successful charge. ${retryLine}
+            <strong style="color:#0d3340;font-weight:700;">App access continues.</strong> You can still sign in. New bookings are paused until the card clears, and we'll lift that the moment we see a successful charge. ${retryLine}
           </div>
         </td></tr>
 
@@ -921,9 +921,9 @@ export async function sendSubscriptionCancelledEmail(p: SubscriptionCancelledPar
     '',
     'Your Travail membership has ended. Thank you for being part of the founding cohort.',
     '',
-    "If you change your mind, you're welcome back anytime — note that re-subscribing later will be at the current public rate, not the founding rate you had.",
+    "If you change your mind, you're welcome back anytime. Note that re-subscribing later will be at the current public rate, not the founding rate you had.",
     '',
-    'Questions or feedback on the way out — reply to this email and Ops will read it personally.',
+    'Questions or feedback on the way out? Reply to this email and Ops will read it personally.',
   ].join('\n')
 
   const html = brandedSubscriptionCancelledEmail(p)
@@ -960,17 +960,17 @@ function brandedSubscriptionCancelledEmail(p: SubscriptionCancelledParams): stri
         </td></tr>
 
         <tr><td style="padding:8px 36px 18px;">
-          <div style="font-size:14px;color:#1f4856;line-height:1.65;">Your Travail membership has ended. We're grateful you were part of the founding cohort — even briefly.</div>
+          <div style="font-size:14px;color:#1f4856;line-height:1.65;">Your Travail membership has ended. We're grateful you were part of the founding cohort, even briefly.</div>
         </td></tr>
 
         <tr><td style="padding:0 36px 22px;">
           <div style="background:rgba(0,179,199,0.06);border-left:3px solid #00b3c7;border-radius:0 8px 8px 0;padding:13px 16px;font-size:13px;color:#1f4b5b;line-height:1.55;">
-            If you change your mind, you're welcome back anytime — note that re-subscribing later will be at the <strong>current public rate</strong>, not the founding rate you had.
+            If you change your mind, you're welcome back anytime. Note that re-subscribing later will be at the <strong>current public rate</strong>, not the founding rate you had.
           </div>
         </td></tr>
 
         <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
-          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions or feedback — reply to this email and Ops will read it personally.</div>
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions or feedback? Reply to this email and Ops will read it personally.</div>
         </td></tr>
       </table>
     </td></tr>
@@ -1041,11 +1041,11 @@ export async function sendProposalSubmittedEmail(p: ProposalEmailBase): Promise<
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) { safeError('sendProposalSubmittedEmail: RESEND_API_KEY not set', { to: p.to }); return }
   const subject = `Proposal submitted · ${p.proposalName}`
-  const text = `Hi ${p.memberName.split(' ')[0]},\n\nYour proposal for "${p.proposalName}" is in the queue for ops review. We'll set the minimum seat count and per-seat price, then the network can start committing.\n\nIf your card declined, your proposal is held — please retry from the wizard to put a working card on file.\n\nQuestions? Just reply.\n`
+  const text = `Hi ${p.memberName.split(' ')[0]},\n\nYour proposal for "${p.proposalName}" is in the queue for ops review. We'll set the minimum seat count and per-seat price, then the network can start committing.\n\nIf your card declined, your proposal is held, so please retry from the wizard to put a working card on file.\n\nQuestions? Just reply.\n`
   const html = proposalShell({
     title: subject, eyebrow: 'Proposal submitted', accent: '#e09418',
     headline: 'In the queue for ops review.',
-    body: `Your proposal for <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` on <strong>${escapeHtml(p.tripDate)}</strong>` : ''} is being reviewed. Ops will set the minimum commit count and per-seat price, then it goes live for the network.<br/><br/>If your card on file declined, please head back to the wizard and re-save a working card — your proposal is held until that's done.`,
+    body: `Your proposal for <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` on <strong>${escapeHtml(p.tripDate)}</strong>` : ''} is being reviewed. Ops will set the minimum commit count and per-seat price, then it goes live for the network.<br/><br/>If your card on file declined, please head back to the wizard and re-save a working card. Your proposal is held until that's done.`,
     ctaLabel: 'View my proposals →', ctaHref: 'https://travailclub.com/proposals',
   })
   const resend = new Resend(apiKey)
@@ -1072,7 +1072,7 @@ export async function sendProposalApprovedEmail(p: ProposalApprovedEmailParams):
   const html = proposalShell({
     title: subject, eyebrow: 'Approved · go live', accent: '#3e8c6d',
     headline: 'Your proposal is on the board.',
-    body: `Ops approved <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''}. It's live for the network right now.<br/><br/><strong>${p.minSeats} commits needed</strong> at <strong>$${(p.pricePerSeatCents / 100).toFixed(0)}/seat</strong>.${expiresStr ? ` Auto-expires on <strong>${escapeHtml(expiresStr)}</strong> if the minimum isn't met.` : ''}<br/><br/>Share it with friends in the network — momentum matters once the commit window starts ticking.`,
+    body: `Ops approved <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''}. It's live for the network right now.<br/><br/><strong>${p.minSeats} commits needed</strong> at <strong>$${(p.pricePerSeatCents / 100).toFixed(0)}/seat</strong>.${expiresStr ? ` Auto-expires on <strong>${escapeHtml(expiresStr)}</strong> if the minimum isn't met.` : ''}<br/><br/>Share it with friends in the network, since momentum matters once the commit window starts ticking.`,
     ctaLabel: 'See it on the board →', ctaHref: `https://travailclub.com/reserve/${p.proposalId}?kind=proposal`,
   })
   const resend = new Resend(apiKey)
@@ -1095,11 +1095,11 @@ export async function sendProposalFundedEmail(p: ProposalFundedEmailParams): Pro
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) { safeError('sendProposalFundedEmail: RESEND_API_KEY not set', { to: p.to }); return }
   const subject = `${p.proposalName} is locked in · you're booked`
-  const text = `Hi ${p.memberName.split(' ')[0]},\n\n"${p.proposalName}" hit its commit minimum. Your card was charged $${(p.amountCents / 100).toFixed(2)} for ${p.seats} seat${p.seats === 1 ? '' : 's'} and you're officially on the manifest.\n\n${p.isProposer ? 'Thanks for pitching it — none of this happens without proposers.' : 'Your boarding pass is in the app.'}\n`
+  const text = `Hi ${p.memberName.split(' ')[0]},\n\n"${p.proposalName}" hit its commit minimum. Your card was charged $${(p.amountCents / 100).toFixed(2)} for ${p.seats} seat${p.seats === 1 ? '' : 's'} and you're officially on the manifest.\n\n${p.isProposer ? 'Thanks for pitching it. None of this happens without proposers.' : 'Your boarding pass is in the app.'}\n`
   const html = proposalShell({
     title: subject, eyebrow: 'Funded · trip confirmed', accent: '#3e8c6d',
     headline: p.isProposer ? `Your proposal funded.` : `You're booked.`,
-    body: `<strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''} hit its commit minimum. Your card was charged <strong>$${(p.amountCents / 100).toFixed(2)}</strong> for <strong>${p.seats}</strong> seat${p.seats === 1 ? '' : 's'} and you're on the manifest.<br/><br/>${p.isProposer ? 'Thanks for pitching it — none of this happens without proposers.' : 'Your boarding pass is in the app — see you on the day.'}`,
+    body: `<strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''} hit its commit minimum. Your card was charged <strong>$${(p.amountCents / 100).toFixed(2)}</strong> for <strong>${p.seats}</strong> seat${p.seats === 1 ? '' : 's'} and you're on the manifest.<br/><br/>${p.isProposer ? 'Thanks for pitching it. None of this happens without proposers.' : 'Your boarding pass is in the app, see you on the day.'}`,
     ctaLabel: 'Open boarding pass →', ctaHref: 'https://travailclub.com/bookings',
   })
   const resend = new Resend(apiKey)
@@ -1124,7 +1124,7 @@ export async function sendProposalExpiredEmail(p: ProposalExpiredEmailParams): P
   const html = proposalShell({
     title: subject, eyebrow: 'Expired · no charge', accent: '#c97e0e',
     headline: p.isProposer ? 'Your proposal expired.' : 'A proposal expired.',
-    body: `<strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''} didn't reach its commit minimum. Your card was <strong>not</strong> charged.<br/><br/><em>${escapeHtml(p.reason)}</em><br/><br/>${p.isProposer ? 'Try a different date, share with more friends, or wait for a fresh window. Proposals are no-risk — feel free to try again.' : 'Browse the open proposals when you have a moment — there are usually a few brewing.'}`,
+    body: `<strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''} didn't reach its commit minimum. Your card was <strong>not</strong> charged.<br/><br/><em>${escapeHtml(p.reason)}</em><br/><br/>${p.isProposer ? 'Try a different date, share with more friends, or wait for a fresh window. Proposals are no-risk, feel free to try again.' : 'Browse the open proposals when you have a moment, there are usually a few brewing.'}`,
     ctaLabel: 'See open proposals →', ctaHref: 'https://travailclub.com/proposals',
   })
   const resend = new Resend(apiKey)
@@ -1144,11 +1144,11 @@ export async function sendProposalDeclinedEmail(p: ProposalDeclinedEmailParams):
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) { safeError('sendProposalDeclinedEmail: RESEND_API_KEY not set', { to: p.to }); return }
   const subject = `Your proposal was declined · ${p.proposalName}`
-  const text = `Hi ${p.memberName.split(' ')[0]},\n\nOps declined your proposal "${p.proposalName}".\n\n${p.reason ?? 'No specific reason was given — reply to this email and ops will explain.'}\n\nNo charge — feel free to try another proposal whenever you're ready.\n`
+  const text = `Hi ${p.memberName.split(' ')[0]},\n\nOps declined your proposal "${p.proposalName}".\n\n${p.reason ?? 'No specific reason was given, reply to this email and ops will explain.'}\n\nNo charge, feel free to try another proposal whenever you're ready.\n`
   const html = proposalShell({
     title: subject, eyebrow: 'Declined', accent: '#c97e0e',
     headline: 'Your proposal was declined.',
-    body: `Ops decided not to move forward with <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''}.<br/><br/>${p.reason ? `<em>${escapeHtml(p.reason)}</em>` : 'No specific reason was attached — reply to this email and ops will explain.'}<br/><br/>No charge to your card — your proposal slot is freed up and you can submit a fresh one whenever you're ready.`,
+    body: `Ops decided not to move forward with <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''}.<br/><br/>${p.reason ? `<em>${escapeHtml(p.reason)}</em>` : 'No specific reason was attached, reply to this email and ops will explain.'}<br/><br/>No charge to your card, your proposal slot is freed up and you can submit a fresh one whenever you're ready.`,
     ctaLabel: 'Propose another →', ctaHref: 'https://travailclub.com/propose',
   })
   const resend = new Resend(apiKey)

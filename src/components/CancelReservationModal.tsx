@@ -128,7 +128,7 @@ export function CancelReservationModal({
                 Heads up · {recentCancelCount} cancels in 90 days
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.55 }}>
-                Repeated cancellations may put your membership under review. Travail is a small network, and consistent commitments matter to the rest of the cabin. If something keeps coming up, reply to a recent email and let Ops know — we'd rather talk than escalate.
+                Repeated cancellations may put your membership under review. Travail is a small network, and consistent commitments matter to the rest of the cabin. If something keeps coming up, reply to a recent email and let Ops know. We'd rather talk than escalate.
               </div>
             </div>
           )}
@@ -137,7 +137,7 @@ export function CancelReservationModal({
               background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)',
               borderRadius: 10, padding: '14px 16px', color: 'var(--signal)', fontSize: 14, fontWeight: 600,
             }}>
-              This trip has already departed. Reservations can't be cancelled after wheels-up — contact Ops if you need to discuss.
+              This trip has already departed. Reservations can't be cancelled after wheels-up, so contact Ops if you need to discuss.
             </div>
           ) : insideWindow ? (
             <>
@@ -147,7 +147,7 @@ export function CancelReservationModal({
                 borderRadius: 10, padding: '16px 18px', marginBottom: 18,
               }}>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--signal)', fontWeight: 700, marginBottom: 8 }}>
-                  No refund — seat forfeited
+                  No refund, seat forfeited
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.55, marginBottom: 12 }}>
                   You're inside the <strong>{windowHours}-hour</strong> cancellation window. Per the policy you accepted at booking, your seat forfeits and <strong>no refund is issued</strong>.

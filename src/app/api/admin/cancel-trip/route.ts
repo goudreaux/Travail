@@ -242,7 +242,7 @@ export async function POST(req: NextRequest) {
     await (db.from('notifications') as any).insert({
       member_id: r.memberId,
       kind: 'booking',
-      title: 'Trip cancelled — full refund',
+      title: 'Trip cancelled, full refund',
       body: r.refundCents > 0
         ? `"${trip.name}" was cancelled by Ops. A full refund of $${(r.refundCents / 100).toFixed(2)} has been issued to your card.`
         : `"${trip.name}" was cancelled by Ops. No refund was needed.`,
@@ -277,9 +277,9 @@ export async function POST(req: NextRequest) {
     await (db.from('notifications') as any).insert({
       member_id: trip.anchor_member_id,
       kind: 'approval',
-      title: `Trip cancelled — full refund`,
+      title: `Trip cancelled, full refund`,
       body: anchorRefundCents > 0
-        ? `"${trip.name}" was cancelled by Travail Ops. Your full capture of $${(anchorRefundCents / 100).toFixed(2)} — charter and the 3% service fee — has been refunded to your card.`
+        ? `"${trip.name}" was cancelled by Travail Ops. Your full capture of $${(anchorRefundCents / 100).toFixed(2)} (charter and the 3% service fee) has been refunded to your card.`
         : `"${trip.name}" was cancelled by Travail Ops. No anchor capture was on file to refund.`,
       ref: { item_kind: itemKind, item_id: itemId },
     })
@@ -333,7 +333,7 @@ export async function POST(req: NextRequest) {
     actor_member_id: meRow.id,
     subject_member_id: trip.anchor_member_id,
     action: 'trip_cancelled_by_ops',
-    summary: `Cancelled ${itemKind} "${trip.name ?? itemId}" — anchor refund $${(anchorRefundCents / 100).toFixed(2)}, ${paxRefunds.length} pax affected.`,
+    summary: `Cancelled ${itemKind} "${trip.name ?? itemId}": anchor refund $${(anchorRefundCents / 100).toFixed(2)}, ${paxRefunds.length} pax affected.`,
     item_kind: itemKind,
     item_id: itemId,
     meta: {

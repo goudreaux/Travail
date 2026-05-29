@@ -334,7 +334,7 @@ function ExcursionCard({
               <div style={{
                 marginTop: 5, fontSize: 11, color: '#8a5a06', fontWeight: 700, lineHeight: 1.4,
               }}>
-                ✦ Special event — first to commit gets a seat.
+                ✦ Special event, first to commit gets a seat.
               </div>
             </div>
           )}
@@ -501,7 +501,7 @@ export default function SeatsPage() {
     // 23505 = already on the list — treat as success
     if (!error || error.code === '23505') {
       setWaitlisted(prev => new Set(prev).add(itemId))
-      setToast('Added to the waitlist — Ops will offer the next open seat.')
+      setToast('Added to the waitlist. Ops will offer the next open seat.')
     } else {
       setToast(error.message ?? 'Could not join waitlist.')
     }
@@ -563,7 +563,7 @@ export default function SeatsPage() {
         accent="sun"
         eyebrow="DEPARTURES BOARD"
         title="Open Seats"
-        sub={loading ? 'Loading available departures…' : `Hop on — ${totalOpen} departure${totalOpen !== 1 ? 's' : ''} with open availability`}
+        sub={loading ? 'Loading available departures…' : `Hop on: ${totalOpen} departure${totalOpen !== 1 ? 's' : ''} with open availability`}
         metric={loading ? undefined : { value: totalOpen, label: 'Live', sub: 'Departures' }}
       />
 

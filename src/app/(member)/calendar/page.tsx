@@ -387,7 +387,7 @@ export default function CalendarPage() {
               <div className="empty">
                 <svg width="40" height="40" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><rect x="4" y="5" width="14" height="13" rx="1.5"/><line x1="4" y1="9" x2="18" y2="9"/><line x1="8" y1="3" x2="8" y2="6"/><line x1="14" y1="3" x2="14" y2="6"/></svg>
                 <h3>No trips scheduled</h3>
-                <p>Check back soon — new flights and excursions are added regularly.</p>
+                <p>Check back soon, new flights and excursions are added regularly.</p>
               </div>
             ) : (
               <div className="flights">

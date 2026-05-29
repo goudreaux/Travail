@@ -108,7 +108,7 @@ export default function ProposalsPage() {
             </div>
             <div style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.55, maxWidth: 440, margin: '0 auto 16px' }}>
               {proposals.length === 0
-                ? "Pitch a date and rally the network. You only pay if your commit threshold is met — and nobody pays if it falls through."
+                ? "Pitch a date and rally the network. You only pay if your commit threshold is met, and nobody pays if it falls through."
                 : 'Try a different filter, or start your own proposal.'}
             </div>
             <button className="btn-primary" onClick={() => router.push('/propose')}>

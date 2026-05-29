@@ -301,7 +301,7 @@ export default function AnchorExcursionPage() {
                     <select className="select" value={templateId} onChange={e => setTemplateId(e.target.value)}>
                       {templates.map(t => (
                         <option key={t.id} value={t.id}>
-                          {t.name} — {airportName[t.dest_code] || t.dest_code}{t.operator ? ` · ${t.operator}` : ''}
+                          {t.name}, {airportName[t.dest_code] || t.dest_code}{t.operator ? ` · ${t.operator}` : ''}
                         </option>
                       ))}
                     </select>
@@ -444,7 +444,7 @@ export default function AnchorExcursionPage() {
               </div>
               <div className="field">
                 <label className="field-lab">Pitch <span style={{ color: 'var(--ink-faint)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
-                <textarea className="input" placeholder="Entice members to join — what makes this special?" value={pitch} onChange={e => setPitch(e.target.value)} rows={3} maxLength={400} />
+                <textarea className="input" placeholder="Entice members to join: what makes this special?" value={pitch} onChange={e => setPitch(e.target.value)} rows={3} maxLength={400} />
               </div>
               <div className="wiz-summary" style={{ marginTop: 6 }}>
                 {[
@@ -470,7 +470,7 @@ export default function AnchorExcursionPage() {
               <div style={{ background: 'var(--tropic-glow)', border: '1px solid rgba(0,179,199,0.2)', borderRadius: 10, padding: '14px 16px', marginTop: 14 }}>
                 <div className="mono" style={{ color: 'var(--tropic-d)', marginBottom: 6 }}>Pricing</div>
                 <p style={{ fontSize: 12.5, color: 'var(--ink-mid)', lineHeight: 1.55, margin: 0 }}>
-                  Ops will confirm the operator pricing, add Travail&apos;s 3% service fee, and send the quote for your review. <strong style={{ color: 'var(--ink)' }}>No card is captured until you accept the quote</strong> — you&apos;ll get a notification with the total.
+                  Ops will confirm the operator pricing, add Travail&apos;s 3% service fee, and send the quote for your review. <strong style={{ color: 'var(--ink)' }}>No card is captured until you accept the quote</strong>. You&apos;ll get a notification with the total.
                 </p>
               </div>
 

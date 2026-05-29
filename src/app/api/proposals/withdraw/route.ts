@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   if (!propGuard) return NextResponse.json({ error: 'Proposal not found' }, { status: 404 })
   if (propGuard.lock_started_at) {
     return NextResponse.json({
-      error: 'Ops is currently locking this proposal — too late to withdraw. Contact Ops if you need to roll back.',
+      error: 'Ops is currently locking this proposal, too late to withdraw. Contact Ops if you need to roll back.',
     }, { status: 409 })
   }
 

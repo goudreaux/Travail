@@ -446,7 +446,7 @@ export default function BookingsPage() {
                       Decision needed · {pending.length === 1 ? '1 quote' : `${pending.length} quotes`}
                     </div>
                     <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>
-                      Ops sent you a price{pending.length === 1 ? '' : 's'} — review &amp; confirm
+                      Ops sent you a price{pending.length === 1 ? '' : 's'}, review &amp; confirm
                     </div>
                     <div style={{ fontSize: 12.5, color: 'var(--ink-mid)', marginTop: 4 }}>
                       Tap to open the quote{pending.length === 1 ? '' : 's'}. No charge happens until you accept.

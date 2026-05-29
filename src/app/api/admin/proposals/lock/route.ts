@@ -308,7 +308,7 @@ export async function POST(req: NextRequest) {
       await (db as any).from('notifications').insert({
         member_id: c.member_id,
         kind: 'booking',
-        title: 'Proposal funded — you’re booked',
+        title: 'Proposal funded, you’re booked',
         body: `"${prop.name}" hit its commit minimum. Your card was charged and your seat is confirmed.`,
         ref: { item_kind: prop.kind, item_id: newTripId, booking_id: bookingId, proposal_id: prop.id },
       })

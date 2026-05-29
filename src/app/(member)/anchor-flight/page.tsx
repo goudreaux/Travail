@@ -25,7 +25,7 @@ const ANCHOR_DESTS: AirportMeta[] = [
   { code: 'LCC',  name: 'Lochloosa Country Club',     sub: 'North Central FL', role: 'destination' },
   { code: 'KEYW', name: 'Key West Airport',           sub: 'FL Keys',          role: 'destination' },
   { code: 'LPI',  name: 'Little Palm Island',         sub: 'FL Keys',          role: 'destination' },
-  { code: CUSTOM_DEST_CODE, name: 'Custom destination', sub: 'Request — ops will confirm with Tropic', role: 'destination' },
+  { code: CUSTOM_DEST_CODE, name: 'Custom destination', sub: 'Request, ops will confirm with Tropic', role: 'destination' },
 ]
 
 type GuestEntry = { first_name: string; last_name: string; date_of_birth: string }
@@ -169,7 +169,7 @@ export default function AnchorFlightPage() {
 
   function validateStep(s: number): string | null {
     if (s === 1 && !isCustomDest && origin.code === dest.code) return 'Origin and destination must be different.'
-    if (s === 1 && isCustomDest && !customDestName.trim()) return 'Tell us where you want to go — we’ll confirm with Tropic.'
+    if (s === 1 && isCustomDest && !customDestName.trim()) return 'Tell us where you want to go, we’ll confirm with Tropic.'
     if (s === 2) {
       if (!date) return 'Select a departure date.'
       if (isRoundTrip && !returnDate) return 'Select a return date.'
@@ -294,7 +294,7 @@ export default function AnchorFlightPage() {
               We&apos;ve received your <strong>{origin.name} → {isCustomDest ? (customDestName.trim() || 'Custom destination') : dest.name}</strong> anchor request.
             </p>
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', lineHeight: 1.5, margin: '0 0 32px' }}>
-              Ops will quote pricing with Tropic + the 3% service fee. You&apos;ll get a notification to review and accept it — nothing is charged until you do.
+              Ops will quote pricing with Tropic + the 3% service fee. You&apos;ll get a notification to review and accept it, nothing is charged until you do.
             </p>
             <div style={{ background: 'var(--warm)', borderRadius: 10, padding: '14px 18px', marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="mono">Submission ID</span>
@@ -512,12 +512,12 @@ export default function AnchorFlightPage() {
 
               <div className="field">
                 <label className="field-lab">Pitch <span style={{ color: 'var(--ink-faint)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
-                <textarea className="input" placeholder="Entice members to join — what makes this trip special?" value={pitch} onChange={e => setPitch(e.target.value)} rows={3} maxLength={400} />
+                <textarea className="input" placeholder="Entice members to join: what makes this trip special?" value={pitch} onChange={e => setPitch(e.target.value)} rows={3} maxLength={400} />
               </div>
 
               <div className="wiz-summary" style={{ marginTop: 6 }}>
                 {[
-                  { label: 'Route', value: `${origin.name} ${isRoundTrip ? '⇄' : '→'} ${isCustomDest ? (customDestName.trim() || 'Custom destination') : dest.name}${isCustomDest ? ' (custom — ops will confirm)' : ''}` },
+                  { label: 'Route', value: `${origin.name} ${isRoundTrip ? '⇄' : '→'} ${isCustomDest ? (customDestName.trim() || 'Custom destination') : dest.name}${isCustomDest ? ' (custom, ops will confirm)' : ''}` },
                   { label: 'Trip type', value: isRoundTrip ? 'Round trip' : 'One way' },
                   { label: 'Departs', value: date || '—' },
                   { label: 'Departure time', value: departTime },
@@ -540,7 +540,7 @@ export default function AnchorFlightPage() {
               <div style={{ background: 'var(--tropic-glow)', border: '1px solid rgba(0,179,199,0.2)', borderRadius: 10, padding: '14px 16px', marginTop: 14 }}>
                 <div className="mono" style={{ color: 'var(--tropic-d)', marginBottom: 6 }}>Pricing</div>
                 <p style={{ fontSize: 12.5, color: 'var(--ink-mid)', lineHeight: 1.55, margin: 0 }}>
-                  Ops will source a Tropic quote, add Travail&apos;s 3% service fee, and send it to you for review. <strong style={{ color: 'var(--ink)' }}>No card is captured until you accept the quote</strong> — you&apos;ll get a notification with the total to review.
+                  Ops will source a Tropic quote, add Travail&apos;s 3% service fee, and send it to you for review. <strong style={{ color: 'var(--ink)' }}>No card is captured until you accept the quote</strong>. You&apos;ll get a notification with the total to review.
                 </p>
               </div>
 

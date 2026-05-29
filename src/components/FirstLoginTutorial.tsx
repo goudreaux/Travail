@@ -53,7 +53,7 @@ function InstallInstructions() {
   if (platform === 'installed') {
     return (
       <div style={{ fontSize: 14, color: 'var(--ink-soft)', lineHeight: 1.6 }}>
-        Looks like you&apos;ve already got Travail installed on your home screen. <strong style={{ color: 'var(--moss)' }}>Nicely done</strong> — tap Next to wrap up.
+        Looks like you&apos;ve already got Travail installed on your home screen. <strong style={{ color: 'var(--moss)' }}>Nicely done.</strong> Tap Next to wrap up.
       </div>
     )
   }
@@ -71,7 +71,7 @@ function InstallInstructions() {
           Scroll down and pick <strong>Add to Home Screen</strong>.
         </Step>
         <Step n={3}>
-          Tap <strong>Add</strong>. Travail lives on your home screen now — opens full-screen, no Safari chrome.
+          Tap <strong>Add</strong>. Travail lives on your home screen now, opening full-screen with no Safari chrome.
         </Step>
         <div style={{ fontSize: 12, color: 'var(--ink-faint)', marginTop: 8, lineHeight: 1.5 }}>
           Note: this only works in Safari, not Chrome or another browser on iOS.
