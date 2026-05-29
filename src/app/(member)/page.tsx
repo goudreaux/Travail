@@ -8,7 +8,7 @@ import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster
 import { ProposalCard, loadOpenProposals, type ProposalCardData } from '@/components/ProposalCard'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { Member, Booking, ExcursionTemplate, Flight, Excursion } from '@/lib/supabase/types'
+import type { Member, Booking, ExcursionTemplate, Flight, Excursion, AnchorSubmission } from '@/lib/supabase/types'
 
 // Full airport name for a code — members don't know codes by heart.
 function placeName(code: string, names: Record<string, string>): string {
@@ -114,6 +114,10 @@ export default function FeedPage() {
   // alongside Open Seats. My Trips stays open by default on every
   // viewport since it's the personal-priority surface.
   const [proposalsOpenInitial, setProposalsOpenInitial] = useState(true)
+  // How many in-flight anchor submissions the pending-anchors strip
+  // rendered. When > 0 we suppress the "nothing on the books" neg even
+  // if there are no booked trips yet — a pending anchor IS something.
+  const [pendingAnchorCount, setPendingAnchorCount] = useState(0)
   const supabase = createClient()
   const router = useRouter()
 
@@ -425,13 +429,19 @@ export default function FeedPage() {
           </button>
 
           <div className="scroll-y" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            {/* In-flight anchor submissions (awaiting review / quote ready
+                / accepted) surface here so the member sees their pending
+                trips on the feed without clicking into My Trips. */}
+            {!loading && member && (
+              <PendingAnchorsStrip memberId={member.id} airportName={airportName} onOpen={(href) => router.push(href)} onCount={setPendingAnchorCount} />
+            )}
             {loading ? (
               <div style={{ padding: '32px 0', display: 'flex', justifyContent: 'center' }}>
                 <div className="pending-indicator" />
               </div>
-            ) : tripItems.length === 0 ? (
+            ) : tripItems.length === 0 && pendingAnchorCount === 0 ? (
               <EmptyTripsNeg memberId={member?.id ?? null} onPlan={() => router.push('/plan')} />
-            ) : (
+            ) : tripItems.length === 0 ? null : (
               (() => {
                 const effectiveExpanded = expandedTripId ?? tripItems[0]?.booking.id ?? null
                 return (
@@ -897,6 +907,116 @@ function EmptyTripsNeg({ memberId, onPlan }: { memberId: string | null; onPlan: 
           Get away →
         </button>
       </div>
+    </div>
+  )
+}
+
+// Pending anchor submissions on the feed's My Trips section. Shows
+// the member's in-flight anchors (awaiting review / quote ready /
+// accepted) as compact status rows so they see everything they've
+// submitted without leaving the feed. Loads its own data; reports the
+// count up so the parent can suppress the empty-state neg when there's
+// a pending anchor but no booked trips yet.
+//
+// Routing per state:
+//   quoted          → /anchor-quote/[id]  (accept / decline lives there)
+//   everything else → /bookings           (the full My Trips view)
+const ANCHOR_FEED_STATES = ['pending', 'pending_ops_review', 'quoted', 'quote_accepted'] as const
+
+function anchorFeedLabel(status: string): { label: string; pill: string; action: boolean } {
+  switch (status) {
+    case 'quoted':           return { label: 'QUOTE READY — REVIEW', pill: 'tropic', action: true }
+    case 'quote_accepted':   return { label: 'ACCEPTED — PUBLISHING SOON', pill: 'tropic', action: false }
+    case 'pending':
+    case 'pending_ops_review': return { label: 'IN OPS REVIEW', pill: 'sun', action: false }
+    default:                 return { label: status.toUpperCase(), pill: '', action: false }
+  }
+}
+
+function PendingAnchorsStrip({
+  memberId,
+  airportName,
+  onOpen,
+  onCount,
+}: {
+  memberId: string
+  airportName: Record<string, string>
+  onOpen: (href: string) => void
+  onCount: (n: number) => void
+}) {
+  const supabase = createClient()
+  const [anchors, setAnchors] = useState<AnchorSubmission[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from('anchor_submissions')
+        .select('*')
+        .eq('member_id', memberId)
+        .in('status', ANCHOR_FEED_STATES as unknown as string[])
+        .order('submitted_at', { ascending: false })
+      if (cancelled) return
+      const rows = (data ?? []) as AnchorSubmission[]
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAnchors(rows)
+      onCount(rows.length)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [memberId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (anchors.length === 0) return null
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 4 }}>
+      {anchors.map(a => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const p = (a.payload ?? {}) as any
+        const meta = anchorFeedLabel(a.status as string)
+        const origin = String(p.originCode ?? p.origin_code ?? '')
+        const destName = String(p.destName ?? p.destCode ?? p.dest_code ?? '')
+        const name = String(p.name ?? (a.kind === 'flight' ? 'Flight' : 'Excursion'))
+        const date = String(p.date ?? '')
+        const href = (a.status as string) === 'quoted' ? `/anchor-quote/${a.id}` : '/bookings'
+        return (
+          <button
+            key={a.id}
+            onClick={() => onOpen(href)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
+              background: meta.action ? 'var(--tropic-glow)' : 'var(--paper)',
+              border: `1px solid ${meta.action ? 'var(--tropic)' : 'var(--hair)'}`,
+              borderRadius: 12, padding: '12px 14px', cursor: 'pointer', width: '100%',
+            }}
+          >
+            <span style={{
+              flexShrink: 0, width: 34, height: 34, borderRadius: 8,
+              background: a.kind === 'flight' ? 'var(--tropic-glow)' : 'var(--sun-glow)',
+              color: a.kind === 'flight' ? 'var(--tropic-d)' : 'var(--sun-d)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {a.kind === 'flight' ? KIND_ICONS.flight : KIND_ICONS.fish}
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {name}
+              </span>
+              <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-light)', marginTop: 2 }}>
+                {a.kind === 'flight' && origin ? `${placeName(origin, airportName)} → ${destName}` : (origin ? placeName(origin, airportName) : '')}
+                {date ? ` · ${date}` : ''}
+              </span>
+            </span>
+            <span className={`pill ${meta.pill}`} style={{ fontSize: 9, flexShrink: 0 }}>
+              {meta.label}
+            </span>
+            {meta.action && (
+              <span style={{ color: 'var(--tropic-d)', fontSize: 16, flexShrink: 0 }} aria-hidden>›</span>
+            )}
+          </button>
+        )
+      })}
     </div>
   )
 }

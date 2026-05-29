@@ -48,10 +48,14 @@ export default function MobileNav({
   pathname,
   isAdmin = false,
   openSeatsCount = 0,
+  tripsAlertCount = 0,
+  proposalsAlertCount = 0,
 }: {
   pathname: string
   isAdmin?: boolean
   openSeatsCount?: number
+  tripsAlertCount?: number
+  proposalsAlertCount?: number
 }) {
   const adminMode = pathname === '/admin' || pathname.startsWith('/admin/')
   const isActive = (href: string, exact?: boolean) => (exact ? pathname === href : pathname.startsWith(href))
@@ -112,7 +116,13 @@ export default function MobileNav({
         {MEMBER_PRIMARY.map(item => {
           const it = item as { href: string; label: string; icon: React.ReactNode; exact?: boolean; badgeKey?: 'seats' }
           const active = isActive(it.href, it.exact)
-          const showDot = it.badgeKey === 'seats' && openSeatsCount > 0
+          // Alert dot when there's a live open-seats count (Seats tab),
+          // a quote/booking update (My Trips tab), or a proposal update
+          // (Proposals tab).
+          const showDot =
+            (it.badgeKey === 'seats' && openSeatsCount > 0)
+            || (it.href === '/bookings' && tripsAlertCount > 0)
+            || (it.href === '/proposals' && proposalsAlertCount > 0)
           return (
             <Link key={it.href} href={it.href} className={`m-item${active ? ' active' : ''}`}>
               <span className="m-item__icon">

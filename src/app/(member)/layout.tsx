@@ -12,6 +12,7 @@ import ToastHost from '@/components/ToastHost'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import { FirstLoginTutorial } from '@/components/FirstLoginTutorial'
 import { useActivityBeacon, useLoginStamp } from '@/lib/use-activity-beacon'
+import { useActionItems } from '@/lib/use-action-items'
 import type { Member, Notification } from '@/lib/supabase/types'
 
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
@@ -30,6 +31,11 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   // never affect the member's experience.
   useActivityBeacon()
   useLoginStamp(supabase)
+
+  // Action items needing the member's attention — quotes to accept,
+  // decided bookings, proposal state changes. Badged on My Trips +
+  // Proposals in the nav.
+  const actionItems = useActionItems(member?.id ?? null)
 
   const loadData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -137,7 +143,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="app">
-      <Sidebar pathname={pathname} member={member} pendingCount={pendingCount} openSeatsCount={openSeatsCount} unreadCount={unreadCount} />
+      <Sidebar pathname={pathname} member={member} pendingCount={pendingCount} openSeatsCount={openSeatsCount} unreadCount={unreadCount} tripsAlertCount={actionItems.tripsCount} proposalsAlertCount={actionItems.proposalsCount} />
       <main className="main">
         <SubscriptionBanner status={member?.subscription_status} />
         <TopBar
@@ -147,7 +153,7 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
         />
         {children}
       </main>
-      <MobileNav pathname={pathname} isAdmin={!!member?.is_admin} openSeatsCount={openSeatsCount} />
+      <MobileNav pathname={pathname} isAdmin={!!member?.is_admin} openSeatsCount={openSeatsCount} tripsAlertCount={actionItems.tripsCount} proposalsAlertCount={actionItems.proposalsCount} />
       <PullToRefresh />
       <ToastHost />
       {/* One-shot welcome tutorial on first sign-in. Persistence is

@@ -11,6 +11,12 @@ interface Props {
   pendingCount?: number
   openSeatsCount?: number
   unreadCount?: number
+  // Action-item alerts: a quote to accept / decided booking badges
+  // My Trips; a proposal state change badges Proposals. Rendered as a
+  // signal-red dot so it reads as "needs you" vs. the informational
+  // LIVE / PENDING pills.
+  tripsAlertCount?: number
+  proposalsAlertCount?: number
 }
 
 const TIER_COLOR: Record<string, string> = {
@@ -19,15 +25,15 @@ const TIER_COLOR: Record<string, string> = {
   administrator: 'var(--sun)',
 }
 
-export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsCount = 0, unreadCount = 0 }: Props) {
+export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsCount = 0, unreadCount = 0, tripsAlertCount = 0, proposalsAlertCount = 0 }: Props) {
   const friendRequestCount = usePendingFriendCount()
   const nav = [
     { href: '/',                   label: 'Feed',                icon: Icons.feed },
     { href: '/notifications',      label: 'Notifications',       icon: Icons.bell,   badge: unreadCount > 0 ? String(unreadCount) : undefined },
     { href: '/calendar',           label: 'Calendar',            icon: Icons.cal },
     { href: '/seats',              label: 'Open Seats',          icon: Icons.compass, badge: openSeatsCount > 0 ? `${openSeatsCount} LIVE` : undefined, badgeColor: 'var(--tropic)' },
-    { href: '/proposals',          label: 'Proposals',           icon: Icons.proposal },
-    { href: '/bookings',           label: 'My Trips',            icon: Icons.luggage, badge: pendingCount > 0 ? `${pendingCount} PENDING` : undefined, badgeColor: 'var(--signal)' },
+    { href: '/proposals',          label: 'Proposals',           icon: Icons.proposal, alert: proposalsAlertCount > 0 },
+    { href: '/bookings',           label: 'My Trips',            icon: Icons.luggage, badge: pendingCount > 0 ? `${pendingCount} PENDING` : undefined, badgeColor: 'var(--signal)', alert: tripsAlertCount > 0 },
     { href: '/plan',               label: 'Plan a trip',         icon: Icons.plane },
     { href: '/contact',            label: 'Contact us',          icon: Icons.phone },
   ]
@@ -81,6 +87,16 @@ export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsC
               <span className="badge" style={item.badgeColor ? { background: item.badgeColor } : undefined}>
                 {item.badge}
               </span>
+            )}
+            {/* Action-needed dot — only when there's no informational
+                badge already occupying the slot (the badge is the louder
+                signal). Pulses to draw the eye. */}
+            {'alert' in item && item.alert && !item.badge && (
+              <span
+                className="nav-alert-dot"
+                aria-label="Needs your attention"
+                title="Needs your attention"
+              />
             )}
           </Link>
         ))}
