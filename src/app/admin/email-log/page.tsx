@@ -102,7 +102,7 @@ export default function EmailLogPage() {
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Email log</h1>
         <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>
-          Every transactional email — member receipts, settlements, cancellations, ops alerts. The structured twin of the ops@ BCC paper trail.
+          Every transactional email: member receipts, settlements, cancellations, ops alerts. The structured twin of the ops@ BCC paper trail.
         </p>
       </div>
 

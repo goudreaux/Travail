@@ -132,7 +132,7 @@ export function TutorialEditorPanel() {
           <p style={{ fontSize: 13, color: 'var(--ink-light)', lineHeight: 1.6, marginTop: 0, marginBottom: 14 }}>
             Edit the copy of each tutorial slide directly. Each step has its own Save button. The
             install step&apos;s body is locked because it&apos;s a platform-aware placeholder that
-            renders iOS / Android / Desktop instructions at runtime — only the eyebrow + title are
+            renders iOS / Android / Desktop instructions at runtime, only the eyebrow + title are
             editable on that one.
           </p>
 
@@ -206,7 +206,7 @@ export function TutorialEditorPanel() {
                   </div>
 
                   <div className="field" style={{ margin: 0, marginBottom: 10 }}>
-                    <label className="field-lab">Body {locked && <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(locked — platform-aware sentinel)</span>}</label>
+                    <label className="field-lab">Body {locked && <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(locked: platform-aware sentinel)</span>}</label>
                     <textarea
                       className="input"
                       rows={3}

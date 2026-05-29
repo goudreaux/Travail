@@ -445,7 +445,7 @@ export default function TripsPage() {
         }
         const { data, error } = await supabase.from('flights').update(payload).eq('id', editFlightId).select()
         if (error) throw error
-        if (!data || data.length === 0) throw new Error('Update blocked — verify the admin RLS update policy on flights')
+        if (!data || data.length === 0) throw new Error('Update blocked, verify the admin RLS update policy on flights')
         showToast('Flight updated')
       } else {
         const stamp = Date.now().toString(36).toUpperCase()
@@ -464,7 +464,7 @@ export default function TripsPage() {
         }
         const { error } = await supabase.from('flights').insert(rows)
         if (error) throw error
-        showToast(FF.tripType === 'round_trip' ? 'Round-trip created — 2 flights added' : 'Flight created')
+        showToast(FF.tripType === 'round_trip' ? 'Round-trip created, 2 flights added' : 'Flight created')
       }
       setShowFlightForm(false); setEditFlightId(null); setFlightForm(defaultFlightForm)
       load()
@@ -506,7 +506,7 @@ export default function TripsPage() {
       if (editExcId) {
         const { data, error } = await supabase.from('excursions').update(payload).eq('id', editExcId).select()
         if (error) throw error
-        if (!data || data.length === 0) throw new Error('Update blocked — verify the admin RLS update policy on excursions')
+        if (!data || data.length === 0) throw new Error('Update blocked, verify the admin RLS update policy on excursions')
         showToast('Excursion updated')
       } else {
         const id = 'E-' + Date.now().toString(36).toUpperCase()
@@ -575,7 +575,7 @@ export default function TripsPage() {
       if (editTemplateId) {
         const { data, error } = await supabase.from('excursion_templates').update(payload).eq('id', editTemplateId).select()
         if (error) throw error
-        if (!data || data.length === 0) throw new Error('Update blocked — verify the admin RLS policy on excursion_templates')
+        if (!data || data.length === 0) throw new Error('Update blocked, verify the admin RLS policy on excursion_templates')
         showToast('Template updated')
       } else {
         const id = 'tpl-' + Date.now().toString(36).toUpperCase()
@@ -633,8 +633,8 @@ export default function TripsPage() {
       const totalDollars = (totalAnchorRefunded + totalPaxRefunded) / 100
       showToast(
         paxCount > 0
-          ? `Trip cancelled — refunded $${totalDollars.toFixed(2)} across anchor + ${paxCount} pax`
-          : `Trip cancelled — anchor refunded $${(totalAnchorRefunded / 100).toFixed(2)}`,
+          ? `Trip cancelled, refunded $${totalDollars.toFixed(2)} across anchor + ${paxCount} pax`
+          : `Trip cancelled, anchor refunded $${(totalAnchorRefunded / 100).toFixed(2)}`,
       )
       load()
     } catch (e: unknown) {
@@ -672,13 +672,13 @@ export default function TripsPage() {
         return
       }
       if (json.already_settled) {
-        showToast('Already settled — no changes.', 'info')
+        showToast('Already settled, no changes.', 'info')
         return
       }
       const s = json.settlement
       const dollars = (c: number) => `$${(c / 100).toFixed(2)}`
       showToast(
-        `Settled — anchor refunded ${dollars(s.anchor_refund_cents)}, net ${dollars(s.anchor_net_paid_cents)}.`,
+        `Settled: anchor refunded ${dollars(s.anchor_refund_cents)}, net ${dollars(s.anchor_net_paid_cents)}.`,
         'success',
       )
     } catch (e: unknown) {
@@ -689,8 +689,8 @@ export default function TripsPage() {
   async function deleteTemplate(id: string, name: string) {
     if (!confirm(`Delete template "${name}"? This cannot be undone.`)) return
     const { error, data } = await supabase.from('excursion_templates').delete().eq('id', id).select()
-    if (error) { showToast(error.message.includes('foreign key') ? 'In use by an excursion — delete or repoint those first' : error.message, 'error'); return }
-    if (!data || data.length === 0) { showToast('Delete blocked — check the admin RLS policy on excursion_templates', 'error'); return }
+    if (error) { showToast(error.message.includes('foreign key') ? 'In use by an excursion, delete or repoint those first' : error.message, 'error'); return }
+    if (!data || data.length === 0) { showToast('Delete blocked, check the admin RLS policy on excursion_templates', 'error'); return }
     showToast('Template deleted')
     load()
   }
@@ -726,7 +726,7 @@ export default function TripsPage() {
         <div>
           <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Trips & Excursions</h1>
           <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>
-            {tab === 'active' ? 'Live trips on the members’ Open Seats board. Cancelled trips drop off automatically.' : tab === 'photos' ? 'Reusable photo library — upload once, pick from any trip form.' : 'Manage all flights and excursions, including drafts and past trips.'}
+            {tab === 'active' ? 'Live trips on the members’ Open Seats board. Cancelled trips drop off automatically.' : tab === 'photos' ? 'Reusable photo library, upload once, pick from any trip form.' : 'Manage all flights and excursions, including drafts and past trips.'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
@@ -890,7 +890,7 @@ export default function TripsPage() {
                 placeholder="Auto-fills from the route"
               />
               <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>
-                {FF.nameTouched ? 'Custom name — ' : 'Auto-filled from route — '}
+                {FF.nameTouched ? 'Custom name · ' : 'Auto-filled from route · '}
                 <button type="button" onClick={() => setFlightForm(f => ({ ...f, nameTouched: false }))} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--tropic-d)', cursor: 'pointer', fontSize: 11, textDecoration: 'underline' }}>
                   {FF.nameTouched ? 'reset to auto' : 'edit to override'}
                 </button>
@@ -1010,7 +1010,7 @@ export default function TripsPage() {
                 value={FF.image_url}
                 onChange={(url) => setFlightForm(f => ({ ...f, image_url: url }))}
                 locationCode={effDest || effOrigin || null}
-                label="Trip image — shown on the member card"
+                label="Trip image (shown on the member card)"
               />
             </div>
           </div>
@@ -1034,14 +1034,14 @@ export default function TripsPage() {
             {/* ─── Experience (from catalog) ─── */}
             <div style={sectionLabelStyle}>Experience</div>
             <div className="field" style={{ gridColumn: '1 / -1' }}>
-              <label className="field-lab">Excursion template <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>(optional — leave blank for a custom Travail excursion)</span></label>
+              <label className="field-lab">Excursion template <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>(optional, leave blank for a custom Travail excursion)</span></label>
               <select className="select" value={EF.template_id} onChange={e => selectTemplate(e.target.value)}>
-                <option value="">No template — custom excursion</option>
+                <option value="">No template, custom excursion</option>
                 {templates.map(t => <option key={t.id} value={t.id}>{t.name} · {airportName(t.dest_code)}</option>)}
               </select>
               {templates.length === 0 && (
                 <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 6 }}>
-                  No templates yet — that&apos;s fine. Build a custom excursion here, or add reusable templates in the <strong>Excursion Templates</strong> tab.
+                  No templates yet, that&apos;s fine. Build a custom excursion here, or add reusable templates in the <strong>Excursion Templates</strong> tab.
                 </div>
               )}
               {selectedTemplate && (
@@ -1068,7 +1068,7 @@ export default function TripsPage() {
                 placeholder="Auto-fills from the catalog experience"
               />
               <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>
-                {EF.nameTouched ? 'Custom name — ' : 'Auto-filled — '}
+                {EF.nameTouched ? 'Custom name · ' : 'Auto-filled · '}
                 <button type="button" onClick={() => setExcForm(f => ({ ...f, nameTouched: false }))} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--tropic-d)', cursor: 'pointer', fontSize: 11, textDecoration: 'underline' }}>
                   {EF.nameTouched ? 'reset to auto' : 'edit to override'}
                 </button>
@@ -1212,7 +1212,7 @@ export default function TripsPage() {
                 Field & Stream badge when the line includes them. */}
             <div className="field" style={{ gridColumn: '1 / -1' }}>
               <label className="field-lab">
-                Sponsor line <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>(optional — marks this a sponsored special event)</span>
+                Sponsor line <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>(optional, marks this a sponsored special event)</span>
               </label>
               <SponsorLinePicker value={EF.sponsor} onChange={(v) => setExcForm(f => ({ ...f, sponsor: v }))} />
               <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4 }}>
@@ -1244,7 +1244,7 @@ export default function TripsPage() {
                 value={EF.image_url}
                 onChange={(url) => setExcForm(f => ({ ...f, image_url: url }))}
                 locationCode={effExcOrigin || null}
-                label="Trip image — shown on the member card"
+                label="Trip image (shown on the member card)"
               />
             </div>
           </div>
@@ -1321,7 +1321,7 @@ export default function TripsPage() {
             )}
 
             <div className="field" style={{ gridColumn: '1 / -1' }}>
-              <label className="field-lab">Description <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>— the trip &amp; conservation story</span></label>
+              <label className="field-lab">Description <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>(the trip &amp; conservation story)</span></label>
               <textarea className="input" rows={3} value={TF.description} onChange={e => setTemplateForm(f => ({ ...f, description: e.target.value }))} placeholder="What the fishing's like and the conservation angle…" />
               <div style={{ fontSize: 11, color: 'var(--ink-light)', marginTop: 4 }}>Prefills the trip pitch when scheduling this excursion.</div>
             </div>
@@ -1419,7 +1419,7 @@ export default function TripsPage() {
           </table>
           {activeItems.length === 0 && (
             <div style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>
-              No active trips — nothing is showing on the members’ Open Seats board right now.
+              No active trips, nothing is showing on the members’ Open Seats board right now.
             </div>
           )}
         </div>
@@ -1451,7 +1451,7 @@ export default function TripsPage() {
             </tbody>
           </table>
           {templates.length === 0 && (
-            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>No templates yet — create one to start building excursions.</div>
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-light)', fontSize: 13 }}>No templates yet, create one to start building excursions.</div>
           )}
         </div>
       )}
@@ -1499,7 +1499,7 @@ export function ItineraryEditor({
     <div className="field" style={{ gridColumn: '1 / -1' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
         <label className="field-lab" style={{ margin: 0 }}>
-          Day plan <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>— what the member sees on the reserve page</span>
+          Day plan <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>(what the member sees on the reserve page)</span>
         </label>
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="button" className="btn-ghost" style={{ height: 28, padding: '0 12px', fontSize: 11.5 }} onClick={onGenerateDefaults}>
@@ -1513,7 +1513,7 @@ export function ItineraryEditor({
 
       {steps.length === 0 ? (
         <div style={{ background: 'var(--paper)', border: '1px dashed var(--hair-2)', borderRadius: 10, padding: '16px 18px', fontSize: 12.5, color: 'var(--ink-light)' }}>
-          No itinerary yet. Members will see the auto-generated default until you author one — click <strong>Generate from times</strong> to seed it from the day fields above, then customize.
+          No itinerary yet. Members will see the auto-generated default until you author one. Click <strong>Generate from times</strong> to seed it from the day fields above, then customize.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1546,7 +1546,7 @@ export function ItineraryEditor({
                   className="input"
                   value={s.sub ?? ''}
                   onChange={e => updateStep(i, { sub: e.target.value || null })}
-                  placeholder="Sub (optional) — operator, location…"
+                  placeholder="Sub (optional): operator, location…"
                   style={{ fontSize: 12, height: 32, color: 'var(--ink-mid)' }}
                 />
 

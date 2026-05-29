@@ -201,7 +201,7 @@ export default function AdminProposalsPage() {
                   })
                   const d = await res.json()
                   if (!res.ok) throw new Error(d.error ?? 'Approve failed')
-                  flash('Approved — now live for commits.')
+                  flash('Approved, now live for commits.')
                   load()
                 } catch (e) { flash(e instanceof Error ? e.message : 'Failed', false) }
                 finally { setBusy(null) }
@@ -232,7 +232,7 @@ export default function AdminProposalsPage() {
                   })
                   const d = await res.json()
                   if (!res.ok) throw new Error(d.error ?? 'Lock failed')
-                  flash(`Locked — ${d.captured} captured, ${d.failed} failed.`)
+                  flash(`Locked: ${d.captured} captured, ${d.failed} failed.`)
                   load()
                 } catch (e) { flash(e instanceof Error ? e.message : 'Failed', false) }
                 finally { setBusy(null) }

@@ -53,8 +53,8 @@ export function EnvelopePreviewPanel() {
           <div className="field" style={{ margin: 0 }}>
             <label className="field-lab">Auto-open?</label>
             <select className="input" value={autoOpen ? '1' : '0'} onChange={(e) => setAutoOpen(e.target.value === '1')}>
-              <option value="1">Yes — opens on its own</option>
-              <option value="0">No — tap to open</option>
+              <option value="1">Yes, opens on its own</option>
+              <option value="0">No, tap to open</option>
             </select>
           </div>
           <div className="field" style={{ margin: 0 }}>

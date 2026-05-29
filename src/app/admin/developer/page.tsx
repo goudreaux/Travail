@@ -70,11 +70,11 @@ const COMPARISONS: { name: string; lines: number; note: string }[] = [
   { name: 'WhatsApp first launch', lines: 10_000, note: 'Erlang server + iOS client' },
   { name: 'Instagram at $1B sale', lines: 25_000, note: '13 employees, Python + ObjC' },
   { name: 'Dropbox MVP launch', lines: 30_000, note: 'Python + C++ desktop client' },
-  { name: 'Notion v1', lines: 35_000, note: 'Roughly your size — pre Series A' },
+  { name: 'Notion v1', lines: 35_000, note: 'Roughly your size, pre Series A' },
   { name: 'Stripe at launch', lines: 50_000, note: 'Ruby + JS, 2010' },
   { name: 'Linear v1', lines: 65_000, note: 'TypeScript + React, ~2019' },
   { name: 'Airbnb pre-IPO scale', lines: 1_700_000, note: 'Decades, hundreds of engineers' },
-  { name: 'Linux kernel (today)', lines: 30_000_000, note: 'Different universe — an OS' },
+  { name: 'Linux kernel (today)', lines: 30_000_000, note: 'Different universe, an OS' },
 ]
 
 function nf(n: number) {

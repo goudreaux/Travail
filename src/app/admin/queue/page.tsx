@@ -313,12 +313,12 @@ export default function QueuePage() {
     await db.from('bookings').insert({ id, member_id: first.member_id, item_kind: itemKind, item_id: itemId, seats: 1, price_per_seat: price, fees: fee, total: price + fee, payment_method: 'card', status: 'pending' })
     await db.from('waitlist').delete().eq('id', first.id)
     try {
-      await supabase.from('notifications').insert({ member_id: first.member_id, kind: 'booking', title: 'A seat opened up', body: 'A seat opened on a trip you waitlisted — Ops is confirming it now.', ref: { item_kind: itemKind, item_id: itemId } } as never)
+      await supabase.from('notifications').insert({ member_id: first.member_id, kind: 'booking', title: 'A seat opened up', body: 'A seat opened on a trip you waitlisted, Ops is confirming it now.', ref: { item_kind: itemKind, item_id: itemId } } as never)
     } catch { /* supplementary */ }
     logActivity({
       action: 'waitlist_promoted', actor_kind: 'system', subject_member_id: first.member_id,
       booking_id: id, item_kind: itemKind, item_id: itemId,
-      summary: `Waitlist promotion — a seat opened and was offered to the next member (pending ops confirm)`,
+      summary: `Waitlist promotion: a seat opened and was offered to the next member (pending ops confirm)`,
     })
   }
 
@@ -334,7 +334,7 @@ export default function QueuePage() {
       const { data: item } = await db.from(table).select('anchor_member_id').eq('id', b.item_id).single()
       if (item?.anchor_member_id && item.anchor_member_id === b.member_id) {
         const { data: others } = await db.from('bookings').select('id').eq('item_kind', b.item_kind).eq('item_id', b.item_id).neq('member_id', b.member_id).in('status', ['pending', 'approved'])
-        if ((others ?? []).length > 0) throw new Error('Anchor cannot cancel — other members are booked.')
+        if ((others ?? []).length > 0) throw new Error('Anchor cannot cancel, other members are booked.')
       }
       const wasApproved = b.status === 'approved'
       const { error } = await db.from('bookings').update({ status: 'cancelled', decided_at: new Date().toISOString() }).eq('id', b.id)
@@ -439,7 +439,7 @@ export default function QueuePage() {
           status: 'approved', confirmation_code: code, decided_at: new Date().toISOString(),
         }).eq('id', leg.id).select()
         if (error) throw error
-        if (!upd || upd.length === 0) throw new Error('Update blocked — verify the admin RLS update policy on bookings in Supabase')
+        if (!upd || upd.length === 0) throw new Error('Update blocked, verify the admin RLS update policy on bookings in Supabase')
       }
 
       try {
@@ -457,11 +457,11 @@ export default function QueuePage() {
         action: 'booking_confirmed', actor_kind: 'admin', actor_member_id: meId,
         subject_member_id: qi.primary.member_id, booking_id: qi.primary.id,
         item_kind: qi.primary.item_kind, item_id: qi.primary.item_id,
-        summary: `Confirmed ${qi.isRound ? 'round-trip ' : ''}${qi.primary.item_kind} for ${qi.primary.member?.name ?? 'member'} — ${code}`,
+        summary: `Confirmed ${qi.isRound ? 'round-trip ' : ''}${qi.primary.item_kind} for ${qi.primary.member?.name ?? 'member'}: ${code}`,
         meta: { code, seats: qi.seats, total: qi.total, round_trip: qi.isRound },
       })
 
-      showToast(`Confirmed — ${code}`)
+      showToast(`Confirmed: ${code}`)
       loadBookings()
       loadExtras()
     } catch (e: unknown) {
@@ -500,7 +500,7 @@ export default function QueuePage() {
         action: 'booking_declined', actor_kind: 'admin', actor_member_id: meId,
         subject_member_id: b.member_id, booking_id: id,
         item_kind: b.item_kind, item_id: b.item_id,
-        summary: `Declined ${b.item_kind} for ${b.member?.name ?? 'member'}${reason ? ` — ${reason}` : ''}`,
+        summary: `Declined ${b.item_kind} for ${b.member?.name ?? 'member'}${reason ? `: ${reason}` : ''}`,
         meta: { reason: reason || null },
       })
 
@@ -601,7 +601,7 @@ export default function QueuePage() {
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) { showToast(`Quote failed: ${json.error ?? 'Unknown error'}`, 'error'); return }
-      showToast(`Quote sent — $${totalCost.toLocaleString()} · awaiting anchor accept`, 'success')
+      showToast(`Quote sent, $${totalCost.toLocaleString()} · awaiting anchor accept`, 'success')
       // Reflect new status locally so the row's CTA flips immediately.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setAnchors(prev => prev.map(a => a.id === anchor.id ? ({ ...a, status: 'quoted' as any }) : a))
@@ -633,7 +633,7 @@ export default function QueuePage() {
       )
       const quotedCents = anchor.quoted_total_cents ?? 0
       if (!seats || !quotedCents) {
-        showToast('Quote details missing — re-quote first', 'error')
+        showToast('Quote details missing, re-quote first', 'error')
         return
       }
       // flights.price_per_seat / excursions.price_per_pax are integer
@@ -655,7 +655,7 @@ export default function QueuePage() {
         return
       }
       const totalDollars = (json.charter_total_cents ?? 0) / 100
-      showToast(`Published — captured $${totalDollars.toFixed(2)} from anchor's card`, 'success')
+      showToast(`Published, captured $${totalDollars.toFixed(2)} from anchor's card`, 'success')
       setAnchors(prev => prev.filter(a => a.id !== anchor.id))
       if (expanded === anchor.id) setExpanded(null)
     } catch (e: unknown) {
@@ -689,7 +689,7 @@ export default function QueuePage() {
       logActivity({
         action: 'anchor_declined', actor_kind: 'admin', actor_member_id: meId,
         subject_member_id: anchor.member_id, item_kind: anchor.kind,
-        summary: `Declined ${anchor.kind} submission by ${anchor.member?.name ?? 'member'}${reason ? ` — ${reason}` : ''}`,
+        summary: `Declined ${anchor.kind} submission by ${anchor.member?.name ?? 'member'}${reason ? `: ${reason}` : ''}`,
         meta: { anchor_id: id, reason: reason || null },
       })
 
@@ -735,7 +735,7 @@ export default function QueuePage() {
             <textarea
               className="input"
               style={{ minHeight: 80, width: '100%', marginBottom: 16 }}
-              placeholder="Optional reason — sent to the member as a notification…"
+              placeholder="Optional reason (sent to the member as a notification)…"
               value={declineReason}
               onChange={e => setDeclineReason(e.target.value)}
             />
@@ -785,7 +785,7 @@ export default function QueuePage() {
           )}
         </div>
         <p style={{ fontSize: 13.5, color: 'var(--ink-light)', margin: 0 }}>
-          Real-time action queue. Booking approvals are atomic — double-booking is prevented at the database level.
+          Real-time action queue. Booking approvals are atomic, double-booking is prevented at the database level.
         </p>
       </div>
 
@@ -798,7 +798,7 @@ export default function QueuePage() {
             background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12,
             padding: 32, textAlign: 'center', color: 'var(--ink-light)', fontSize: 13,
           }}>
-            Queue is clear — no pending booking requests.
+            Queue is clear, no pending booking requests.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

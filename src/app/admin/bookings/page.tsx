@@ -126,7 +126,7 @@ export default function BookingsPage() {
         })
       } catch { /* notification is supplementary */ }
 
-      showToast('Booking approved — ' + code)
+      showToast('Booking approved: ' + code)
       load()
     } catch (e: unknown) {
       showToast((e as Error).message ?? 'Approval failed', 'error')
@@ -191,7 +191,7 @@ export default function BookingsPage() {
     try {
       await supabase.from('notifications').insert({
         member_id: first.member_id, kind: 'booking',
-        title: 'A seat opened up', body: 'A seat opened on a trip you waitlisted — Ops is confirming it now.',
+        title: 'A seat opened up', body: 'A seat opened on a trip you waitlisted, Ops is confirming it now.',
         ref: { item_kind: itemKind, item_id: itemId },
       })
     } catch { /* supplementary */ }
@@ -210,7 +210,7 @@ export default function BookingsPage() {
         const { data: others } = await db.from('bookings').select('id')
           .eq('item_kind', booking.item_kind).eq('item_id', booking.item_id)
           .neq('member_id', booking.member_id).in('status', ['pending', 'approved'])
-        if ((others ?? []).length > 0) throw new Error('Anchor cannot cancel — other members are booked on this trip.')
+        if ((others ?? []).length > 0) throw new Error('Anchor cannot cancel, other members are booked on this trip.')
       }
 
       const wasApproved = booking.status === 'approved'
@@ -246,7 +246,7 @@ export default function BookingsPage() {
     try {
       const { data, error } = await supabase.from('bookings').delete().in('id', legIdsOf(booking.id)).select()
       if (error) throw error
-      if (!data || data.length === 0) throw new Error('Delete blocked — run migration 016 (admin delete policy on bookings)')
+      if (!data || data.length === 0) throw new Error('Delete blocked, run migration 016 (admin delete policy on bookings)')
       showToast('Booking deleted')
       load()
     } catch (e: unknown) {

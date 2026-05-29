@@ -245,12 +245,12 @@ export default function MembersPage() {
     const { error, data } = await supabase.from('members').delete().eq('id', id).select()
     if (error) {
       const msg = error.code === '23503'
-        ? 'Can’t delete — this member has bookings or posts. Cancel/remove those first.'
+        ? 'Can’t delete, this member has bookings or posts. Cancel/remove those first.'
         : error.message
       showToast(msg, 'error')
       return
     }
-    if (!data || data.length === 0) { showToast('Delete blocked — add RLS delete policy in Supabase', 'error'); return }
+    if (!data || data.length === 0) { showToast('Delete blocked, add RLS delete policy in Supabase', 'error'); return }
     showToast('Member deleted')
     load()
   }
@@ -283,7 +283,7 @@ export default function MembersPage() {
   async function save() {
     const uid = form.user_id.trim()
     if (uid && !UUID_RE.test(uid)) {
-      showToast('User ID must be a valid Supabase Auth UID (UUID) — leave blank to link later', 'error')
+      showToast('User ID must be a valid Supabase Auth UID (UUID), leave blank to link later', 'error')
       return
     }
     const email = form.email.trim()
@@ -292,7 +292,7 @@ export default function MembersPage() {
       return
     }
     if (!editId && !email) {
-      showToast('Email is required — it’s where notifications are sent and where the login invite goes', 'error')
+      showToast('Email is required, it’s where notifications are sent and where the login invite goes', 'error')
       return
     }
     const phoneDigits = form.phone.replace(/\D/g, '')
@@ -334,7 +334,7 @@ export default function MembersPage() {
         if (memberNoVal !== null) updatePayload.member_no = memberNoVal
         const { data: updated, error } = await supabase.from('members').update(updatePayload as never).eq('id', editId).select()
         if (error) throw error
-        if (!updated || updated.length === 0) throw new Error('Update blocked — verify the admin RLS update policy on members in Supabase')
+        if (!updated || updated.length === 0) throw new Error('Update blocked, verify the admin RLS update policy on members in Supabase')
         // Always upsert the sensitive row when ANY of email/phone/dob
         // is set (or being cleared). Verify the write returned a row
         // — RLS can sometimes silently swallow upserts when the policy
@@ -353,7 +353,7 @@ export default function MembersPage() {
           .select()
         if (sErr) {
           showToast(
-            `Member saved but contact info failed: ${sErr.message}. Likely an RLS policy — verify "Admins can manage sensitive data" exists on member_sensitive.`,
+            `Member saved but contact info failed: ${sErr.message}. Likely an RLS policy, verify "Admins can manage sensitive data" exists on member_sensitive.`,
             'error',
           )
           setSaving(false)
@@ -361,13 +361,13 @@ export default function MembersPage() {
         }
         if (!sensRow || sensRow.length === 0) {
           showToast(
-            'Member saved but contact info wrote 0 rows — RLS is allowing the upsert query to run but blocking the write. Check that the admin user has is_admin=true in the members table.',
+            'Member saved but contact info wrote 0 rows. RLS is allowing the upsert query to run but blocking the write. Check that the admin user has is_admin=true in the members table.',
             'error',
           )
           setSaving(false)
           return
         }
-        showToast(uid ? 'Member updated — login linked' : 'Member updated')
+        showToast(uid ? 'Member updated, login linked' : 'Member updated')
       } else {
         const insertPayload: Record<string, unknown> = {
           ...payload,
@@ -437,9 +437,9 @@ export default function MembersPage() {
         // Email a set-password invite when no login was linked manually.
         if (inserted && emailVal && !uid) {
           const inviteErr = await sendInvite(inserted.id, emailVal)
-          showToast(inviteErr ? `Member created — invite failed: ${inviteErr}` : `Member created — invite emailed to ${emailVal}`, inviteErr ? 'error' : 'success')
+          showToast(inviteErr ? `Member created, invite failed: ${inviteErr}` : `Member created, invite emailed to ${emailVal}`, inviteErr ? 'error' : 'success')
         } else {
-          showToast(uid ? 'Member created — login linked' : 'Member created — add an email to send an invite, or a User ID to link manually')
+          showToast(uid ? 'Member created, login linked' : 'Member created, add an email to send an invite, or a User ID to link manually')
         }
       }
 
@@ -449,7 +449,7 @@ export default function MembersPage() {
     } catch (e: unknown) {
       const err = e as { code?: string; message?: string }
       if (err.code === '23505' && (err.message ?? '').includes('member_no')) {
-        showToast(`Member #${memberNoVal} is already taken — choose another number`, 'error')
+        showToast(`Member #${memberNoVal} is already taken, choose another number`, 'error')
       } else {
         showToast(err.message ?? 'Save failed', 'error')
       }
@@ -713,7 +713,7 @@ export default function MembersPage() {
                       {!contactPresence[m.id]?.has_email && (
                         <span
                           className="pill signal"
-                          title="No email on file — this member won't receive notification emails or an invite"
+                          title="No email on file, this member won't receive notification emails or an invite"
                           style={{ fontSize: 10 }}
                         >
                           No email
