@@ -7,36 +7,11 @@ import { ALL_ICONS, KIND_ICONS, suggestIconForActivity } from '@/lib/icons'
 import { asItinerary, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
 import type { Flight, Excursion, Aircraft, Member, Airport, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 import { SponsoredExcursionModal, type SponsoredExcursion } from './SponsoredExcursionModal'
+import { TripPhotoPicker } from '@/components/TripPhotoPicker'
+import { PhotoLibraryPanel } from './PhotoLibraryPanel'
 
 type FlightRow = Flight
 type ExcursionRow = Excursion
-
-// Read an image File, scale it down to maxW, and return a JPEG data URL. Keeps
-// stored images small enough to live inline on the trip row.
-function downscaleToDataUrl(file: File, maxW: number, quality: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(new Error('Could not read the file'))
-    reader.onload = () => {
-      const img = new window.Image()
-      img.onerror = () => reject(new Error('That file is not a valid image'))
-      img.onload = () => {
-        const scale = Math.min(1, maxW / img.width)
-        const w = Math.round(img.width * scale)
-        const h = Math.round(img.height * scale)
-        const canvas = document.createElement('canvas')
-        canvas.width = w
-        canvas.height = h
-        const ctx = canvas.getContext('2d')
-        if (!ctx) { reject(new Error('Canvas not available')); return }
-        ctx.drawImage(img, 0, 0, w, h)
-        resolve(canvas.toDataURL('image/jpeg', quality))
-      }
-      img.src = reader.result as string
-    }
-    reader.readAsDataURL(file)
-  })
-}
 
 const CUSTOM = '__custom__'
 
@@ -167,7 +142,7 @@ const sectionLabelStyle: React.CSSProperties = {
 
 export default function TripsPage() {
   const supabase = createClient()
-  const [tab, setTab] = useState<'active' | 'templates'>('active')
+  const [tab, setTab] = useState<'active' | 'templates' | 'photos'>('active')
   const [flights, setFlights] = useState<FlightRow[]>([])
   const [excursions, setExcursions] = useState<ExcursionRow[]>([])
   const [aircraft, setAircraft] = useState<Aircraft[]>([])
@@ -189,7 +164,6 @@ export default function TripsPage() {
   const [saving, setSaving] = useState(false)
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [settling, setSettling] = useState<string | null>(null)
-  const [uploadingImg, setUploadingImg] = useState<'flight' | 'excursion' | null>(null)
   const [toast, setToast] = useState<{ msg: string; kind: 'success' | 'error' | 'info' } | null>(null)
 
   const showToast = (msg: string, kind: 'success' | 'error' | 'info' = 'success') => {
@@ -197,19 +171,6 @@ export default function TripsPage() {
     setTimeout(() => setToast(null), 3500)
   }
 
-  // Read a desktop image, downscale it, and store it inline on the form as a
-  // data URL — no storage bucket / RLS involved, so it just works from desktop.
-  async function uploadTripImage(kind: 'flight' | 'excursion', file: File) {
-    setUploadingImg(kind)
-    try {
-      const dataUrl = await downscaleToDataUrl(file, 1000, 0.78)
-      if (kind === 'flight') setFlightForm(f => ({ ...f, image_url: dataUrl }))
-      else setExcForm(f => ({ ...f, image_url: dataUrl }))
-      showToast('Image added')
-    } catch (e: unknown) {
-      showToast((e as Error).message ?? 'Could not read image', 'error')
-    } finally { setUploadingImg(null) }
-  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -725,11 +686,11 @@ export default function TripsPage() {
         <div>
           <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Trips & Excursions</h1>
           <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>
-            {tab === 'active' ? 'Live trips on the members’ Open Seats board. Cancelled trips drop off automatically.' : 'Manage all flights and excursions, including drafts and past trips.'}
+            {tab === 'active' ? 'Live trips on the members’ Open Seats board. Cancelled trips drop off automatically.' : tab === 'photos' ? 'Reusable photo library — upload once, pick from any trip form.' : 'Manage all flights and excursions, including drafts and past trips.'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          {tab === 'active' ? (
+          {tab === 'photos' ? null : tab === 'active' ? (
             <>
               <button
                 onClick={() => { setEditSponsored(null); setShowSponsoredForm(true) }}
@@ -784,7 +745,7 @@ export default function TripsPage() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--hair)', marginBottom: 24, gap: 0 }}>
-        {(['active', 'templates'] as const).map(t => (
+        {(['active', 'templates', 'photos'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -796,10 +757,12 @@ export default function TripsPage() {
               marginBottom: -1,
             }}
           >
-            {t === 'active' ? `Active Trips${activeItems.length ? ` · ${activeItems.length}` : ''}` : 'Excursion Templates'}
+            {t === 'active' ? `Active Trips${activeItems.length ? ` · ${activeItems.length}` : ''}` : t === 'templates' ? 'Excursion Templates' : 'Photo Library'}
           </button>
         ))}
       </div>
+
+      {tab === 'photos' && <PhotoLibraryPanel airports={airports} />}
 
       <SponsoredExcursionModal
         open={showSponsoredForm}
@@ -1002,20 +965,13 @@ export default function TripsPage() {
               <label className="field-lab">Pitch (tagline)</label>
               <input className="input" value={FF.pitch} onChange={e => setFlightForm(f => ({ ...f, pitch: e.target.value }))} placeholder="A quick escape to the Caribbean…" />
             </div>
-            <div className="field" style={{ gridColumn: '1 / -1' }}>
-              <label className="field-lab">Trip image <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>— shown on the member card (defaults to the house image)</span></label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <img src={FF.image_url || '/trip-default.jpeg'} alt="" style={{ width: 120, height: 72, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--hair)' }} />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <label className="btn-ghost" style={{ height: 32, padding: '0 14px', fontSize: 12.5, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
-                    {uploadingImg === 'flight' ? 'Uploading…' : 'Upload image'}
-                    <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingImg === 'flight'} onChange={e => { const f = e.target.files?.[0]; if (f) uploadTripImage('flight', f) }} />
-                  </label>
-                  {FF.image_url && (
-                    <button className="btn-ghost" style={{ height: 32, padding: '0 14px', fontSize: 12.5, color: 'var(--signal)' }} onClick={() => setFlightForm(f => ({ ...f, image_url: '' }))}>Use default</button>
-                  )}
-                </div>
-              </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <TripPhotoPicker
+                value={FF.image_url}
+                onChange={(url) => setFlightForm(f => ({ ...f, image_url: url }))}
+                locationCode={effDest || effOrigin || null}
+                label="Trip image — shown on the member card"
+              />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
@@ -1229,20 +1185,13 @@ export default function TripsPage() {
               }}
             />
 
-            <div className="field" style={{ gridColumn: '1 / -1' }}>
-              <label className="field-lab">Trip image <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>— shown on the member card (defaults to the house image)</span></label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <img src={EF.image_url || '/trip-default.jpeg'} alt="" style={{ width: 120, height: 72, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--hair)' }} />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <label className="btn-ghost" style={{ height: 32, padding: '0 14px', fontSize: 12.5, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
-                    {uploadingImg === 'excursion' ? 'Uploading…' : 'Upload image'}
-                    <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingImg === 'excursion'} onChange={e => { const f = e.target.files?.[0]; if (f) uploadTripImage('excursion', f) }} />
-                  </label>
-                  {EF.image_url && (
-                    <button className="btn-ghost" style={{ height: 32, padding: '0 14px', fontSize: 12.5, color: 'var(--signal)' }} onClick={() => setExcForm(f => ({ ...f, image_url: '' }))}>Use default</button>
-                  )}
-                </div>
-              </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <TripPhotoPicker
+                value={EF.image_url}
+                onChange={(url) => setExcForm(f => ({ ...f, image_url: url }))}
+                locationCode={effExcOrigin || null}
+                label="Trip image — shown on the member card"
+              />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
@@ -1332,7 +1281,7 @@ export default function TripsPage() {
         </div>
       )}
 
-      {loading ? (
+      {tab === 'photos' ? null : loading ? (
         <div style={{ textAlign: 'center', padding: 48, color: 'var(--ink-light)', fontSize: 14 }}>Loading…</div>
       ) : tab === 'active' ? (
         <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, overflow: 'hidden' }}>
