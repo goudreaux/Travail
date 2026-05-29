@@ -1,9 +1,17 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { fmtDate, airportCity } from '@/lib/data'
+import { KIND_ICONS } from '@/lib/icons'
+import { RosterStack, type RosterEntry } from '@/components/Roster'
 
-// Shared Trip Proposal card + live countdown. Rendered on /seats,
-// /proposals, and the main feed so the urgency model stays consistent
-// across every surface that surfaces a proposal.
+// Shared Trip Proposal card. Uses the same `trip-card` layout +
+// classes as FlightCard / ExcursionCard so the board reads as one
+// visual family — date / icon block / content / image / CTA row.
+// Differentiation is layered ON the same skeleton: a PROPOSAL eyebrow,
+// dashed amber border, progress bar replacing the seat meter, and a
+// live ticking countdown. Roster + friend highlighting come from the
+// shared RosterStack component, so committers + your friends light
+// up identically to the open-trip cards.
 
 export interface ProposalCardData {
   id: string
@@ -21,10 +29,14 @@ export interface ProposalCardData {
   committed_seats: number
   is_my_commit: boolean
   am_proposer: boolean
+  // Each committer becomes a RosterEntry — same shape as flight/excursion
+  // rosters so RosterStack handles avatars + friend highlighting uniformly.
+  roster: RosterEntry[]
+  image_url: string | null
 }
 
-// Live countdown to a proposal's expiry. Updates every second.
-// Escalates visually as the deadline closes in.
+// Live countdown to expiry — escalates visually as the 5-day Tropic
+// window closes. Calm → warning → urgent → critical tiers.
 export function ProposalCountdown({ expiresAt }: { expiresAt: string }) {
   const target = new Date(expiresAt).getTime()
   const [now, setNow] = useState(() => Date.now())
@@ -63,13 +75,13 @@ export function ProposalCountdown({ expiresAt }: { expiresAt: string }) {
   return (
     <span style={{
       fontFamily: 'var(--mono)',
-      fontSize: tier === 'critical' ? 13 : 11,
+      fontSize: tier === 'critical' ? 12 : 10.5,
       color,
       fontWeight: tier === 'critical' || tier === 'urgent' ? 700 : 600,
       letterSpacing: '0.04em',
       animation: tier === 'critical' || tier === 'urgent' ? 'pulse-urgency 1.4s ease-in-out infinite' : undefined,
     }}>
-      {tier === 'expired' ? '· EXPIRED' : `· ${txt} left`}
+      {tier === 'expired' ? 'EXPIRED' : `${txt} left`}
       <style>{`
         @keyframes pulse-urgency {
           0%,100% { opacity: 1; }
@@ -80,118 +92,173 @@ export function ProposalCountdown({ expiresAt }: { expiresAt: string }) {
   )
 }
 
+// Replaces SeatMeter for proposals — same height + structure, but the
+// fill represents "commits toward min_seats" with a tick mark at the
+// min threshold so the network sees how far they have to go vs. how
+// much room remains beyond.
+function ProposalProgressBar({ committed, min, cap, accent }: {
+  committed: number
+  min: number
+  cap: number
+  accent: string
+}) {
+  const pctOfCap = cap ? Math.min(100, Math.round((committed / cap) * 100)) : 0
+  const minTickPct = min > 0 && cap > 0 && min < cap ? Math.round((min / cap) * 100) : null
+  const hitMin = min > 0 && committed >= min
+
+  return (
+    <div style={{ marginTop: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-light)', letterSpacing: '0.06em' }}>
+          <strong style={{ color: 'var(--ink)' }}>{committed}</strong>
+          <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>of</span>
+          <strong style={{ color: 'var(--ink)' }}>{min}</strong>
+          <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>committed</span>
+          {cap > min && <span style={{ color: 'var(--ink-faint)' }}>· {cap} max</span>}
+        </span>
+      </div>
+      <div style={{
+        height: 8,
+        background: 'var(--paper)',
+        border: '1px solid var(--hair)',
+        borderRadius: 999,
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
+        <div style={{
+          position: 'absolute', left: 0, top: 0, bottom: 0,
+          width: `${pctOfCap}%`,
+          background: hitMin
+            ? 'linear-gradient(90deg, #3e8c6d 0%, #4ba883 100%)'
+            : `linear-gradient(90deg, ${accent} 0%, ${accent} 100%)`,
+          transition: 'width 0.3s ease',
+        }} />
+        {minTickPct != null && (
+          <div style={{
+            position: 'absolute',
+            left: `${minTickPct}%`,
+            top: -3, bottom: -3,
+            borderLeft: '1px dashed var(--ink-light)',
+          }} />
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function ProposalCard({ p, onOpen }: { p: ProposalCardData; onOpen: () => void }) {
   const min = p.min_seats ?? 0
   const cap = p.capacity_total ?? min
   const committed = p.committed_seats
-  const pctOfCap = cap ? Math.min(100, Math.round((committed / cap) * 100)) : 0
   const seatsNeeded = Math.max(0, min - committed)
-  const tripDate = new Date(p.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  const dp = fmtDate(p.date)
   const destName = (p.payload?.destName as string) || (p.payload?.destCode as string) || null
+  const accent = '#e09418'   // sun-d
+  const accentBg = 'rgba(244,167,44,0.12)'
+  const accentBorder = 'rgba(244,167,44,0.55)'
+  const hitMin = min > 0 && committed >= min
+  const kindIcon = p.kind === 'flight' ? KIND_ICONS.flight : KIND_ICONS.fish
 
   return (
     <div
+      className="trip-card"
       onClick={onOpen}
       style={{
-        background: 'var(--card)',
-        border: '2px dashed rgba(244,167,44,0.45)',
-        borderRadius: 14,
-        padding: '16px 18px',
-        cursor: 'pointer',
+        marginBottom: 12,
+        border: `2px dashed ${accentBorder}`,
+        boxShadow: 'none',
         position: 'relative',
-        overflow: 'hidden',
-        transition: 'border-color 0.15s, box-shadow 0.15s',
       }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(244,167,44,0.85)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 18px rgba(244,167,44,0.18)' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(244,167,44,0.45)'; (e.currentTarget as HTMLElement).style.boxShadow = 'none' }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-        <span style={{
-          fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.22em',
-          textTransform: 'uppercase', color: '#1a0e02', fontWeight: 700,
-          background: 'linear-gradient(135deg, #f4a72c 0%, #e09418 100%)',
-          padding: '3px 8px', borderRadius: 4, flexShrink: 0,
-        }}>
-          PROPOSAL · {p.kind === 'flight' ? 'FLIGHT' : 'EXCURSION'}
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.012em', lineHeight: 1.25 }}>
-            {p.name}
+      {/* PROPOSAL ribbon stamped on the top-right corner so the card
+          telegraphs its different status before the eye even reads the
+          title. */}
+      <span style={{
+        position: 'absolute', top: 10, right: 10, zIndex: 2,
+        fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.22em',
+        textTransform: 'uppercase', color: '#1a0e02', fontWeight: 700,
+        background: 'linear-gradient(135deg, #f4a72c 0%, #e09418 100%)',
+        padding: '3px 8px', borderRadius: 4,
+        boxShadow: '0 2px 4px rgba(0,0,0,0.10)',
+      }}>
+        PROPOSAL
+      </span>
+
+      <div className="trip-card__main">
+        <div className="trip-card__date">
+          <div className="trip-card__date-mo">{dp.mo}</div>
+          <div className="trip-card__date-day">{dp.day}</div>
+          <div className="trip-card__date-dow">{dp.dow}</div>
+        </div>
+        <div
+          className="trip-card__icon"
+          style={{ background: accentBg, borderRight: '1px solid var(--hair)' }}
+        >
+          <span style={{ color: accent }}>{kindIcon}</span>
+        </div>
+        <div className="trip-card__content">
+          <div className="trip-card__title" style={{ color: accent }}>
+            {p.kind === 'flight' ? 'FLIGHT' : 'EXCURSION'} · PROPOSAL
           </div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-light)', marginTop: 3 }}>
-            {tripDate}
-            {destName && ` · ${destName}`}
-            {p.proposer_name && ` · proposed by ${p.proposer_name.split(' ')[0]}`}
+          <div className="trip-card__name">
+            {p.kind === 'flight'
+              ? <>{airportCity(p.origin_code, {})}{destName && <> <span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span> {destName}</>}</>
+              : p.name}
+          </div>
+          <div className="trip-card__meta">
+            {p.kind === 'flight'
+              ? <>From {p.origin_code} · proposed by {p.proposer_name ?? 'a member'}</>
+              : <>{p.name} · from {p.origin_code} · proposed by {p.proposer_name ?? 'a member'}</>}
+          </div>
+          <ProposalProgressBar committed={committed} min={min} cap={cap} accent={accent} />
+          <div onClick={e => e.stopPropagation()}>
+            <RosterStack entries={p.roster ?? []} occupied={committed} />
           </div>
         </div>
+        <img className="trip-card__img" src={p.image_url || '/trip-default.jpeg'} alt="" />
       </div>
-
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-soft)', letterSpacing: '0.08em' }}>
-            <strong style={{ color: 'var(--ink)' }}>{committed}</strong> of {min} committed{cap > min ? ` · ${cap} max` : ''}
-          </span>
-          {p.price_per_seat_cents != null && (
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink)', fontWeight: 700 }}>
-              ${(p.price_per_seat_cents / 100).toFixed(0)}/seat
+      <div className="trip-card__cta">
+        <span style={{ color: 'var(--ink-light)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+          {hitMin ? (
+            <span style={{ color: 'var(--moss)', fontWeight: 700, fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.06em' }}>
+              ✓ MIN REACHED · AWAITING OPS LOCK
             </span>
-          )}
-        </div>
-        <div style={{
-          height: 8,
-          background: 'var(--paper)',
-          border: '1px solid var(--hair)',
-          borderRadius: 999,
-          overflow: 'hidden',
-          position: 'relative',
-        }}>
-          <div style={{
-            position: 'absolute', left: 0, top: 0, bottom: 0,
-            width: `${pctOfCap}%`,
-            background: committed >= min
-              ? 'linear-gradient(90deg, #3e8c6d 0%, #4ba883 100%)'
-              : 'linear-gradient(90deg, #f4a72c 0%, #e09418 100%)',
-            transition: 'width 0.3s ease',
-          }} />
-          {min > 0 && cap > 0 && min < cap && (
-            <div style={{
-              position: 'absolute',
-              left: `${Math.round((min / cap) * 100)}%`,
-              top: -3, bottom: -3,
-              borderLeft: '1px dashed var(--ink-light)',
-            }} />
-          )}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-light)' }}>
-          {committed >= min ? (
-            <span style={{ color: 'var(--moss)', fontWeight: 700 }}>✓ Minimum reached — awaiting ops lock</span>
           ) : (
             <>
-              <strong style={{ color: 'var(--ink)' }}>{seatsNeeded}</strong> seat{seatsNeeded === 1 ? '' : 's'} to go
-              {p.expires_at && <> <ProposalCountdown expiresAt={p.expires_at} /></>}
+              <strong style={{ color: 'var(--ink)' }}>{seatsNeeded}</strong>
+              <span>seat{seatsNeeded === 1 ? '' : 's'} to go</span>
+              {p.expires_at && (
+                <>
+                  <span style={{ color: 'var(--ink-faint)' }}>·</span>
+                  <ProposalCountdown expiresAt={p.expires_at} />
+                </>
+              )}
             </>
           )}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {p.is_my_commit && (
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--tropic-d)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--tropic-d)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               ✓ Committed
             </span>
           )}
           {p.am_proposer && (
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--sun-d)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: accent, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               ★ Your proposal
+            </span>
+          )}
+          {p.price_per_seat_cents != null && (
+            <span className="trip-card__price">
+              ${(p.price_per_seat_cents / 100).toFixed(0)}
+              <span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/seat</span>
             </span>
           )}
           <button
             className="cta-outline"
-            style={{ color: 'var(--sun-d)', borderColor: 'var(--sun-d)' }}
+            style={{ color: accent, borderColor: accent }}
             onClick={e => { e.stopPropagation(); onOpen() }}
           >
-            {p.is_my_commit ? 'View →' : 'Commit a seat →'}
+            {p.is_my_commit || p.am_proposer ? 'View →' : 'Commit a seat →'}
           </button>
         </div>
       </div>
@@ -199,9 +266,10 @@ export function ProposalCard({ p, onOpen }: { p: ProposalCardData; onOpen: () =>
   )
 }
 
-// Shared loader: fetches all status='open' proposals + their commit
-// counts + proposer names. Returns the ProposalCardData[] used by
-// every surface that lists proposals.
+// Shared loader: fetches all status='open' proposals + commit counts
+// + proposer names + the committer roster (so friend highlighting
+// works the same as flight/excursion cards). Single query family for
+// every surface that lists proposals (/seats, /proposals, the feed).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function loadOpenProposals(supabase: any, memberId: string | null): Promise<ProposalCardData[]> {
   const today = new Date().toISOString().slice(0, 10)
@@ -216,31 +284,56 @@ export async function loadOpenProposals(supabase: any, memberId: string | null):
   if (propList.length === 0) return []
 
   const proposalIds = propList.map(p => p.id)
-  const commitsByProposal: Record<string, { committed: number; mine: boolean }> = {}
-  const proposerNames: Record<string, string> = {}
+  const commitsByProposal: Record<string, { committed: number; mine: boolean; rows: { member_id: string; seats: number }[] }> = {}
+  const memberMeta: Record<string, { name: string; initials: string; avatar_url: string | null }> = {}
 
   const { data: cms } = await supabase
     .from('trip_proposal_commits').select('proposal_id, member_id, seats, status').in('proposal_id', proposalIds)
+  const allCommitterIds = new Set<string>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const c of ((cms ?? []) as any[])) {
     if (c.status !== 'committed' && c.status !== 'captured') continue
-    const cur = commitsByProposal[c.proposal_id] ?? { committed: 0, mine: false }
+    const cur = commitsByProposal[c.proposal_id] ?? { committed: 0, mine: false, rows: [] }
     cur.committed += c.seats ?? 1
     if (memberId && c.member_id === memberId) cur.mine = true
+    cur.rows.push({ member_id: c.member_id, seats: c.seats ?? 1 })
     commitsByProposal[c.proposal_id] = cur
+    allCommitterIds.add(c.member_id)
   }
-  const proposerIds = [...new Set(propList.map(p => p.proposer_id))]
-  const { data: ms } = await supabase.from('members').select('id, name').in('id', proposerIds)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const m of ((ms ?? []) as any[])) proposerNames[m.id] = m.name ?? ''
+  const proposerIds = propList.map(p => p.proposer_id)
+  for (const id of proposerIds) allCommitterIds.add(id)
+
+  // Single members lookup for proposers + every committer so RosterStack
+  // can render the same avatar treatment used on FlightCard/ExcursionCard.
+  if (allCommitterIds.size) {
+    const { data: ms } = await supabase
+      .from('members').select('id, name, initials, avatar_url')
+      .in('id', [...allCommitterIds])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const m of ((ms ?? []) as any[])) {
+      memberMeta[m.id] = {
+        name: m.name ?? '',
+        initials: m.initials ?? (m.name ?? '?').split(/\s+/).map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase(),
+        avatar_url: m.avatar_url ?? null,
+      }
+    }
+  }
 
   return propList.map(p => {
-    const c = commitsByProposal[p.id] ?? { committed: 0, mine: false }
+    const c = commitsByProposal[p.id] ?? { committed: 0, mine: false, rows: [] }
+    const roster: RosterEntry[] = c.rows.map(r => ({
+      item_id: p.id,
+      member_id: r.member_id,
+      name: memberMeta[r.member_id]?.name ?? 'Member',
+      initials: memberMeta[r.member_id]?.initials ?? '?',
+      avatar_url: memberMeta[r.member_id]?.avatar_url ?? null,
+      seats: r.seats,
+    }))
     return {
       id: p.id,
       kind: p.kind,
       proposer_id: p.proposer_id,
-      proposer_name: proposerNames[p.proposer_id] ?? null,
+      proposer_name: memberMeta[p.proposer_id]?.name ?? null,
       name: p.name,
       date: p.date,
       origin_code: p.origin_code,
@@ -252,6 +345,8 @@ export async function loadOpenProposals(supabase: any, memberId: string | null):
       committed_seats: c.committed,
       is_my_commit: c.mine,
       am_proposer: !!memberId && p.proposer_id === memberId,
+      roster,
+      image_url: (p.payload?.imageUrl as string) || null,
     }
   })
 }
