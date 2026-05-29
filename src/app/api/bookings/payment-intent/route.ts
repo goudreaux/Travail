@@ -223,6 +223,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Could not initialize payment' }, { status: 502 })
   }
 
+  // No-re-enter: if this customer already has a saved card (from a prior
+  // booking, the subscription, or a proposal setup), preset it on the PI so
+  // the member can pay one-tap without re-typing. The card form only appears
+  // when there's no saved card, or the member taps "use a different card".
+  let savedCard: { id: string; brand: string | null; last4: string | null } | null = null
+  try {
+    const cust = await stripe.customers.retrieve(customerId)
+    const defaultPm = !('deleted' in cust && cust.deleted)
+      ? (cust.invoice_settings?.default_payment_method as string | { id: string } | null | undefined)
+      : null
+    let pmId = typeof defaultPm === 'string' ? defaultPm : defaultPm?.id ?? null
+    if (!pmId) {
+      // Fall back to the most recent card on file if no explicit default.
+      const cards = await stripe.paymentMethods.list({ customer: customerId, type: 'card', limit: 1 })
+      pmId = cards.data[0]?.id ?? null
+    }
+    if (pmId) {
+      const pm = await stripe.paymentMethods.retrieve(pmId)
+      savedCard = { id: pm.id, brand: pm.card?.brand ?? null, last4: pm.card?.last4 ?? null }
+    }
+  } catch (e) {
+    // Non-fatal — fall back to collecting a card via the PaymentElement.
+    safeError('bookings.payment-intent: saved-card lookup failed (non-fatal):', e)
+  }
+
   // Create the PaymentIntent. automatic_payment_methods so the
   // PaymentElement can offer card + Link (and Apple/Google Pay if
   // configured). On-session confirm — the member is at the form.
@@ -236,6 +261,12 @@ export async function POST(req: NextRequest) {
       currency: 'usd',
       customer: customerId,
       automatic_payment_methods: { enabled: true },
+      // Save the card after this charge so the next booking is one-tap. The
+      // member is present, so 'on_session'.
+      setup_future_usage: 'on_session',
+      // Preset the saved card (if any) so confirmCardPayment can charge it
+      // without the member re-entering anything.
+      ...(savedCard ? { payment_method: savedCard.id } : {}),
       description,
       metadata: {
         kind: 'pax_reservation',
@@ -254,6 +285,7 @@ export async function POST(req: NextRequest) {
       customerId,
       totalCents,
       breakdown,
+      savedCard,
     })
   } catch (e) {
     safeError('bookings.payment-intent: PI create failed:', e)

@@ -161,6 +161,8 @@ export default function ReservePage() {
   // 402 from the payment route → member has no active membership. Browse-first
   // (F6): prompt them to subscribe rather than showing a dead error.
   const [piNeedsSub, setPiNeedsSub] = useState(false)
+  // Saved card on the member's Stripe customer → one-tap pay (no re-enter).
+  const [savedCard, setSavedCard] = useState<{ id: string; brand: string | null; last4: string | null } | null>(null)
   const [rosterPublic, setRosterPublic] = useState(true)
   const [roster, setRoster] = useState<RosterEntry[]>([])
   const [wlJoined, setWlJoined] = useState(false)
@@ -181,6 +183,7 @@ export default function ReservePage() {
       setLegBreakdown([])
       setPiError(null)
       setPiNeedsSub(false)
+      setSavedCard(null)
       return
     }
     let cancelled = false
@@ -209,6 +212,7 @@ export default function ReservePage() {
         }
         setClientSecret(json.clientSecret)
         setPaymentTotalCents(json.totalCents)
+        setSavedCard(json.savedCard ?? null)
         setLegBreakdown(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (json.breakdown as Array<any>).map(b => ({ itemId: b.itemId, totalCents: b.totalCents })),
@@ -1381,6 +1385,7 @@ export default function ReservePage() {
                 <ReservePaymentForm
                   clientSecret={clientSecret}
                   totalCents={paymentTotalCents}
+                  savedCard={savedCard}
                   submitLabel={`Pay ${fmtMoney(paymentTotalCents / 100)} & confirm →`}
                   onPaid={async ({ paymentIntentId }) => {
                     await handleSubmit(paymentIntentId)

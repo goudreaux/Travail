@@ -7,28 +7,44 @@ import { fmtMoney } from '@/lib/data'
 // Stripe Payment form for pax seat reservations. Lives inside the
 // Reserve confirmation sheet. On success, calls onPaid with the
 // PaymentIntent id; the parent is responsible for inserting the
-// booking row with the PI id stamped on it.
+// booking row.
 //
-// The Stripe Elements provider is mounted here (not in the parent)
-// because Elements needs a clientSecret at construction time — the
-// parent fetches it after the sheet opens, so we render this form
-// only once we have one.
+// Two modes:
+//   • Saved card (no friction): the server preset the member's card on the
+//     PaymentIntent. We show a one-tap "Pay with Visa •••• 1234" — no card
+//     form. A "Use a different card" link drops to the PaymentElement.
+//   • New card: the PaymentElement is mounted to collect a card. The card
+//     is saved for next time (setup_future_usage on the PI), so this only
+//     happens on the first booking (or when the member chooses to switch).
 
 export interface PaidResult {
   paymentIntentId: string
+}
+
+export interface SavedCard {
+  id: string
+  brand: string | null
+  last4: string | null
 }
 
 export function ReservePaymentForm({
   clientSecret,
   totalCents,
   submitLabel,
+  savedCard,
   onPaid,
 }: {
   clientSecret: string
   totalCents: number
   submitLabel?: string
+  savedCard?: SavedCard | null
   onPaid: (r: PaidResult) => Promise<void> | void
 }) {
+  // When the member opts to enter a different card, fall through to the
+  // PaymentElement path even though a saved card exists.
+  const [useNewCard, setUseNewCard] = useState(false)
+  const showSaved = !!savedCard && !useNewCard
+
   return (
     <Elements
       stripe={getStripe()}
@@ -48,12 +64,135 @@ export function ReservePaymentForm({
         },
       }}
     >
-      <InnerForm totalCents={totalCents} submitLabel={submitLabel} onPaid={onPaid} />
+      {showSaved ? (
+        <SavedCardForm
+          clientSecret={clientSecret}
+          totalCents={totalCents}
+          submitLabel={submitLabel}
+          savedCard={savedCard!}
+          onPaid={onPaid}
+          onUseNewCard={() => setUseNewCard(true)}
+        />
+      ) : (
+        <NewCardForm totalCents={totalCents} submitLabel={submitLabel} onPaid={onPaid} />
+      )}
     </Elements>
   )
 }
 
-function InnerForm({
+function prettyBrand(brand: string | null): string {
+  if (!brand) return 'Card'
+  return brand.charAt(0).toUpperCase() + brand.slice(1)
+}
+
+function ErrorBox({ msg }: { msg: string }) {
+  return (
+    <div style={{
+      fontSize: 12,
+      color: 'var(--danger)',
+      background: 'rgba(217,78,42,0.08)',
+      border: '1px solid rgba(217,78,42,0.25)',
+      padding: '8px 10px',
+      borderRadius: 8,
+    }}>
+      {msg}
+    </div>
+  )
+}
+
+// ── Saved-card one-tap ────────────────────────────────────────────────────
+function SavedCardForm({
+  clientSecret,
+  totalCents,
+  submitLabel,
+  savedCard,
+  onPaid,
+  onUseNewCard,
+}: {
+  clientSecret: string
+  totalCents: number
+  submitLabel?: string
+  savedCard: SavedCard
+  onPaid: (r: PaidResult) => Promise<void> | void
+  onUseNewCard: () => void
+}) {
+  const stripe = useStripe()
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function pay() {
+    if (!stripe) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      // The PI already has the saved card preset server-side, so confirm
+      // without a payment_method — Stripe charges the preset card. Handles
+      // 3DS automatically if the card requires it.
+      const { error: confirmErr, paymentIntent } = await stripe.confirmCardPayment(clientSecret)
+      if (confirmErr) {
+        // Card declined / auth failed — let them try a different card.
+        setError(`${confirmErr.message ?? 'That card was declined.'} Try a different card.`)
+        setSubmitting(false)
+        onUseNewCard()
+        return
+      }
+      if (!paymentIntent || paymentIntent.status !== 'succeeded') {
+        setError(`Payment status: ${paymentIntent?.status ?? 'unknown'}. Try again.`)
+        setSubmitting(false)
+        return
+      }
+      await onPaid({ paymentIntentId: paymentIntent.id })
+    } catch (err) {
+      setError((err as Error)?.message ?? 'Network error. Please try again.')
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, padding: '13px 15px' }}>
+        <div style={{ width: 40, height: 28, borderRadius: 6, background: 'linear-gradient(135deg,#0a3340 0%,#073744 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#5fc7d6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
+            {prettyBrand(savedCard.brand)} ending in {savedCard.last4 ?? '••••'}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-light)', marginTop: 1 }}>Your card on file</div>
+        </div>
+      </div>
+
+      {error && <ErrorBox msg={error} />}
+
+      <button
+        type="button"
+        className="btn-primary"
+        style={{ width: '100%', height: 50, fontSize: 15, justifyContent: 'center' }}
+        disabled={!stripe || submitting}
+        onClick={pay}
+      >
+        {submitting
+          ? <><span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 2 }} />Charging your card…</>
+          : (submitLabel ?? `Pay ${fmtMoney(totalCents / 100)} & confirm →`)
+        }
+      </button>
+
+      <button
+        type="button"
+        onClick={onUseNewCard}
+        disabled={submitting}
+        style={{ background: 'none', border: 'none', color: 'var(--tropic-d)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '2px' }}
+      >
+        Use a different card
+      </button>
+    </div>
+  )
+}
+
+// ── New-card (PaymentElement) ─────────────────────────────────────────────
+function NewCardForm({
   totalCents,
   submitLabel,
   onPaid,
@@ -107,18 +246,7 @@ function InnerForm({
   return (
     <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <PaymentElement options={{ layout: 'tabs' }} />
-      {error && (
-        <div style={{
-          fontSize: 12,
-          color: 'var(--danger)',
-          background: 'rgba(217,78,42,0.08)',
-          border: '1px solid rgba(217,78,42,0.25)',
-          padding: '8px 10px',
-          borderRadius: 8,
-        }}>
-          {error}
-        </div>
-      )}
+      {error && <ErrorBox msg={error} />}
       <button
         type="submit"
         className="btn-primary"

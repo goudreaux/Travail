@@ -317,6 +317,30 @@ export async function POST(req: NextRequest) {
             note: 'Anchor charged for the full charter cost at publish. Anchor will be rebated at trip departure for any pax seats sold.',
           })
         } else if (kind === 'pax_reservation') {
+          // Persist the card brand/last4 on the member so the "card on file"
+          // display is accurate and the next booking is recognized as a saved
+          // card. Best-effort — never block the receipt.
+          if (meta.member_id) {
+            try {
+              const pmId = typeof pi.payment_method === 'string' ? pi.payment_method : pi.payment_method?.id ?? null
+              if (pmId) {
+                const pm = await stripe.paymentMethods.retrieve(pmId)
+                if (pm.card?.last4) {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  await (db.from('members') as any)
+                    .update({ card_last4: pm.card.last4 })
+                    .eq('id', meta.member_id)
+                }
+                // Make it the customer's default so future bookings reuse it.
+                const custId = typeof pi.customer === 'string' ? pi.customer : pi.customer?.id ?? null
+                if (custId) {
+                  await stripe.customers.update(custId, { invoice_settings: { default_payment_method: pmId } })
+                }
+              }
+            } catch (e) {
+              safeError('webhook: persist pax card_last4 failed (non-fatal)', e)
+            }
+          }
           const member = await lookupMember(meta.member_id)
           await notifyOps({
             kind: 'pax_booking',
