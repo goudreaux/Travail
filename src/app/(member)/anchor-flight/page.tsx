@@ -12,7 +12,7 @@ import type { AirportMeta } from '@/lib/data'
 // from on a regular basis. Ad-hoc destinations are still possible via
 // the CUSTOM sentinel; ops confirms the routing with Tropic on those.
 const ANCHOR_ORIGINS: AirportMeta[] = [
-  { code: 'KTPA', name: 'Tampa International', sub: 'Tampa, FL',         role: 'origin' },
+  { code: 'KTPA', name: 'TPA',                 sub: 'Tampa, FL',         role: 'origin' },
   { code: 'KTPF', name: 'Davis Islands',       sub: 'Tampa, FL',         role: 'origin' },
 ]
 
