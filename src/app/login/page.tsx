@@ -1,6 +1,6 @@
 'use client'
 export const dynamic = 'force-dynamic'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 
@@ -13,6 +13,24 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const supabase = createClient()
+
+  // Auth links (invite / password reset) sometimes land here instead of their
+  // destination — the token comes back in the URL hash (#access_token=…&type=…),
+  // which the server/middleware can't see, so the guard bounces to /login. Catch
+  // that token here and forward it (hash intact) to the page that establishes
+  // the session: invite → /onboarding, recovery → /reset-password.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const hash = window.location.hash
+    if (!hash || !hash.includes('access_token')) return
+    const params = new URLSearchParams(hash.replace(/^#/, ''))
+    const type = params.get('type')
+    const dest = type === 'recovery' ? '/reset-password' : type === 'invite' ? '/onboarding' : null
+    if (dest) {
+      // Preserve the hash so the destination page can establish the session.
+      window.location.replace(`${dest}${hash}`)
+    }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
