@@ -3,7 +3,20 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { safeError } from '@/lib/pii-scrub'
 import { PROPOSAL_RUNWAY_DAYS } from '@/lib/proposals'
+import { sendProposalApprovedEmail, sendProposalDeclinedEmail } from '@/lib/member-email'
 import type { Database } from '@/lib/supabase/types'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveEmail(db: any, memberId: string): Promise<string | null> {
+  const { data: c } = await db.from('member_sensitive').select('email').eq('member_id', memberId).maybeSingle()
+  if (c?.email && c.email.trim().length > 0) return c.email
+  const { data: m } = await db.from('members').select('user_id, name').eq('id', memberId).maybeSingle()
+  if (!m?.user_id) return null
+  try {
+    const { data: u } = await db.auth.admin.getUserById(m.user_id)
+    return u?.user?.email ?? null
+  } catch { return null }
+}
 
 // Ops reviews a proposal — sets capacity / min_seats / per-seat price,
 // flips status to 'open' (or 'declined'). Computes expires_at as
@@ -60,13 +73,31 @@ export async function POST(req: NextRequest) {
   }
 
   if (body.decision === 'decline') {
+    const reason = (body.declineReason ?? '').trim() || null
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (db as any).from('trip_proposals').update({
       status: 'declined',
-      decline_reason: (body.declineReason ?? '').trim() || null,
+      decline_reason: reason,
       reviewed_at: new Date().toISOString(),
       reviewed_by: actor.id,
     }).eq('id', proposalId)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: proposer } = await (db as any)
+      .from('members').select('id, name').eq('id', prop.proposer_id).maybeSingle()
+    if (proposer) {
+      const proposerEmail = await resolveEmail(db, proposer.id)
+      if (proposerEmail) {
+        await sendProposalDeclinedEmail({
+          to: proposerEmail,
+          memberName: proposer.name ?? 'Member',
+          memberId: proposer.id,
+          proposalId,
+          proposalName: prop.name,
+          tripDate: prop.date,
+          reason,
+        })
+      }
+    }
     return NextResponse.json({ ok: true, status: 'declined' })
   }
 
@@ -103,6 +134,28 @@ export async function POST(req: NextRequest) {
       body: `Your "${prop.name}" proposal is live on the board. Needs ${minSeats} commits by ${new Date(expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} to fund. Be the first to commit a seat.`,
       ref: { proposal_id: proposalId },
     })
+
+    // Branded "approved · go live" email to the proposer.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: proposer } = await (db as any)
+      .from('members').select('id, name').eq('id', prop.proposer_id).maybeSingle()
+    if (proposer) {
+      const proposerEmail = await resolveEmail(db, proposer.id)
+      if (proposerEmail) {
+        await sendProposalApprovedEmail({
+          to: proposerEmail,
+          memberName: proposer.name ?? 'Member',
+          memberId: proposer.id,
+          proposalId,
+          proposalName: prop.name,
+          tripDate: prop.date,
+          minSeats,
+          pricePerSeatCents: price,
+          expiresAt,
+        })
+      }
+    }
+
     return NextResponse.json({ ok: true, status: 'open', expires_at: expiresAt })
   } catch (err) {
     safeError('admin/proposals/review: failed', err)

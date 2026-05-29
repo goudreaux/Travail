@@ -977,3 +977,186 @@ function brandedSubscriptionCancelledEmail(p: SubscriptionCancelledParams): stri
   </table>
 </body></html>`
 }
+
+// ─── Trip Proposal emails ──────────────────────────────────────────────────
+// Five lifecycle moments — submitted / approved / funded / expired /
+// declined. All share the same branded shell so the network gets
+// consistent emails regardless of which stage hits.
+
+function proposalShell({
+  title,
+  eyebrow,
+  headline,
+  body,
+  ctaLabel,
+  ctaHref,
+  accent,
+}: {
+  title: string
+  eyebrow: string
+  headline: string
+  body: string
+  ctaLabel?: string
+  ctaHref?: string
+  accent: string
+}): string {
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light only"/>
+<title>${escapeHtml(title)}</title>
+</head>
+<body style="margin:0;padding:0;background:#fbf6ec;font-family:-apple-system,BlinkMacSystemFont,'Inter Tight','Inter','Segoe UI',sans-serif;color:#0d3340;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fbf6ec;padding:36px 14px 24px;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background:#fffbf0;border-radius:18px;overflow:hidden;box-shadow:0 18px 48px rgba(13,51,64,0.10);">
+        <tr><td style="background:linear-gradient(135deg,#042128 0%,#0a3340 52%,#073744 100%);padding:32px 36px 28px;color:#fff;">
+          <div style="font-family:'JetBrains Mono','Courier New',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:${accent};font-weight:700;margin-bottom:8px;">${escapeHtml(eyebrow)}</div>
+          <div style="font-size:30px;font-weight:700;color:#fff;letter-spacing:-0.022em;line-height:1.1;font-family:'Inter Tight',sans-serif;">${escapeHtml(headline)}</div>
+        </td></tr>
+        <tr><td style="padding:24px 36px 4px;">
+          <div style="font-size:14.5px;color:#1f4856;line-height:1.65;">${body}</div>
+        </td></tr>
+        ${ctaLabel && ctaHref ? `<tr><td style="padding:18px 36px 24px;">
+          <a href="${escapeHtml(ctaHref)}" style="display:inline-block;padding:13px 24px;background:${accent};color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter Tight',sans-serif;letter-spacing:-0.005em;">${escapeHtml(ctaLabel)}</a>
+        </td></tr>` : ''}
+        <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions? Reply to this email and Ops will follow up.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+}
+
+export interface ProposalEmailBase {
+  to: string
+  memberName: string
+  memberId?: string | null
+  proposalId: string
+  proposalName: string
+  tripDate?: string | null
+}
+
+export async function sendProposalSubmittedEmail(p: ProposalEmailBase): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) { safeError('sendProposalSubmittedEmail: RESEND_API_KEY not set', { to: p.to }); return }
+  const subject = `Proposal submitted · ${p.proposalName}`
+  const text = `Hi ${p.memberName.split(' ')[0]},\n\nYour proposal for "${p.proposalName}" is in the queue for ops review. We'll set the minimum seat count and per-seat price, then the network can start committing.\n\nIf your card declined, your proposal is held — please retry from the wizard to put a working card on file.\n\nQuestions? Just reply.\n`
+  const html = proposalShell({
+    title: subject, eyebrow: 'Proposal submitted', accent: '#e09418',
+    headline: 'In the queue for ops review.',
+    body: `Your proposal for <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` on <strong>${escapeHtml(p.tripDate)}</strong>` : ''} is being reviewed. Ops will set the minimum commit count and per-seat price, then it goes live for the network.<br/><br/>If your card on file declined, please head back to the wizard and re-save a working card — your proposal is held until that's done.`,
+    ctaLabel: 'View my proposals →', ctaHref: 'https://travailclub.com/proposals',
+  })
+  const resend = new Resend(apiKey)
+  try {
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'proposal_submitted', memberId: p.memberId ?? null,
+      refs: { proposal_id: p.proposalId, proposal_name: p.proposalName },
+    })
+  } catch (err) { safeError('sendProposalSubmittedEmail: send failed (non-fatal)', err) }
+}
+
+export interface ProposalApprovedEmailParams extends ProposalEmailBase {
+  minSeats: number
+  pricePerSeatCents: number
+  expiresAt: string | null
+}
+export async function sendProposalApprovedEmail(p: ProposalApprovedEmailParams): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) { safeError('sendProposalApprovedEmail: RESEND_API_KEY not set', { to: p.to }); return }
+  const subject = `Approved · ${p.proposalName} · ${p.minSeats} commits needed`
+  const expiresStr = p.expiresAt ? new Date(p.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : null
+  const text = `Hi ${p.memberName.split(' ')[0]},\n\nOps approved your proposal "${p.proposalName}". It's live on the board now.\n\n  ${p.minSeats} commits needed at $${(p.pricePerSeatCents / 100).toFixed(0)}/seat\n  ${expiresStr ? `Auto-expires on ${expiresStr} if minimum not met` : ''}\n\nShare it with the network. The faster the commits come in, the more confident ops + Tropic can be about locking it.\n`
+  const html = proposalShell({
+    title: subject, eyebrow: 'Approved · go live', accent: '#3e8c6d',
+    headline: 'Your proposal is on the board.',
+    body: `Ops approved <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''}. It's live for the network right now.<br/><br/><strong>${p.minSeats} commits needed</strong> at <strong>$${(p.pricePerSeatCents / 100).toFixed(0)}/seat</strong>.${expiresStr ? ` Auto-expires on <strong>${escapeHtml(expiresStr)}</strong> if the minimum isn't met.` : ''}<br/><br/>Share it with friends in the network — momentum matters once the commit window starts ticking.`,
+    ctaLabel: 'See it on the board →', ctaHref: `https://travailclub.com/reserve/${p.proposalId}?kind=proposal`,
+  })
+  const resend = new Resend(apiKey)
+  try {
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'proposal_approved', memberId: p.memberId ?? null,
+      refs: { proposal_id: p.proposalId, min_seats: p.minSeats, price_per_seat_cents: p.pricePerSeatCents },
+    })
+  } catch (err) { safeError('sendProposalApprovedEmail: send failed (non-fatal)', err) }
+}
+
+export interface ProposalFundedEmailParams extends ProposalEmailBase {
+  seats: number
+  amountCents: number
+  isProposer: boolean
+  newTripId: string
+}
+export async function sendProposalFundedEmail(p: ProposalFundedEmailParams): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) { safeError('sendProposalFundedEmail: RESEND_API_KEY not set', { to: p.to }); return }
+  const subject = `${p.proposalName} is locked in · you're booked`
+  const text = `Hi ${p.memberName.split(' ')[0]},\n\n"${p.proposalName}" hit its commit minimum. Your card was charged $${(p.amountCents / 100).toFixed(2)} for ${p.seats} seat${p.seats === 1 ? '' : 's'} and you're officially on the manifest.\n\n${p.isProposer ? 'Thanks for pitching it — none of this happens without proposers.' : 'Your boarding pass is in the app.'}\n`
+  const html = proposalShell({
+    title: subject, eyebrow: 'Funded · trip confirmed', accent: '#3e8c6d',
+    headline: p.isProposer ? `Your proposal funded.` : `You're booked.`,
+    body: `<strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''} hit its commit minimum. Your card was charged <strong>$${(p.amountCents / 100).toFixed(2)}</strong> for <strong>${p.seats}</strong> seat${p.seats === 1 ? '' : 's'} and you're on the manifest.<br/><br/>${p.isProposer ? 'Thanks for pitching it — none of this happens without proposers.' : 'Your boarding pass is in the app — see you on the day.'}`,
+    ctaLabel: 'Open boarding pass →', ctaHref: 'https://travailclub.com/bookings',
+  })
+  const resend = new Resend(apiKey)
+  try {
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'proposal_funded', memberId: p.memberId ?? null,
+      refs: { proposal_id: p.proposalId, seats: p.seats, amount_cents: p.amountCents, new_trip_id: p.newTripId },
+    })
+  } catch (err) { safeError('sendProposalFundedEmail: send failed (non-fatal)', err) }
+}
+
+export interface ProposalExpiredEmailParams extends ProposalEmailBase {
+  isProposer: boolean
+  reason: string
+}
+export async function sendProposalExpiredEmail(p: ProposalExpiredEmailParams): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) { safeError('sendProposalExpiredEmail: RESEND_API_KEY not set', { to: p.to }); return }
+  const subject = `${p.proposalName} didn't fund · no charge`
+  const text = `Hi ${p.memberName.split(' ')[0]},\n\n"${p.proposalName}" didn't reach its commit minimum. Your card was not charged.\n\n${p.reason}\n\n${p.isProposer ? 'Try a different date or rally the network earlier next time.' : 'Browse the next set of proposals when you have a moment.'}\n`
+  const html = proposalShell({
+    title: subject, eyebrow: 'Expired · no charge', accent: '#c97e0e',
+    headline: p.isProposer ? 'Your proposal expired.' : 'A proposal expired.',
+    body: `<strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''} didn't reach its commit minimum. Your card was <strong>not</strong> charged.<br/><br/><em>${escapeHtml(p.reason)}</em><br/><br/>${p.isProposer ? 'Try a different date, share with more friends, or wait for a fresh window. Proposals are no-risk — feel free to try again.' : 'Browse the open proposals when you have a moment — there are usually a few brewing.'}`,
+    ctaLabel: 'See open proposals →', ctaHref: 'https://travailclub.com/proposals',
+  })
+  const resend = new Resend(apiKey)
+  try {
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'proposal_expired', memberId: p.memberId ?? null,
+      refs: { proposal_id: p.proposalId, reason: p.reason },
+    })
+  } catch (err) { safeError('sendProposalExpiredEmail: send failed (non-fatal)', err) }
+}
+
+export interface ProposalDeclinedEmailParams extends ProposalEmailBase {
+  reason: string | null
+}
+export async function sendProposalDeclinedEmail(p: ProposalDeclinedEmailParams): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) { safeError('sendProposalDeclinedEmail: RESEND_API_KEY not set', { to: p.to }); return }
+  const subject = `Your proposal was declined · ${p.proposalName}`
+  const text = `Hi ${p.memberName.split(' ')[0]},\n\nOps declined your proposal "${p.proposalName}".\n\n${p.reason ?? 'No specific reason was given — reply to this email and ops will explain.'}\n\nNo charge — feel free to try another proposal whenever you're ready.\n`
+  const html = proposalShell({
+    title: subject, eyebrow: 'Declined', accent: '#c97e0e',
+    headline: 'Your proposal was declined.',
+    body: `Ops decided not to move forward with <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''}.<br/><br/>${p.reason ? `<em>${escapeHtml(p.reason)}</em>` : 'No specific reason was attached — reply to this email and ops will explain.'}<br/><br/>No charge to your card — your proposal slot is freed up and you can submit a fresh one whenever you're ready.`,
+    ctaLabel: 'Propose another →', ctaHref: 'https://travailclub.com/propose',
+  })
+  const resend = new Resend(apiKey)
+  try {
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'proposal_declined', memberId: p.memberId ?? null,
+      refs: { proposal_id: p.proposalId, reason: p.reason },
+    })
+  } catch (err) { safeError('sendProposalDeclinedEmail: send failed (non-fatal)', err) }
+}

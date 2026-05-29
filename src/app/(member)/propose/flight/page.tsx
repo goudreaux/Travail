@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PageHero from '@/components/PageHero'
 import { PROPOSAL_MIN_LEAD_DAYS } from '@/lib/proposals'
+import { ProposerCardForm } from '@/components/ProposerCardForm'
 
 // Lightweight flight-proposal form. Mirrors the route-picking
 // vocabulary of the anchor-flight wizard but compresses everything
@@ -45,6 +46,11 @@ export default function ProposeFlightPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submittedId, setSubmittedId] = useState<string | null>(null)
+  // Stripe SetupIntent step — populated after /api/proposals/create
+  // returns a clientSecret. The wizard renders the card form, then
+  // the success screen, instead of going straight to "submitted."
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [cardSaved, setCardSaved] = useState(false)
 
   const isCustomDest = destCode === 'CUSTOM'
   const destMeta = DESTS.find(d => d.code === destCode)
@@ -87,7 +93,10 @@ export default function ProposeFlightPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? `Submit failed (${res.status})`)
-      setSubmittedId(data.id)
+      // New /api/proposals/create returns clientSecret for the
+      // proposer's SetupIntent. Move to the card-on-file step.
+      setSubmittedId(data.proposalId ?? data.id)
+      if (data.clientSecret) setClientSecret(data.clientSecret)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Submit failed')
     } finally {
@@ -95,7 +104,30 @@ export default function ProposeFlightPage() {
     }
   }
 
-  if (submittedId) {
+  // Card-on-file step — after /api/proposals/create returns a
+  // clientSecret, render Stripe Elements before the success screen.
+  if (submittedId && clientSecret && !cardSaved) {
+    return (
+      <div className="page">
+        <PageHero
+          accent="sun"
+          eyebrow="PROPOSAL · SAVE A CARD"
+          title="One last step — your card on file"
+          sub="Your proposal isn't truly submitted until you have a card on file for your firm party. No charge yet."
+        />
+        <div className="page-view" style={{ maxWidth: 520 }}>
+          <ProposerCardForm
+            clientSecret={clientSecret}
+            onSuccess={() => setCardSaved(true)}
+            proposerMinSeats={proposerMinSeats}
+            proposerMaxSeats={proposerMaxSeats}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  if (submittedId && (cardSaved || !clientSecret)) {
     return (
       <div className="page">
         <PageHero

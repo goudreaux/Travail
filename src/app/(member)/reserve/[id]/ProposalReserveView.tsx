@@ -58,6 +58,7 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [addSeatsOpen, setAddSeatsOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -252,10 +253,27 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
                 ? 'As the proposer, withdrawing while others have committed requires ops involvement. If no other members have committed yet, you can pull it now and nothing happens.'
                 : 'You can withdraw any time before the proposal locks. Nothing is charged on withdraw.'}
             </div>
-            <button className="btn-ghost" onClick={withdraw} style={{ color: 'var(--signal)' }}>
-              Withdraw my commit
-            </button>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button className="btn-primary" onClick={() => setAddSeatsOpen(true)} style={{ background: 'var(--sun-d)' }}>
+                + Add a seat (bringing someone?)
+              </button>
+              <button className="btn-ghost" onClick={withdraw} style={{ color: 'var(--signal)' }}>
+                Withdraw my commit
+              </button>
+            </div>
           </div>
+
+          {addSeatsOpen && (
+            <AddSeatsPanel
+              proposalId={proposalId}
+              currentSeats={myCommit.seats}
+              maxAdditional={amProposer
+                ? Math.max(0, (proposal.proposer_max_seats ?? proposerMin) - myCommit.seats)
+                : Math.max(0, (proposal.capacity_total ?? cap) - committed)}
+              onClose={() => setAddSeatsOpen(false)}
+              onAdded={() => { setAddSeatsOpen(false); load() }}
+            />
+          )}
 
           {error && (
             <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--signal)', marginTop: 12 }}>
@@ -472,5 +490,117 @@ function CardForm({ onSuccess, memberName }: { onSuccess: () => void; memberName
         No charge until the proposal locks. Withdraw any time before then.
       </div>
     </form>
+  )
+}
+
+// Modal to bump up an existing commit's seat count — for committers
+// who are "bringing someone" during the commit window. Caps at
+// remaining headroom (capacity for regular committers, proposer_max
+// for the proposer).
+function AddSeatsPanel({
+  proposalId,
+  currentSeats,
+  maxAdditional,
+  onClose,
+  onAdded,
+}: {
+  proposalId: string
+  currentSeats: number
+  maxAdditional: number
+  onClose: () => void
+  onAdded: () => void
+}) {
+  const [add, setAdd] = useState(1)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function submit() {
+    setError(null)
+    if (add < 1 || add > maxAdditional) {
+      setError(`Add between 1 and ${maxAdditional} seat${maxAdditional === 1 ? '' : 's'}.`)
+      return
+    }
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/proposals/commit/add-seats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposalId, addSeats: add }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Add seats failed')
+      onAdded()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Add seats failed')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(13,51,64,0.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16, zIndex: 100,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'var(--card)', borderRadius: 14, padding: 24,
+          maxWidth: 420, width: '100%',
+          boxShadow: '0 24px 56px rgba(0,0,0,0.18)',
+        }}
+      >
+        <div style={{
+          fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.22em',
+          textTransform: 'uppercase', color: 'var(--sun-d)', fontWeight: 700, marginBottom: 6,
+        }}>
+          Add seats to your commit
+        </div>
+        <h3 style={{ fontFamily: 'var(--display)', fontSize: 20, margin: '0 0 8px', color: 'var(--ink)' }}>
+          Bringing more people?
+        </h3>
+        <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, marginBottom: 16 }}>
+          You currently have <strong>{currentSeats}</strong> seat{currentSeats === 1 ? '' : 's'} committed. Add more using the same card on file. No charge until ops locks the trip.
+        </div>
+
+        {maxAdditional === 0 ? (
+          <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--signal)', marginBottom: 14 }}>
+            No seats left to add — proposal is at capacity for you.
+          </div>
+        ) : (
+          <div className="field">
+            <label className="field-lab">Seats to add (max {maxAdditional})</label>
+            <input
+              className="input"
+              type="number"
+              min={1}
+              max={maxAdditional}
+              value={add}
+              onChange={e => setAdd(Math.max(1, Math.min(maxAdditional, Number(e.target.value) || 1)))}
+            />
+            <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
+              New total: {currentSeats + add} seat{currentSeats + add === 1 ? '' : 's'}
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--signal)', marginTop: 10 }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+          <button className="btn-primary" disabled={submitting || maxAdditional === 0} onClick={submit}>
+            {submitting ? 'Adding…' : `Add ${add} seat${add === 1 ? '' : 's'}`}
+          </button>
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
   )
 }
