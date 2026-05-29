@@ -851,10 +851,6 @@ function FeedProposalsSection({ memberId, defaultOpen = true }: { memberId: stri
 // pick stays consistent through the day and rotates daily.
 const EMPTY_TRIP_NEGS: { headline: string; sub: string }[] = [
   {
-    headline: 'Nothing on the books.',
-    sub: 'A traveler without a trip is just a tourist with good taste. Plan something.',
-  },
-  {
     headline: 'Suspiciously quiet here.',
     sub: 'Your manifest is empty. The cabin is not. Anchor a trip or take an open seat before someone else does.',
   },
@@ -867,24 +863,12 @@ const EMPTY_TRIP_NEGS: { headline: string; sub: string }[] = [
     sub: 'Open seats are live. Tap below and rejoin the fun.',
   },
   {
-    headline: 'Polite reminder: you can fly.',
-    sub: 'Anchor a flight, join an open excursion, or float a proposal. Network is waiting.',
-  },
-  {
     headline: 'Your boarding pass slot is gathering dust.',
     sub: 'Float a proposal — no risk if it doesn’t fund. Worst case: a date on the calendar.',
   },
   {
     headline: 'Wayfarers don’t sit still.',
     sub: 'A respectable adventurer’s calendar has at least one item on it. We won’t tell anyone — but consider this notice.',
-  },
-  {
-    headline: 'An adventurer in name only is still on the ground.',
-    sub: 'Open seats, member-anchored trips, and live proposals are one tap away. Pick something.',
-  },
-  {
-    headline: 'You joined a club for travelers.',
-    sub: 'The cabin doesn’t fill itself. Plan something, or ride along on someone else’s plan.',
   },
 ]
 
