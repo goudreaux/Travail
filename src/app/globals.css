@@ -5135,12 +5135,56 @@ textarea.input {
     box-shadow: none;
   }
   .page-hero__eyebrow { font-size: 9px; margin-bottom: 8px; }
-  .page-hero__title { font-size: 22px; }
+  /* Larger, more pronounced italic title (matches the feed greeting energy). */
+  .page-hero__title { font-size: 34px; font-style: italic; font-weight: 500; letter-spacing: -0.02em; line-height: 1.04; }
   .page-hero__sub { display: none; }
   .next-up { margin-top: 10px; padding: 5px 8px 5px 11px; gap: 8px; }
   .next-up__label { font-size: 8.5px; }
   .next-up__name { font-size: 12.5px; }
   .next-up__date { font-size: 11px; padding: 2px 8px; }
+
+  /* Ghost actions: header buttons become plain mono text, no shaded box. */
+  .page-hero__actions .btn-ghost,
+  .page-hero__actions .pill,
+  .page-hero__actions button:not(.btn-primary) {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 2px 0;
+    height: auto;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: #fff;
+  }
+  /* Reconfigure the metric as a single inline mono line — big number + small
+     caption on one baseline — instead of the stacked block. Quieter, sharper. */
+  .page-hero__metric {
+    text-align: left;
+    padding: 12px 0 0;
+    margin-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+  .page-hero__metric-value {
+    font-family: var(--ui);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 1;
+  }
+  .page-hero__metric-label,
+  .page-hero__metric-sub {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+  }
 }
 
 /* ─── Fading top bar (mobile) ──────────────────────────────── */
