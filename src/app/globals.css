@@ -5103,10 +5103,16 @@ textarea.input {
 /* ─── Compact mobile member hero ───────────────────────────── */
 
 @media (max-width: 768px) {
+  /* Full-bleed navy hero (overrides the earlier mobile block; this one wins by
+     load order, so the full-bleed lives here as the single source of truth). */
   .page-hero {
-    padding: 16px 18px;
-    margin: 12px 12px 0;
-    border-radius: 14px;
+    padding: max(22px, env(safe-area-inset-top)) 20px 56px;
+    margin: 0;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: none;
   }
   .page-hero__eyebrow { font-size: 9px; margin-bottom: 8px; }
   .page-hero__title { font-size: 22px; }
