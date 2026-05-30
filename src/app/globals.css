@@ -786,13 +786,13 @@ body::before {
 }
 /* Bumped from clamp(28,5vw,42) so the title actually commands the block. */
 .page-hero__title {
-  font-family: var(--display);
+  font-family: var(--ui);
   font-style: italic;
-  font-weight: 500;
+  font-weight: 600;
   color: #fff;
   margin: 0;
   line-height: 1.02;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
   font-size: clamp(34px, 6vw, 48px);
 }
 /* Inter (sans) title variant — used on Open Seats / Proposals / My Trips. */
@@ -1156,10 +1156,10 @@ body::before {
   width: 440px;
   height: 440px;
   background: radial-gradient(circle at 50% 50%,
-    rgba(255, 214, 140, 0.82) 0%,
-    rgba(255, 184, 84, 0.58) 20%,
-    rgba(244, 167, 44, 0.32) 42%,
-    rgba(244, 167, 44, 0.10) 62%,
+    rgba(255, 214, 140, 0.50) 0%,
+    rgba(255, 184, 84, 0.34) 20%,
+    rgba(244, 167, 44, 0.18) 42%,
+    rgba(244, 167, 44, 0.06) 62%,
     transparent 76%
   );
   filter: blur(4px);
@@ -1226,13 +1226,13 @@ body::before {
 
 /* Refined italic greeting — much smaller, single line */
 .feed-hero__welcome {
-  font-family: var(--display);
+  font-family: var(--ui);
   font-style: italic;
-  font-weight: 500;
+  font-weight: 600;
   color: #fff;
   margin: 0;
   line-height: 1.05;
-  letter-spacing: -0.018em;
+  letter-spacing: -0.02em;
   font-size: clamp(26px, 3.4vw, 38px);
   opacity: 0;
   animation: feed-hero-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s forwards;
@@ -5441,11 +5441,11 @@ textarea.input {
 .section-head__eyebrow--moss   { color: var(--moss); }
 
 .section-ttl {
-  font-family: var(--display);
-  font-weight: 500;
+  font-family: var(--ui);
+  font-weight: 600;
   font-size: 28px;
   color: var(--ink);
-  letter-spacing: -0.018em;
+  letter-spacing: -0.02em;
   line-height: 1.02;
 }
 
