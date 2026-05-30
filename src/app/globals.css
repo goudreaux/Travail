@@ -5379,15 +5379,14 @@ textarea.input {
 @media (max-width: 768px) {
   /* Match the .feed-hero__welcome greeting size on phones so the
      feed page's headers stay visually consistent (was 30px). */
-  /* Sharper look: section headers in Inter (not the display serif). */
-  .section-ttl { font-family: var(--ui); font-weight: 600; font-size: 24px; letter-spacing: -0.02em; }
-  .section-ttl em { font-style: normal; }
-  /* Break up the stack: tint each section title with its own accent so the
-     four headers read as distinct lanes, not four identical dark lines. */
-  [data-section="trips"]     .section-ttl { color: var(--tropic-d); }
-  [data-section="seats"]     .section-ttl { color: var(--sun-d); }
-  [data-section="proposals"] .section-ttl { color: var(--sun-d); }
-  [data-section="feed"]      .section-ttl { color: var(--moss); }
+  /* Sharper look: section headers in Inter. First word in a deep ink, the
+     italic second word (<em>) in the section's accent — close but secondary. */
+  .section-ttl { font-family: var(--ui); font-weight: 600; font-size: 24px; letter-spacing: -0.02em; color: var(--ink); }
+  .section-ttl em { font-style: italic; font-weight: 600; }
+  [data-section="trips"]     .section-ttl em { color: var(--tropic-d); }
+  [data-section="seats"]     .section-ttl em { color: var(--sun-d); }
+  [data-section="proposals"] .section-ttl em { color: var(--sun-d); }
+  [data-section="feed"]      .section-ttl em { color: var(--moss); }
   .section-head { padding: 18px 18px 14px; }
   .section-head__actions { margin-top: 16px; }
   .section-chev { width: 26px; height: 26px; font-size: 20px; }
