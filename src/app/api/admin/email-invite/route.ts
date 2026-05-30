@@ -3,10 +3,12 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
 import { mintInviteCode } from '@/lib/invite-codes'
+import { sendInviteLinkEmail } from '@/lib/invite-email'
 
-// Admin-only: mint a per-member invite code. The recipient redeems it at
-// /join?code=... — they set a password and drop straight into the app, with no
-// magic-link email involved. Codes are single-use (see migration 059).
+// Admin-only: email a member their invitation directly. Mints a /join code and
+// sends a branded email (via Resend, to the member's inbox) with a "Set up your
+// account" link. The member taps it → /join → sets a password → into the app.
+// No Supabase auth magic link anywhere — the link is one we control.
 export async function POST(request: NextRequest) {
   let body: { memberId?: string }
   try {
@@ -34,18 +36,24 @@ export async function POST(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } },
   )
 
-  // The code creates a login, so the member needs an email on file.
-  const { data: sens } = await admin
-    .from('member_sensitive').select('email').eq('member_id', memberId).maybeSingle()
+  // Need the member's name + email to address and send the invite.
+  const [{ data: member }, { data: sens }] = await Promise.all([
+    admin.from('members').select('name').eq('id', memberId).maybeSingle(),
+    admin.from('member_sensitive').select('email').eq('member_id', memberId).maybeSingle(),
+  ])
   const email = (sens as { email?: string } | null)?.email?.trim() || null
   if (!email) {
-    return NextResponse.json({ error: 'Add an email for this member first — the code uses it to create their login.' }, { status: 400 })
+    return NextResponse.json({ error: 'Add an email for this member first — that’s where the invite goes.' }, { status: 400 })
   }
+  const memberName = (member as { name?: string } | null)?.name ?? ''
 
-  const result = await mintInviteCode(admin, {
+  const minted = await mintInviteCode(admin, {
     memberId, email, createdBy: (me as { id: string }).id, origin: request.nextUrl.origin,
   })
-  if ('error' in result) return NextResponse.json({ error: `Could not create code: ${result.error}` }, { status: 500 })
+  if ('error' in minted) return NextResponse.json({ error: `Could not create invite: ${minted.error}` }, { status: 500 })
 
-  return NextResponse.json({ ok: true, code: result.code, joinUrl: result.joinUrl, email })
+  const sent = await sendInviteLinkEmail({ to: email, memberName, joinUrl: minted.joinUrl, code: minted.code, memberId })
+  if (!sent.ok) return NextResponse.json({ error: `Invite created but email failed: ${sent.error}` }, { status: 502 })
+
+  return NextResponse.json({ ok: true, email })
 }

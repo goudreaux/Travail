@@ -280,6 +280,28 @@ export default function MembersPage() {
     }
   }
 
+  // Email the member their invitation link directly (branded, via Resend).
+  // They tap "Set up your account" → /join → set a password → in.
+  async function emailInvite(m: Member) {
+    setCodeBusy(m.id)
+    try {
+      const res = await fetch('/api/admin/email-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: m.id }),
+      })
+      const json = await res.json().catch(() => ({}))
+      showToast(
+        res.ok && json.ok ? `Invite emailed to ${json.email}` : (json.error ?? 'Could not email invite'),
+        res.ok && json.ok ? 'success' : 'error',
+      )
+    } catch (e) {
+      showToast((e as Error).message ?? 'Could not email invite', 'error')
+    } finally {
+      setCodeBusy(null)
+    }
+  }
+
   async function copyText(text: string, which: 'code' | 'link') {
     try {
       await navigator.clipboard.writeText(text)
@@ -787,15 +809,26 @@ export default function MembersPage() {
                   <td onClick={e => e.stopPropagation()} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'inline-flex', gap: 6 }}>
                       {contactPresence[m.id]?.has_email && (!m.user_id || m.user_id === PLACEHOLDER_USER_ID) && (
-                        <button
-                          className="btn-ghost"
-                          style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--tropic-d)', borderColor: 'rgba(0,179,199,0.3)' }}
-                          title="Generate an invite code — they open the link, set a password, and they're in (no email link needed)"
-                          disabled={codeBusy === m.id}
-                          onClick={() => genCode(m)}
-                        >
-                          {codeBusy === m.id ? 'Code…' : 'Code'}
-                        </button>
+                        <>
+                          <button
+                            className="btn-ghost"
+                            style={{ height: 28, padding: '0 10px', fontSize: 12, color: 'var(--tropic-d)', borderColor: 'rgba(0,179,199,0.3)' }}
+                            title="Email this member their invite link — they tap it, set a password, and they're in"
+                            disabled={codeBusy === m.id}
+                            onClick={() => emailInvite(m)}
+                          >
+                            {codeBusy === m.id ? 'Sending…' : 'Email invite'}
+                          </button>
+                          <button
+                            className="btn-ghost"
+                            style={{ height: 28, padding: '0 10px', fontSize: 12 }}
+                            title="Get a copyable invite link/code instead of emailing it"
+                            disabled={codeBusy === m.id}
+                            onClick={() => genCode(m)}
+                          >
+                            Code
+                          </button>
+                        </>
                       )}
                       <button
                         className="btn-ghost"
