@@ -1382,8 +1382,8 @@ body::before {
   .feed-hero__date { text-shadow: 0 1px 1px rgba(0, 0, 0, 0.30); }
 
   /* Pull the feed up into the wash, but LESS than the hero's bottom padding
-     (120px) so the cards clear the brief instead of covering it. ~12px gap. */
-  .feed-stack { margin-top: -108px; position: relative; z-index: 1; }
+     (120px) so the cards clear the brief instead of covering it. ~4px gap. */
+  .feed-stack { margin-top: -116px; position: relative; z-index: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
