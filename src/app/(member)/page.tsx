@@ -869,26 +869,16 @@ function FeedProposalsSection({ memberId, defaultOpen = true }: { memberId: stri
 
       {/* Filter chips — same layout as the Open seats chip bar above */}
       {proposals.length > 0 && (
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--hair)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {chips.filter(c => c.show).map(c => {
-            const active = filter === c.key
-            return (
-              <button
-                key={c.key}
-                onClick={(e) => { e.stopPropagation(); setFilter(c.key) }}
-                style={{
-                  padding: '6px 14px', borderRadius: 20, fontSize: 12.5,
-                  fontFamily: 'var(--ui)', fontWeight: active ? 600 : 400,
-                  border: `1px solid ${active ? 'var(--sun-d)' : 'var(--hair-2)'}`,
-                  background: active ? 'rgba(244,167,44,0.10)' : 'transparent',
-                  color: active ? 'var(--sun-d)' : 'var(--ink-light)',
-                  cursor: 'pointer',
-                }}
-              >
-                {c.label}
-              </button>
-            )
-          })}
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--hair)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {chips.filter(c => c.show).map(c => (
+            <button
+              key={c.key}
+              className={`chip chip--sun${filter === c.key ? ' active' : ''}`}
+              onClick={(e) => { e.stopPropagation(); setFilter(c.key) }}
+            >
+              {c.label}
+            </button>
+          ))}
         </div>
       )}
 

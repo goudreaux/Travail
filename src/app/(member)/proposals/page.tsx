@@ -107,15 +107,8 @@ export default function ProposalsPage() {
             {FILTERS.map(f => (
               <button
                 key={f.key}
+                className={`chip chip--sun${filter === f.key ? ' active' : ''}`}
                 onClick={() => setFilter(f.key)}
-                style={{
-                  padding: '6px 14px', borderRadius: 20, fontSize: 12.5,
-                  fontFamily: 'var(--ui)', fontWeight: filter === f.key ? 600 : 400,
-                  border: `1px solid ${filter === f.key ? 'var(--sun-d)' : 'var(--hair-2)'}`,
-                  background: filter === f.key ? 'rgba(244,167,44,0.10)' : 'transparent',
-                  color: filter === f.key ? 'var(--sun-d)' : 'var(--ink-light)',
-                  cursor: 'pointer',
-                }}
               >
                 {f.label}{typeof f.count === 'number' ? ` · ${f.count}` : ''}
               </button>
