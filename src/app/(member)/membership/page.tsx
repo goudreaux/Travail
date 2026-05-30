@@ -604,7 +604,11 @@ function SubscriptionPanel({ member }: { member: Member }) {
   // Mark members whose card already failed renewal — bookings paused.
   const isPastDue = status === 'past_due' || status === 'unpaid'
   const isCancelled = status === 'canceled' || status === 'cancelled' || status === 'incomplete_expired'
-  const isActive = status === 'active' || status === 'trialing'
+  // A paid, current billing period means they're active even if our cached
+  // Stripe status lags at 'incomplete' (webhook sync delay) — Stripe itself
+  // shows the subscription active, so don't leave them on "Setting up".
+  const hasCurrentPeriod = !!periodEnd && new Date(periodEnd).getTime() > Date.now()
+  const isActive = status === 'active' || status === 'trialing' || (status === 'incomplete' && hasCurrentPeriod)
 
   const [busy, setBusy] = useState(false)
 
@@ -668,7 +672,17 @@ function SubscriptionPanel({ member }: { member: Member }) {
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {(isActive || isPastDue || status === 'incomplete') && (
-            <button className="btn-primary" onClick={openPortal} disabled={busy} style={{ fontSize: 13 }}>
+            <button
+              onClick={openPortal}
+              disabled={busy}
+              style={{
+                fontSize: 13, fontWeight: 600, fontFamily: 'var(--ui)',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                height: 36, padding: '0 16px', borderRadius: 9, cursor: busy ? 'default' : 'pointer',
+                color: '#fff', border: 'none',
+                background: 'var(--signal)',
+              }}
+            >
               {busy ? 'Opening…' : 'Manage card →'}
             </button>
           )}

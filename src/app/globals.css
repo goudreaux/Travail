@@ -5449,6 +5449,31 @@ textarea.input {
   line-height: 1.02;
 }
 
+/* Two-tone section titles (all viewports): first word ink, italic second word
+   in the section's softened accent. */
+.section-ttl em { font-style: italic; font-weight: 600; }
+[data-section="trips"]     .section-ttl em { color: color-mix(in srgb, var(--tropic-d) 60%, var(--ink)); }
+[data-section="seats"]     .section-ttl em { color: color-mix(in srgb, var(--sun-d) 60%, var(--ink)); }
+[data-section="proposals"] .section-ttl em { color: color-mix(in srgb, var(--sun-d) 60%, var(--ink)); }
+[data-section="feed"]      .section-ttl em { color: color-mix(in srgb, var(--moss) 64%, var(--ink)); }
+
+/* Ghost header buttons (all viewports): colored mono text, no shaded box. */
+.section-head .pill {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  height: auto;
+  padding: 2px 2px;
+  border-radius: 0;
+  background: none !important;
+  box-shadow: none !important;
+}
+[data-section="trips"]     .section-head .pill { color: color-mix(in srgb, var(--tropic-d) 60%, var(--ink)) !important; }
+[data-section="seats"]     .section-head .pill { color: color-mix(in srgb, var(--sun-d) 60%, var(--ink)) !important; }
+[data-section="proposals"] .section-head .pill { color: color-mix(in srgb, var(--sun-d) 60%, var(--ink)) !important; }
+[data-section="feed"]      .section-head .pill { color: color-mix(in srgb, var(--moss) 64%, var(--ink)) !important; }
+
 .section-chev {
   display: inline-flex;
   width: 22px;
@@ -5472,34 +5497,6 @@ textarea.input {
 @media (max-width: 768px) {
   /* Match the .feed-hero__welcome greeting size on phones so the
      feed page's headers stay visually consistent (was 30px). */
-  /* Sharper look: section headers in Inter. First word in deep ink, the italic
-     second word in a SOFTENED accent (mixed toward ink) — subtle, not loud. */
-  .section-ttl { font-family: var(--ui); font-weight: 600; font-size: 24px; letter-spacing: -0.02em; color: var(--ink); }
-  .section-ttl em { font-style: italic; font-weight: 600; }
-  [data-section="trips"]     .section-ttl em { color: color-mix(in srgb, var(--tropic-d) 60%, var(--ink)); }
-  [data-section="seats"]     .section-ttl em { color: color-mix(in srgb, var(--sun-d) 60%, var(--ink)); }
-  [data-section="proposals"] .section-ttl em { color: color-mix(in srgb, var(--sun-d) 60%, var(--ink)); }
-  [data-section="feed"]      .section-ttl em { color: color-mix(in srgb, var(--moss) 64%, var(--ink)); }
-
-  /* Ghost buttons in the section headers — just colored mono text, no shaded
-     box (no fill, border, or shadow). Sharper, less clunky. */
-  .section-head .pill {
-    font-family: var(--mono);
-    font-weight: 500;
-    font-size: 9.5px;
-    letter-spacing: 0.06em;
-    height: auto;
-    padding: 2px 2px;
-    border-radius: 0;
-    background: none !important;
-    box-shadow: none !important;
-  }
-  /* VIEW ALL / status text takes the section's secondary accent (matches the
-     two-tone title accent word). */
-  [data-section="trips"]     .section-head .pill { color: color-mix(in srgb, var(--tropic-d) 60%, var(--ink)) !important; }
-  [data-section="seats"]     .section-head .pill { color: color-mix(in srgb, var(--sun-d) 60%, var(--ink)) !important; }
-  [data-section="proposals"] .section-head .pill { color: color-mix(in srgb, var(--sun-d) 60%, var(--ink)) !important; }
-  [data-section="feed"]      .section-head .pill { color: color-mix(in srgb, var(--moss) 64%, var(--ink)) !important; }
   .section-head { padding: 18px 18px 14px; }
   .section-head__actions { margin-top: 16px; }
   .section-chev { width: 26px; height: 26px; font-size: 20px; }
