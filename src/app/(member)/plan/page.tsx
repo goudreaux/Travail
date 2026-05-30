@@ -42,7 +42,7 @@ export default function PlanPage() {
 
   return (
     <div className="page">
-      <PageHero accent="sun" eyebrow="PLAN A TRIP" title="What are you planning?" sub="Choose a trip type to get started, we'll walk you through the rest." />
+      <PageHero accent="sun" eyebrow="PLAN A TRIP" title="Plan your escape." sub="Choose a trip type to get started, we'll walk you through the rest." />
       <div className="page-view">
         <div className="wiz">
           <div className="plan-choices">
