@@ -307,12 +307,6 @@ export function ProposalCard({ p, onOpen }: { p: ProposalCardData; onOpen: () =>
             <>
               <strong style={{ color: 'var(--ink)' }}>{networkNeeded}</strong>
               <span>seat{networkNeeded === 1 ? '' : 's'} to go</span>
-              {p.expires_at && (
-                <>
-                  <span style={{ color: 'var(--ink-faint)' }}>·</span>
-                  <ProposalCountdown expiresAt={p.expires_at} />
-                </>
-              )}
             </>
           )}
         </span>
