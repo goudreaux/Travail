@@ -732,10 +732,10 @@ body::before {
    golden glow is uniform across Seats/Proposals/Network/Membership/etc. */
 .page-hero .page-hero__glow--primary {
   background: radial-gradient(circle at 50% 50%,
-    rgba(255,214,140,0.82) 0%,
-    rgba(255,184,84,0.58) 20%,
-    rgba(244,167,44,0.32) 42%,
-    rgba(244,167,44,0.10) 62%,
+    rgba(255,214,140,0.50) 0%,
+    rgba(255,184,84,0.34) 20%,
+    rgba(244,167,44,0.18) 42%,
+    rgba(244,167,44,0.06) 62%,
     transparent 76%) !important;
 }
 
