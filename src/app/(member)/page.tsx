@@ -919,26 +919,11 @@ function FeedProposalsSection({ memberId, defaultOpen = true }: { memberId: stri
 // line back-to-back. We seed off member id + the calendar date so the
 // pick stays consistent through the day and rotates daily.
 const EMPTY_TRIP_NEGS: { headline: string; sub: string }[] = [
-  {
-    headline: 'Suspiciously quiet here.',
-    sub: 'Your manifest is empty. The cabin is not. Anchor a trip or take an open seat before someone else does.',
-  },
-  {
-    headline: 'We checked twice, still nothing.',
-    sub: 'The point of a private aviation club is the flying. Just saying.',
-  },
-  {
-    headline: 'Membership is wasted on the grounded.',
-    sub: 'Open seats are live. Tap below and rejoin the fun.',
-  },
-  {
-    headline: 'Your boarding pass slot is gathering dust.',
-    sub: 'Float a proposal, no risk if it doesn’t fund. Worst case: a date on the calendar.',
-  },
-  {
-    headline: 'Wayfarers don’t sit still.',
-    sub: 'A respectable adventurer’s calendar has at least one item on it. We won’t tell anyone, but consider this notice.',
-  },
+  { headline: 'Suspiciously quiet here.', sub: '' },
+  { headline: 'No trips on the board.', sub: '' },
+  { headline: 'Wayfarers don’t sit still.', sub: '' },
+  { headline: 'Empty manifest, full skies.', sub: '' },
+  { headline: 'Founders fly first.', sub: '' },
 ]
 
 function EmptyTripsNeg({ memberId, onPlan }: { memberId: string | null; onPlan: () => void }) {
@@ -949,22 +934,13 @@ function EmptyTripsNeg({ memberId, onPlan }: { memberId: string | null; onPlan: 
   const neg = EMPTY_TRIP_NEGS[h % EMPTY_TRIP_NEGS.length]
 
   return (
-    /* Compact empty state (F11) — a single tidy row instead of a tall centered
-       column, so on a brand-new member's first sign-in My Trips doesn't eat the
-       whole first screen and push the rest of the dashboard below the fold. */
-    <div className="empty" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', textAlign: 'left' }}>
-      <span style={{ flexShrink: 0, display: 'inline-flex', opacity: 0.5, color: 'var(--ink-light)' }} aria-hidden>
-        {Icons.luggage}
+    /* Compact empty state (F11) — one tight row (no icon), so a new member's
+       first sign-in doesn't let My Trips eat the screen. */
+    <div className="empty" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 14px', textAlign: 'left' }}>
+      <span style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontWeight: 500, fontSize: 16, color: 'var(--ink)', lineHeight: 1.2, minWidth: 0 }}>
+        {neg.headline}
       </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontWeight: 500, fontSize: 16, color: 'var(--ink)', lineHeight: 1.2 }}>
-          {neg.headline}
-        </div>
-        <div style={{ fontSize: 12.5, color: 'var(--ink-light)', lineHeight: 1.4, marginTop: 1 }}>
-          {neg.sub}
-        </div>
-      </div>
-      <button className="btn-primary" style={{ flexShrink: 0, height: 32, padding: '0 12px', fontSize: 12.5 }} onClick={onPlan}>
+      <button className="btn-primary" style={{ flexShrink: 0, height: 32, padding: '0 14px', fontSize: 12.5 }} onClick={onPlan}>
         Get away →
       </button>
     </div>
