@@ -5279,6 +5279,66 @@ textarea.input {
   .section-head { padding: 18px 18px 14px; }
   .section-head__actions { margin-top: 16px; }
   .section-chev { width: 26px; height: 26px; font-size: 20px; }
+
+  /* ── iPhone-Wallet deck (mobile only) ──────────────────────────────
+     Collapsed sections stack like a physical deck of cards: each one tucks
+     slightly under the card above it, recedes a hair in scale, and casts a
+     soft shadow up onto its neighbour — giving real 3-D depth. The open card
+     lifts clear of the deck and its content springs in. */
+  .feed-stack { gap: 0; }
+  .dash-cols  { gap: 0; }
+
+  .section-panel {
+    /* Each card overlaps the one above by a sliver → the deck look. */
+    margin-top: -10px;
+    border-radius: 20px;
+    /* perspective + a real shadow above the rounded top edge sells the 3-D. */
+    box-shadow:
+      0 -1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 -6px 14px -8px rgba(13, 51, 64, 0.28),
+      0 8px 20px -14px rgba(13, 51, 64, 0.45);
+    /* Collapsed cards recede very slightly so the stack reads as layered. */
+    transform: scale(0.984);
+    transform-origin: top center;
+    transition:
+      margin 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.42s ease;
+    will-change: margin, transform;
+  }
+  /* First card sits flush — nothing above it to tuck under. */
+  .feed-stack > .dash-cols:first-child .section-panel:first-child,
+  .feed-stack > .section-panel:first-child { margin-top: 0; }
+
+  /* The open card rises out of the deck: full scale, clear spacing, deep lift. */
+  .section-panel:not([data-collapsed="true"]) {
+    margin-top: 12px;
+    margin-bottom: 6px;
+    transform: scale(1);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.95) inset,
+      0 2px 8px rgba(13, 51, 64, 0.08),
+      0 26px 50px -24px rgba(13, 51, 64, 0.55);
+    position: relative;
+    z-index: 3;
+  }
+  .feed-stack > .dash-cols:first-child .section-panel:first-child:not([data-collapsed="true"]) { margin-top: 0; }
+
+  /* Content springs in each time a section opens. */
+  .section-panel:not([data-collapsed="true"]) .scroll-y,
+  .section-panel:not([data-collapsed="true"]) > .feed {
+    animation: wallet-reveal 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@keyframes wallet-reveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-panel,
+  .section-panel:not([data-collapsed="true"]) .scroll-y,
+  .section-panel:not([data-collapsed="true"]) > .feed { animation: none; transition: none; }
 }
 
 /* ─── Reserve page: Airbnb-style hero + sticky bottom CTA ─── */
