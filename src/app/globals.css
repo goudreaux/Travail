@@ -5285,8 +5285,22 @@ textarea.input {
      slightly under the card above it, recedes a hair in scale, and casts a
      soft shadow up onto its neighbour — giving real 3-D depth. The open card
      lifts clear of the deck and its content springs in. */
-  .feed-stack { gap: 0; }
+  /* Top padding absorbs the first card's negative margin so the deck doesn't
+     clip under the hero, regardless of which section is ordered first. */
+  .feed-stack { gap: 0; padding-top: 10px; }
   .dash-cols  { gap: 0; }
+
+  /* Let the two panels inside .dash-cols become direct children of the
+     flex .feed-stack so all four sections can be reordered together. */
+  .feed-stack > .dash-cols { display: contents; }
+
+  /* When the member has no trips, lead with Open Seats and push My Trips
+     below Proposals — so a first-time member sees bookable seats first.
+     Default DOM order (trips, seats, proposals, feed) holds otherwise. */
+  .feed-stack[data-no-trips="1"] [data-section="seats"]     { order: 1; }
+  .feed-stack[data-no-trips="1"] [data-section="proposals"] { order: 2; }
+  .feed-stack[data-no-trips="1"] [data-section="trips"]     { order: 3; }
+  .feed-stack[data-no-trips="1"] [data-section="feed"]      { order: 4; }
 
   .section-panel {
     /* Each card overlaps the one above by a sliver → the deck look. */
@@ -5306,10 +5320,6 @@ textarea.input {
       box-shadow 0.42s ease;
     will-change: margin, transform;
   }
-  /* First card sits flush — nothing above it to tuck under. */
-  .feed-stack > .dash-cols:first-child .section-panel:first-child,
-  .feed-stack > .section-panel:first-child { margin-top: 0; }
-
   /* The open card rises out of the deck: full scale, clear spacing, deep lift. */
   .section-panel:not([data-collapsed="true"]) {
     margin-top: 12px;
@@ -5322,7 +5332,6 @@ textarea.input {
     position: relative;
     z-index: 3;
   }
-  .feed-stack > .dash-cols:first-child .section-panel:first-child:not([data-collapsed="true"]) { margin-top: 0; }
 
   /* Content springs in each time a section opens. */
   .section-panel:not([data-collapsed="true"]) .scroll-y,

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { adaptFlight, adaptExcursion, returnLegIds, fmtMoney, airportCity, DisplayFlight, DisplayExcursion } from '@/lib/data'
 import { isPastBookingCutoff } from '@/lib/trip-timing'
@@ -131,20 +131,9 @@ export default function FeedPage() {
   const [pendingAnchorCount, setPendingAnchorCount] = useState(0)
   const supabase = createClient()
   const router = useRouter()
-
-  // Mobile-only Wallet default: collapse everything except My Trips so the
-  // member lands on a tidy stacked deck with the whole dashboard visible.
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (window.matchMedia('(max-width: 768px)').matches) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setOpenSeatsOpen(false)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFeedOpen(false)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setProposalsOpenInitial(false)
-    }
-  }, [])
+  // True once we've set the mobile collapse defaults (so we only do it once;
+  // after that the member owns the toggles).
+  const mobileDefaultsSet = useRef(false)
 
   useEffect(() => {
     async function load() {
@@ -333,6 +322,27 @@ export default function FeedPage() {
     if (!activeFeedFilterStr.split(',').includes(typeFilter)) setTypeFilter('all')
   }, [typeFilter, activeFeedFilterStr])
 
+  // Nothing on the member's board → on mobile we lead with Open Seats and drop
+  // My Trips below Proposals (CSS order), so a first-time member immediately
+  // sees bookable seats. Desktop layout is unaffected.
+  const hasNoTrips = !loading && tripItems.length === 0 && pendingAnchorCount === 0 && proposalCommits.length === 0
+
+  // Mobile-only Wallet defaults, applied once after load so we know whether the
+  // member has any trips. With trips: My Trips expanded, rest collapsed. With
+  // NO trips: Open Seats leads (expanded) so a first-time member sees bookable
+  // seats immediately; My Trips drops below Proposals (see hasNoTrips + CSS).
+  useEffect(() => {
+    if (loading || mobileDefaultsSet.current) return
+    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 768px)').matches) return
+    mobileDefaultsSet.current = true
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setMyTripsOpen(!hasNoTrips)
+    setOpenSeatsOpen(hasNoTrips)
+    setFeedOpen(false)
+    setProposalsOpenInitial(false)
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [loading, hasNoTrips])
+
   const greeting = (() => {
     const h = new Date().getHours()
     if (h < 12) return 'Good morning'
@@ -428,11 +438,11 @@ export default function FeedPage() {
 
       </section>
 
-      <div className="page-view feed-stack" style={{ display: 'flex', flexDirection: 'column', maxWidth: 1400, width: '100%' }}>
+      <div className="page-view feed-stack" data-no-trips={hasNoTrips ? '1' : '0'} style={{ display: 'flex', flexDirection: 'column', maxWidth: 1400, width: '100%' }}>
       {/* My trips (left/top) + open seats (right/bottom) */}
       <div className="dash-cols">
         {/* My Trips */}
-        <div className="panel section-panel" data-collapsed={!myTripsOpen} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
+        <div className="panel section-panel" data-section="trips" data-collapsed={!myTripsOpen} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
           <button type="button" className="panel-head section-head" onClick={() => setMyTripsOpen(o => !o)} aria-expanded={myTripsOpen}>
             <div className="section-head__main">
               <div className="section-head__eyebrow section-head__eyebrow--tropic">On the board</div>
@@ -589,7 +599,7 @@ export default function FeedPage() {
         </div>
 
         {/* Open seats */}
-        <div className="panel section-panel" data-collapsed={!openSeatsOpen} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
+        <div className="panel section-panel" data-section="seats" data-collapsed={!openSeatsOpen} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
             <button type="button" className="panel-head section-head" onClick={() => setOpenSeatsOpen(o => !o)} aria-expanded={openSeatsOpen}>
               <div className="section-head__main">
                 <div className="section-head__eyebrow section-head__eyebrow--sun">Live departures</div>
@@ -743,7 +753,7 @@ export default function FeedPage() {
 
       {/* Feed — coming soon. Header matches the other section panels
           (eyebrow + section-ttl) so it reads as a peer, not an afterthought. */}
-      <div className="panel section-panel" data-collapsed={!feedOpen} style={{ padding: 0 }}>
+      <div className="panel section-panel" data-section="feed" data-collapsed={!feedOpen} style={{ padding: 0 }}>
         <button type="button" className="panel-head section-head" onClick={() => setFeedOpen(o => !o)} aria-expanded={feedOpen}>
           <div className="section-head__main">
             <div className="section-head__eyebrow section-head__eyebrow--moss">The wire</div>
@@ -835,7 +845,7 @@ function FeedProposalsSection({ memberId, defaultOpen = true }: { memberId: stri
   ]
 
   return (
-    <div className="panel section-panel" data-collapsed={!open} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
+    <div className="panel section-panel" data-section="proposals" data-collapsed={!open} style={{ padding: 0, display: 'flex', flexDirection: 'column' }}>
       <button type="button" className="panel-head section-head" onClick={() => setOpen(o => !o)} aria-expanded={open}>
         <div className="section-head__main">
           <div className="section-head__eyebrow section-head__eyebrow--sun">Network proposals</div>
