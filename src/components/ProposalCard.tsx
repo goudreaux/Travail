@@ -124,9 +124,10 @@ export function ProposalDeadlineTag({ expiresAt }: { expiresAt: string }) {
 
   const critical = hours <= 24
 
-  // Subtle red-toned chip — soft tinted fill + red ink rather than a
-  // loud solid pill. Escalates only slightly when it's down to the last
-  // day (deeper red, faint fade) so it draws the eye without shouting.
+  // Quiet by default — when there's still runway (>2 days) it's just small,
+  // faint mono text with no chrome. Only the urgent states (≤2 days) get the
+  // tinted chip + hourglass, escalating slightly at the last day.
+  const urgent = hours <= 48
   return (
     <span style={{
       display: 'inline-flex',
@@ -134,18 +135,18 @@ export function ProposalDeadlineTag({ expiresAt }: { expiresAt: string }) {
       gap: 4,
       fontFamily: 'var(--mono)',
       fontSize: 9,
-      fontWeight: 700,
-      letterSpacing: '0.14em',
+      fontWeight: urgent ? 700 : 600,
+      letterSpacing: '0.1em',
       textTransform: 'uppercase',
-      color: critical ? '#c0341a' : '#c4452b',
-      background: critical ? 'rgba(217,78,42,0.12)' : 'rgba(217,78,42,0.07)',
-      border: `1px solid ${critical ? 'rgba(217,78,42,0.32)' : 'rgba(217,78,42,0.18)'}`,
-      padding: '2.5px 7px',
+      color: urgent ? (critical ? '#c0341a' : '#c4452b') : 'var(--ink-faint)',
+      background: urgent ? (critical ? 'rgba(217,78,42,0.12)' : 'rgba(217,78,42,0.07)') : 'transparent',
+      border: urgent ? `1px solid ${critical ? 'rgba(217,78,42,0.32)' : 'rgba(217,78,42,0.18)'}` : 'none',
+      padding: urgent ? '2.5px 7px' : '0',
       borderRadius: 5,
       animation: critical ? 'deadline-fade 1.8s ease-in-out infinite' : undefined,
       whiteSpace: 'nowrap',
     }}>
-      ⏳ {label}
+      {urgent ? '⏳ ' : ''}{label}
       <style>{`
         @keyframes deadline-fade {
           0%,100% { opacity: 1; }
