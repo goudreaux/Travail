@@ -5303,16 +5303,17 @@ textarea.input {
   .feed-stack[data-no-trips="1"] [data-section="feed"]      { order: 4; }
 
   .section-panel {
-    /* Each card overlaps the one above by a sliver → the deck look. */
-    margin-top: -10px;
+    position: relative;
+    /* Each card slides up UNDER the one above it → the deck tuck. */
+    margin-top: -16px;
     border-radius: 20px;
-    /* perspective + a real shadow above the rounded top edge sells the 3-D. */
+    /* Card casts a drop shadow DOWN onto the card tucked beneath it, so the
+       upper card reads as sitting on top of the lower one. */
     box-shadow:
-      0 -1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 -6px 14px -8px rgba(13, 51, 64, 0.28),
-      0 8px 20px -14px rgba(13, 51, 64, 0.45);
-    /* Collapsed cards recede very slightly so the stack reads as layered. */
-    transform: scale(0.984);
+      0 10px 18px -8px rgba(13, 51, 64, 0.34),
+      0 2px 5px rgba(13, 51, 64, 0.08),
+      0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    /* Each card down the deck recedes a touch (set per-position below). */
     transform-origin: top center;
     transition:
       margin 0.42s cubic-bezier(0.22, 1, 0.36, 1),
@@ -5320,17 +5321,31 @@ textarea.input {
       box-shadow 0.42s ease;
     will-change: margin, transform;
   }
-  /* The open card rises out of the deck: full scale, clear spacing, deep lift. */
+
+  /* Paint order is the whole trick: the card visually HIGHER in the stack needs
+     a higher z-index so the one below slides under it (not over it). z-index is
+     assigned by visual position, which differs between the two order modes. The
+     same scale step makes each lower card sit a hair smaller → real depth. */
+  .feed-stack[data-no-trips="0"] [data-section="trips"]     { z-index: 40; transform: scale(1.000); }
+  .feed-stack[data-no-trips="0"] [data-section="seats"]     { z-index: 30; transform: scale(0.984); }
+  .feed-stack[data-no-trips="0"] [data-section="proposals"] { z-index: 20; transform: scale(0.968); }
+  .feed-stack[data-no-trips="0"] [data-section="feed"]      { z-index: 10; transform: scale(0.952); }
+
+  .feed-stack[data-no-trips="1"] [data-section="seats"]     { z-index: 40; transform: scale(1.000); }
+  .feed-stack[data-no-trips="1"] [data-section="proposals"] { z-index: 30; transform: scale(0.984); }
+  .feed-stack[data-no-trips="1"] [data-section="trips"]     { z-index: 20; transform: scale(0.968); }
+  .feed-stack[data-no-trips="1"] [data-section="feed"]      { z-index: 10; transform: scale(0.952); }
+
+  /* The open card rises clear of the deck: full scale, top z, clear spacing. */
   .section-panel:not([data-collapsed="true"]) {
-    margin-top: 12px;
-    margin-bottom: 6px;
-    transform: scale(1);
+    margin-top: 14px;
+    margin-bottom: 8px;
+    transform: scale(1) !important;
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.95) inset,
       0 2px 8px rgba(13, 51, 64, 0.08),
       0 26px 50px -24px rgba(13, 51, 64, 0.55);
-    position: relative;
-    z-index: 3;
+    z-index: 50 !important;
   }
 
   /* Content springs in each time a section opens. */
