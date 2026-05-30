@@ -1409,6 +1409,10 @@ body::before {
 
   /* 3-D text depth against the navy + a sharp clip-reveal wipe on load. */
   .feed-hero__welcome {
+    /* Roomier line-height + bottom padding so italic descenders (g, y) and the
+       clip-reveal don't crop the bottom of the greeting. */
+    line-height: 1.18;
+    padding-bottom: 6px;
     text-shadow:
       0 1px 0 rgba(255, 220, 150, 0.24),
       0 -1px 0 rgba(0, 0, 0, 0.30),
@@ -1417,8 +1421,8 @@ body::before {
     animation: feed-welcome-wipe 0.62s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
   }
   @keyframes feed-welcome-wipe {
-    from { clip-path: inset(0 100% 0 0); transform: translateY(6px); opacity: 0; }
-    to   { clip-path: inset(0 0 0 0);    transform: translateY(0);   opacity: 1; }
+    from { clip-path: inset(0 100% 8px 0); transform: translateY(6px); opacity: 0; }
+    to   { clip-path: inset(0 0 -8px 0);   transform: translateY(0);   opacity: 1; }
   }
   .feed-hero__brief-text { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.40); }
   .feed-hero__brief-label,
