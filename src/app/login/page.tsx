@@ -1,6 +1,6 @@
 'use client'
 export const dynamic = 'force-dynamic'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 
@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [processing, setProcessing] = useState(false)
 
   // Land the member in the app. link_my_member() attaches a freshly-created
   // auth user to their pre-created member row (no-op if already linked).
@@ -31,6 +32,33 @@ export default function LoginPage() {
     await (supabase as any).rpc('link_my_member').catch(() => {})
     window.location.href = '/'
   }
+
+  // If a member clicks an emailed sign-in LINK (vs typing the code), the session
+  // arrives in the URL hash (#access_token=…&refresh_token=…). Establish it
+  // directly here and go — works no matter which one they use, and no longer
+  // dead-ends on the form with a valid token sitting unused in the URL.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const hash = window.location.hash
+    if (!hash || !hash.includes('access_token')) return
+    const hp = new URLSearchParams(hash.replace(/^#/, ''))
+    const access_token = hp.get('access_token')
+    const refresh_token = hp.get('refresh_token')
+    if (!access_token || !refresh_token) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setProcessing(true)
+    ;(async () => {
+      const { error: sErr } = await supabase.auth.setSession({ access_token, refresh_token })
+      if (sErr) {
+        setProcessing(false)
+        setError('That sign-in link didn’t work — enter your email below for a fresh code.')
+        history.replaceState(null, '', window.location.pathname)
+        return
+      }
+      await enterApp()
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function requestCode(e: React.FormEvent) {
     e.preventDefault()
@@ -127,15 +155,25 @@ export default function LoginPage() {
             {mode === 'code' ? <>Check your <em>email</em>.</> : <>Sign <em>in</em>.</>}
           </h2>
           <p className="login-form-pane__sub">
-            {mode === 'code'
+            {processing
+              ? 'Signing you in…'
+              : mode === 'code'
               ? 'Enter the 6-digit code we just sent you.'
               : mode === 'password'
               ? 'Use the email and password tied to your membership.'
               : 'Enter your email and we’ll send you a sign-in code.'}
           </p>
 
+          {/* Clicked an email sign-in link — establishing the session. */}
+          {processing && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--ink-light)', fontSize: 14, padding: '8px 0 24px' }}>
+              <span className="pending-indicator" style={{ width: 18, height: 18, borderWidth: 2 }} />
+              One moment — getting you into Travail.
+            </div>
+          )}
+
           {/* EMAIL → request a code */}
-          {mode === 'email' && (
+          {!processing && mode === 'email' && (
             <form className="login-form" onSubmit={requestCode}>
               <div className="field">
                 <label className="field-lab" htmlFor="email">Email</label>
