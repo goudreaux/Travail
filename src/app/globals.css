@@ -1291,7 +1291,7 @@ body::before {
     overflow: visible;
     box-shadow: none;
     /* Room for the continuous wash to play out before the cards. */
-    padding: max(20px, env(safe-area-inset-top)) 20px 70px;
+    padding: max(20px, env(safe-area-inset-top)) 20px 120px;
   }
   /* Kill the card's inset rim highlights (they'd draw card edges). */
   .feed-hero::after { background-image: none; }
@@ -1337,9 +1337,10 @@ body::before {
   .feed-hero__live-text,
   .feed-hero__date { text-shadow: 0 1px 1px rgba(0, 0, 0, 0.30); }
 
-  /* Pull the feed up higher so the cards start well into the wash — there's no
-     navy "gap" before them and the fade reads as continuous behind them. */
-  .feed-stack { margin-top: -96px; position: relative; z-index: 1; }
+  /* Pull the feed up into the wash, but LESS than the hero's bottom padding
+     (120px) so the cards clear the brief instead of covering it. The gap
+     between pull-up and padding is the breathing room below the brief. */
+  .feed-stack { margin-top: -72px; position: relative; z-index: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
