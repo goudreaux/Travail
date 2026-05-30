@@ -721,13 +721,19 @@ export default function FeedPage() {
           the Open Seats panel above. */}
       <FeedProposalsSection memberId={member?.id ?? null} defaultOpen={proposalsOpenInitial} />
 
-      {/* Feed — coming soon */}
-      <div className="panel" style={{ padding: 0 }}>
-        <div className="panel-head">
-          <div className="ttl" style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 500, color: 'var(--ink)' }}>
-            The <em>feed</em>
+      {/* Feed — coming soon. Header matches the other section panels
+          (eyebrow + section-ttl) so it reads as a peer, not an afterthought. */}
+      <div className="panel section-panel" style={{ padding: 0 }}>
+        <div className="panel-head section-head" style={{ cursor: 'default' }}>
+          <div className="section-head__main">
+            <div className="section-head__eyebrow section-head__eyebrow--moss">The wire</div>
+            <div className="ttl section-ttl">
+              The <em>feed</em>
+            </div>
           </div>
-          <span className="pill">Coming soon</span>
+          <div className="section-head__actions">
+            <span className="pill">Coming soon</span>
+          </div>
         </div>
         <div className="feed" style={{ padding: '16px 20px' }}>
           <div className="empty">
