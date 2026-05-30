@@ -259,24 +259,8 @@ export default function MembersPage() {
     load()
   }
 
-  // POST to the server route that emails the Supabase invite + links the account.
-  async function sendInvite(memberId: string, email: string): Promise<string | null> {
-    try {
-      const res = await fetch('/api/admin/invite-member', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId, email }),
-      })
-      const json = await res.json().catch(() => ({}))
-      return res.ok ? null : (json.error ?? 'Invite failed')
-    } catch (e) {
-      return (e as Error).message ?? 'Invite failed'
-    }
-  }
-
-  // Mint a per-member invite code and show it for copying. This is the
-  // path-of-least-resistance signup: the member opens the link, sets a
-  // password, and is dropped straight into the app — no email link involved.
+  // Mint a per-member invite code and show it for copying. This is one way in;
+  // the primary path is self-serve email-code sign-in at /login.
   async function genCode(m: Member) {
     setCodeBusy(m.id)
     try {
@@ -304,24 +288,6 @@ export default function MembersPage() {
     } catch {
       showToast('Copy failed — select and copy manually', 'error')
     }
-  }
-
-  async function inviteRow(m: Member, reinvite = false) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: sens } = await (supabase as any).rpc('admin_get_member_sensitive', { target_id: m.id })
-    const email = Array.isArray(sens) && sens[0] ? sens[0].email : null
-    if (!email) { showToast('Add an email for this member first', 'error'); return }
-    // Re-inviting a member who already has a login resets that login so they
-    // walk back through onboarding (set a new password + profile). Confirm it.
-    if (reinvite && !confirm(
-      `Send ${m.name} a fresh onboarding invite?\n\nThis resets their current login — they'll set a new password and complete onboarding from the link in their email (${email}).`
-    )) return
-    const err = await sendInvite(m.id, email)
-    showToast(
-      err ? `Invite failed: ${err}` : `Onboarding invite emailed to ${email}`,
-      err ? 'error' : 'success',
-    )
-    if (!err) load()
   }
 
   async function save() {
@@ -449,7 +415,7 @@ export default function MembersPage() {
               member_id: inserted.id,
               kind: 'system',
               title: 'Welcome to Travail',
-              body: 'Your membership is active. Watch for your invite to set up your login, then browse open seats or anchor your first trip.',
+              body: 'Your membership is active. Sign in any time with your email — we’ll send a one-time code — then browse open seats or anchor your first trip.',
               read: false,
             } as never)
           } catch (welcomeErr) {
@@ -478,12 +444,13 @@ export default function MembersPage() {
             meta: { linked_login: !!uid },
           })
         }
-        // Email a set-password invite when no login was linked manually.
-        if (inserted && emailVal && !uid) {
-          const inviteErr = await sendInvite(inserted.id, emailVal)
-          showToast(inviteErr ? `Member created, invite failed: ${inviteErr}` : `Member created, invite emailed to ${emailVal}`, inviteErr ? 'error' : 'success')
+        // No invite to send — members sign in themselves with an email code.
+        if (uid) {
+          showToast('Member created, login linked')
+        } else if (emailVal) {
+          showToast('Member created — they sign in at the login page with this email')
         } else {
-          showToast(uid ? 'Member created, login linked' : 'Member created, add an email to send an invite, or a User ID to link manually')
+          showToast('Member created, add an email so they can sign in')
         }
       }
 
@@ -829,27 +796,6 @@ export default function MembersPage() {
                         >
                           {codeBusy === m.id ? 'Code…' : 'Code'}
                         </button>
-                      )}
-                      {contactPresence[m.id]?.has_email && (
-                        (!m.user_id || m.user_id === PLACEHOLDER_USER_ID) ? (
-                          <button
-                            className="btn-ghost"
-                            style={{ height: 28, padding: '0 10px', fontSize: 12 }}
-                            title="Email an onboarding invite — they set a password and complete their profile"
-                            onClick={() => inviteRow(m)}
-                          >
-                            Invite
-                          </button>
-                        ) : (
-                          <button
-                            className="btn-ghost"
-                            style={{ height: 28, padding: '0 10px', fontSize: 12 }}
-                            title="Reset this member's login and send a fresh onboarding invite"
-                            onClick={() => inviteRow(m, true)}
-                          >
-                            Re-invite
-                          </button>
-                        )
                       )}
                       <button
                         className="btn-ghost"
