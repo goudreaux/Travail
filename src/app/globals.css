@@ -1315,7 +1315,7 @@ body::before {
   .feed-hero__topline { margin-bottom: 14px; }
   .feed-hero__date { font-size: 9.5px; }
   /* Larger, more commanding greeting (brief stays its size). */
-  .feed-hero__welcome { font-size: 38px; }
+  .feed-hero__welcome { font-size: 33px; }
   /* Keep the brief from changing the hero height when it wraps to 2 lines:
      reserve fixed space and clip, so the layout below never jumps. */
   .feed-hero__brief { flex-direction: column; gap: 6px; align-items: flex-start; height: 52px; min-height: 52px; overflow: hidden; }
