@@ -18,6 +18,7 @@ export default function PageHero({
   actions,
   metric,
   accent = 'teal',
+  sansTitle = false,
   children,
 }: {
   eyebrow?: React.ReactNode
@@ -26,6 +27,8 @@ export default function PageHero({
   actions?: React.ReactNode
   metric?: HeroMetric
   accent?: HeroAccent
+  /** Render the title in Inter (sans) instead of the display serif. */
+  sansTitle?: boolean
   children?: React.ReactNode
 }) {
   return (
@@ -35,7 +38,7 @@ export default function PageHero({
       <div className="page-hero__inner">
         <div style={{ flex: 1, minWidth: 0 }}>
           {eyebrow && <div className="mono page-hero__eyebrow">{eyebrow}</div>}
-          <h1 className="page-hero__title">{title}</h1>
+          <h1 className={`page-hero__title${sansTitle ? ' page-hero__title--sans' : ''}`}>{title}</h1>
           {sub && <div className="page-hero__sub">{sub}</div>}
           {children}
         </div>

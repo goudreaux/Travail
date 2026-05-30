@@ -406,6 +406,7 @@ export default function BookingsPage() {
     <div className="page">
       <PageHero
         accent="moss"
+        sansTitle
         eyebrow="YOUR ACTIVITY"
         title="Bookings & Anchors"
         sub={loading

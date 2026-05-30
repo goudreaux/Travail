@@ -66,6 +66,7 @@ export default function ProposalsPage() {
     <div className="page">
       <PageHero
         accent="sun"
+        sansTitle
         eyebrow="TRIP PROPOSALS · NO RISK"
         title={proposals.length > 0 ? `${proposals.length} live proposal${proposals.length === 1 ? '' : 's'}` : 'No live proposals right now'}
         sub="Member-pitched trips waiting on the network to commit. If a proposal hits its minimum 5 days before takeoff, it locks in and everyone pays. If not, nobody pays."
