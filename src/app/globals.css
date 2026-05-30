@@ -1280,19 +1280,59 @@ body::before {
 }
 
 @media (max-width: 768px) {
+  /* Full-bleed hero on phones: drop the card (no radius/shadow/clip), run the
+     navy edge-to-edge, and let it melt into the cream page below. */
   .feed-hero {
-    margin: 16px 16px 0;
-    padding: 22px 20px 18px;
-    border-radius: 18px;
+    margin: 0;
+    /* Break out to the full viewport width from inside the padded .page. */
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: none;
+    /* Room for a long, deep fade — roughly the bottom third washes out. */
+    padding: max(20px, env(safe-area-inset-top)) 20px 92px;
+  }
+  /* Kill the card's inset rim highlights (they'd draw card edges). */
+  .feed-hero::after { background-image: none; }
+  /* The melt: navy dissolves into the page bg over a tall, prolonged gradient
+     (~rule of thirds) so there's no seam between hero and feed. */
+  .feed-hero::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 38%;
+    background: linear-gradient(to bottom, transparent, var(--bg) 96%);
+    pointer-events: none;
+    z-index: 1;
   }
   .feed-hero__topline { margin-bottom: 14px; }
   .feed-hero__date { font-size: 9.5px; }
   .feed-hero__welcome { font-size: 28px; }
-  .feed-hero__brief { flex-direction: column; gap: 6px; align-items: flex-start; }
+  /* Keep the brief from changing the hero height when it wraps to 2 lines:
+     reserve fixed space and clip, so the layout below never jumps. */
+  .feed-hero__brief { flex-direction: column; gap: 6px; align-items: flex-start; height: 52px; min-height: 52px; overflow: hidden; }
   .feed-hero__brief-text { font-size: 13.5px; line-height: 1.45; }
   .feed-hero__next { padding: 11px 14px; gap: 10px; }
   .feed-hero__next-name { font-size: 14.5px; }
   .feed-hero__next-when { display: none; }
+
+  /* 3-D text depth against the navy — raised/embossed greeting + labels. */
+  .feed-hero__welcome {
+    text-shadow:
+      0 1px 0 rgba(255, 220, 150, 0.22),
+      0 -1px 0 rgba(0, 0, 0, 0.28),
+      0 3px 6px rgba(0, 0, 0, 0.42),
+      0 8px 18px rgba(0, 0, 0, 0.30);
+  }
+  .feed-hero__brief-text { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.40); }
+  .feed-hero__brief-label,
+  .feed-hero__live-text,
+  .feed-hero__date { text-shadow: 0 1px 1px rgba(0, 0, 0, 0.30); }
+
+  /* Pull the feed up so its first card slides under the fade (the melt
+     overlaps content rather than leaving a navy gap). */
+  .feed-stack { margin-top: -48px; position: relative; z-index: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
