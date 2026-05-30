@@ -949,23 +949,24 @@ function EmptyTripsNeg({ memberId, onPlan }: { memberId: string | null; onPlan: 
   const neg = EMPTY_TRIP_NEGS[h % EMPTY_TRIP_NEGS.length]
 
   return (
-    <div className="empty" style={{ padding: '18px 20px 16px', textAlign: 'center' }}>
-      {/* Compact empty state (F11) — with no upcoming trips this used to eat
-          the whole first screen and push Open Seats below the fold. */}
-      <span style={{ display: 'inline-block', opacity: 0.5, transform: 'scale(1.2)', color: 'var(--ink-light)' }} aria-hidden>
+    /* Compact empty state (F11) — a single tidy row instead of a tall centered
+       column, so on a brand-new member's first sign-in My Trips doesn't eat the
+       whole first screen and push the rest of the dashboard below the fold. */
+    <div className="empty" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', textAlign: 'left' }}>
+      <span style={{ flexShrink: 0, display: 'inline-flex', opacity: 0.5, color: 'var(--ink-light)' }} aria-hidden>
         {Icons.luggage}
       </span>
-      <h3 style={{ marginTop: 8, fontFamily: 'var(--display)', fontStyle: 'italic', fontWeight: 500 }}>
-        {neg.headline}
-      </h3>
-      <p style={{ maxWidth: 360, margin: '4px auto 12px', lineHeight: 1.5, fontSize: 13 }}>
-        {neg.sub}
-      </p>
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <button className="btn-primary" style={{ background: 'var(--sun)' }} onClick={onPlan}>
-          Get away →
-        </button>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: 'var(--display)', fontStyle: 'italic', fontWeight: 500, fontSize: 16, color: 'var(--ink)', lineHeight: 1.2 }}>
+          {neg.headline}
+        </div>
+        <div style={{ fontSize: 12.5, color: 'var(--ink-light)', lineHeight: 1.4, marginTop: 1 }}>
+          {neg.sub}
+        </div>
       </div>
+      <button className="btn-primary" style={{ flexShrink: 0, height: 32, padding: '0 12px', fontSize: 12.5 }} onClick={onPlan}>
+        Get away →
+      </button>
     </div>
   )
 }
