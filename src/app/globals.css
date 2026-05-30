@@ -827,7 +827,50 @@ body::before {
 }
 
 @media (max-width: 768px) {
-  .page-hero { margin: 16px 16px 0; border-radius: 16px; padding: 22px 20px; }
+  /* Full-bleed navy hero on phones — consistent with the feed hero: no card,
+     navy runs edge-to-edge and melts into the cream over one continuous wash,
+     with embossed text. The page content below is pulled up into the wash. */
+  .page-hero {
+    margin: 0;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: none;
+    padding: max(22px, env(safe-area-inset-top)) 20px 110px;
+  }
+  /* Drop the card's hairline texture (would draw card edges). */
+  .page-hero::before { background-image: none; }
+  /* Continuous top-to-bottom melt (no visible "start" point) into the page bg. */
+  .page-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom,
+      transparent 0%,
+      transparent 28%,
+      color-mix(in srgb, var(--bg) 35%, transparent) 62%,
+      color-mix(in srgb, var(--bg) 80%, transparent) 84%,
+      var(--bg) 100%);
+    z-index: 0;
+  }
+  /* Embossed text depth against the navy. */
+  .page-hero__title {
+    text-shadow:
+      0 1px 0 rgba(255, 220, 150, 0.22),
+      0 -1px 0 rgba(0, 0, 0, 0.28),
+      0 3px 6px rgba(0, 0, 0, 0.42),
+      0 8px 18px rgba(0, 0, 0, 0.30);
+  }
+  .page-hero__eyebrow,
+  .page-hero__sub { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+  /* Keep hero content + glows above the fade overlay. */
+  .page-hero__inner { position: relative; z-index: 2; }
+  .page-hero__glow { z-index: 1; }
+  /* Pull the page content up into the wash, clear of the hero text. */
+  .page-hero + .page-view { margin-top: -64px; position: relative; z-index: 1; }
+
   /* Stack title / metric / actions on mobile so long labels or a search
      input don't get crammed onto a single row with the title. */
   .page-hero__inner {
