@@ -280,26 +280,29 @@ export default function MembersPage() {
     }
   }
 
-  // Email the member their invitation link directly (branded, via Resend).
-  // They tap "Set up your account" → /join → set a password → in.
-  async function emailInvite(m: Member) {
-    setCodeBusy(m.id)
+  // Email a member their invitation link (branded, via Resend). Returns the
+  // result so callers can decide how to surface it. They tap "Set up your
+  // account" → /join → set a password → in.
+  async function sendEmailInvite(memberId: string): Promise<{ ok: boolean; email?: string; error?: string }> {
     try {
       const res = await fetch('/api/admin/email-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId: m.id }),
+        body: JSON.stringify({ memberId }),
       })
       const json = await res.json().catch(() => ({}))
-      showToast(
-        res.ok && json.ok ? `Invite emailed to ${json.email}` : (json.error ?? 'Could not email invite'),
-        res.ok && json.ok ? 'success' : 'error',
-      )
+      return res.ok && json.ok ? { ok: true, email: json.email } : { ok: false, error: json.error ?? 'Could not email invite' }
     } catch (e) {
-      showToast((e as Error).message ?? 'Could not email invite', 'error')
-    } finally {
-      setCodeBusy(null)
+      return { ok: false, error: (e as Error).message ?? 'Could not email invite' }
     }
+  }
+
+  // Row action: email the invite, with a toast.
+  async function emailInvite(m: Member) {
+    setCodeBusy(m.id)
+    const r = await sendEmailInvite(m.id)
+    setCodeBusy(null)
+    showToast(r.ok ? `Invite emailed to ${r.email}` : (r.error ?? 'Could not email invite'), r.ok ? 'success' : 'error')
   }
 
   async function copyText(text: string, which: 'code' | 'link') {
@@ -466,11 +469,14 @@ export default function MembersPage() {
             meta: { linked_login: !!uid },
           })
         }
-        // No invite to send — members sign in themselves with an email code.
+        // Adding a member with an email IS inviting them: auto-email the invite
+        // link so ops doesn't need a second click. Linked-login or no-email
+        // cases have nothing to send.
         if (uid) {
           showToast('Member created, login linked')
-        } else if (emailVal) {
-          showToast('Member created — they sign in at the login page with this email')
+        } else if (emailVal && inserted) {
+          const r = await sendEmailInvite(inserted.id)
+          showToast(r.ok ? `Member created — invite emailed to ${r.email}` : `Member created, but invite email failed: ${r.error}`, r.ok ? 'success' : 'error')
         } else {
           showToast('Member created, add an email so they can sign in')
         }
