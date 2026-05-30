@@ -336,10 +336,12 @@ export default function FeedPage() {
     if (typeof window === 'undefined' || !window.matchMedia('(max-width: 768px)').matches) return
     mobileDefaultsSet.current = true
     /* eslint-disable react-hooks/set-state-in-effect */
-    setMyTripsOpen(!hasNoTrips)
-    setOpenSeatsOpen(hasNoTrips)
-    setFeedOpen(false)
+    // Sharper first impression: My Trips collapsed, "The feed" (the wire)
+    // expanded; Open Seats / Proposals collapsed. (Was My Trips-first.)
+    setMyTripsOpen(false)
+    setOpenSeatsOpen(false)
     setProposalsOpenInitial(false)
+    setFeedOpen(true)
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [loading, hasNoTrips])
 

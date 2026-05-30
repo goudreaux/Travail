@@ -1359,7 +1359,9 @@ body::before {
   .feed-hero__topline { margin-bottom: 14px; }
   .feed-hero__date { font-size: 9.5px; }
   /* Larger, more commanding greeting (brief stays its size). */
-  .feed-hero__welcome { font-size: 33px; }
+  /* Sharper look: greeting in Inter (not the display serif), upright + tight. */
+  .feed-hero__welcome { font-family: var(--ui); font-style: normal; font-weight: 600; font-size: 30px; letter-spacing: -0.02em; }
+  .feed-hero__welcome em { font-style: normal; }
   /* Keep the brief from changing the hero height when it wraps to 2 lines:
      reserve fixed space and clip, so the layout below never jumps. */
   .feed-hero__brief { flex-direction: column; gap: 6px; align-items: flex-start; height: 52px; min-height: 52px; overflow: hidden; }
@@ -5372,7 +5374,9 @@ textarea.input {
 @media (max-width: 768px) {
   /* Match the .feed-hero__welcome greeting size on phones so the
      feed page's headers stay visually consistent (was 30px). */
-  .section-ttl { font-size: 28px; }
+  /* Sharper look: section headers in Inter (not the display serif). */
+  .section-ttl { font-family: var(--ui); font-weight: 600; font-size: 24px; letter-spacing: -0.02em; }
+  .section-ttl em { font-style: normal; }
   .section-head { padding: 18px 18px 14px; }
   .section-head__actions { margin-top: 16px; }
   .section-chev { width: 26px; height: 26px; font-size: 20px; }
