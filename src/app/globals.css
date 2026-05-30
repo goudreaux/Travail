@@ -5228,32 +5228,20 @@ textarea.input {
 /* ─── Fading top bar (mobile) ──────────────────────────────── */
 
 @media (max-width: 768px) {
-  /* Solid white top bar on mobile — gives the brand wordmark a clean
-     paper-like backdrop instead of bleeding into the cream page color.
-     The faint hairline + scrim below preserve the "tucks under the bar"
-     feel without the original cream gradient. */
+  /* Mobile top bar fades from solid white at the top to fully translucent at
+     its bottom edge, so it dissolves into the page rather than ending on a
+     hard line. No separate glow/scrim. */
   .topbar {
-    background: #ffffff;
+    background: linear-gradient(180deg,
+      #ffffff 0%,
+      #ffffff 42%,
+      rgba(255, 255, 255, 0.72) 72%,
+      rgba(255, 255, 255, 0) 100%);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    border-bottom: 1px solid rgba(13, 51, 64, 0.06);
+    border-bottom: none;
   }
-  /* Taller, smoother translucent fade so the white bar dissolves gradually
-     into the page below instead of ending on a hard edge. */
-  .topbar::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 100%;
-    height: 36px;
-    background: linear-gradient(180deg,
-      rgba(255, 255, 255, 0.85) 0%,
-      rgba(255, 255, 255, 0.55) 35%,
-      rgba(255, 255, 255, 0.25) 65%,
-      rgba(255, 255, 255, 0) 100%);
-    pointer-events: none;
-  }
+  .topbar::after { content: none; }
 }
 
 /* ─── Top bar brand lockup ─────────────────────────────────── */
@@ -5502,6 +5490,12 @@ textarea.input {
     background: none !important;
     box-shadow: none !important;
   }
+  /* VIEW ALL / status text takes the section's secondary accent (matches the
+     two-tone title accent word). */
+  [data-section="trips"]     .section-head .pill { color: color-mix(in srgb, var(--tropic-d) 60%, var(--ink)) !important; }
+  [data-section="seats"]     .section-head .pill { color: color-mix(in srgb, var(--sun-d) 60%, var(--ink)) !important; }
+  [data-section="proposals"] .section-head .pill { color: color-mix(in srgb, var(--sun-d) 60%, var(--ink)) !important; }
+  [data-section="feed"]      .section-head .pill { color: color-mix(in srgb, var(--moss) 64%, var(--ink)) !important; }
   .section-head { padding: 18px 18px 14px; }
   .section-head__actions { margin-top: 16px; }
   .section-chev { width: 26px; height: 26px; font-size: 20px; }

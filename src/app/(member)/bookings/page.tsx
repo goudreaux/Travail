@@ -412,11 +412,6 @@ export default function BookingsPage() {
         sub={loading
           ? 'Loading your activity…'
           : `${activeBookings.length} active booking${activeBookings.length !== 1 ? 's' : ''}${confirmedCount > 0 ? ` · ${confirmedCount} confirmed` : ''}${pendingCount > 0 ? ` · ${pendingCount} pending` : ''}${activeAnchors.length > 0 ? ` · ${activeAnchors.length} active anchor${activeAnchors.length !== 1 ? 's' : ''}` : ''}`}
-        metric={loading ? undefined : {
-          value: activeBookings.length,
-          label: 'Active trips',
-          sub: 'On the board',
-        }}
       />
 
       <div className="page-view">

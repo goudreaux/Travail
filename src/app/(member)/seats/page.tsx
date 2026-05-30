@@ -576,7 +576,6 @@ export default function SeatsPage() {
         sansTitle
         title="Open Seats"
         sub={loading ? 'Loading available departures…' : `Hop on: ${totalOpen} departure${totalOpen !== 1 ? 's' : ''} with open availability`}
-        metric={loading ? undefined : { value: totalOpen, label: 'Live', sub: 'Departures' }}
       />
 
       <div className="page-view" style={{ maxWidth: 716 }}>
