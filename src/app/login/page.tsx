@@ -16,12 +16,16 @@ export default function LoginPage() {
   const [processing, setProcessing] = useState(false)
 
   // Land the member in the app. link_my_member() attaches a freshly-created
-  // auth user to their pre-created member row (no-op if already linked).
+  // auth user to their pre-created member row (no-op if already linked) — but
+  // we must NEVER let it block the redirect, or a slow/hanging RPC leaves the
+  // member stuck on "Signing in…". Fire it best-effort with a short timeout and
+  // redirect regardless; the feed page also self-heals the link on load.
   async function enterApp() {
-    // link_my_member() isn't in the generated RPC types — cast as the codebase
-    // does elsewhere for untyped RPCs.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).rpc('link_my_member').catch(() => {})
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const link = (supabase as any).rpc('link_my_member').catch(() => {})
+      await Promise.race([link, new Promise(r => setTimeout(r, 1500))])
+    } catch { /* ignore — redirect anyway */ }
     window.location.href = '/'
   }
 
