@@ -117,11 +117,13 @@ export default function FeedPage() {
   // sees the whole board the moment they log in, mobile included.
   // (When the board scales to many trips we can revisit collapsing
   // Open Seats / Proposals on mobile first-load to keep it scannable.)
+  // Wallet-style sections. Each is independently collapsible. On DESKTOP every
+  // section starts expanded (the columns layout). On MOBILE we want the iPhone
+  // Wallet feel: My Trips expanded, the rest collapsed + tightly stacked — set
+  // in the mount effect below so SSR/desktop are unaffected.
   const [myTripsOpen, setMyTripsOpen] = useState(true)
   const [openSeatsOpen, setOpenSeatsOpen] = useState(true)
-  // The proposals panel below renders its own collapse state — we lift
-  // the initial value here so the feed controls its default. Open on
-  // every viewport for now.
+  const [feedOpen, setFeedOpen] = useState(true)
   const [proposalsOpenInitial, setProposalsOpenInitial] = useState(true)
   // How many in-flight anchor submissions the pending-anchors strip
   // rendered. When > 0 we suppress the "nothing on the books" neg even
@@ -129,6 +131,20 @@ export default function FeedPage() {
   const [pendingAnchorCount, setPendingAnchorCount] = useState(0)
   const supabase = createClient()
   const router = useRouter()
+
+  // Mobile-only Wallet default: collapse everything except My Trips so the
+  // member lands on a tidy stacked deck with the whole dashboard visible.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOpenSeatsOpen(false)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFeedOpen(false)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProposalsOpenInitial(false)
+    }
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -412,7 +428,7 @@ export default function FeedPage() {
 
       </section>
 
-      <div className="page-view" style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1400, width: '100%' }}>
+      <div className="page-view feed-stack" style={{ display: 'flex', flexDirection: 'column', maxWidth: 1400, width: '100%' }}>
       {/* My trips (left/top) + open seats (right/bottom) */}
       <div className="dash-cols">
         {/* My Trips */}
@@ -425,7 +441,11 @@ export default function FeedPage() {
               </div>
             </div>
             <div className="section-head__actions">
-              <span className="pill moss pill-pulse">
+              <span
+                className="pill moss pill-pulse"
+                onClick={(e) => { e.stopPropagation(); router.push('/bookings') }}
+                style={{ cursor: 'pointer' }}
+              >
                 <span className="pill-pulse__dot" aria-hidden />
                 {tripItems.length} UPCOMING
               </span>
@@ -723,8 +743,8 @@ export default function FeedPage() {
 
       {/* Feed — coming soon. Header matches the other section panels
           (eyebrow + section-ttl) so it reads as a peer, not an afterthought. */}
-      <div className="panel section-panel" style={{ padding: 0 }}>
-        <div className="panel-head section-head" style={{ cursor: 'default' }}>
+      <div className="panel section-panel" data-collapsed={!feedOpen} style={{ padding: 0 }}>
+        <button type="button" className="panel-head section-head" onClick={() => setFeedOpen(o => !o)} aria-expanded={feedOpen}>
           <div className="section-head__main">
             <div className="section-head__eyebrow section-head__eyebrow--moss">The wire</div>
             <div className="ttl section-ttl">
@@ -733,9 +753,10 @@ export default function FeedPage() {
           </div>
           <div className="section-head__actions">
             <span className="pill">Coming soon</span>
+            <span className="section-chev" aria-hidden>›</span>
           </div>
-        </div>
-        <div className="feed" style={{ padding: '16px 20px' }}>
+        </button>
+        <div className="feed" style={{ padding: '16px 20px', display: feedOpen ? 'block' : 'none' }}>
           <div className="empty">
             <svg width="40" height="40" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 11a7 7 0 0 1 7 7" /><path d="M4 5a13 13 0 0 1 13 13" /><circle cx="4.5" cy="17.5" r="1.2" fill="currentColor" stroke="none" />
