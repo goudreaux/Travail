@@ -1382,8 +1382,8 @@ body::before {
 
   /* Pull the feed up into the wash, but LESS than the hero's bottom padding
      (120px) so the cards clear the brief instead of covering it. The gap
-     between pull-up and padding is the breathing room below the brief. */
-  .feed-stack { margin-top: -72px; position: relative; z-index: 1; }
+     between pull-up and padding (~28px) is the breathing room below the brief. */
+  .feed-stack { margin-top: -92px; position: relative; z-index: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
