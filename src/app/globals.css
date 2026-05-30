@@ -727,6 +727,18 @@ body::before {
 .page-hero__glow--primary { top: -220px; right: -220px; width: 440px; height: 440px; filter: blur(4px); }
 .page-hero__glow--secondary { bottom: -140px; left: -50px; width: 340px; height: 340px; filter: blur(10px); }
 
+/* Consistent, pronounced warm "sun" in the top-RIGHT of every navy header,
+   regardless of accent — overrides the per-accent primary glow below so the
+   golden glow is uniform across Seats/Proposals/Network/Membership/etc. */
+.page-hero .page-hero__glow--primary {
+  background: radial-gradient(circle at 50% 50%,
+    rgba(255,214,140,0.82) 0%,
+    rgba(255,184,84,0.58) 20%,
+    rgba(244,167,44,0.32) 42%,
+    rgba(244,167,44,0.10) 62%,
+    transparent 76%) !important;
+}
+
 /* Accent palettes — each page picks one so the navigation has color
    memory. The default --teal swaps primary/secondary: warm sun in
    the top-right (the brand "Get Away" sun), cool teal counter-light
@@ -785,6 +797,29 @@ body::before {
 }
 /* Inter (sans) title variant — used on Open Seats / Proposals / My Trips. */
 .page-hero__title--sans { font-family: var(--ui); }
+
+/* A real (non-ghost) action button inside a navy hero — e.g. "Mark all read".
+   White outline on the navy; exempt from the mobile ghost-action flattening. */
+.page-hero__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.30);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.08s;
+}
+.page-hero__btn:hover { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.5); }
+.page-hero__btn:active { transform: translateY(1px); }
 .page-hero__sub { font-size: 14px; color: rgba(255,255,255,0.62); margin-top: 10px; }
 .page-hero__actions { position: relative; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
@@ -1121,11 +1156,11 @@ body::before {
   width: 440px;
   height: 440px;
   background: radial-gradient(circle at 50% 50%,
-    rgba(255, 210, 130, 0.65) 0%,
-    rgba(255, 180, 80, 0.45) 18%,
-    rgba(244, 167, 44, 0.22) 40%,
-    rgba(244, 167, 44, 0.06) 60%,
-    transparent 75%
+    rgba(255, 214, 140, 0.82) 0%,
+    rgba(255, 184, 84, 0.58) 20%,
+    rgba(244, 167, 44, 0.32) 42%,
+    rgba(244, 167, 44, 0.10) 62%,
+    transparent 76%
   );
   filter: blur(4px);
   animation: feed-hero-pulse 9s ease-in-out infinite;
@@ -5145,10 +5180,11 @@ textarea.input {
   .next-up__name { font-size: 12.5px; }
   .next-up__date { font-size: 11px; padding: 2px 8px; }
 
-  /* Ghost actions: header buttons become plain mono text, no shaded box. */
-  .page-hero__actions .btn-ghost,
-  .page-hero__actions .pill,
-  .page-hero__actions button:not(.btn-primary) {
+  /* Ghost actions: header buttons become plain mono text, no shaded box.
+     (Real buttons like .page-hero__btn opt out.) */
+  .page-hero__actions .btn-ghost:not(.page-hero__btn),
+  .page-hero__actions .pill:not(.page-hero__btn),
+  .page-hero__actions button:not(.btn-primary):not(.page-hero__btn) {
     background: none !important;
     border: none !important;
     box-shadow: none !important;
@@ -5202,14 +5238,20 @@ textarea.input {
     -webkit-backdrop-filter: none;
     border-bottom: 1px solid rgba(13, 51, 64, 0.06);
   }
+  /* Taller, smoother translucent fade so the white bar dissolves gradually
+     into the page below instead of ending on a hard edge. */
   .topbar::after {
     content: "";
     position: absolute;
     left: 0;
     right: 0;
     top: 100%;
-    height: 14px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+    height: 36px;
+    background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.85) 0%,
+      rgba(255, 255, 255, 0.55) 35%,
+      rgba(255, 255, 255, 0.25) 65%,
+      rgba(255, 255, 255, 0) 100%);
     pointer-events: none;
   }
 }

@@ -72,9 +72,9 @@ export default function NotificationsPage() {
         eyebrow="THE NETWORK"
         title="Notifications"
         sub={loading ? 'Loading…' : unread > 0 ? `${unread} unread` : 'You’re all caught up.'}
-        metric={loading ? undefined : { value: unread, label: 'Unread', sub: 'Latest first' }}
+        metric={loading || unread === 0 ? undefined : { value: unread, label: 'unread' }}
         actions={unread > 0 ? (
-          <button className="btn-ghost" onClick={markAllRead}>Mark all read</button>
+          <button className="page-hero__btn" onClick={markAllRead}>Mark all read</button>
         ) : undefined}
       />
 
