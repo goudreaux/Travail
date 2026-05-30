@@ -837,7 +837,7 @@ body::before {
     border-radius: 0;
     overflow: visible;
     box-shadow: none;
-    padding: max(22px, env(safe-area-inset-top)) 20px 110px;
+    padding: max(22px, env(safe-area-inset-top)) 20px 56px;
   }
   /* Drop the card's hairline texture (would draw card edges). */
   .page-hero::before { background-image: none; }
@@ -868,8 +868,9 @@ body::before {
   /* Keep hero content + glows above the fade overlay. */
   .page-hero__inner { position: relative; z-index: 2; }
   .page-hero__glow { z-index: 1; }
-  /* Pull the page content up into the wash, clear of the hero text. */
-  .page-hero + .page-view { margin-top: -64px; position: relative; z-index: 1; }
+  /* Pull the page content up just into the tail of the wash — small, so it
+     never overlaps the hero's own title/metric/actions content. */
+  .page-hero + .page-view { margin-top: -28px; position: relative; z-index: 1; }
 
   /* Stack title / metric / actions on mobile so long labels or a search
      input don't get crammed onto a single row with the title. */
