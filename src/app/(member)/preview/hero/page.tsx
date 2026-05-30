@@ -120,20 +120,27 @@ export default function HeroPreview() {
           70% { box-shadow: 0 0 0 8px rgba(0,179,199,0); }
           100% { box-shadow: 0 0 0 0 rgba(0,179,199,0); }
         }
-        .hp-live__text { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.62); }
-        .hp-date { font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; color: rgba(255,255,255,0.4); }
+        .hp-live__text { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.62); text-shadow: 0 1px 1px rgba(0,0,0,0.30); }
+        .hp-date { font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; color: rgba(255,255,255,0.4); text-shadow: 0 1px 1px rgba(0,0,0,0.30); }
 
         .hp-welcome {
           font-family: var(--display); font-style: italic; font-weight: 500; color: #fff;
           margin: 0; line-height: 1.05; letter-spacing: -0.018em; font-size: 32px;
+          /* 3-D emboss: a soft warm highlight lifts the glyph off the navy,
+             a deep shadow carves it below — so the letters read as raised. */
+          text-shadow:
+            0 1px 0 rgba(255, 220, 150, 0.22),
+            0 -1px 0 rgba(0, 0, 0, 0.28),
+            0 3px 6px rgba(0, 0, 0, 0.42),
+            0 8px 18px rgba(0, 0, 0, 0.30);
         }
         .hp-rule {
           height: 1px; margin: 16px 0 14px;
           background: linear-gradient(90deg, rgba(0,179,199,0.55), rgba(255,255,255,0.08) 60%, transparent);
         }
         .hp-brief { display: flex; align-items: baseline; gap: 14px; min-height: 22px; }
-        .hp-brief__label { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--tropic); flex-shrink: 0; font-weight: 600; }
-        .hp-brief__text { font-size: 14px; color: rgba(255,255,255,0.85); letter-spacing: -0.005em; animation: hp-swap 0.55s ease both; }
+        .hp-brief__label { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--tropic); flex-shrink: 0; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+        .hp-brief__text { font-size: 14px; color: rgba(255,255,255,0.85); letter-spacing: -0.005em; animation: hp-swap 0.55s ease both; text-shadow: 0 1px 2px rgba(0,0,0,0.40), 0 0 1px rgba(0,0,0,0.30); }
         @keyframes hp-swap { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
 
         /* Feed body — pulled up under the fade so the melt overlaps the cards. */
