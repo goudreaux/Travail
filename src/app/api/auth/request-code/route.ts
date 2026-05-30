@@ -29,10 +29,12 @@ export async function POST(request: NextRequest) {
   if (!serviceKey) return NextResponse.json({ error: 'Server not configured.' }, { status: 500 })
 
   // Is this email on file for a member? (member_sensitive is RLS-protected, so
-  // this lookup needs the service role.)
+  // this lookup needs the service role.) Escape LIKE metacharacters — `_` and
+  // `%` are valid in email local-parts but would act as ilike wildcards.
   const admin = createClient<Database>(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } })
+  const likePattern = email.replace(/([\\%_])/g, '\\$1')
   const { data: rows } = await admin
-    .from('member_sensitive').select('member_id').ilike('email', email).limit(1)
+    .from('member_sensitive').select('member_id').ilike('email', likePattern).limit(1)
   const isMember = !!(rows && rows.length > 0)
 
   if (isMember) {

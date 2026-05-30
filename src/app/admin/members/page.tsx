@@ -431,10 +431,13 @@ export default function MembersPage() {
             // and Ops can re-enter contact details from the edit form.
           }
         }
-        // Welcome the new member in-app; when they have an email on file this
-        // also auto-sends the welcome via the notify-email webhook. Best-effort —
-        // never block member creation on it.
-        if (inserted) {
+        // Welcome the new member in-app. The notify-email Edge Function emails
+        // EVERY notification, so we skip this when we're about to auto-send the
+        // invite below (emailVal && !uid) — otherwise the member gets two emails,
+        // and the welcome's "Open Travail" CTA would bounce them to login before
+        // they've even set up. Best-effort — never block member creation on it.
+        const willAutoInvite = !!emailVal && !uid
+        if (inserted && !willAutoInvite) {
           try {
             await supabase.from('notifications').insert({
               member_id: inserted.id,
