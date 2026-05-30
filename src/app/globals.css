@@ -5401,15 +5401,18 @@ textarea.input {
   [data-section="proposals"] .section-ttl em { color: color-mix(in srgb, var(--sun-d) 60%, var(--ink)); }
   [data-section="feed"]      .section-ttl em { color: color-mix(in srgb, var(--moss) 64%, var(--ink)); }
 
-  /* Sharper, slimmer header pills in JetBrains mono (less clunky). */
+  /* Ghost buttons in the section headers — just colored mono text, no shaded
+     box (no fill, border, or shadow). Sharper, less clunky. */
   .section-head .pill {
     font-family: var(--mono);
     font-weight: 500;
     font-size: 9.5px;
     letter-spacing: 0.06em;
-    height: 24px;
-    padding: 0 11px;
-    border-radius: 7px;
+    height: auto;
+    padding: 2px 2px;
+    border-radius: 0;
+    background: none !important;
+    box-shadow: none !important;
   }
   .section-head { padding: 18px 18px 14px; }
   .section-head__actions { margin-top: 16px; }
