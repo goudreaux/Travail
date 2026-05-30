@@ -1359,9 +1359,9 @@ body::before {
   .feed-hero__topline { margin-bottom: 14px; }
   .feed-hero__date { font-size: 9.5px; }
   /* Larger, more commanding greeting (brief stays its size). */
-  /* Sharper look: greeting in Inter (not the display serif), upright + tight. */
-  .feed-hero__welcome { font-family: var(--ui); font-style: normal; font-weight: 600; font-size: 30px; letter-spacing: -0.02em; }
-  .feed-hero__welcome em { font-style: normal; }
+  /* Sharper look: greeting in Inter ITALIC, tight tracking. */
+  .feed-hero__welcome { font-family: var(--ui); font-style: italic; font-weight: 600; font-size: 30px; letter-spacing: -0.02em; }
+  .feed-hero__welcome em { font-style: italic; }
   /* Keep the brief from changing the hero height when it wraps to 2 lines:
      reserve fixed space and clip, so the layout below never jumps. */
   .feed-hero__brief { flex-direction: column; gap: 6px; align-items: flex-start; height: 52px; min-height: 52px; overflow: hidden; }
@@ -1370,13 +1370,18 @@ body::before {
   .feed-hero__next-name { font-size: 14.5px; }
   .feed-hero__next-when { display: none; }
 
-  /* 3-D text depth against the navy — raised/embossed greeting + labels. */
+  /* 3-D text depth against the navy + a sharp clip-reveal wipe on load. */
   .feed-hero__welcome {
     text-shadow:
-      0 1px 0 rgba(255, 220, 150, 0.22),
-      0 -1px 0 rgba(0, 0, 0, 0.28),
-      0 3px 6px rgba(0, 0, 0, 0.42),
-      0 8px 18px rgba(0, 0, 0, 0.30);
+      0 1px 0 rgba(255, 220, 150, 0.24),
+      0 -1px 0 rgba(0, 0, 0, 0.30),
+      0 3px 6px rgba(0, 0, 0, 0.44),
+      0 10px 22px rgba(0, 0, 0, 0.34);
+    animation: feed-welcome-wipe 0.62s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+  }
+  @keyframes feed-welcome-wipe {
+    from { clip-path: inset(0 100% 0 0); transform: translateY(6px); opacity: 0; }
+    to   { clip-path: inset(0 0 0 0);    transform: translateY(0);   opacity: 1; }
   }
   .feed-hero__brief-text { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.40); }
   .feed-hero__brief-label,
@@ -5377,6 +5382,12 @@ textarea.input {
   /* Sharper look: section headers in Inter (not the display serif). */
   .section-ttl { font-family: var(--ui); font-weight: 600; font-size: 24px; letter-spacing: -0.02em; }
   .section-ttl em { font-style: normal; }
+  /* Break up the stack: tint each section title with its own accent so the
+     four headers read as distinct lanes, not four identical dark lines. */
+  [data-section="trips"]     .section-ttl { color: var(--tropic-d); }
+  [data-section="seats"]     .section-ttl { color: var(--sun-d); }
+  [data-section="proposals"] .section-ttl { color: var(--sun-d); }
+  [data-section="feed"]      .section-ttl { color: var(--moss); }
   .section-head { padding: 18px 18px 14px; }
   .section-head__actions { margin-top: 16px; }
   .section-chev { width: 26px; height: 26px; font-size: 20px; }
