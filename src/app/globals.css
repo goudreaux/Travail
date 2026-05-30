@@ -1290,25 +1290,32 @@ body::before {
     border-radius: 0;
     overflow: visible;
     box-shadow: none;
-    /* Room for a long, deep fade — roughly the bottom third washes out. */
-    padding: max(20px, env(safe-area-inset-top)) 20px 92px;
+    /* Room for the continuous wash to play out before the cards. */
+    padding: max(20px, env(safe-area-inset-top)) 20px 70px;
   }
   /* Kill the card's inset rim highlights (they'd draw card edges). */
   .feed-hero::after { background-image: none; }
-  /* The melt: navy dissolves into the page bg over a tall, prolonged gradient
-     (~rule of thirds) so there's no seam between hero and feed. */
+  /* The melt: one CONTINUOUS gradient over the whole hero — transparent up top,
+     easing into the page bg toward the bottom. Spanning the full height (not a
+     bottom band) means there's no visible point where the fade "starts" — it
+     reads like sky to horizon. */
   .feed-hero::before {
     content: "";
     position: absolute;
-    left: 0; right: 0; bottom: 0;
-    height: 38%;
-    background: linear-gradient(to bottom, transparent, var(--bg) 96%);
+    inset: 0;
+    background: linear-gradient(to bottom,
+      transparent 0%,
+      transparent 28%,
+      color-mix(in srgb, var(--bg) 35%, transparent) 62%,
+      color-mix(in srgb, var(--bg) 80%, transparent) 84%,
+      var(--bg) 100%);
     pointer-events: none;
     z-index: 1;
   }
   .feed-hero__topline { margin-bottom: 14px; }
   .feed-hero__date { font-size: 9.5px; }
-  .feed-hero__welcome { font-size: 28px; }
+  /* Larger, more commanding greeting (brief stays its size). */
+  .feed-hero__welcome { font-size: 38px; }
   /* Keep the brief from changing the hero height when it wraps to 2 lines:
      reserve fixed space and clip, so the layout below never jumps. */
   .feed-hero__brief { flex-direction: column; gap: 6px; align-items: flex-start; height: 52px; min-height: 52px; overflow: hidden; }
@@ -1330,9 +1337,9 @@ body::before {
   .feed-hero__live-text,
   .feed-hero__date { text-shadow: 0 1px 1px rgba(0, 0, 0, 0.30); }
 
-  /* Pull the feed up so its first card slides under the fade (the melt
-     overlaps content rather than leaving a navy gap). */
-  .feed-stack { margin-top: -48px; position: relative; z-index: 1; }
+  /* Pull the feed up higher so the cards start well into the wash — there's no
+     navy "gap" before them and the fade reads as continuous behind them. */
+  .feed-stack { margin-top: -96px; position: relative; z-index: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
