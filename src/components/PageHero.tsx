@@ -19,6 +19,7 @@ export default function PageHero({
   metric,
   accent = 'teal',
   sansTitle = false,
+  onBack,
   children,
 }: {
   eyebrow?: React.ReactNode
@@ -29,12 +30,22 @@ export default function PageHero({
   accent?: HeroAccent
   /** Render the title in Inter (sans) instead of the display serif. */
   sansTitle?: boolean
+  /** When set, shows a circular back arrow at the top-left of the hero. */
+  onBack?: () => void
   children?: React.ReactNode
 }) {
   return (
     <div className={`page-hero page-hero--${accent}`}>
       <div className="page-hero__glow page-hero__glow--primary" />
       <div className="page-hero__glow page-hero__glow--secondary" />
+      {onBack && (
+        <button type="button" className="page-hero__back" aria-label="Back" onClick={onBack}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+        </button>
+      )}
       <div className="page-hero__inner">
         <div style={{ flex: 1, minWidth: 0 }}>
           {eyebrow && <div className="mono page-hero__eyebrow">{eyebrow}</div>}

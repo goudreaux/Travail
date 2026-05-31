@@ -823,6 +823,27 @@ body::before {
 .page-hero__sub { font-size: 14px; color: rgba(255,255,255,0.62); margin-top: 10px; }
 .page-hero__actions { position: relative; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
+/* Circular back arrow at the hero's top-left (proposal detail, etc.). */
+.page-hero__back {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.10);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.08s;
+  -webkit-tap-highlight-color: transparent;
+}
+.page-hero__back:hover { background: rgba(255, 255, 255, 0.18); }
+.page-hero__back:active { transform: scale(0.94); }
+
 /* Right-side metric block: anchors the empty space, gives each page a
    live data point. Big italic Cormorant number, small mono label/sub. */
 .page-hero__metric {
