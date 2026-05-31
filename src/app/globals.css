@@ -907,7 +907,7 @@ body::before {
   .page-hero__glow { z-index: 1; }
   /* Pull the page content up just into the tail of the wash — small, so it
      never overlaps the hero's own title/metric/actions content. */
-  .page-hero + .page-view { margin-top: -28px; position: relative; z-index: 1; }
+  .page-hero + .page-view { margin-top: -40px; position: relative; z-index: 1; }
 
   /* Stack title / metric / actions on mobile so long labels or a search
      input don't get crammed onto a single row with the title. */
@@ -5220,20 +5220,18 @@ textarea.input {
   /* Full-bleed navy hero (overrides the earlier mobile block; this one wins by
      load order, so the full-bleed lives here as the single source of truth). */
   .page-hero {
-    padding: max(22px, env(safe-area-inset-top)) 20px 56px;
+    /* No fixed min-height / vertical centering — that left a big empty band
+       between the title and the cards on the shorter heroes (Seats / My Trips).
+       Let each hero size to its content; they stay consistent via shared
+       padding + the wash. Tighter bottom padding trims residual dead space. */
+    padding: max(22px, env(safe-area-inset-top)) 20px 44px;
     margin: 0;
     width: 100vw;
     margin-left: calc(50% - 50vw);
     border-radius: 0;
     overflow: visible;
     box-shadow: none;
-    /* Match the feed hero's visible navy band: 212 − 28px content pull-up =
-       184px, the same as the feed's 300 − 116px. */
-    min-height: 212px;
     box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
   }
   .page-hero__eyebrow { font-size: 9px; margin-bottom: 8px; }
   /* Larger, more pronounced italic title (matches the feed greeting energy). */
