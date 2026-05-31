@@ -5604,15 +5604,19 @@ textarea.input {
 
   .section-panel {
     position: relative;
-    /* Each card slides up UNDER the one above it → the deck tuck. */
+    /* Base position under the hero — unchanged so the brief/first-card spacing
+       stays as tuned. The deeper card-to-card tuck is applied below. */
     margin-top: -16px;
     border-radius: 20px;
-    /* Card casts a drop shadow DOWN onto the card tucked beneath it, so the
-       upper card reads as sitting on top of the lower one. */
+    /* Same five-layer float as .my-trip-card: a tight rim highlight, a close
+       grounding shadow, then a wide soft key shadow. This is what gives the
+       wallet cards their sharp, lifted, "floating paper" depth — the feed deck
+       now shares it so the two pages read as the same material. */
     box-shadow:
-      0 10px 18px -8px rgba(13, 51, 64, 0.34),
-      0 2px 5px rgba(13, 51, 64, 0.08),
-      0 1px 0 rgba(255, 255, 255, 0.9) inset;
+      inset 0 1px 0 rgba(255, 255, 255, 0.94),
+      0 1px 2px rgba(13, 51, 64, 0.08),
+      0 8px 16px -4px rgba(13, 51, 64, 0.14),
+      0 28px 56px -12px rgba(13, 51, 64, 0.26);
     /* Each card down the deck recedes a touch (set per-position below). */
     transform-origin: top center;
     transition:
@@ -5627,14 +5631,14 @@ textarea.input {
      assigned by visual position, which differs between the two order modes. The
      same scale step makes each lower card sit a hair smaller → real depth. */
   .feed-stack[data-no-trips="0"] [data-section="trips"]     { z-index: 40; transform: scale(1.000); }
-  .feed-stack[data-no-trips="0"] [data-section="seats"]     { z-index: 30; transform: scale(0.984); }
-  .feed-stack[data-no-trips="0"] [data-section="proposals"] { z-index: 20; transform: scale(0.968); }
-  .feed-stack[data-no-trips="0"] [data-section="feed"]      { z-index: 10; transform: scale(0.952); }
+  .feed-stack[data-no-trips="0"] [data-section="seats"]     { z-index: 30; transform: scale(0.990); }
+  .feed-stack[data-no-trips="0"] [data-section="proposals"] { z-index: 20; transform: scale(0.980); }
+  .feed-stack[data-no-trips="0"] [data-section="feed"]      { z-index: 10; transform: scale(0.970); }
 
   .feed-stack[data-no-trips="1"] [data-section="seats"]     { z-index: 40; transform: scale(1.000); }
-  .feed-stack[data-no-trips="1"] [data-section="proposals"] { z-index: 30; transform: scale(0.984); }
-  .feed-stack[data-no-trips="1"] [data-section="trips"]     { z-index: 20; transform: scale(0.968); }
-  .feed-stack[data-no-trips="1"] [data-section="feed"]      { z-index: 10; transform: scale(0.952); }
+  .feed-stack[data-no-trips="1"] [data-section="proposals"] { z-index: 30; transform: scale(0.990); }
+  .feed-stack[data-no-trips="1"] [data-section="trips"]     { z-index: 20; transform: scale(0.980); }
+  .feed-stack[data-no-trips="1"] [data-section="feed"]      { z-index: 10; transform: scale(0.970); }
 
   /* The open card rises clear of the deck: full scale, top z, clear spacing. */
   .section-panel:not([data-collapsed="true"]) {
