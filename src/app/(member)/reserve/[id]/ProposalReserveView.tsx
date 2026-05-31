@@ -142,6 +142,8 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
         if (res.status === 402) { setNeedsSub(true); return }
         throw new Error(data.error ?? `Commit failed (${res.status})`)
       }
+      // Member already had a card on file — committed straight away, no form.
+      if (data.committed) { setSuccess(true); return }
       setClientSecret(data.clientSecret)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Commit failed')
@@ -344,7 +346,7 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
               </div>
             </div>
             <div style={{ background: 'rgba(0,179,199,0.06)', border: '1px solid rgba(0,179,199,0.20)', borderRadius: 10, padding: '12px 14px', fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.55, marginTop: 4, marginBottom: 16 }}>
-              We&apos;ll save a card on file but won&apos;t charge it until ops confirms the trip with Tropic, and they only do that once the proposal hits its minimum {min} commit{min === 1 ? '' : 's'}.
+              We&apos;ll use the card on file (or save one if you don&apos;t have one yet) but won&apos;t charge it until ops confirms the trip with Tropic, and they only do that once the proposal hits its minimum {min} commit{min === 1 ? '' : 's'}.
             </div>
             {error && (
               <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--signal)', marginBottom: 12 }}>
@@ -362,7 +364,7 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
               </>
             ) : (
               <button className="btn-primary" onClick={startCommit} disabled={submitting} style={{ width: '100%' }}>
-                {submitting ? 'Setting up…' : 'Continue to card on file →'}
+                {submitting ? 'Setting up…' : 'Commit my seat →'}
               </button>
             )}
           </div>

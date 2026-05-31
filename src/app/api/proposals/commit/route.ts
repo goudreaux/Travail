@@ -129,9 +129,47 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Only ${prop.capacity_total - taken} seat(s) left on this proposal.` }, { status: 400 })
   }
 
-  // Stripe Customer + SetupIntent.
+  // Stripe Customer.
   const customerId = await ensureCustomer(me.id, me.name ?? 'Member', user.email ?? null)
 
+  // If the member already has a card on file, DON'T make them enter it again —
+  // commit straight away against the saved payment method. Prefer the customer's
+  // default PM, else the most recent saved card.
+  let savedPm: string | null = null
+  try {
+    const cust = await stripe.customers.retrieve(customerId)
+    if (cust && !cust.deleted) {
+      const defPm = (cust as { invoice_settings?: { default_payment_method?: string | { id: string } | null } })
+        .invoice_settings?.default_payment_method
+      savedPm = typeof defPm === 'string' ? defPm : defPm?.id ?? null
+    }
+    if (!savedPm) {
+      const pms = await stripe.paymentMethods.list({ customer: customerId, type: 'card', limit: 1 })
+      savedPm = pms.data[0]?.id ?? null
+    }
+  } catch (e) {
+    safeError('proposals/commit: payment method lookup failed', e)
+  }
+
+  if (savedPm) {
+    // Create the commit row now, using the existing card — no card form.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: insErr } = await (db as any).from('trip_proposal_commits').insert({
+      proposal_id: proposalId,
+      member_id: me.id,
+      seats,
+      stripe_customer_id: customerId,
+      payment_method_id: savedPm,
+      status: 'committed',
+    })
+    if (insErr) {
+      safeError('proposals/commit: insert with saved card failed', insErr)
+      return NextResponse.json({ error: 'Could not record your commit. Please try again.' }, { status: 500 })
+    }
+    return NextResponse.json({ committed: true })
+  }
+
+  // No card on file — mint a SetupIntent so the browser can collect one.
   const setupIntent = await stripe.setupIntents.create({
     customer: customerId,
     payment_method_types: ['card'],
