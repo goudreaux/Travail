@@ -8,7 +8,6 @@ import PageHero from '@/components/PageHero'
 import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster'
 import { SeatMeter } from '@/components/SeatMeter'
 import { SponsorBadge } from '@/components/SponsorBadge'
-import { ProposalCard, loadOpenProposals, type ProposalCardData } from '@/components/ProposalCard'
 import { isPastBookingCutoff } from '@/lib/trip-timing'
 import { UrgencyTag } from '@/components/UrgencyTag'
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
@@ -68,7 +67,6 @@ function excursionFilter(icon: string): ActivityFilter {
 const FILTERS: { key: ActivityFilter; label: string; icon?: string }[] = [
   { key: 'all',       label: 'All' },
   { key: 'sponsored', label: '★ Sponsored' },
-  { key: 'proposal',  label: 'Proposals' },
   { key: 'flight',   label: 'Flights',  icon: 'flight' },
   { key: 'fish',     label: 'Fishing',  icon: 'fish' },
   { key: 'sail',     label: 'Sailing',  icon: 'sail' },
@@ -381,9 +379,6 @@ export default function SeatsPage() {
   const [flightRosters, setFlightRosters] = useState<Record<string, RosterEntry[]>>({})
   const [excRosters, setExcRosters] = useState<Record<string, RosterEntry[]>>({})
   const [airportName, setAirportName] = useState<Record<string, string>>({})
-  // Trip Proposals — fetched + rendered via the shared component so
-  // /seats, /proposals, and / (the feed) all share one source of truth.
-  const [proposals, setProposals] = useState<ProposalCardData[]>([])
 
   const load = useCallback(async (silent = false) => {
       if (!silent) setLoading(true)
@@ -529,16 +524,12 @@ export default function SeatsPage() {
   const visibleExcursions = publicExcursions.filter(e => {
     if (filter === 'all') return true
     if (filter === 'sponsored') return !!e.sponsor
-    if (filter === 'flight' || filter === 'proposal') return false
+    if (filter === 'flight') return false
     const icon = e.templateMeta?.icon ?? 'fish'
     return excursionFilter(icon) === filter
   })
-  // Proposals show on "All" and on the dedicated "Proposals" filter;
-  // any other specific filter (flight / sponsored / an activity) hides
-  // them so the board stays focused on what was filtered for.
-  const visibleProposals = (filter === 'all' || filter === 'proposal') ? proposals : []
 
-  const totalOpen = visibleFlightEntries.length + visibleExcursions.length + visibleProposals.length
+  const totalOpen = visibleFlightEntries.length + visibleExcursions.length
   // Live count includes private charters so the pill reflects the full
   // network activity, not just publicly bookable seats.
   const liveCount = buildFlightEntries(flights).length + excursions.length

@@ -5227,6 +5227,13 @@ textarea.input {
     border-radius: 0;
     overflow: visible;
     box-shadow: none;
+    /* Match the feed hero's visible navy band: 212 − 28px content pull-up =
+       184px, the same as the feed's 300 − 116px. */
+    min-height: 212px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
   .page-hero__eyebrow { font-size: 9px; margin-bottom: 8px; }
   /* Larger, more pronounced italic title (matches the feed greeting energy). */
