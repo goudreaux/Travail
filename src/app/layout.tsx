@@ -3,6 +3,9 @@ import './globals.css'
 import LaunchAnimation from '@/components/LaunchAnimation'
 
 export const metadata: Metadata = {
+  // Absolute base for OG/share image URLs — without this the generated
+  // opengraph-image URLs resolve against localhost and previews break.
+  metadataBase: new URL('https://travailclub.com'),
   title: 'Travail',
   description: 'Private aviation + experiences membership',
   applicationName: 'Travail',
