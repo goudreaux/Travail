@@ -1127,6 +1127,11 @@ body::before {
   overflow: hidden;
   border-radius: 22px;
   margin: 24px 28px 0;
+  /* Match the content column: the .feed-stack below caps at 1400px and pads
+     28px each side, so its panels live in a 1344px-wide lane. Cap the hero to
+     the same 1344px (left-aligned at the same 28px gutter) so the navy card
+     lines up flush with the panels instead of running wider on big screens. */
+  max-width: calc(1400px - 56px);
   padding: 26px 30px 22px;
   /* Background gradient tinted so the upper-right starts a touch
      lighter — the navy catches the sun glow from the same direction
@@ -1154,6 +1159,11 @@ body::before {
   background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 20px);
 }
 .feed-hero > * { position: relative; z-index: 1; }
+
+/* Desktop: breathe between the stacked sections (My Trips/Open Seats row,
+   Open Proposals, The Wire). Mobile overrides this to gap:0 for the
+   wallet-stack effect, so this only applies on the columns layout. */
+.feed-stack { gap: 28px; }
 
 .feed-hero__glow {
   position: absolute;
