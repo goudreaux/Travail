@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useMember } from '@/lib/member-context'
 import Link from 'next/link'
 import { fmtHomeBase, memberCode, tierLabel, tierPill, canonicalInterests } from '@/lib/data'
 import { TRIP_TYPE_ICONS } from '@/lib/icons'
@@ -60,6 +61,7 @@ interface PendingRequest {
 }
 
 export default function NetworkPage() {
+  const { member, loading: memberLoading } = useMember()
   const [members, setMembers] = useState<MemberWithCount[]>([])
   const [search, setSearch] = useState('')
   const [baseFilter, setBaseFilter] = useState<string>('all')
@@ -79,14 +81,11 @@ export default function NetworkPage() {
   const [connectBusy, setConnectBusy] = useState<string | null>(null)
 
   useEffect(() => {
+    if (memberLoading) return
     async function load() {
       const supabase = createClient()
 
-      const { data: { user } } = await supabase.auth.getUser()
-      const { data: meRow } = user
-        ? await supabase.from('members').select('id').eq('user_id', user.id).maybeSingle()
-        : { data: null }
-      const myId = meRow?.id ?? null
+      const myId = member?.id ?? null
       setMeId(myId)
 
       const { data: membersData } = await supabase
@@ -156,7 +155,7 @@ export default function NetworkPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [member?.id, memberLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function sendFriendRequest(otherId: string) {
     if (!meId || connectBusy) return

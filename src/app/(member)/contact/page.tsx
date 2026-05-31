@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import PageHero from '@/components/PageHero'
 import { createClient } from '@/lib/supabase/client'
+import { useMember } from '@/lib/member-context'
 import { OPS_PHONE, OPS_PHONE_DISPLAY, OPS_HOURS } from '@/lib/contact'
 
 const SUBJECTS = [
@@ -15,7 +16,8 @@ type Subject = typeof SUBJECTS[number]
 
 export default function ContactPage() {
   const supabase = createClient()
-  const [memberName, setMemberName] = useState<string | null>(null)
+  const { member } = useMember()
+  const memberName = member?.name ?? null
   const [memberEmail, setMemberEmail] = useState<string | null>(null)
   const [subject, setSubject] = useState<Subject>(SUBJECTS[0])
   const [message, setMessage] = useState('')
@@ -23,22 +25,14 @@ export default function ContactPage() {
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Pull the signed-in member's identity so we can stamp the sender block.
+  // Name comes from the shared member context; the email lives on the auth
+  // session (not the members row), so read it locally — getSession is a cookie
+  // read, no network round-trip.
   useEffect(() => {
     let cancelled = false
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (cancelled || !user) return
-      setMemberEmail(user.email ?? null)
-      const { data: member } = await supabase
-        .from('members')
-        .select('name')
-        .eq('user_id', user.id)
-        .single()
-      if (cancelled) return
-      setMemberName(member?.name ?? null)
-    }
-    load()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!cancelled) setMemberEmail(session?.user?.email ?? null)
+    })
     return () => { cancelled = true }
   }, [supabase])
 

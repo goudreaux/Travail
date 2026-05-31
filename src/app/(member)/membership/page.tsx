@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useMember } from '@/lib/member-context'
 import { fmtDate, fmtHomeBase, memberCode, tierLabel, tierPill, TRIP_TYPES, canonicalInterests } from '@/lib/data'
 import { safeError } from '@/lib/pii-scrub'
 import PageHero from '@/components/PageHero'
@@ -19,6 +20,10 @@ function timeAgo(dateStr: string) {
 }
 
 export default function MembershipPage() {
+  // The page keeps a local, editable copy of the member for the profile form;
+  // it's seeded from the shared context (no per-page identity fetch) and any
+  // save is pushed back into the context so the sidebar/topbar update too.
+  const { member: ctxMember, setMember: setCtxMember } = useMember()
   const [member, setMember] = useState<Member | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [submissions, setSubmissions] = useState<AnchorSubmission[]>([])
@@ -43,16 +48,9 @@ export default function MembershipPage() {
     setInterests(prev => (prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]))
 
   useEffect(() => {
-    async function load() {
+    if (!ctxMember) return
+    async function load(m: Member) {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-
-        const { data: memberData } = await supabase
-          .from('members').select('*').eq('user_id', user.id).single()
-        if (!memberData) return
-
-        const m = memberData as Member
         setMember(m)
         setName(m.name)
         setBio(m.bio ?? '')
@@ -90,8 +88,8 @@ export default function MembershipPage() {
         setLoading(false)
       }
     }
-    load()
-  }, [])
+    load(ctxMember)
+  }, [ctxMember]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSave() {
     if (!member) return
@@ -114,13 +112,15 @@ export default function MembershipPage() {
     if (updateError) {
       setError(updateError.message)
     } else {
-      setMember(prev => prev ? {
-        ...prev,
+      const patch = {
         name,
         bio: bio || null,
         interests: interestArr.length > 0 ? interestArr : null,
         accepts_contact_requests: acceptsContact,
-      } : prev)
+      }
+      setMember(prev => prev ? { ...prev, ...patch } : prev)
+      // Keep the shared context in sync so the sidebar/topbar update too.
+      setCtxMember(prev => prev ? { ...prev, ...patch } : prev)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     }
@@ -155,6 +155,7 @@ export default function MembershipPage() {
       if (updateError) throw updateError
 
       setMember(prev => prev ? { ...prev, avatar_url: publicUrl } : prev)
+      setCtxMember(prev => prev ? { ...prev, avatar_url: publicUrl } : prev)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Avatar upload failed.')
     } finally {

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useMember } from '@/lib/member-context'
 import { adaptFlight, adaptExcursion, fmtDate, fmtMoney, returnLegIds, MONTHS, DOWS_SHORT } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
@@ -63,6 +64,7 @@ interface CalTrip {
 export default function CalendarPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { member } = useMember()
 
   const [flights, setFlights] = useState<DisplayFlight[]>([])
   const [excursions, setExcursions] = useState<DisplayExcursion[]>([])
@@ -74,18 +76,9 @@ export default function CalendarPage() {
   const months = calendarMonths(today, 6)
 
   useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: member } = await supabase
-        .from('members')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
-
-      if (!member) return
-
+    const myId = member?.id
+    if (!myId) return
+    async function load(memberId: string) {
       const sixMonthsOut = new Date(today.getFullYear(), today.getMonth() + 6, 0)
       const dateLimit = sixMonthsOut.toISOString().split('T')[0]
       const dateStart = todayIso
@@ -114,7 +107,7 @@ export default function CalendarPage() {
         supabase
           .from('bookings')
           .select('*')
-          .eq('member_id', member.id)
+          .eq('member_id', memberId)
           .in('status', ['pending', 'approved']),
       ])
 
@@ -129,11 +122,11 @@ export default function CalendarPage() {
       }
 
       const adaptedFlights: DisplayFlight[] = (rawFlights ?? []).map(f =>
-        adaptFlight(f as Flight, myFlightSeats[f.id] ?? 0, member.id)
+        adaptFlight(f as Flight, myFlightSeats[f.id] ?? 0, memberId)
       )
 
       const adaptedExcursions: DisplayExcursion[] = (rawExcursions ?? []).map(e =>
-        adaptExcursion(e as Excursion, templates, myExcSpots[e.id] ?? 0, member.id)
+        adaptExcursion(e as Excursion, templates, myExcSpots[e.id] ?? 0, memberId)
       )
 
       setFlights(adaptedFlights)
@@ -141,8 +134,8 @@ export default function CalendarPage() {
       setLoading(false)
     }
 
-    load()
-  }, [])
+    load(myId)
+  }, [member?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Build a map: date -> CalTrip[]
   const tripsByDate: Record<string, CalTrip[]> = {}

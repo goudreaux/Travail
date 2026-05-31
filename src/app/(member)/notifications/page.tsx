@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import PageHero from '@/components/PageHero'
 import { resolveNotificationRoute } from '@/lib/notifications'
-import type { Member, Notification } from '@/lib/supabase/types'
+import { useMember } from '@/lib/member-context'
+import type { Notification } from '@/lib/supabase/types'
 
 function timeAgo(dateStr: string): string {
   const ms = Date.now() - new Date(dateStr).getTime()
@@ -22,28 +23,25 @@ function timeAgo(dateStr: string): string {
 export default function NotificationsPage() {
   const router = useRouter()
   const supabase = createClient()
-  const [member, setMember] = useState<Member | null>(null)
+  const { member } = useMember()
   const [notifs, setNotifs] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const memberId = member?.id
+    if (!memberId) return
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-      const { data: m } = await supabase.from('members').select('*').eq('user_id', user.id).single()
-      if (!m) { router.push('/login'); return }
-      setMember(m as Member)
       const { data } = await supabase
         .from('notifications')
         .select('*')
-        .eq('member_id', (m as Member).id)
+        .eq('member_id', memberId as string)
         .order('created_at', { ascending: false })
         .limit(100)
       setNotifs((data ?? []) as Notification[])
       setLoading(false)
     }
     load()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [member?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const unread = notifs.filter(n => !n.read).length
 
