@@ -133,18 +133,9 @@ export default function AnchorFlightPage() {
   // one (they need it on file to capture the charter cost on approval).
   const [hasCard, setHasCard] = useState(false)
   const [error, setError] = useState('')
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
 
   const supabase = createClient()
   const router = useRouter()
-
-  useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { setIsAdmin(false); return }
-      const { data } = await supabase.from('members').select('is_admin').eq('user_id', user.id).single()
-      setIsAdmin(data?.is_admin ?? false)
-    })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Anchoring is open to every member. (The membership/timing guards live on
   // the submit path — /api/anchor/setup-intent + canAnchor — not here.)

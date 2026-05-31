@@ -90,7 +90,6 @@ export default function AnchorExcursionPage() {
   const [hasCard, setHasCard] = useState(false)
   const [submitted, setSubmitted] = useState<{ id: string } | null>(null)
   const [error, setError] = useState('')
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
 
   const supabase = createClient()
   const router = useRouter()
@@ -98,9 +97,7 @@ export default function AnchorExcursionPage() {
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setIsAdmin(false); return }
-      const { data: m } = await supabase.from('members').select('is_admin').eq('user_id', user.id).single()
-      setIsAdmin(m?.is_admin ?? false)
+      if (!user) return
       // Anchoring is open to every member — always load the templates/airports.
       const [{ data: tpls }, { data: aps }] = await Promise.all([
         supabase.from('excursion_templates').select('*').order('name'),
