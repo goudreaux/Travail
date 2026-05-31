@@ -100,9 +100,8 @@ export default function AnchorExcursionPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setIsAdmin(false); return }
       const { data: m } = await supabase.from('members').select('is_admin').eq('user_id', user.id).single()
-      const admin = m?.is_admin ?? false
-      setIsAdmin(admin)
-      if (!admin) return
+      setIsAdmin(m?.is_admin ?? false)
+      // Anchoring is open to every member — always load the templates/airports.
       const [{ data: tpls }, { data: aps }] = await Promise.all([
         supabase.from('excursion_templates').select('*').order('name'),
         supabase.from('airports').select('code, name'),
@@ -115,13 +114,6 @@ export default function AnchorExcursionPage() {
       if (list.length) setTemplateId(list[0].id)
     })()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (isAdmin === null) return null
-  if (!isAdmin) return (
-    <div className="page">
-      <PageHero eyebrow="PLAN A TRIP" title="Coming soon" sub="This feature is under development. Check back soon." />
-    </div>
-  )
 
   const STEPS = ['Experience', 'Route', 'When', 'Party', 'Review']
   const tpl = templates.find(t => t.id === templateId) || null

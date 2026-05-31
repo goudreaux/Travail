@@ -146,14 +146,8 @@ export default function AnchorFlightPage() {
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (isAdmin === null) return null
-
-  if (!isAdmin) return (
-    <div className="page">
-      <PageHero eyebrow="PLAN A TRIP · FLIGHT" title="Coming soon" sub="This feature is under development. Check back soon." />
-    </div>
-  )
-
+  // Anchoring is open to every member. (The membership/timing guards live on
+  // the submit path — /api/anchor/setup-intent + canAnchor — not here.)
   const pax = 1 + guests.length
   const isRoundTrip = tripType === 'round-trip'
   const openSeats = visibility === 'private' ? 0 : Math.max(0, aircraft - pax)
