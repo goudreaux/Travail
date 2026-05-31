@@ -1,6 +1,6 @@
 'use client'
 export const dynamic = 'force-dynamic'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { returnLegIds } from '@/lib/data'
@@ -15,15 +15,25 @@ import { MaintenanceBanner } from '@/components/MaintenanceBanner'
 import { FirstLoginTutorial } from '@/components/FirstLoginTutorial'
 import { useActivityBeacon, useLoginStamp } from '@/lib/use-activity-beacon'
 import { useActionItems } from '@/lib/use-action-items'
+import { MemberProvider, useMember } from '@/lib/member-context'
 import type { Member, Notification } from '@/lib/supabase/types'
 
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
-  const [member, setMember] = useState<Member | null>(null)
+  // Resolve the member once and share it with every page via context so they
+  // stop repeating the getUser → members round-trips on each navigation.
+  return (
+    <MemberProvider>
+      <MemberShell>{children}</MemberShell>
+    </MemberProvider>
+  )
+}
+
+function MemberShell({ children }: { children: React.ReactNode }) {
+  const { member, setMember, notSetUp } = useMember()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [pendingCount, setPendingCount] = useState(0)
   const [openSeatsCount, setOpenSeatsCount] = useState(0)
-  const [notSetUp, setNotSetUp] = useState(false)
   const supabase = createClient()
   const pathname = usePathname()
   const router = useRouter()
@@ -39,68 +49,36 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
   // Proposals in the nav.
   const actionItems = useActionItems(member?.id ?? null)
 
-  const loadData = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
-      return
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabase as any
-    let { data: memberData } = await db
-      .from('members')
-      .select('*')
-      .eq('user_id', user.id)
-      .single() as { data: Member | null }
-
-    // Self-heal: link a pre-created member that shares this login's email.
-    if (!memberData) {
-      try {
-        const { data: linked } = await db.rpc('link_my_member')
-        if (linked) {
-          const retry = await db.from('members').select('*').eq('user_id', user.id).single()
-          memberData = retry.data as Member | null
-        }
-      } catch { /* fall through to the not-set-up screen */ }
-    }
-
-    if (!memberData) {
-      setNotSetUp(true)
-      return
-    }
-
-    // Browse-first model (F6): invited members can explore the whole app
-    // without a subscription — the membership is "pay to book", not "pay to
-    // look". Booking is still gated server-side (assertCanBook → 402 on the
-    // payment/commit routes) and nudged by <SubscriptionBanner>, so we no
-    // longer bounce non-subscribers to /onboarding/subscribe from here.
-    setMember(memberData)
-
-    const today = new Date().toISOString().slice(0, 10)
-
-    const [{ data: notifs }, { data: bookings }, { data: openFlights }, { data: openExcursions }] = await Promise.all([
-      db.from('notifications').select('*').eq('member_id', memberData.id).order('created_at', { ascending: false }).limit(40),
-      db.from('bookings').select('id').eq('member_id', memberData.id).eq('status', 'pending'),
-      db.from('flights').select('id, origin_code, dest_code').eq('status', 'open').gte('date', today),
-      db.from('excursions').select('id').eq('status', 'open').gte('date', today),
-    ])
-
-    if (notifs) {
-      setNotifications(notifs)
-      setUnreadCount(notifs.filter((n: Notification) => !n.read).length)
-    }
-    if (bookings) setPendingCount(bookings.length)
-    // Round trips (outbound + return) count as one.
-    const fl = openFlights ?? []
-    const rets = returnLegIds(fl)
-    const seats = (fl.length - rets.size) + (openExcursions?.length ?? 0)
-    setOpenSeatsCount(seats)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
+  // Sidebar/TopBar chrome counts. Keyed on the resolved member id so it runs
+  // once the shared context has the row — no second identity lookup here.
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    const memberId = member?.id
+    if (!memberId) return
+    let cancelled = false
+    ;(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any
+      const today = new Date().toISOString().slice(0, 10)
+      const [{ data: notifs }, { data: bookings }, { data: openFlights }, { data: openExcursions }] = await Promise.all([
+        db.from('notifications').select('*').eq('member_id', memberId).order('created_at', { ascending: false }).limit(40),
+        db.from('bookings').select('id').eq('member_id', memberId).eq('status', 'pending'),
+        db.from('flights').select('id, origin_code, dest_code').eq('status', 'open').gte('date', today),
+        db.from('excursions').select('id').eq('status', 'open').gte('date', today),
+      ])
+      if (cancelled) return
+      if (notifs) {
+        setNotifications(notifs)
+        setUnreadCount(notifs.filter((n: Notification) => !n.read).length)
+      }
+      if (bookings) setPendingCount(bookings.length)
+      // Round trips (outbound + return) count as one.
+      const fl = openFlights ?? []
+      const rets = returnLegIds(fl)
+      const seats = (fl.length - rets.size) + (openExcursions?.length ?? 0)
+      setOpenSeatsCount(seats)
+    })()
+    return () => { cancelled = true }
+  }, [member?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (notSetUp) {
     return (

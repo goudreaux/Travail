@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useMember } from '@/lib/member-context'
 import PageHero from '@/components/PageHero'
 import { ProposalCard, MyProposalRow, loadOpenProposals, loadMyProposals, type ProposalCardData, type MyProposalData } from '@/components/ProposalCard'
 
@@ -17,33 +18,28 @@ type Filter = 'all' | 'flight' | 'excursion' | 'mine'
 export default function ProposalsPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { member, loading: memberLoading } = useMember()
+  const memberId = member?.id ?? null
   const [proposals, setProposals] = useState<ProposalCardData[]>([])
   const [mine, setMine] = useState<MyProposalData[]>([])
-  const [memberId, setMemberId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    let mid: string | null = null
-    if (user) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: m } = await (supabase as any).from('members').select('id').eq('user_id', user.id).maybeSingle()
-      mid = m?.id ?? null
-    }
-    setMemberId(mid)
     const [list, myList] = await Promise.all([
-      loadOpenProposals(supabase, mid),
-      loadMyProposals(supabase, mid),
+      loadOpenProposals(supabase, memberId),
+      loadMyProposals(supabase, memberId),
     ])
     setProposals(list)
     setMine(myList)
     setLoading(false)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [memberId]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Wait for the shared member context to resolve so we personalize
+  // (am_proposer / is_my_commit) on the first load instead of flashing.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { load() }, [load])
+  useEffect(() => { if (!memberLoading) load() }, [load, memberLoading])
 
   const visible = proposals.filter(p => {
     if (filter === 'all') return true

@@ -11,7 +11,8 @@ import { SponsorBadge } from '@/components/SponsorBadge'
 import { UrgencyTag } from '@/components/UrgencyTag'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { Member, Booking, ExcursionTemplate, Flight, Excursion, AnchorSubmission } from '@/lib/supabase/types'
+import type { Booking, ExcursionTemplate, Flight, Excursion, AnchorSubmission } from '@/lib/supabase/types'
+import { useMember } from '@/lib/member-context'
 
 // Full airport name for a code — members don't know codes by heart.
 function placeName(code: string, names: Record<string, string>): string {
@@ -99,7 +100,7 @@ function excursionMatchesFilter(e: DisplayExcursion, filter: TypeFilter): boolea
 }
 
 export default function FeedPage() {
-  const [member, setMember] = useState<Member | null>(null)
+  const { member } = useMember()
   const [proposalCommits, setProposalCommits] = useState<MyProposalCommitData[]>([])
   const [flights, setFlights] = useState<DisplayFlight[]>([])
   const [excursions, setExcursions] = useState<DisplayExcursion[]>([])
@@ -136,23 +137,12 @@ export default function FeedPage() {
   const mobileDefaultsSet = useRef(false)
 
   useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-
-      const { data: memberRaw } = await supabase
-        .from('members')
-        .select('*')
-        .eq('user_id', user.id as string)
-        .single()
-      if (!memberRaw) { router.push('/login'); return }
-      const memberData = memberRaw as unknown as Member
-      setMember(memberData)
+    const memberId = member?.id
+    if (!memberId) return
+    async function load(myId: string) {
       // Best-effort: surface this member's live proposal commits on
       // the feed's My Trips panel. Failure is silent.
-      loadMyProposalCommits(supabase, memberData.id).then(setProposalCommits).catch(() => {})
-
-      const myId = memberData.id
+      loadMyProposalCommits(supabase, myId).then(setProposalCommits).catch(() => {})
 
       const [flightsRes, excursionsRes, bookingsRes, templatesRes, airportsRes] = await Promise.all([
         supabase.from('flights').select('*').in('status', ['open', 'full']),
@@ -222,7 +212,7 @@ export default function FeedPage() {
       setLoading(false)
     }
 
-    load()
+    load(memberId)
 
     // Real-time subscriptions
     const channel = supabase
@@ -243,12 +233,12 @@ export default function FeedPage() {
       })
       // Live seat counts — the booking trigger updates seats_taken/spots_taken on
       // these rows, so refresh the open-seats panel when they change.
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'flights' }, () => load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'excursions' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'flights' }, () => load(memberId))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'excursions' }, () => load(memberId))
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [])
+  }, [member?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Build trip items by matching bookings to flights/excursions.
   // Round trips (outbound + return) collapse into one item.

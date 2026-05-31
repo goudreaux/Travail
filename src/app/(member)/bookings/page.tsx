@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useMember } from '@/lib/member-context'
 import { fmtDate, fmtTime, fmtMoney, returnLegIds, airportCity } from '@/lib/data'
 import PageHero from '@/components/PageHero'
 import { KIND_ICONS } from '@/lib/icons'
@@ -266,6 +267,7 @@ function AnchorCard({ submission, isExpanded, onSelect, airportName }: { submiss
 export default function BookingsPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { member } = useMember()
 
   const [bookings, setBookings] = useState<EnrichedBooking[]>([])
   const [anchors, setAnchors] = useState<EnrichedSubmission[]>([])
@@ -277,23 +279,9 @@ export default function BookingsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!member) return
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      const { data: member } = await supabase
-        .from('members')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
-
-      if (!member) {
-        router.push('/login')
-        return
-      }
+      if (!member) return
 
       // Live proposal commits surface on My Trips so a member can
       // track a proposal they're tied to without going hunting.
@@ -370,7 +358,7 @@ export default function BookingsPage() {
     }
 
     load()
-  }, [])
+  }, [member]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Collapse round trips (outbound + return) into one entry.
   const flightList = bookings.map(b => b.flight).filter(Boolean) as Flight[]

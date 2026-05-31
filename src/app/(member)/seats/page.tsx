@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useMember } from '@/lib/member-context'
 import { adaptFlight, adaptExcursion, fmtDate, fmtMoney, airportCity } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
@@ -368,13 +369,14 @@ function ExcursionCard({
 export default function SeatsPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { member, loading: memberLoading } = useMember()
+  const memberId = member?.id
 
   const [flights, setFlights] = useState<DisplayFlight[]>([])
   const [excursions, setExcursions] = useState<DisplayExcursion[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<ActivityFilter>('all')
   const [waitlisted, setWaitlisted] = useState<Set<string>>(new Set())
-  const [memberId, setMemberId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [flightRosters, setFlightRosters] = useState<Record<string, RosterEntry[]>>({})
   const [excRosters, setExcRosters] = useState<Record<string, RosterEntry[]>>({})
@@ -382,17 +384,6 @@ export default function SeatsPage() {
 
   const load = useCallback(async (silent = false) => {
       if (!silent) setLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: member } = await supabase
-        .from('members')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
-
-      const memberId = member?.id
-      setMemberId(memberId ?? null)
 
       const [
         { data: rawFlights },
@@ -473,6 +464,7 @@ export default function SeatsPage() {
   }, [memberId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (memberLoading) return
     load()
 
     // Live seat counts: the booking trigger writes seats_taken/spots_taken onto
@@ -485,7 +477,7 @@ export default function SeatsPage() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [load]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [load, memberLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function joinWaitlist(itemKind: 'flight' | 'excursion', itemId: string) {
     if (!memberId) return
