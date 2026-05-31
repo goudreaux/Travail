@@ -11,6 +11,13 @@ export const metadata: Metadata = {
     title: 'Travail',
     statusBarStyle: 'default',
   },
+  icons: {
+    icon: [
+      { url: '/icon-192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/icon-512.png', type: 'image/png', sizes: '512x512' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export const viewport: Viewport = {
