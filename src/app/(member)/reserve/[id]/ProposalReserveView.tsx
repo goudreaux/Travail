@@ -190,7 +190,7 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
   if (proposal.status !== 'open') {
     return (
       <div className="page">
-        <PageHero accent="sun" eyebrow={`PROPOSAL · ${proposal.status.toUpperCase()}`} title={proposal.name} sub="This proposal isn't accepting new commits." />
+        <PageHero accent="sun" eyebrow={`PROPOSAL · ${proposal.status.toUpperCase()}`} title={proposal.name} sub="This proposal isn't accepting new commits." actions={<button className="page-hero__btn" onClick={() => router.back()}>← Back</button>} />
         <div className="page-view"><Link href="/proposals">← Back to proposals</Link></div>
       </div>
     )
@@ -239,6 +239,7 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
           eyebrow={`PROPOSAL · YOUR COMMIT`}
           title={proposal.name}
           sub={`${dateLabel} · proposed by ${proposerName ?? 'a member'}`}
+          actions={<button className="page-hero__btn" onClick={() => router.back()}>← Back</button>}
         />
         <div className="page-view" style={{ maxWidth: 560 }}>
           <ProposalSummaryPanel
