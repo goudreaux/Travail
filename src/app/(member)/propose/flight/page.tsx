@@ -150,7 +150,8 @@ export default function ProposeFlightPage() {
 
   return (
     <div className="page">
-      <PageHero accent="sun" eyebrow="PROPOSE A FLIGHT · NO RISK" title="Pitch the route" sub="Ops sets the minimum and per-seat price during review. No charge to you until the proposal locks." />
+      <PageHero accent="sun" eyebrow="PROPOSE A FLIGHT · NO RISK" title="Pitch the route" sub="Ops sets the minimum and per-seat price during review. No charge to you until the proposal locks."
+        actions={<button className="page-hero__btn" onClick={() => router.push('/propose')}>← Back</button>} />
       <div className="page-view">
         <div className="wiz" style={{ maxWidth: 560 }}>
           {/* Route */}

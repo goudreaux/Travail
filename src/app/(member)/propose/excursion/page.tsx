@@ -133,60 +133,84 @@ export default function ProposeExcursionPage() {
 
   return (
     <div className="page">
-      <PageHero accent="sun" eyebrow="PROPOSE AN EXCURSION · NO RISK" title="Pitch the day" sub="Ops finalizes the day plan, capacity, and price. You only pay if it locks." />
+      <PageHero accent="sun" eyebrow="PROPOSE AN EXCURSION · NO RISK" title="Pitch the day" sub="Ops finalizes the day plan, capacity, and price. You only pay if it locks."
+        actions={<button className="page-hero__btn" onClick={() => router.push('/propose')}>← Back</button>} />
       <div className="page-view">
         <div className="wiz" style={{ maxWidth: 560 }}>
-          <div className="field">
-            <label className="field-lab">Excursion name</label>
-            <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Tarpon at Boca Grande" />
-          </div>
-          <div className="row-2">
+          {/* The day */}
+          <div className="pf-group">
+            <div className="pf-group__eyebrow">The day</div>
             <div className="field">
-              <label className="field-lab">Origin airport</label>
-              <select className="input" value={origin} onChange={e => setOrigin(e.target.value)}>
-                {airports.map(a => <option key={a.code} value={a.code}>{a.code} · {a.name}</option>)}
-              </select>
+              <label className="field-lab">Excursion name</label>
+              <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Tarpon at Boca Grande" />
             </div>
-            <div className="field">
-              <label className="field-lab">Date</label>
-              <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} min={minDate} />
+            <div className="row-2">
+              <div className="field">
+                <label className="field-lab">Origin airport</label>
+                <select className="input" value={origin} onChange={e => setOrigin(e.target.value)}>
+                  {airports.map(a => <option key={a.code} value={a.code}>{a.code} · {a.name}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label className="field-lab">Date</label>
+                <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} min={minDate} />
+              </div>
             </div>
           </div>
 
-          <div className="row-2">
+          {/* When + stay type */}
+          <div className="pf-group">
+            <div className="pf-group__eyebrow">Trip length & timing</div>
             <div className="field">
-              <label className="field-lab">Stay type</label>
-              <select className="input" value={stayType} onChange={e => setStayType(e.target.value as 'day_trip' | 'overnight' | 'multi_night')}>
-                <option value="day_trip">Day trip</option>
-                <option value="overnight">Overnight</option>
-                <option value="multi_night">Multi-night</option>
-              </select>
+              <label className="field-lab">Trip length</label>
+              <div className="pf-seg" role="group" aria-label="Trip length">
+                <button type="button" className={`pf-seg__btn${stayType === 'day_trip' ? ' active' : ''}`} onClick={() => setStayType('day_trip')}>
+                  <span className="pf-seg__icon" aria-hidden>☀️</span> Day trip
+                </button>
+                <button type="button" className={`pf-seg__btn${stayType === 'overnight' ? ' active' : ''}`} onClick={() => setStayType('overnight')}>
+                  <span className="pf-seg__icon" aria-hidden>🌙</span> Overnight
+                </button>
+                <button type="button" className={`pf-seg__btn${stayType === 'multi_night' ? ' active' : ''}`} onClick={() => setStayType('multi_night')}>
+                  <span className="pf-seg__icon" aria-hidden>🗓️</span> Multi-night
+                </button>
+              </div>
             </div>
-            <div className="field">
-              <label className="field-lab">Depart from origin</label>
-              <input className="input" type="time" value={departTime} onChange={e => setDepartTime(e.target.value)} />
+            <div className="row-2">
+              <div className="field">
+                <label className="field-lab">Depart from origin</label>
+                <input className="input" type="time" value={departTime} onChange={e => setDepartTime(e.target.value)} />
+              </div>
+              <div className="field">
+                <label className="field-lab">{stayType === 'day_trip' ? 'Return wheels-up' : 'Return time (last day)'}</label>
+                <input className="input" type="time" value={returnTime} onChange={e => setReturnTime(e.target.value)} />
+              </div>
             </div>
-          </div>
-          <div className="field">
-            <label className="field-lab">Return wheels-up</label>
-            <input className="input" type="time" value={returnTime} onChange={e => setReturnTime(e.target.value)} />
+            {stayType !== 'day_trip' && (
+              <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', lineHeight: 1.5, marginTop: -2, marginBottom: 10 }}>
+                {stayType === 'overnight' ? 'Overnight' : 'Multi-night'}: note the lodging and number of nights for ops below — they’ll confirm the plan with the operator.
+              </div>
+            )}
           </div>
 
-          <div className="row-2">
-            <div className="field">
-              <label className="field-lab">Suggested capacity</label>
-              <input className="input" type="number" min={2} max={20} value={suggestedCapacity} onChange={e => setSuggestedCapacity(Math.max(2, Math.min(20, Number(e.target.value) || 0)))} />
-            </div>
-            <div className="field">
-              <label className="field-lab">Suggested minimum</label>
-              <input className="input" type="number" min={1} max={suggestedCapacity} value={suggestedMinSeats} onChange={e => setSuggestedMinSeats(Math.max(1, Math.min(suggestedCapacity, Number(e.target.value) || 0)))} />
+          {/* Size */}
+          <div className="pf-group">
+            <div className="pf-group__eyebrow">Suggested size</div>
+            <div className="row-2">
+              <div className="field">
+                <label className="field-lab">Capacity</label>
+                <input className="input" type="number" min={2} max={20} value={suggestedCapacity} onChange={e => setSuggestedCapacity(Math.max(2, Math.min(20, Number(e.target.value) || 0)))} />
+              </div>
+              <div className="field">
+                <label className="field-lab">Minimum</label>
+                <input className="input" type="number" min={1} max={suggestedCapacity} value={suggestedMinSeats} onChange={e => setSuggestedMinSeats(Math.max(1, Math.min(suggestedCapacity, Number(e.target.value) || 0)))} />
+              </div>
             </div>
           </div>
 
           <div style={{
             background: 'rgba(244,167,44,0.06)',
             border: '1px solid rgba(244,167,44,0.25)',
-            borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+            borderRadius: 16, padding: '16px 18px', marginBottom: 14,
           }}>
             <div style={{
               fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.18em', textTransform: 'uppercase',
