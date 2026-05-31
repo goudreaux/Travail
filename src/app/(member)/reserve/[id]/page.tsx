@@ -67,6 +67,18 @@ function addMins(t: string | null, mins: number): string {
   return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`
 }
 
+// Estimated block time (minutes) for a seaplane leg when the flight row has
+// no duration set yet — so the reserve itinerary autofills Arrives/Block
+// instead of showing "—" / "0m". Known FL city pairs first, then a sensible
+// default for the network's typical hop.
+const ROUTE_BLOCK_MINS: Record<string, number> = {
+  'KTPF-KEYW': 75, 'KTPA-KEYW': 75, 'KTPF-LPI': 80, 'KTPA-LPI': 80,
+  'KTPF-STR': 35, 'KTPA-STR': 35, 'KTPF-LCC': 55, 'KTPA-LCC': 55,
+}
+function estimateBlockMins(origin: string, dest: string): number {
+  return ROUTE_BLOCK_MINS[`${origin}-${dest}`] ?? ROUTE_BLOCK_MINS[`${dest}-${origin}`] ?? 60
+}
+
 function Endpoint({ code, names }: { code: string; names: Record<string, string> }) {
   const name = airportCity(code, names)
   return (
@@ -78,6 +90,11 @@ function Endpoint({ code, names }: { code: string; names: Record<string, string>
 
 function FlightLeg({ label, f, names }: { label?: string; f: Flight; names: Record<string, string> }) {
   const dp = fmtDate(f.date)
+  // Autofill: use the row's duration when set, else estimate from the route so
+  // the itinerary never shows "Arrives —" / "Block 0m".
+  const blockMins = f.duration_mins && f.duration_mins > 0
+    ? f.duration_mins
+    : estimateBlockMins(f.origin_code, f.dest_code)
   return (
     <div>
       {label && (
@@ -87,7 +104,7 @@ function FlightLeg({ label, f, names }: { label?: string; f: Flight; names: Reco
         <Endpoint code={f.origin_code} names={names} />
         <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
           <div style={{ color: 'var(--tropic-d)', fontSize: 22, fontWeight: 500 }}>→</div>
-          <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-light)', letterSpacing: '0.12em' }}>{fmtDur(f.duration_mins)}</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-light)', letterSpacing: '0.12em' }}>{fmtDur(blockMins)}</div>
         </div>
         <Endpoint code={f.dest_code} names={names} />
       </div>
@@ -95,8 +112,8 @@ function FlightLeg({ label, f, names }: { label?: string; f: Flight; names: Reco
         {[
           { label: 'Date', value: `${dp.dow} ${dp.mo} ${dp.day}` },
           { label: 'Departs', value: fmtTime(f.depart_time) },
-          { label: 'Arrives', value: addMins(f.depart_time, f.duration_mins) },
-          { label: 'Block', value: fmtDur(f.duration_mins) },
+          { label: 'Arrives', value: addMins(f.depart_time, blockMins) },
+          { label: 'Block', value: fmtDur(blockMins) },
           { label: 'Operator', value: 'Travail Ops' },
           { label: 'Aircraft', value: f.aircraft_id },
         ].map(({ label, value }) => (
