@@ -21,7 +21,7 @@ function placeName(code: string, names: Record<string, string>): string {
 
 // ─── Color helpers ─────────────────────────────────────────────────────────────
 
-type ActivityFilter = 'all' | 'sponsored' | 'proposal' | 'flight' | 'fish' | 'sail' | 'surf' | 'snorkel' | 'golf' | 'hunt' | 'wildlife' | 'leisure'
+type ActivityFilter = 'all' | 'sponsored' | 'flight' | 'fish' | 'sail' | 'surf' | 'snorkel' | 'golf' | 'hunt' | 'wildlife' | 'leisure'
 
 function getFlightColors() {
   return { accent: 'var(--tropic-d)', bg: 'var(--tropic-glow)', dot: 'var(--tropic)' }
@@ -540,7 +540,6 @@ export default function SeatsPage() {
   // excursion maps to that category.
   const activeFilterKeys: ActivityFilter[] = ['all']
   if (publicExcursions.some(e => e.sponsor)) activeFilterKeys.push('sponsored')
-  if (proposals.length > 0) activeFilterKeys.push('proposal')
   if (flightEntries.length > 0) activeFilterKeys.push('flight')
   const seen = new Set<ActivityFilter>()
   for (const e of excursions) {
