@@ -37,6 +37,7 @@ export default function ProposeFlightPage() {
   const [destCode, setDestCode] = useState(DESTS[0].code)
   const [customDestName, setCustomDestName] = useState('')
   const [date, setDate] = useState('')
+  const [stayType, setStayType] = useState<'day_trip' | 'overnight'>('day_trip')
   const [departTime, setDepartTime] = useState('09:00')
   const [suggestedCapacity, setSuggestedCapacity] = useState(8)
   const [suggestedMinSeats, setSuggestedMinSeats] = useState(4)
@@ -87,6 +88,7 @@ export default function ProposeFlightPage() {
             destCode: isCustomDest ? 'CUSTOM' : destCode,
             destName,
             customDest: isCustomDest,
+            stayType,
             departTime,
             pitch: pitch.trim() || null,
             notes: opsNotes.trim() || null,
@@ -151,52 +153,79 @@ export default function ProposeFlightPage() {
       <PageHero accent="sun" eyebrow="PROPOSE A FLIGHT · NO RISK" title="Pitch the route" sub="Ops sets the minimum and per-seat price during review. No charge to you until the proposal locks." />
       <div className="page-view">
         <div className="wiz" style={{ maxWidth: 560 }}>
-          <div className="row-2">
-            <div className="field">
-              <label className="field-lab">From</label>
-              <select className="input" value={origin} onChange={e => setOrigin(e.target.value)}>
-                {ORIGINS.map(o => <option key={o.code} value={o.code}>{o.name} ({o.code})</option>)}
-              </select>
-            </div>
-            <div className="field">
-              <label className="field-lab">To</label>
-              <select className="input" value={destCode} onChange={e => setDestCode(e.target.value)}>
-                {DESTS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {isCustomDest && (
-            <div className="field">
-              <label className="field-lab">Custom destination name</label>
-              <input className="input" value={customDestName} onChange={e => setCustomDestName(e.target.value)} placeholder="Hotel, town, or marina" />
-            </div>
-          )}
-
-          <div className="row-2">
-            <div className="field">
-              <label className="field-lab">Date</label>
-              <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} min={minDate} />
-              <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
-                Earliest selectable: {minDate} ({PROPOSAL_MIN_LEAD_DAYS}-day lead-time floor)
+          {/* Route */}
+          <div className="pf-group">
+            <div className="pf-group__eyebrow">The route</div>
+            <div className="row-2">
+              <div className="field">
+                <label className="field-lab">From</label>
+                <select className="input" value={origin} onChange={e => setOrigin(e.target.value)}>
+                  {ORIGINS.map(o => <option key={o.code} value={o.code}>{o.name} ({o.code})</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label className="field-lab">To</label>
+                <select className="input" value={destCode} onChange={e => setDestCode(e.target.value)}>
+                  {DESTS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+                </select>
               </div>
             </div>
-            <div className="field">
-              <label className="field-lab">Suggested depart time</label>
-              <input className="input" type="time" value={departTime} onChange={e => setDepartTime(e.target.value)} />
-            </div>
+            {isCustomDest && (
+              <div className="field">
+                <label className="field-lab">Custom destination name</label>
+                <input className="input" value={customDestName} onChange={e => setCustomDestName(e.target.value)} placeholder="Hotel, town, or marina" />
+              </div>
+            )}
           </div>
 
-          <div className="row-2">
+          {/* When + stay type */}
+          <div className="pf-group">
+            <div className="pf-group__eyebrow">When</div>
             <div className="field">
-              <label className="field-lab">Suggested capacity</label>
-              <input className="input" type="number" min={2} max={20} value={suggestedCapacity} onChange={e => setSuggestedCapacity(Math.max(2, Math.min(20, Number(e.target.value) || 0)))} />
+              <label className="field-lab">Trip length</label>
+              <div className="pf-seg" role="group" aria-label="Trip length">
+                <button type="button" className={`pf-seg__btn${stayType === 'day_trip' ? ' active' : ''}`} onClick={() => setStayType('day_trip')}>
+                  <span className="pf-seg__icon" aria-hidden>☀️</span> Day trip
+                </button>
+                <button type="button" className={`pf-seg__btn${stayType === 'overnight' ? ' active' : ''}`} onClick={() => setStayType('overnight')}>
+                  <span className="pf-seg__icon" aria-hidden>🌙</span> Overnight
+                </button>
+              </div>
             </div>
-            <div className="field">
-              <label className="field-lab">Suggested minimum seats</label>
-              <input className="input" type="number" min={1} max={suggestedCapacity} value={suggestedMinSeats} onChange={e => setSuggestedMinSeats(Math.max(1, Math.min(suggestedCapacity, Number(e.target.value) || 0)))} />
-              <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
-                Ops sets the actual floor based on Tropic's charter math.
+            <div className="row-2">
+              <div className="field">
+                <label className="field-lab">{stayType === 'overnight' ? 'Departure date' : 'Date'}</label>
+                <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} min={minDate} />
+                <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
+                  Earliest: {minDate} ({PROPOSAL_MIN_LEAD_DAYS}-day floor)
+                </div>
+              </div>
+              <div className="field">
+                <label className="field-lab">Suggested depart time</label>
+                <input className="input" type="time" value={departTime} onChange={e => setDepartTime(e.target.value)} />
+              </div>
+            </div>
+            {stayType === 'overnight' && (
+              <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', lineHeight: 1.5, marginTop: -2, marginBottom: 10 }}>
+                Overnight trips: tell ops the return date and lodging in the notes below — they’ll confirm the round-trip charter with Tropic.
+              </div>
+            )}
+          </div>
+
+          {/* Capacity */}
+          <div className="pf-group">
+            <div className="pf-group__eyebrow">Suggested size</div>
+            <div className="row-2">
+              <div className="field">
+                <label className="field-lab">Capacity</label>
+                <input className="input" type="number" min={2} max={20} value={suggestedCapacity} onChange={e => setSuggestedCapacity(Math.max(2, Math.min(20, Number(e.target.value) || 0)))} />
+              </div>
+              <div className="field">
+                <label className="field-lab">Minimum seats</label>
+                <input className="input" type="number" min={1} max={suggestedCapacity} value={suggestedMinSeats} onChange={e => setSuggestedMinSeats(Math.max(1, Math.min(suggestedCapacity, Number(e.target.value) || 0)))} />
+                <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
+                  Ops sets the actual floor.
+                </div>
               </div>
             </div>
           </div>
@@ -204,7 +233,7 @@ export default function ProposeFlightPage() {
           <div style={{
             background: 'rgba(0,179,199,0.06)',
             border: '1px solid rgba(0,179,199,0.20)',
-            borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+            borderRadius: 16, padding: '16px 18px', marginBottom: 14,
           }}>
             <div style={{
               fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.18em', textTransform: 'uppercase',
