@@ -104,7 +104,7 @@ export default function MembersPage() {
   const [peopleTab, setPeopleTab] = useState<'members' | 'guests' | 'referrals'>('members')
   const [convertReferralId, setConvertReferralId] = useState<string | null>(null)
   // Generated invite-code dialog: { name, code, url }.
-  const [codeModal, setCodeModal] = useState<{ name: string; code: string; url: string } | null>(null)
+  const [codeModal, setCodeModal] = useState<{ memberId: string; name: string; code: string; url: string } | null>(null)
   const [codeBusy, setCodeBusy] = useState<string | null>(null)
   const [copied, setCopied] = useState<'code' | 'link' | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
@@ -261,23 +261,30 @@ export default function MembersPage() {
 
   // Mint a per-member invite code and show it for copying. This is one way in;
   // the primary path is self-serve email-code sign-in at /login.
-  async function genCode(m: Member) {
-    setCodeBusy(m.id)
+  // Mint a fresh single-use invite code for a member and pop the share modal
+  // (code + copyable /join link). Returns whether it succeeded.
+  async function mintAndShow(memberId: string, name: string): Promise<boolean> {
     try {
       const res = await fetch('/api/admin/invite-codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId: m.id }),
+        body: JSON.stringify({ memberId }),
       })
       const json = await res.json().catch(() => ({}))
-      if (!res.ok || !json.ok) { showToast(json.error ?? 'Could not create code', 'error'); return }
+      if (!res.ok || !json.ok) { showToast(json.error ?? 'Could not create code', 'error'); return false }
       setCopied(null)
-      setCodeModal({ name: m.name, code: json.code, url: json.joinUrl })
+      setCodeModal({ memberId, name, code: json.code, url: json.joinUrl })
+      return true
     } catch (e) {
       showToast((e as Error).message ?? 'Could not create code', 'error')
-    } finally {
-      setCodeBusy(null)
+      return false
     }
+  }
+
+  async function genCode(m: Member) {
+    setCodeBusy(m.id)
+    try { await mintAndShow(m.id, m.name) }
+    finally { setCodeBusy(null) }
   }
 
   // Email a member their invitation link (branded, via Resend). Returns the
@@ -472,14 +479,15 @@ export default function MembersPage() {
             meta: { linked_login: !!uid },
           })
         }
-        // Adding a member with an email IS inviting them: auto-email the invite
-        // link so ops doesn't need a second click. Linked-login or no-email
-        // cases have nothing to send.
+        // Adding a member with an email mints their invite and pops the share
+        // modal so ops can copy the /join link and text it — the member never
+        // has to chase an email. "Email instead" stays available in the modal.
+        // Linked-login or no-email cases have nothing to share.
         if (uid) {
           showToast('Member created, login linked')
         } else if (emailVal && inserted) {
-          const r = await sendEmailInvite(inserted.id)
-          showToast(r.ok ? `Member created — invite emailed to ${r.email}` : `Member created, but invite email failed: ${r.error}`, r.ok ? 'success' : 'error')
+          showToast('Member created — invite ready to share', 'success')
+          await mintAndShow(inserted.id, payload.name)
         } else {
           showToast('Member created, add an email so they can sign in')
         }
@@ -542,7 +550,22 @@ export default function MembersPage() {
               </button>
             </div>
 
-            <button className="btn-ghost" style={{ width: '100%' }} onClick={() => setCodeModal(null)}>Done</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn-ghost"
+                style={{ flex: 1 }}
+                disabled={codeBusy === codeModal.memberId}
+                onClick={async () => {
+                  setCodeBusy(codeModal.memberId)
+                  const r = await sendEmailInvite(codeModal.memberId)
+                  setCodeBusy(null)
+                  showToast(r.ok ? `Invite emailed to ${r.email}` : (r.error ?? 'Could not email invite'), r.ok ? 'success' : 'error')
+                }}
+              >
+                {codeBusy === codeModal.memberId ? 'Emailing…' : 'Email instead'}
+              </button>
+              <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setCodeModal(null)}>Done</button>
+            </div>
           </div>
         </div>
       )}
