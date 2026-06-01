@@ -4,6 +4,10 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
+// Minimal, robust route globe. Draws great-circle arcs + clickable pins for
+// each route over a satellite globe. Kept deliberately simple: no idle-spin,
+// no Standard-style config — just init, paint, fly, and a clear error state.
+
 export type RouteItem = {
   id: string
   kind: 'flight' | 'excursion' | 'proposal'
@@ -15,25 +19,14 @@ export type RouteItem = {
   accent: string
 }
 
-export type RouteGlobeHandle = {
-  flyTo: (id: string) => void
-}
+export type RouteGlobeHandle = { flyTo: (id: string) => void }
 
-// Spherical-interpolated great-circle path between two lng/lat points. On the
-// globe projection this curve reads as a route arcing over the earth.
-function greatCircle(a: [number, number], b: [number, number], steps = 72): [number, number][] {
+// Great-circle interpolation so the arc curves over the globe.
+function greatCircle(a: [number, number], b: [number, number], steps = 64): [number, number][] {
   const rad = (d: number) => (d * Math.PI) / 180
   const deg = (r: number) => (r * 180) / Math.PI
-  const lon1 = rad(a[0]), lat1 = rad(a[1])
-  const lon2 = rad(b[0]), lat2 = rad(b[1])
-  const d =
-    2 *
-    Math.asin(
-      Math.sqrt(
-        Math.sin((lat2 - lat1) / 2) ** 2 +
-          Math.cos(lat1) * Math.cos(lat2) * Math.sin((lon2 - lon1) / 2) ** 2,
-      ),
-    )
+  const lon1 = rad(a[0]), lat1 = rad(a[1]), lon2 = rad(b[0]), lat2 = rad(b[1])
+  const d = 2 * Math.asin(Math.sqrt(Math.sin((lat2 - lat1) / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin((lon2 - lon1) / 2) ** 2))
   if (!d) return [a, b]
   const pts: [number, number][] = []
   for (let i = 0; i <= steps; i++) {
@@ -48,163 +41,104 @@ function greatCircle(a: [number, number], b: [number, number], steps = 72): [num
   return pts
 }
 
-function markerEl(item: RouteItem, onClick: () => void): HTMLElement {
-  const el = document.createElement('button')
-  el.type = 'button'
-  el.className = 'route-marker'
-  el.setAttribute('aria-label', item.label)
-  el.style.setProperty('--mk', item.accent)
-  el.innerHTML = '<span class="route-marker__dot"></span><span class="route-marker__pulse"></span>'
-  el.addEventListener('click', e => {
-    e.stopPropagation()
-    onClick()
-  })
-  return el
-}
-
-type Props = {
-  token: string
-  items: RouteItem[]
-  onOpen: (href: string) => void
-}
+type Props = { token: string; items: RouteItem[]; onOpen: (href: string) => void }
 
 function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGlobeHandle>) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [loadError, setLoadError] = useState<string | null>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
   const coordsRef = useRef<Record<string, [number, number]>>({})
-  const onOpenRef = useRef(onOpen)
-  onOpenRef.current = onOpen
+  const onOpenRef = useRef(onOpen); onOpenRef.current = onOpen
+  const itemsRef = useRef(items); itemsRef.current = items
+  const [error, setError] = useState<string | null>(null)
+  const [ready, setReady] = useState(false)
 
   useImperativeHandle(ref, () => ({
     flyTo(id: string) {
       const c = coordsRef.current[id]
-      const map = mapRef.current
-      if (c && map) map.flyTo({ center: c, zoom: 5.4, speed: 0.7, curve: 1.4, essential: true })
+      if (c && mapRef.current) mapRef.current.flyTo({ center: c, zoom: 5.2, speed: 0.7, essential: true })
     },
   }))
 
-  // Init the map once.
+  // Init once.
   useEffect(() => {
     if (!containerRef.current || mapRef.current || !token) return
     mapboxgl.accessToken = token
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: 'mapbox://styles/mapbox/satellite-streets-v12',
-      projection: 'globe',
-      center: [-82, 25.6],
-      zoom: 4.4,
-      attributionControl: false,
-      cooperativeGestures: false,
-    })
+    let map: mapboxgl.Map
+    try {
+      map = new mapboxgl.Map({
+        container: containerRef.current,
+        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        projection: 'globe',
+        center: [-82, 25.5],
+        zoom: 4.2,
+        attributionControl: false,
+      })
+    } catch (e) {
+      setError((e as Error).message || 'Could not start the map.')
+      return
+    }
     mapRef.current = map
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right')
 
     map.on('style.load', () => {
-      // Warm atmosphere on the globe. (Classic style — no Standard-only config.)
-      map.setFog({
-        color: 'rgb(255, 224, 181)',
-        'high-color': 'rgb(36, 92, 110)',
-        'horizon-blend': 0.04,
-        'space-color': 'rgb(11, 24, 30)',
-        'star-intensity': 0.15,
-      })
+      map.setFog({ color: 'rgb(255,224,181)', 'high-color': 'rgb(36,92,110)', 'horizon-blend': 0.04, 'space-color': 'rgb(11,24,30)', 'star-intensity': 0.12 })
     })
-
-    map.on('load', () => paintRoutes())
-
-    // Surface auth/domain failures instead of leaving a silent blank globe —
-    // the usual cause is the token's Mapbox URL restrictions not allowing this
-    // domain (or an invalid token).
+    map.on('load', () => { map.resize(); setReady(true); paint() })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     map.on('error', (e: any) => {
       const status = e?.error?.status ?? e?.status
       const msg = String(e?.error?.message ?? e?.error ?? '')
-      if (status === 401 || status === 403 || /401|403|not authorized|unauthorized|allowlist|access token|forbidden|token/i.test(msg)) {
-        setLoadError("Mapbox rejected the request (token or domain). Check the token in Vercel (NEXT_PUBLIC_MAPBOX_TOKEN) and that its URL restrictions allow this site — then refresh.")
+      if (status === 401 || status === 403 || /401|403|unauthorized|not authorized|allowlist|forbidden|token/i.test(msg)) {
+        setError("Mapbox rejected the token. In Vercel, confirm NEXT_PUBLIC_MAPBOX_TOKEN is your current unrestricted token, then redeploy.")
       }
     })
 
-    let spin = true
-    map.on('mousedown', () => { spin = false })
-    map.on('touchstart', () => { spin = false })
-    // Gentle idle spin until the user grabs it.
-    const tick = () => {
-      if (spin && map.getZoom() < 5) {
-        const c = map.getCenter()
-        c.lng -= 0.12
-        map.easeTo({ center: c, duration: 1000, easing: n => n })
-      }
-    }
-    map.on('moveend', tick)
-
     return () => {
-      markersRef.current.forEach(m => m.remove())
-      markersRef.current = []
-      map.remove()
-      mapRef.current = null
+      markersRef.current.forEach(m => m.remove()); markersRef.current = []
+      map.remove(); mapRef.current = null
     }
   }, [token])
 
-  // (Re)draw routes whenever the data changes.
-  useEffect(() => {
-    if (mapRef.current?.isStyleLoaded()) paintRoutes()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items])
+  // Repaint when data changes (once the style is ready).
+  useEffect(() => { if (ready) paint() }, [items, ready]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function paintRoutes() {
+  function paint() {
     const map = mapRef.current
     if (!map || !map.isStyleLoaded()) return
+    const list = itemsRef.current
 
-    // Clear old markers.
-    markersRef.current.forEach(m => m.remove())
-    markersRef.current = []
+    markersRef.current.forEach(m => m.remove()); markersRef.current = []
     const coords: Record<string, [number, number]> = {}
 
-    const arcs = items
-      .filter(it => it.dest)
-      .map(it => ({
-        type: 'Feature' as const,
-        properties: { color: it.accent },
-        geometry: { type: 'LineString' as const, coordinates: greatCircle(it.origin, it.dest as [number, number]) },
-      }))
-    const fc = { type: 'FeatureCollection' as const, features: arcs }
+    const features = list.filter(it => it.dest).map(it => ({
+      type: 'Feature' as const,
+      properties: { color: it.accent },
+      geometry: { type: 'LineString' as const, coordinates: greatCircle(it.origin, it.dest as [number, number]) },
+    }))
+    const data = { type: 'FeatureCollection' as const, features }
 
     const src = map.getSource('routes') as mapboxgl.GeoJSONSource | undefined
-    if (src) {
-      src.setData(fc)
-    } else {
-      map.addSource('routes', { type: 'geojson', data: fc })
-      // Soft glow under the crisp line.
-      map.addLayer({
-        id: 'routes-glow',
-        type: 'line',
-        source: 'routes',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': ['get', 'color'], 'line-width': 7, 'line-opacity': 0.22, 'line-blur': 8 },
-      })
-      map.addLayer({
-        id: 'routes-line',
-        type: 'line',
-        source: 'routes',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': ['get', 'color'], 'line-width': 2.4, 'line-opacity': 0.95 },
-      })
+    if (src) { src.setData(data) }
+    else {
+      map.addSource('routes', { type: 'geojson', data })
+      map.addLayer({ id: 'routes-glow', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 7, 'line-opacity': 0.25, 'line-blur': 8 } })
+      map.addLayer({ id: 'routes-line', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 2.4 } })
     }
 
-    // Markers: the clickable trip pin sits at the destination (or origin for a
-    // single-point excursion). Open the itinerary on click.
-    for (const it of items) {
+    for (const it of list) {
       const at = it.dest ?? it.origin
       coords[it.id] = at
+      const el = document.createElement('button')
+      el.type = 'button'
+      el.className = 'route-marker'
+      el.setAttribute('aria-label', it.label)
+      el.style.setProperty('--mk', it.accent)
+      el.innerHTML = '<span class="route-marker__dot"></span><span class="route-marker__pulse"></span>'
+      el.addEventListener('click', ev => { ev.stopPropagation(); onOpenRef.current(it.href) })
       const popup = new mapboxgl.Popup({ offset: 16, closeButton: false, className: 'route-popup' })
         .setHTML(`<strong>${it.label}</strong>${it.sub ? `<span>${it.sub}</span>` : ''}`)
-      const m = new mapboxgl.Marker({ element: markerEl(it, () => onOpenRef.current(it.href)) })
-        .setLngLat(at)
-        .setPopup(popup)
-        .addTo(map)
-      const el = m.getElement()
+      const m = new mapboxgl.Marker({ element: el }).setLngLat(at).setPopup(popup).addTo(map)
       el.addEventListener('mouseenter', () => m.togglePopup())
       el.addEventListener('mouseleave', () => m.togglePopup())
       markersRef.current.push(m)
@@ -215,11 +149,11 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={containerRef} className="route-globe" />
-      {loadError && (
+      {error && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(6,34,43,0.88)', borderRadius: 18, textAlign: 'center' }}>
           <div style={{ maxWidth: 440 }}>
             <div style={{ fontFamily: 'var(--display)', fontSize: 21, color: 'var(--paper)', marginBottom: 8 }}>Map couldn&rsquo;t load</div>
-            <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.72)', lineHeight: 1.55, margin: 0 }}>{loadError}</p>
+            <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.72)', lineHeight: 1.55, margin: 0 }}>{error}</p>
           </div>
         </div>
       )}
