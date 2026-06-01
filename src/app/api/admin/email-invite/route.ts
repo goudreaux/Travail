@@ -10,7 +10,7 @@ import { sendInviteLinkEmail } from '@/lib/invite-email'
 // account" link. The member taps it → /join → sets a password → into the app.
 // No Supabase auth magic link anywhere — the link is one we control.
 export async function POST(request: NextRequest) {
-  let body: { memberId?: string }
+  let body: { memberId?: string; purpose?: 'invite' | 'reset' }
   try {
     body = await request.json()
   } catch {
@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
   }
   const memberId = body.memberId?.trim()
   if (!memberId) return NextResponse.json({ error: 'memberId is required' }, { status: 400 })
+  const purpose = body.purpose === 'reset' ? 'reset' : 'invite'
 
   // Caller must be an authenticated admin.
   const supabase = await createServerClient()
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
   })
   if ('error' in minted) return NextResponse.json({ error: `Could not create invite: ${minted.error}` }, { status: 500 })
 
-  const sent = await sendInviteLinkEmail({ to: email, memberName, joinUrl: minted.joinUrl, code: minted.code, memberId })
+  const sent = await sendInviteLinkEmail({ to: email, memberName, joinUrl: minted.joinUrl, code: minted.code, memberId, purpose })
   if (!sent.ok) return NextResponse.json({ error: `Invite created but email failed: ${sent.error}` }, { status: 502 })
 
   return NextResponse.json({ ok: true, email })

@@ -14,6 +14,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [processing, setProcessing] = useState(false)
+  const [showReset, setShowReset] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetSending, setResetSending] = useState(false)
+  const [resetMsg, setResetMsg] = useState('')
 
   // Land the member in the app. link_my_member() attaches a freshly-created
   // auth user to their pre-created member row (no-op if already linked) — but
@@ -66,6 +70,30 @@ export default function LoginPage() {
       return
     }
     await enterApp()
+  }
+
+  // Self-serve password reset: mints a /join code bound to the email and sends
+  // the branded reset link. Always shows a generic confirmation (the server
+  // never reveals whether the email matched a member).
+  async function sendReset(e: React.FormEvent) {
+    e.preventDefault()
+    setResetSending(true)
+    setResetMsg('')
+    try {
+      const res = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail.trim() }),
+      })
+      const json = await res.json().catch(() => ({}))
+      setResetMsg(res.ok
+        ? (json.message ?? 'If that email is on a Travail membership, a reset link is on its way.')
+        : (json.error ?? 'Something went wrong. Please try again.'))
+    } catch {
+      setResetMsg('Something went wrong. Please try again.')
+    } finally {
+      setResetSending(false)
+    }
   }
 
   return (
@@ -136,6 +164,38 @@ export default function LoginPage() {
                 {loading ? <><span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 1.5 }} />Signing in…</> : 'Sign in →'}
               </button>
             </form>
+          )}
+
+          {!processing && (
+            <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--hair)' }}>
+              {!showReset ? (
+                <button
+                  type="button"
+                  onClick={() => { setShowReset(true); setResetEmail(email); setResetMsg('') }}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--ui)', fontSize: 13, color: 'var(--tropic-d)', fontWeight: 500 }}
+                >
+                  Forgot your password?
+                </button>
+              ) : resetMsg ? (
+                <p style={{ fontSize: 13, color: 'var(--ink-light)', lineHeight: 1.55, margin: 0 }}>{resetMsg}</p>
+              ) : (
+                <form onSubmit={sendReset} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div className="field" style={{ margin: 0 }}>
+                    <label className="field-lab" htmlFor="reset-email">Email on your membership</label>
+                    <input
+                      id="reset-email" type="email" className="input" placeholder="you@example.com"
+                      value={resetEmail} onChange={e => setResetEmail(e.target.value)} required autoComplete="email" autoFocus
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" className="btn-ghost" onClick={() => setShowReset(false)} style={{ flex: 1, justifyContent: 'center' }}>Cancel</button>
+                    <button type="submit" className="btn-primary" disabled={resetSending} style={{ flex: 1, justifyContent: 'center' }}>
+                      {resetSending ? 'Sending…' : 'Send reset link'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           )}
 
           <div className="login-form-pane__footer">

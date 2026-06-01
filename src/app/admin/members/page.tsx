@@ -290,12 +290,12 @@ export default function MembersPage() {
   // Email a member their invitation link (branded, via Resend). Returns the
   // result so callers can decide how to surface it. They tap "Set up your
   // account" → /join → set a password → in.
-  async function sendEmailInvite(memberId: string): Promise<{ ok: boolean; email?: string; error?: string }> {
+  async function sendEmailInvite(memberId: string, purpose: 'invite' | 'reset' = 'invite'): Promise<{ ok: boolean; email?: string; error?: string }> {
     try {
       const res = await fetch('/api/admin/email-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId }),
+        body: JSON.stringify({ memberId, purpose }),
       })
       const json = await res.json().catch(() => ({}))
       return res.ok && json.ok ? { ok: true, email: json.email } : { ok: false, error: json.error ?? 'Could not email invite' }
@@ -310,6 +310,15 @@ export default function MembersPage() {
     const r = await sendEmailInvite(m.id)
     setCodeBusy(null)
     showToast(r.ok ? `Invite emailed to ${r.email}` : (r.error ?? 'Could not email invite'), r.ok ? 'success' : 'error')
+  }
+
+  // Row action for an already-signed-up member who's locked out: email them a
+  // fresh set-password link (redeeming it at /join resets their password).
+  async function resetLogin(m: Member) {
+    setCodeBusy(m.id)
+    const r = await sendEmailInvite(m.id, 'reset')
+    setCodeBusy(null)
+    showToast(r.ok ? `Password reset link emailed to ${r.email}` : (r.error ?? 'Could not send reset link'), r.ok ? 'success' : 'error')
   }
 
   async function copyText(text: string, which: 'code' | 'link') {
@@ -861,6 +870,17 @@ export default function MembersPage() {
                             Code
                           </button>
                         </>
+                      )}
+                      {contactPresence[m.id]?.has_email && m.user_id && m.user_id !== PLACEHOLDER_USER_ID && (
+                        <button
+                          className="btn-ghost"
+                          style={{ height: 28, padding: '0 10px', fontSize: 12 }}
+                          title="Email this member a link to set a new password (resets their login)"
+                          disabled={codeBusy === m.id}
+                          onClick={() => resetLogin(m)}
+                        >
+                          {codeBusy === m.id ? 'Sending…' : 'Reset login'}
+                        </button>
                       )}
                       <button
                         className="btn-ghost"
