@@ -90,7 +90,11 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
       const status = e?.error?.status ?? e?.status
       const msg = String(e?.error?.message ?? e?.error ?? '')
       if (status === 401 || status === 403 || /401|403|unauthorized|not authorized|allowlist|forbidden|token/i.test(msg)) {
-        setError("Mapbox rejected the token. In Vercel, confirm NEXT_PUBLIC_MAPBOX_TOKEN is your current unrestricted token, then redeploy.")
+        // Show the RAW Mapbox error + a fingerprint of the token actually baked
+        // into this build, so it's fully diagnosable from a screenshot.
+        const tok = token ? `${token.slice(0, 16)}…${token.slice(-6)}` : 'EMPTY'
+        const origin = typeof window !== 'undefined' ? window.location.origin : ''
+        setError(`Mapbox ${status ?? ''}: ${msg || 'rejected'}  ·  origin: ${origin}  ·  token: ${tok}`)
       }
     })
 
