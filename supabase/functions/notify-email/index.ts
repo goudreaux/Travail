@@ -209,6 +209,13 @@ Deno.serve(async (req) => {
       return new Response('no record', { status: 200 })
     }
 
+    // Some notifications are emailed by the Next.js app pipeline instead (e.g.
+    // the branded booking receipt) and flag themselves with ref.skip_email so
+    // we don't double-send. The in-app notification row still stands.
+    if (record.ref && (record.ref as Record<string, unknown>).skip_email) {
+      return new Response('skipped (skip_email)', { status: 200 })
+    }
+
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
