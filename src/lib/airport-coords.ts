@@ -32,6 +32,7 @@ export const AIRPORT_COORDS: Record<string, [number, number]> = {
   NFSPR: [-83.0000, 30.0000], // North Florida Springs
   TALQ:  [-84.5500, 30.4200], // Lake Talquin
   BOCA:  [-82.2715, 26.7478], // Boca Grande, FL (tarpon)
+  LKNONA: [-81.2519, 28.3772], // Lake Nona Golf Club · Orlando
 }
 
 export function coordFor(code: string | null | undefined): [number, number] | null {

@@ -101,17 +101,24 @@ export default function AdminMapPage() {
       for (const p of (proposalsRes.data ?? []) as any[]) {
         const origin = coordFor(p.origin_code)
         if (!origin) continue
-        const destCode = p.kind === 'flight' ? (p.payload?.dest_code ?? null) : null
+        // Both flight and excursion proposals store the destination in the
+        // payload (destCode + a human destName). A 'CUSTOM' destCode has no
+        // coordinates yet — it draws as an origin-only pin until the Concierge
+        // Team edits it to a known place.
+        const rawDestCode: string | null = p.payload?.destCode ?? p.payload?.dest_code ?? null
+        const destCode = rawDestCode && rawDestCode !== 'CUSTOM' ? rawDestCode : null
+        const payloadDestName: string | null = p.payload?.destName ?? null
         const dest = coordFor(destCode)
+        const dName = payloadDestName || (destCode ? name(destCode) : null)
         next.push({
           id: p.id,
           kind: 'proposal',
-          label: p.name || (destCode ? `${name(p.origin_code)} → ${name(destCode)}` : name(p.origin_code)),
+          label: p.name || (dName ? `${name(p.origin_code)} → ${dName}` : name(p.origin_code)),
           sub: `${fmtDate(p.date)} · Proposal`,
           origin,
           dest,
           originName: name(p.origin_code),
-          destName: destCode ? name(destCode) : (p.name || ''),
+          destName: dName ?? undefined,
           href: `/reserve/${p.id}?kind=proposal`,
           accent: ACCENT.proposal,
         })

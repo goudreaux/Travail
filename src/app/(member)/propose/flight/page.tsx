@@ -6,25 +6,13 @@ import { useRouter } from 'next/navigation'
 import PageHero from '@/components/PageHero'
 import { PROPOSAL_MIN_LEAD_DAYS } from '@/lib/proposals'
 import { ProposerCardForm } from '@/components/ProposerCardForm'
+import { PROPOSAL_ORIGINS as ORIGINS, PROPOSAL_DEST_OPTIONS as DESTS } from '@/lib/destinations'
 
 // Lightweight flight-proposal form. Mirrors the route-picking
 // vocabulary of the anchor-flight wizard but compresses everything
 // into a single page since proposals don't capture a card or run
 // through the round-trip planning. Ops fills in capacity / price /
 // min seats during review.
-
-const ORIGINS = [
-  { code: 'KTPA', name: 'TPA',                 sub: 'Tampa, FL' },
-  { code: 'KTPF', name: 'Davis Islands',       sub: 'Tampa, FL' },
-]
-
-const DESTS = [
-  { code: 'STR',    name: 'St. Regis Hotel · Sarasota', sub: 'Sarasota, FL' },
-  { code: 'LCC',    name: 'Lochloosa Country Club',     sub: 'North Central FL' },
-  { code: 'KEYW',   name: 'Key West Airport',           sub: 'FL Keys' },
-  { code: 'LPI',    name: 'Little Palm Island',         sub: 'FL Keys' },
-  { code: 'CUSTOM', name: 'Custom destination',         sub: 'Request, the Concierge Team will confirm' },
-]
 
 function todayPlus(days: number): string {
   const d = new Date(); d.setDate(d.getDate() + days)

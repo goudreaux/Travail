@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import PageHero from '@/components/PageHero'
 import { PROPOSAL_MIN_LEAD_DAYS } from '@/lib/proposals'
 import { ProposerCardForm } from '@/components/ProposerCardForm'
+import { PROPOSAL_DEST_OPTIONS } from '@/lib/destinations'
 
 // Excursion proposal wizard — same spread-guarantee mechanics as the
 // flight proposal. Free-form name + origin airport + date + party
@@ -26,6 +27,8 @@ export default function ProposeExcursionPage() {
   const [airports, setAirports] = useState<Airport[]>([])
   const [name, setName] = useState('')
   const [origin, setOrigin] = useState('KTPF')
+  const [destCode, setDestCode] = useState(PROPOSAL_DEST_OPTIONS[0].code)
+  const [customDestName, setCustomDestName] = useState('')
   const [date, setDate] = useState('')
   const [stayType, setStayType] = useState<'day_trip' | 'overnight' | 'multi_night'>('day_trip')
   const [departTime, setDepartTime] = useState('08:30')
@@ -43,6 +46,10 @@ export default function ProposeExcursionPage() {
   const [cardSaved, setCardSaved] = useState(false)
   const minDate = todayPlus(PROPOSAL_MIN_LEAD_DAYS)
 
+  const isCustomDest = destCode === 'CUSTOM'
+  const destMeta = PROPOSAL_DEST_OPTIONS.find(d => d.code === destCode)
+  const destName = isCustomDest ? customDestName.trim() : (destMeta?.name ?? destCode)
+
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(supabase.from('airports') as any).select('code, name, sub, role').then(({ data }: { data: Airport[] | null }) => {
@@ -53,6 +60,7 @@ export default function ProposeExcursionPage() {
   async function submit() {
     setError(null)
     if (!name.trim()) { setError('Pick a name.'); return }
+    if (isCustomDest && !customDestName.trim()) { setError('Tell us where you want to go, the Concierge Team will confirm.'); return }
     if (!date) { setError('Pick a date.'); return }
     if (date < minDate) { setError(`Proposals need at least ${PROPOSAL_MIN_LEAD_DAYS} days of lead time so the network has a chance to commit. For a trip sooner than that, anchor it instead — you commit the charter and open the extra seats.`); return }
     if (proposerMaxSeats < proposerMinSeats) { setError('Your maximum coverage must be at least your party size.'); return }
@@ -73,6 +81,9 @@ export default function ProposeExcursionPage() {
           proposerMinSeats,
           proposerMaxSeats,
           details: {
+            destCode: isCustomDest ? 'CUSTOM' : destCode,
+            destName,
+            customDest: isCustomDest,
             stayType,
             departTime,
             returnTime,
@@ -146,15 +157,27 @@ export default function ProposeExcursionPage() {
             </div>
             <div className="row-2">
               <div className="field">
-                <label className="field-lab">Origin airport</label>
+                <label className="field-lab">From</label>
                 <select className="input" value={origin} onChange={e => setOrigin(e.target.value)}>
                   {airports.map(a => <option key={a.code} value={a.code}>{a.code} · {a.name}</option>)}
                 </select>
               </div>
               <div className="field">
-                <label className="field-lab">Date</label>
-                <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} min={minDate} />
+                <label className="field-lab">To</label>
+                <select className="input" value={destCode} onChange={e => setDestCode(e.target.value)}>
+                  {PROPOSAL_DEST_OPTIONS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+                </select>
               </div>
+            </div>
+            {isCustomDest && (
+              <div className="field">
+                <label className="field-lab">Custom destination name</label>
+                <input className="input" value={customDestName} onChange={e => setCustomDestName(e.target.value)} placeholder="Lodge, club, town, or marina" />
+              </div>
+            )}
+            <div className="field">
+              <label className="field-lab">Date</label>
+              <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} min={minDate} />
             </div>
           </div>
 

@@ -5,6 +5,7 @@ import { PROPOSAL_STATUS_LABEL, PROPOSAL_STATUS_PILL, type ProposalStatus } from
 import { ItineraryEditor } from '@/components/ItineraryEditor'
 import { TripPhotoPicker } from '@/components/TripPhotoPicker'
 import { asItinerary, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
+import { PROPOSAL_ORIGINS, PROPOSAL_DEST_OPTIONS } from '@/lib/destinations'
 
 // Ops review queue for Trip Proposals.
 //
@@ -310,7 +311,7 @@ function ProposalRowCard({
   onLock: () => Promise<void>
   onSaveItinerary: (steps: ItineraryStep[]) => Promise<void>
   onRemove: () => Promise<void>
-  onUpdate: (fields: { pricePerSeatCents?: number; minSeats?: number; imageUrl?: string | null }) => Promise<void>
+  onUpdate: (fields: { pricePerSeatCents?: number; minSeats?: number; imageUrl?: string | null; originCode?: string; destCode?: string; destName?: string }) => Promise<void>
 }) {
   const suggested = (row.payload ?? {}) as Record<string, unknown>
   // Flight cabins are aircraft-bound (4 or 8). Snap any legacy/odd suggestion
@@ -328,6 +329,16 @@ function ProposalRowCard({
   const [editPrice, setEditPrice] = useState<number>(row.price_per_seat_cents ?? 50000)
   const [editMin, setEditMin] = useState<number>(row.min_seats ?? 1)
   const [editImg, setEditImg] = useState<string>((suggested.imageUrl as string) ?? '')
+  // Route edit — origin airport + destination (the destination is what the
+  // Route Map reads to draw origin → destination). A destination that isn't in
+  // the known list shows as "Custom"; pick a real place to put it on the map.
+  const [editOrigin, setEditOrigin] = useState<string>(row.origin_code)
+  const payloadDestCode = (suggested.destCode as string) || ''
+  const knownDest = PROPOSAL_DEST_OPTIONS.some(d => d.code === payloadDestCode && d.code !== 'CUSTOM')
+  const [editDest, setEditDest] = useState<string>(knownDest ? payloadDestCode : 'CUSTOM')
+  const [editCustomDest, setEditCustomDest] = useState<string>(
+    knownDest ? '' : ((suggested.destName as string) || ''),
+  )
 
   const pill = PROPOSAL_STATUS_PILL[row.status]
   const label = PROPOSAL_STATUS_LABEL[row.status]
@@ -476,6 +487,31 @@ function ProposalRowCard({
           <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 700, marginBottom: 10 }}>
             Edit live proposal
           </div>
+          {/* Route — origin + destination. Setting a real destination is what
+              puts this proposal on the Route Map (origin → destination). */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div className="field" style={{ margin: 0 }}>
+              <label className="field-lab">From (origin)</label>
+              <select className="input" value={editOrigin} onChange={e => setEditOrigin(e.target.value)}>
+                {PROPOSAL_ORIGINS.some(o => o.code === editOrigin)
+                  ? null
+                  : <option value={editOrigin}>{editOrigin}</option>}
+                {PROPOSAL_ORIGINS.map(o => <option key={o.code} value={o.code}>{o.name} ({o.code})</option>)}
+              </select>
+            </div>
+            <div className="field" style={{ margin: 0 }}>
+              <label className="field-lab">To (destination)</label>
+              <select className="input" value={editDest} onChange={e => setEditDest(e.target.value)}>
+                {PROPOSAL_DEST_OPTIONS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+              </select>
+            </div>
+          </div>
+          {editDest === 'CUSTOM' && (
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label className="field-lab">Custom destination name <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(won&apos;t map until it&apos;s a known place)</span></label>
+              <input className="input" value={editCustomDest} onChange={e => setEditCustomDest(e.target.value)} placeholder="Hotel, club, town, or marina" />
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
             <div className="field" style={{ margin: 0 }}>
               <label className="field-lab">Per-seat price ($)</label>
@@ -487,8 +523,26 @@ function ProposalRowCard({
             </div>
           </div>
           <TripPhotoPicker value={editImg} onChange={setEditImg} locationCode={row.origin_code} label="Card image" />
-          <button className="btn-primary" disabled={busy} onClick={() => onUpdate({ pricePerSeatCents: editPrice, minSeats: editMin, imageUrl: editImg })} style={{ marginTop: 10, fontSize: 12 }}>
-            {busy ? 'Saving…' : 'Save price · min · image'}
+          <button
+            className="btn-primary"
+            disabled={busy}
+            onClick={() => {
+              const isCustom = editDest === 'CUSTOM'
+              const dName = isCustom
+                ? editCustomDest.trim()
+                : (PROPOSAL_DEST_OPTIONS.find(d => d.code === editDest)?.name ?? editDest)
+              onUpdate({
+                pricePerSeatCents: editPrice,
+                minSeats: editMin,
+                imageUrl: editImg,
+                originCode: editOrigin,
+                destCode: isCustom ? 'CUSTOM' : editDest,
+                destName: dName,
+              })
+            }}
+            style={{ marginTop: 10, fontSize: 12 }}
+          >
+            {busy ? 'Saving…' : 'Save route · price · min · image'}
           </button>
         </div>
       )}

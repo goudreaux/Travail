@@ -68,7 +68,10 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     try {
       map = new mapboxgl.Map({
         container: containerRef.current,
-        style: 'mapbox://styles/mapbox/standard',
+        // Classic light vector style — unlike the Standard basemap, its layers
+        // are individually addressable, so we can strip road geometry and all
+        // base labels (only our origin/destination markers carry text).
+        style: 'mapbox://styles/mapbox/light-v11',
         projection: 'globe',
         center: [-82.2, 27.6],
         zoom: 5.8,
@@ -83,15 +86,17 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right')
 
     map.on('style.load', () => {
-      // Light basemap, and strip its labels so only our origin/destination
-      // markers carry text.
+      // Strip road/transit geometry and every base label so the map reads as a
+      // clean canvas — only our routes and origin/destination markers show.
       try {
-        map.setConfigProperty('basemap', 'lightPreset', 'day')
-        map.setConfigProperty('basemap', 'showPlaceLabels', false)
-        map.setConfigProperty('basemap', 'showRoadLabels', false)
-        map.setConfigProperty('basemap', 'showPointOfInterestLabels', false)
-        map.setConfigProperty('basemap', 'showTransitLabels', false)
-      } catch { /* style may not support these */ }
+        for (const layer of map.getStyle().layers ?? []) {
+          const id = layer.id
+          if (layer.type === 'symbol') { map.setLayoutProperty(id, 'visibility', 'none'); continue }
+          if (/road|street|tunnel|bridge|motorway|ferry|rail|transit|path|pedestrian/i.test(id)) {
+            map.setLayoutProperty(id, 'visibility', 'none')
+          }
+        }
+      } catch { /* layer set may differ across style versions */ }
       map.setFog({ color: 'rgb(255,255,255)', 'high-color': 'rgb(176,208,232)', 'horizon-blend': 0.05, 'space-color': 'rgb(206,224,238)', 'star-intensity': 0 })
     })
     map.on('load', () => { map.resize(); setReady(true); paint() })
@@ -149,15 +154,22 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     }
 
     for (const it of list) {
-      const at = it.dest ?? it.origin
-      coords[it.id] = at
       if (it.dest) {
+        // Full route: a blue origin dot + a shiny gold, clickable destination.
+        coords[it.id] = it.dest
         const om = new mapboxgl.Marker({ element: ptEl('origin', it.originName) }).setLngLat(it.origin).addTo(map)
+        const dm = new mapboxgl.Marker({ element: ptEl('dest', it.destName ?? it.label, () => onOpenRef.current(it.href)) })
+          .setLngLat(it.dest).addTo(map)
+        markersRef.current.push(om, dm)
+      } else {
+        // No destination coordinates yet (e.g. a custom proposal) — show a
+        // single clickable origin pin. Never plant a "destination" on the
+        // origin, which would mislabel the departure point.
+        coords[it.id] = it.origin
+        const om = new mapboxgl.Marker({ element: ptEl('origin', it.originName ?? it.label, () => onOpenRef.current(it.href)) })
+          .setLngLat(it.origin).addTo(map)
         markersRef.current.push(om)
       }
-      const dm = new mapboxgl.Marker({ element: ptEl('dest', it.destName ?? it.label, () => onOpenRef.current(it.href)) })
-        .setLngLat(at).addTo(map)
-      markersRef.current.push(dm)
     }
     coordsRef.current = coords
   }
