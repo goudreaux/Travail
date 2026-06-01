@@ -213,20 +213,47 @@ export default function ProposeFlightPage() {
             )}
           </div>
 
-          {/* Capacity */}
+          {/* Aircraft — capacity is bound to the plane, not free-form. */}
           <div className="pf-group">
-            <div className="pf-group__eyebrow">Suggested size</div>
-            <div className="row-2">
-              <div className="field">
-                <label className="field-lab">Capacity</label>
-                <input className="input" type="number" min={2} max={20} value={suggestedCapacity} onChange={e => setSuggestedCapacity(Math.max(2, Math.min(20, Number(e.target.value) || 0)))} />
+            <div className="pf-group__eyebrow">Aircraft</div>
+            <div className="field">
+              <label className="field-lab">Which aircraft?</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[{ name: 'Cessna 206', cap: 4 }, { name: 'Grand Caravan', cap: 8 }].map(ac => {
+                  const on = suggestedCapacity === ac.cap
+                  return (
+                    <button
+                      key={ac.cap}
+                      type="button"
+                      className="input"
+                      onClick={() => {
+                        setSuggestedCapacity(ac.cap)
+                        setSuggestedMinSeats(s => Math.min(s, ac.cap))
+                        setProposerMinSeats(s => Math.min(s, ac.cap))
+                        setProposerMaxSeats(s => Math.min(s, ac.cap))
+                      }}
+                      style={{
+                        flex: 1, cursor: 'pointer', textAlign: 'center', height: 'auto', padding: '10px 8px',
+                        fontWeight: on ? 700 : 500,
+                        borderColor: on ? 'var(--tropic)' : undefined,
+                        background: on ? 'var(--tropic-glow)' : undefined,
+                        color: on ? 'var(--tropic-d)' : 'var(--ink-soft)',
+                      }}
+                    >
+                      {ac.name} · {ac.cap} seats
+                    </button>
+                  )
+                })}
               </div>
-              <div className="field">
-                <label className="field-lab">Minimum seats</label>
-                <input className="input" type="number" min={1} max={suggestedCapacity} value={suggestedMinSeats} onChange={e => setSuggestedMinSeats(Math.max(1, Math.min(suggestedCapacity, Number(e.target.value) || 0)))} />
-                <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
-                  Ops sets the actual floor.
-                </div>
+              <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
+                Seats are capped by the aircraft. Ops confirms the final plane with Tropic.
+              </div>
+            </div>
+            <div className="field">
+              <label className="field-lab">Minimum seats</label>
+              <input className="input" type="number" min={1} max={suggestedCapacity} value={suggestedMinSeats} onChange={e => setSuggestedMinSeats(Math.max(1, Math.min(suggestedCapacity, Number(e.target.value) || 0)))} />
+              <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
+                Ops sets the actual floor.
               </div>
             </div>
           </div>

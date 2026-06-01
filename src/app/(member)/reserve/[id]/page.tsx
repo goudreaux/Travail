@@ -475,6 +475,26 @@ export default function ReservePage() {
           setError('Please enter a valid email for each new guest.'); return
         }
       }
+
+      // No duplicate passengers on one reservation. Dedupe by email (the
+      // stable identity), falling back to the saved-guest id when a saved
+      // guest has no email on file.
+      const seen = new Set<string>()
+      for (const s of guestSlots) {
+        const keys: string[] = []
+        if (s.savedGuestId === NEW_GUEST) {
+          keys.push('e:' + s.email.trim().toLowerCase())
+        } else {
+          keys.push('g:' + s.savedGuestId)
+          const ge = (savedGuests.find(x => x.id === s.savedGuestId)?.email ?? '').trim().toLowerCase()
+          if (ge) keys.push('e:' + ge)
+        }
+        if (keys.some(k => seen.has(k))) {
+          setError('That guest is already on this reservation — each seat needs a different person.')
+          return
+        }
+        keys.forEach(k => seen.add(k))
+      }
     }
 
     setSubmitting(true)
