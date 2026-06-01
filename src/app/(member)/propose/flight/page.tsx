@@ -230,7 +230,9 @@ export default function ProposeFlightPage() {
                         setSuggestedCapacity(ac.cap)
                         setSuggestedMinSeats(s => Math.min(s, ac.cap))
                         setProposerMinSeats(s => Math.min(s, ac.cap))
-                        setProposerMaxSeats(s => Math.min(s, ac.cap))
+                        // Max coverage can run up to the whole aircraft — default
+                        // it to the cap on aircraft change (proposer can lower it).
+                        setProposerMaxSeats(ac.cap)
                       }}
                       style={{
                         flex: 1, cursor: 'pointer', textAlign: 'center', height: 'auto', padding: '10px 8px',

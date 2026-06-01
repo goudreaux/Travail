@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { PROPOSAL_STATUS_LABEL, PROPOSAL_STATUS_PILL, type ProposalStatus } from '@/lib/proposals'
 import { ItineraryEditor } from '@/components/ItineraryEditor'
+import { TripPhotoPicker } from '@/components/TripPhotoPicker'
 import { asItinerary, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
 
 // Ops review queue for Trip Proposals.
@@ -276,6 +277,21 @@ export default function AdminProposalsPage() {
                 } catch (e) { flash(e instanceof Error ? e.message : 'Failed', false) }
                 finally { setBusy(null) }
               }}
+              onUpdate={async (fields) => {
+                setBusy(r.id)
+                try {
+                  const res = await fetch('/api/admin/proposals/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ proposalId: r.id, ...fields }),
+                  })
+                  const d = await res.json()
+                  if (!res.ok) throw new Error(d.error ?? 'Update failed')
+                  flash('Proposal updated.')
+                  load()
+                } catch (e) { flash(e instanceof Error ? e.message : 'Failed', false) }
+                finally { setBusy(null) }
+              }}
             />
           ))}
         </div>
@@ -285,7 +301,7 @@ export default function AdminProposalsPage() {
 }
 
 function ProposalRowCard({
-  row, busy, onApprove, onDecline, onLock, onSaveItinerary, onRemove,
+  row, busy, onApprove, onDecline, onLock, onSaveItinerary, onRemove, onUpdate,
 }: {
   row: ProposalRow
   busy: boolean
@@ -294,6 +310,7 @@ function ProposalRowCard({
   onLock: () => Promise<void>
   onSaveItinerary: (steps: ItineraryStep[]) => Promise<void>
   onRemove: () => Promise<void>
+  onUpdate: (fields: { pricePerSeatCents?: number; minSeats?: number; imageUrl?: string | null }) => Promise<void>
 }) {
   const suggested = (row.payload ?? {}) as Record<string, unknown>
   // Flight cabins are aircraft-bound (4 or 8). Snap any legacy/odd suggestion
@@ -307,6 +324,10 @@ function ProposalRowCard({
   const [declineReason, setDeclineReason] = useState('')
   // Day-plan itinerary, seeded from whatever ops already saved on the payload.
   const [itin, setItin] = useState<ItineraryStep[]>(asItinerary(suggested.itinerary))
+  // Live-edit fields for an open proposal (price / min / card image).
+  const [editPrice, setEditPrice] = useState<number>(row.price_per_seat_cents ?? 50000)
+  const [editMin, setEditMin] = useState<number>(row.min_seats ?? 1)
+  const [editImg, setEditImg] = useState<string>((suggested.imageUrl as string) ?? '')
 
   const pill = PROPOSAL_STATUS_PILL[row.status]
   const label = PROPOSAL_STATUS_LABEL[row.status]
@@ -446,6 +467,29 @@ function ProposalRowCard({
           {row.status === 'funded' && row.funded_at && `Funded ${fmtDate(row.funded_at)}`}
           {row.status === 'expired' && row.expired_at && `Expired ${fmtDate(row.expired_at)}`}
           {row.status === 'withdrawn' && 'Withdrawn by proposer'}
+        </div>
+      )}
+
+      {/* Edit a live proposal's economics + card image. */}
+      {row.status === 'open' && (
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--hair)' }}>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 700, marginBottom: 10 }}>
+            Edit live proposal
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div className="field" style={{ margin: 0 }}>
+              <label className="field-lab">Per-seat price ($)</label>
+              <input className="input" type="number" min={0} step={1} value={Math.round(editPrice / 100)} onChange={e => setEditPrice(Math.max(0, Math.round((Number(e.target.value) || 0) * 100)))} />
+            </div>
+            <div className="field" style={{ margin: 0 }}>
+              <label className="field-lab">Minimum commits</label>
+              <input className="input" type="number" min={1} max={row.capacity_total ?? 20} value={editMin} onChange={e => setEditMin(Math.max(1, Math.min(row.capacity_total ?? 20, Number(e.target.value) || 1)))} />
+            </div>
+          </div>
+          <TripPhotoPicker value={editImg} onChange={setEditImg} locationCode={row.origin_code} label="Card image" />
+          <button className="btn-primary" disabled={busy} onClick={() => onUpdate({ pricePerSeatCents: editPrice, minSeats: editMin, imageUrl: editImg })} style={{ marginTop: 10, fontSize: 12 }}>
+            {busy ? 'Saving…' : 'Save price · min · image'}
+          </button>
         </div>
       )}
 
