@@ -69,6 +69,8 @@ export default function AdminMapPage() {
           sub: `${fmtDate(f.date)}${f.status === 'full' ? ' · Full' : ' · Open seats'}`,
           origin,
           dest,
+          originName: name(f.origin_code),
+          destName: name(f.dest_code),
           href: `/reserve/${f.id}?kind=flight`,
           accent: ACCENT.flight,
         })
@@ -89,6 +91,8 @@ export default function AdminMapPage() {
           sub: `${fmtDate(e.date)} · from ${name(e.origin_code)}`,
           origin,
           dest,
+          originName: name(e.origin_code),
+          destName: destCode === 'BOCA' ? 'Boca Grande' : (destCode ? name(destCode) : (e.name || '')),
           href: `/reserve/${e.id}?kind=excursion`,
           accent: ACCENT.excursion,
         })
@@ -106,6 +110,8 @@ export default function AdminMapPage() {
           sub: `${fmtDate(p.date)} · Proposal`,
           origin,
           dest,
+          originName: name(p.origin_code),
+          destName: destCode ? name(destCode) : (p.name || ''),
           href: `/reserve/${p.id}?kind=proposal`,
           accent: ACCENT.proposal,
         })

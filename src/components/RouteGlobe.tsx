@@ -3,13 +3,11 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import { MapboxOverlay } from '@deck.gl/mapbox'
-import { ArcLayer } from '@deck.gl/layers'
 
-// Route map on the Mapbox Standard (v3) DAY basemap (light tones) with true
-// 3D arcs rendered by deck.gl's ArcLayer — lifted parabolic flight paths that
-// rise off the map, fading from the route's color at the origin to GOLD at the
-// destination. Origin = colored dot, destination = golden pin.
+// Clean 2D route map on the light Standard basemap with its labels turned off
+// (only our origins/destinations are labeled). Each route is a gently arched
+// line that runs blue (origin) → gold (destination), with a blue origin dot
+// and a shiny gold, clickable destination dot.
 
 export type RouteItem = {
   id: string
@@ -18,20 +16,30 @@ export type RouteItem = {
   sub?: string
   origin: [number, number]
   dest: [number, number] | null
+  originName?: string
+  destName?: string
   href: string
   accent: string
 }
 
 export type RouteGlobeHandle = { flyTo: (id: string) => void }
 
-const GOLD: [number, number, number] = [240, 182, 60]
-const GOLD_HEX = '#f0b63c'
-
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace('#', '')
-  const f = h.length === 3 ? h.split('').map(c => c + c).join('') : h
-  const n = parseInt(f, 16)
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+// Gently arched line (slight bow off the straight line) so routes read as arcs
+// without the heavy curve.
+function arcCurve(a: [number, number], b: [number, number], steps = 72): [number, number][] {
+  const [ax, ay] = a, [bx, by] = b
+  const dx = bx - ax, dy = by - ay
+  const dist = Math.hypot(dx, dy) || 1
+  const px = -dy / dist, py = dx / dist
+  const bow = Math.min(Math.max(dist * 0.12, 0.22), 6)
+  const cx = (ax + bx) / 2 + px * bow
+  const cy = (ay + by) / 2 + py * bow
+  const pts: [number, number][] = []
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps, u = 1 - t
+    pts.push([u * u * ax + 2 * u * t * cx + t * t * bx, u * u * ay + 2 * u * t * cy + t * t * by])
+  }
+  return pts
 }
 
 type Props = { token: string; items: RouteItem[]; onOpen: (href: string) => void }
@@ -39,8 +47,6 @@ type Props = { token: string; items: RouteItem[]; onOpen: (href: string) => void
 function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGlobeHandle>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const overlayRef = useRef<any>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
   const coordsRef = useRef<Record<string, [number, number]>>({})
   const onOpenRef = useRef(onOpen); onOpenRef.current = onOpen
@@ -51,11 +57,10 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
   useImperativeHandle(ref, () => ({
     flyTo(id: string) {
       const c = coordsRef.current[id]
-      if (c && mapRef.current) mapRef.current.flyTo({ center: c, zoom: 6.6, pitch: 58, speed: 0.7, essential: true })
+      if (c && mapRef.current) mapRef.current.flyTo({ center: c, zoom: 7, speed: 0.7, essential: true })
     },
   }))
 
-  // Init once.
   useEffect(() => {
     if (!containerRef.current || mapRef.current || !token) return
     mapboxgl.accessToken = token
@@ -66,9 +71,8 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
         style: 'mapbox://styles/mapbox/standard',
         projection: 'globe',
         center: [-82.2, 27.6],
-        zoom: 5.5,
-        pitch: 50,
-        bearing: -8,
+        zoom: 5.8,
+        pitch: 0,
         attributionControl: false,
       })
     } catch (e) {
@@ -79,20 +83,17 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right')
 
     map.on('style.load', () => {
-      // Bright daytime basemap so the dark/colored arcs pop, with a soft light
-      // atmosphere instead of the dusk one.
-      try { map.setConfigProperty('basemap', 'lightPreset', 'day') } catch { /* style may not support it */ }
+      // Light basemap, and strip its labels so only our origin/destination
+      // markers carry text.
+      try {
+        map.setConfigProperty('basemap', 'lightPreset', 'day')
+        map.setConfigProperty('basemap', 'showPlaceLabels', false)
+        map.setConfigProperty('basemap', 'showRoadLabels', false)
+        map.setConfigProperty('basemap', 'showPointOfInterestLabels', false)
+        map.setConfigProperty('basemap', 'showTransitLabels', false)
+      } catch { /* style may not support these */ }
       map.setFog({ color: 'rgb(255,255,255)', 'high-color': 'rgb(176,208,232)', 'horizon-blend': 0.05, 'space-color': 'rgb(206,224,238)', 'star-intensity': 0 })
     })
-
-    // deck.gl overlay for the true-3D arcs.
-    try {
-      const overlay = new MapboxOverlay({ interleaved: false, layers: [] })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      map.addControl(overlay as any)
-      overlayRef.current = overlay
-    } catch { /* arcs are a progressive enhancement; markers still render */ }
-
     map.on('load', () => { map.resize(); setReady(true); paint() })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     map.on('error', (e: any) => {
@@ -104,30 +105,18 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
 
     return () => {
       markersRef.current.forEach(m => m.remove()); markersRef.current = []
-      try { if (overlayRef.current) map.removeControl(overlayRef.current) } catch { /* ignore */ }
-      overlayRef.current = null
       map.remove(); mapRef.current = null
     }
   }, [token])
 
-  // Repaint when data changes (once the style is ready).
   useEffect(() => { if (ready) paint() }, [items, ready]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function originEl(accent: string): HTMLElement {
-    const o = document.createElement('div')
-    o.className = 'route-origin'
-    o.style.setProperty('--mk', accent)
-    return o
-  }
-
-  function destEl(it: RouteItem): HTMLElement {
-    const el = document.createElement('button')
-    el.type = 'button'
-    el.className = 'route-marker'
-    el.setAttribute('aria-label', it.label)
-    el.style.setProperty('--mk', GOLD_HEX) // destinations are golden
-    el.innerHTML = '<span class="route-marker__dot"></span><span class="route-marker__pulse"></span>'
-    el.addEventListener('click', ev => { ev.stopPropagation(); onOpenRef.current(it.href) })
+  function ptEl(kind: 'origin' | 'dest', label: string | undefined, onClick?: () => void): HTMLElement {
+    const el = document.createElement(onClick ? 'button' : 'div')
+    if (onClick) (el as HTMLButtonElement).type = 'button'
+    el.className = `route-pt route-pt--${kind}`
+    el.innerHTML = `<span class="route-pt__dot">${kind === 'dest' ? '<span class="route-pt__pulse"></span>' : ''}</span>${label ? `<span class="route-pt__label">${label}</span>` : ''}`
+    if (onClick) el.addEventListener('click', ev => { ev.stopPropagation(); onClick() })
     return el
   }
 
@@ -139,56 +128,36 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     markersRef.current.forEach(m => m.remove()); markersRef.current = []
     const coords: Record<string, [number, number]> = {}
 
-    // ── 3D arcs (deck.gl) ──────────────────────────────────────────────
-    const arcData = list.filter(it => it.dest).map(it => ({
-      source: it.origin,
-      target: it.dest as [number, number],
-      from: hexToRgb(it.accent),
+    const features = list.filter(it => it.dest).map(it => ({
+      type: 'Feature' as const,
+      properties: {},
+      geometry: { type: 'LineString' as const, coordinates: arcCurve(it.origin, it.dest as [number, number]) },
     }))
-    if (overlayRef.current) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const common: any = {
-        data: arcData,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        getSourcePosition: (d: any) => d.source,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        getTargetPosition: (d: any) => d.target,
-        getHeight: 0.55,
-        greatCircle: false,
-        pickable: false,
-      }
-      const glow = new ArcLayer({
-        ...common, id: 'arc-glow',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        getSourceColor: (d: any) => [...d.from, 60] as [number, number, number, number],
-        getTargetColor: [...GOLD, 60] as [number, number, number, number],
-        getWidth: 14, widthUnits: 'pixels',
+    const data = { type: 'FeatureCollection' as const, features }
+
+    const src = map.getSource('routes') as mapboxgl.GeoJSONSource | undefined
+    if (src) { src.setData(data) }
+    else {
+      map.addSource('routes', { type: 'geojson', data, lineMetrics: true })
+      // White casing to lift the line off the light map, then a blue→gold core.
+      map.addLayer({ id: 'routes-casing', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 6, 'line-opacity': 0.8 } })
+      map.addLayer({
+        id: 'routes-core', type: 'line', source: 'routes',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-width': 3, 'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, '#2f80ed', 1, '#f0b63c'] },
       })
-      const core = new ArcLayer({
-        ...common, id: 'arc-core',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        getSourceColor: (d: any) => [...d.from, 235] as [number, number, number, number],
-        getTargetColor: [...GOLD, 255] as [number, number, number, number],
-        getWidth: 3.5, widthUnits: 'pixels',
-      })
-      overlayRef.current.setProps({ layers: [glow, core] })
     }
 
-    // ── Endpoint markers ───────────────────────────────────────────────
     for (const it of list) {
       const at = it.dest ?? it.origin
       coords[it.id] = at
       if (it.dest) {
-        const om = new mapboxgl.Marker({ element: originEl(it.accent) }).setLngLat(it.origin).addTo(map)
+        const om = new mapboxgl.Marker({ element: ptEl('origin', it.originName) }).setLngLat(it.origin).addTo(map)
         markersRef.current.push(om)
       }
-      const popup = new mapboxgl.Popup({ offset: 16, closeButton: false, className: 'route-popup' })
-        .setHTML(`<strong>${it.label}</strong>${it.sub ? `<span>${it.sub}</span>` : ''}`)
-      const el = destEl(it)
-      const m = new mapboxgl.Marker({ element: el }).setLngLat(at).setPopup(popup).addTo(map)
-      el.addEventListener('mouseenter', () => m.togglePopup())
-      el.addEventListener('mouseleave', () => m.togglePopup())
-      markersRef.current.push(m)
+      const dm = new mapboxgl.Marker({ element: ptEl('dest', it.destName ?? it.label, () => onOpenRef.current(it.href)) })
+        .setLngLat(at).addTo(map)
+      markersRef.current.push(dm)
     }
     coordsRef.current = coords
   }
