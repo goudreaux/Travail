@@ -157,39 +157,31 @@ export function ProposalDeadlineTag({ expiresAt }: { expiresAt: string }) {
   )
 }
 
-// Replaces SeatMeter for proposals — same height + structure, but the
-// fill represents NETWORK commits toward min_seats with a tick mark at
-// the min threshold so the network sees how far they have to go. The
-// proposer's firm seats sit OUTSIDE this bar (rendered next to it) so
-// the math never reads "5 of 4 committed."
-function ProposalProgressBar({ network, proposerFirm, min, cap, proposerName, accent }: {
+// Proposal progress: total committed seats (proposer's firm party + everyone
+// the network has committed) counted toward min_seats. When total ≥ min the
+// trip can lock. Reads "X of Y minimum commits".
+function ProposalProgressBar({ network, proposerFirm, min, accent }: {
   network: number
   proposerFirm: number
   min: number
-  cap: number
-  proposerName: string | null
   accent: string
 }) {
-  // Network slots = capacity minus the proposer's firm party. The bar
-  // visualizes filling THAT pool, not total seats — that's the math
-  // that gates go-live.
-  const networkSlots = Math.max(min, cap - proposerFirm)
-  const pctOfSlots = networkSlots ? Math.min(100, Math.round((network / networkSlots) * 100)) : 0
-  const minTickPct = min > 0 && networkSlots > 0 && min < networkSlots ? Math.round((min / networkSlots) * 100) : null
-  const hitMin = min > 0 && network >= min
+  const total = network + proposerFirm
+  const pct = min > 0 ? Math.min(100, Math.round((total / min) * 100)) : 0
+  const hitMin = min > 0 && total >= min
 
   return (
     <div style={{ marginTop: 6 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
         <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-light)', letterSpacing: '0.06em' }}>
-          <strong style={{ color: 'var(--ink)' }}>{network}</strong>
+          <strong style={{ color: 'var(--ink)' }}>{total}</strong>
           <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>of</span>
           <strong style={{ color: 'var(--ink)' }}>{min}</strong>
-          <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>network commits</span>
+          <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>minimum commits</span>
         </span>
-        {proposerFirm > 0 && (
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--sun-d)', fontWeight: 700, letterSpacing: '0.06em' }}>
-            +{proposerFirm} firm from {proposerName?.split(' ')[0] ?? 'proposer'}
+        {hitMin && (
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--moss)', fontWeight: 700, letterSpacing: '0.06em' }}>
+            ✓ Ready to lock
           </span>
         )}
       </div>
@@ -203,20 +195,12 @@ function ProposalProgressBar({ network, proposerFirm, min, cap, proposerName, ac
       }}>
         <div style={{
           position: 'absolute', left: 0, top: 0, bottom: 0,
-          width: `${pctOfSlots}%`,
+          width: `${pct}%`,
           background: hitMin
             ? 'linear-gradient(90deg, #3e8c6d 0%, #4ba883 100%)'
             : `linear-gradient(90deg, ${accent} 0%, ${accent} 100%)`,
           transition: 'width 0.3s ease',
         }} />
-        {minTickPct != null && (
-          <div style={{
-            position: 'absolute',
-            left: `${minTickPct}%`,
-            top: -3, bottom: -3,
-            borderLeft: '1px dashed var(--ink-light)',
-          }} />
-        )}
       </div>
     </div>
   )
@@ -224,16 +208,15 @@ function ProposalProgressBar({ network, proposerFirm, min, cap, proposerName, ac
 
 export function ProposalCard({ p, onOpen }: { p: ProposalCardData; onOpen: () => void }) {
   const min = p.min_seats ?? 0
-  const cap = p.capacity_total ?? min
   const network = p.network_seats
   const proposerFirm = p.proposer_firm_seats
-  const networkNeeded = Math.max(0, min - network)
+  const seatsToGo = Math.max(0, min - (network + proposerFirm))
   const dp = fmtDate(p.date)
   const destName = (p.payload?.destName as string) || (p.payload?.destCode as string) || null
   const accent = '#e09418'   // sun-d
   const accentBg = 'rgba(244,167,44,0.12)'
   const accentBorder = 'rgba(244,167,44,0.55)'
-  const hitMin = min > 0 && network >= min
+  const hitMin = min > 0 && (network + proposerFirm) >= min
   const kindIcon = p.kind === 'flight' ? KIND_ICONS.flight : KIND_ICONS.fish
 
   return (
@@ -290,7 +273,7 @@ export function ProposalCard({ p, onOpen }: { p: ProposalCardData; onOpen: () =>
               ? <>From {p.origin_code} · proposed by {p.proposer_name ?? 'a member'}</>
               : <>{p.name} · from {p.origin_code} · proposed by {p.proposer_name ?? 'a member'}</>}
           </div>
-          <ProposalProgressBar network={network} proposerFirm={proposerFirm} min={min} cap={cap} proposerName={p.proposer_name} accent={accent} />
+          <ProposalProgressBar network={network} proposerFirm={proposerFirm} min={min} accent={accent} />
           <div onClick={e => e.stopPropagation()}>
             <RosterStack entries={p.roster ?? []} occupied={network + proposerFirm} />
           </div>
@@ -305,8 +288,8 @@ export function ProposalCard({ p, onOpen }: { p: ProposalCardData; onOpen: () =>
             </span>
           ) : (
             <>
-              <strong style={{ color: 'var(--ink)' }}>{networkNeeded}</strong>
-              <span>seat{networkNeeded === 1 ? '' : 's'} to go</span>
+              <strong style={{ color: 'var(--ink)' }}>{seatsToGo}</strong>
+              <span>seat{seatsToGo === 1 ? '' : 's'} to go</span>
             </>
           )}
         </span>
@@ -424,7 +407,7 @@ export function MyProposalRow({ p, onOpen }: { p: MyProposalData; onOpen: () => 
           }}>{s.label}</span>
           {p.status === 'open' && (
             <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-light)' }}>
-              {p.network_seats}/{min} network · {p.proposer_firm_seats} your firm
+              {p.network_seats + p.proposer_firm_seats}/{min} minimum commits
             </span>
           )}
           {p.status === 'open' && p.expires_at && (
@@ -537,8 +520,9 @@ export async function loadMyProposalCommits(supabase: any, memberId: string | nu
 export function MyProposalCommitRow({ c, onOpen }: { c: MyProposalCommitData; onOpen: () => void }) {
   const dp = fmtDate(c.date)
   const min = c.min_seats ?? 0
-  const hitMin = min > 0 && c.network_seats >= min
-  const needed = Math.max(0, min - c.network_seats)
+  const committed = c.network_seats + (c.proposer_firm_seats ?? 0)
+  const hitMin = min > 0 && committed >= min
+  const needed = Math.max(0, min - committed)
   const destName = (c.payload?.destName as string) || (c.payload?.destCode as string) || null
   const title = c.kind === 'flight'
     ? `${c.origin_code}${destName ? ` → ${destName}` : ''}`
@@ -590,7 +574,7 @@ export function MyProposalCommitRow({ c, onOpen }: { c: MyProposalCommitData; on
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.45 }}>
           You're in for <strong style={{ color: 'var(--ink)' }}>{c.my_seats}</strong> seat{c.my_seats === 1 ? '' : 's'}
-          {c.status === 'open' && <> · {c.network_seats}/{min} network committed</>}
+          {c.status === 'open' && <> · {committed}/{min} minimum committed</>}
           {c.price_per_seat_cents != null && <> · ${(c.price_per_seat_cents / 100).toFixed(0)}/seat</>}
         </div>
       </div>

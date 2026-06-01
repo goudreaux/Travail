@@ -203,7 +203,7 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
   // Network seats are what gates go-live; proposer's firm seats sit
   // outside the bar (rendered separately) so the math never reads
   // "5 of 4 committed."
-  const seatsNeeded = Math.max(0, min - networkCommitted)
+  const seatsNeeded = Math.max(0, min - committed)
   const perSeatCents = proposal.price_per_seat_cents ?? 0
   const dateLabel = new Date(proposal.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const amProposer = !!memberId && memberId === proposal.proposer_id
@@ -247,11 +247,10 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
           <ProposalSummaryPanel
             network={networkCommitted}
             proposerFirm={Math.max(0, committed - networkCommitted)}
-            min={min} cap={cap}
+            min={min}
             perSeatCents={perSeatCents}
             expiresAt={proposal.expires_at}
             roster={roster}
-            proposerName={proposerName}
           />
           <ProposalDetailsPanel proposal={proposal} roster={roster} />
 
@@ -315,11 +314,10 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
         <ProposalSummaryPanel
           network={networkCommitted}
           proposerFirm={Math.max(0, committed - networkCommitted)}
-          min={min} cap={cap}
+          min={min}
           perSeatCents={perSeatCents}
           expiresAt={proposal.expires_at}
           roster={roster}
-          proposerName={proposerName}
         />
         <ProposalDetailsPanel proposal={proposal} roster={roster} />
 
@@ -407,24 +405,23 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
 }
 
 function ProposalSummaryPanel({
-  network, proposerFirm, min, cap, perSeatCents, expiresAt, roster, proposerName,
+  network, proposerFirm, min, perSeatCents, expiresAt, roster,
 }: {
-  network: number; proposerFirm: number; min: number; cap: number;
+  network: number; proposerFirm: number; min: number;
   perSeatCents: number; expiresAt: string | null; roster: RosterEntry[];
-  proposerName: string | null
 }) {
-  const hitMin = min > 0 && network >= min
-  const networkNeeded = Math.max(0, min - network)
-  const networkSlots = Math.max(min, cap - proposerFirm)
-  const pctOfSlots = networkSlots ? Math.min(100, Math.round((network / networkSlots) * 100)) : 0
+  const total = network + proposerFirm
+  const hitMin = min > 0 && total >= min
+  const seatsToGo = Math.max(0, min - total)
+  const pct = min > 0 ? Math.min(100, Math.round((total / min) * 100)) : 0
   return (
     <div className="panel" style={{ padding: '18px 24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
         <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-light)', letterSpacing: '0.06em' }}>
-          <strong style={{ color: 'var(--ink)' }}>{network}</strong>
+          <strong style={{ color: 'var(--ink)' }}>{total}</strong>
           <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>of</span>
           <strong style={{ color: 'var(--ink)' }}>{min}</strong>
-          <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>network commits</span>
+          <span style={{ margin: '0 4px', color: 'var(--ink-faint)' }}>minimum commits</span>
         </span>
         {perSeatCents > 0 && (
           <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink)', fontWeight: 700 }}>
@@ -432,34 +429,21 @@ function ProposalSummaryPanel({
           </span>
         )}
       </div>
-      {proposerFirm > 0 && (
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--sun-d)', fontWeight: 700, letterSpacing: '0.06em', marginBottom: 6 }}>
-          +{proposerFirm} firm from {proposerName?.split(' ')[0] ?? 'proposer'} (guaranteed, not counted toward min)
-        </div>
-      )}
       <div style={{ height: 10, background: 'var(--paper)', border: '1px solid var(--hair)', borderRadius: 999, overflow: 'hidden', position: 'relative' }}>
         <div style={{
           position: 'absolute', left: 0, top: 0, bottom: 0,
-          width: `${pctOfSlots}%`,
+          width: `${pct}%`,
           background: hitMin
             ? 'linear-gradient(90deg, #3e8c6d 0%, #4ba883 100%)'
             : 'linear-gradient(90deg, #f4a72c 0%, #e09418 100%)',
           transition: 'width 0.3s ease',
         }} />
-        {min > 0 && networkSlots > 0 && min < networkSlots && (
-          <div style={{
-            position: 'absolute',
-            left: `${Math.round((min / networkSlots) * 100)}%`,
-            top: -3, bottom: -3,
-            borderLeft: '1px dashed var(--ink-light)',
-          }} />
-        )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, fontSize: 12, color: 'var(--ink-soft)', flexWrap: 'wrap', gap: 8 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {hitMin
             ? <span style={{ color: 'var(--moss)', fontWeight: 700, fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.06em' }}>✓ MIN REACHED · AWAITING CONCIERGE</span>
-            : <><strong style={{ color: 'var(--ink)' }}>{networkNeeded}</strong> more network seat{networkNeeded === 1 ? '' : 's'} to go</>}
+            : <><strong style={{ color: 'var(--ink)' }}>{seatsToGo}</strong> more seat{seatsToGo === 1 ? '' : 's'} to go</>}
           {expiresAt && !hitMin && <ProposalDeadlineTag expiresAt={expiresAt} />}
         </span>
         {expiresAt && !hitMin && <ProposalCountdown expiresAt={expiresAt} />}
