@@ -8195,3 +8195,18 @@ textarea.input {
   .route-globe { height: 60vh; }
   .admin-map-list { max-height: 360px; }
 }
+
+/* Waitlist tag on Open Seats cards (feed) — a departure with no seats left
+   that members can still see and join the waitlist for. */
+.waitlist-tag {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--sun-d);
+  background: var(--sun-glow);
+  border-radius: 999px;
+  padding: 2px 8px;
+}

@@ -281,19 +281,22 @@ export default function FeedPage() {
   // `date >= today` is date-only; also drop anything inside the 12h booking
   // cutoff so the panel never advertises a seat that /reserve will reject
   // (mirrors the /seats board, which already hides past-cutoff trips).
-  const openFlights = flights.filter(f => f.status === 'open' && f.date >= today && f.seatsAvailable > 0 && !openRetIds.has(f.id) && !isPrivate(f) && !isPastBookingCutoff(f.date, f.depart_time))
-  const openExcursions = excursions.filter(e => e.status === 'open' && e.date >= today && e.spotsAvailable > 0 && !isPrivate(e) && !isPastBookingCutoff(e.date, e.depart_time ?? e.start_time))
+  // Open Seats board includes waitlist-only departures (seats gone, status
+  // 'full') so members can still see them and join the waitlist — they used to
+  // vanish the moment the last seat sold. Bookable ones sort ahead of waitlist.
+  const openFlights = flights.filter(f => (f.status === 'open' || f.status === 'full') && f.date >= today && !openRetIds.has(f.id) && !isPrivate(f) && !isPastBookingCutoff(f.date, f.depart_time))
+  const openExcursions = excursions.filter(e => (e.status === 'open' || e.status === 'full') && e.date >= today && !isPrivate(e) && !isPastBookingCutoff(e.date, e.depart_time ?? e.start_time))
 
   const filteredOpenItems = [
     ...((typeFilter === 'all' || typeFilter === 'flight') ? openFlights : [])
-      .map(f => ({ type: 'flight' as const, item: f, date: f.date })),
+      .map(f => ({ type: 'flight' as const, item: f, date: f.date, full: f.seatsAvailable <= 0 })),
     ...((typeFilter === 'all'
       ? openExcursions
       : typeFilter === 'flight'
         ? []
         : openExcursions.filter(e => excursionMatchesFilter(e, typeFilter))
-    )).map(e => ({ type: 'excursion' as const, item: e, date: e.date })),
-  ].sort((a, b) => a.date.localeCompare(b.date))
+    )).map(e => ({ type: 'excursion' as const, item: e, date: e.date, full: e.spotsAvailable <= 0 })),
+  ].sort((a, b) => (a.full === b.full ? a.date.localeCompare(b.date) : a.full ? 1 : -1))
 
   // Only render filter chips that match at least one active item. "All"
   // is always present; "Flights" appears if there's a published flight;
@@ -663,7 +666,9 @@ export default function FeedPage() {
                           <div className="trip-card__content">
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                               <div className="trip-card__title" style={{ color: colors.accent }}>FLIGHT · PRIVATE AVIATION</div>
-                              <UrgencyTag date={f.date} time={f.depart_time} />
+                              {f.seatsAvailable > 0
+                                ? <UrgencyTag date={f.date} time={f.depart_time} />
+                                : <span className="waitlist-tag">WAITLIST</span>}
                             </div>
                             <div className="trip-card__name">{airportCity(f.origin_code, airportName)}<span style={{ color: 'var(--ink-faint)', margin: '0 6px', fontSize: 14 }}>→</span>{airportCity(f.dest_code, airportName)}</div>
                             <div className="trip-card__meta">{f.departTimeStr}{f.durationStr ? ` · ${f.durationStr}` : ''}</div>
@@ -677,7 +682,7 @@ export default function FeedPage() {
                           <span style={{ color: 'var(--ink-light)', fontSize: 12 }}>{f.name || `${f.origin_code}–${f.dest_code}`}</span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <span className="trip-card__price">{fmtMoney(f.price_per_seat)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/seat</span></span>
-                            <span className="cta-outline" style={{ color: colors.dot }}>Take seat →</span>
+                            <span className="cta-outline" style={{ color: f.seatsAvailable > 0 ? colors.dot : 'var(--sun-d)' }}>{f.seatsAvailable > 0 ? 'Take seat →' : 'Join waitlist →'}</span>
                           </div>
                         </div>
                       </div>
@@ -704,7 +709,9 @@ export default function FeedPage() {
                         <div className="trip-card__content">
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             <div className="trip-card__title" style={{ color: colors.accent }}>{excKindLabel(icon)} · FROM {placeName(e.origin_code, airportName).toUpperCase()}</div>
-                            <UrgencyTag date={e.date} time={e.depart_time} />
+                            {e.spotsAvailable > 0
+                              ? <UrgencyTag date={e.date} time={e.depart_time} />
+                              : <span className="waitlist-tag">WAITLIST</span>}
                           </div>
                           <div className="trip-card__name">{e.name}</div>
                           {isSponsored && (
@@ -726,7 +733,7 @@ export default function FeedPage() {
                         <span style={{ color: 'var(--ink-light)', fontSize: 12 }}>{e.stay_type === 'day_trip' ? 'Day trip' : e.stay_type === 'overnight' ? 'Overnight' : 'Multi-night'}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           {price ? <span className="trip-card__price">{fmtMoney(price)}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}>/person</span></span> : null}
-                          <span className="cta-outline" style={{ color: colors.dot }}>Reserve spot →</span>
+                          <span className="cta-outline" style={{ color: e.spotsAvailable > 0 ? colors.dot : 'var(--sun-d)' }}>{e.spotsAvailable > 0 ? 'Reserve spot →' : 'Join waitlist →'}</span>
                         </div>
                       </div>
                     </div>
