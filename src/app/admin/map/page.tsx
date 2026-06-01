@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import nextDynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { coordFor } from '@/lib/airport-coords'
+import { destName as friendlyDestName } from '@/lib/destinations'
 import type { RouteItem, RouteGlobeHandle } from '@/components/RouteGlobe'
 
 // Mapbox touches `window`, so the globe is browser-only.
@@ -36,7 +37,7 @@ export default function AdminMapPage() {
     async function load() {
       const [flightsRes, excursionsRes, proposalsRes, airportsRes, templatesRes] = await Promise.all([
         supabase.from('flights').select('id, name, origin_code, dest_code, date, status').in('status', ['open', 'full']),
-        supabase.from('excursions').select('id, name, origin_code, date, status, template_id').in('status', ['open', 'full']),
+        supabase.from('excursions').select('id, name, origin_code, dest_code, date, status, template_id').in('status', ['open', 'full']),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase as any).from('trip_proposals').select('id, name, kind, origin_code, payload, date, status').eq('status', 'open'),
         supabase.from('airports').select('code, name, sub'),
@@ -79,11 +80,17 @@ export default function AdminMapPage() {
       for (const e of (excursionsRes.data ?? []) as any[]) {
         const origin = coordFor(e.origin_code)
         if (!origin) continue
-        // Activity destination: from the template's dest_code, with a name
-        // override for one-off named spots (e.g. Boca Grande tarpon).
-        let destCode: string | null = destByTemplate[e.template_id] ?? null
-        if (/boca grande/i.test(e.name || '')) destCode = 'BOCA'
+        // Activity destination: the excursion's own dest_code is authoritative;
+        // fall back to the template's dest_code for older rows, then a name
+        // override for legacy one-off spots (e.g. Boca Grande tarpon).
+        let destCode: string | null = e.dest_code ?? destByTemplate[e.template_id] ?? null
+        if (!destCode && /boca grande/i.test(e.name || '')) destCode = 'BOCA'
         const dest = coordFor(destCode)
+        // Friendly venue name (e.g. "Lake Nona Golf Club"), then the airports
+        // table, then the excursion's own name.
+        const dName = destCode
+          ? (friendlyDestName(destCode) !== destCode ? friendlyDestName(destCode) : (name(destCode) || (e.name || '')))
+          : (e.name || '')
         next.push({
           id: e.id,
           kind: 'excursion',
@@ -92,7 +99,7 @@ export default function AdminMapPage() {
           origin,
           dest,
           originName: name(e.origin_code),
-          destName: destCode === 'BOCA' ? 'Boca Grande' : (destCode ? name(destCode) : (e.name || '')),
+          destName: dName,
           href: `/reserve/${e.id}?kind=excursion`,
           accent: ACCENT.excursion,
         })
@@ -109,7 +116,8 @@ export default function AdminMapPage() {
         const destCode = rawDestCode && rawDestCode !== 'CUSTOM' ? rawDestCode : null
         const payloadDestName: string | null = p.payload?.destName ?? null
         const dest = coordFor(destCode)
-        const dName = payloadDestName || (destCode ? name(destCode) : null)
+        const dName = payloadDestName
+          || (destCode ? (friendlyDestName(destCode) !== destCode ? friendlyDestName(destCode) : name(destCode)) : null)
         next.push({
           id: p.id,
           kind: 'proposal',

@@ -312,6 +312,9 @@ export async function POST(req: NextRequest) {
       anchor_member_id: sub.member_id,
       template_id: body.templateId ?? null,
       origin_code: body.originCode,
+      // Destination for the Route Map. Comes straight from the submission's
+      // template; stored directly so the map never has to re-derive it.
+      dest_code: body.destCode ?? null,
       // aircraft_id is NOT NULL in the excursions table (the original
       // schema's FK to aircraft.id was never relaxed) — without this
       // the insert violates the constraint and the capture has to

@@ -5,6 +5,7 @@ import { generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
 import { ItineraryEditor } from '@/components/ItineraryEditor'
 import { TripPhotoPicker } from '@/components/TripPhotoPicker'
 import { SPONSOR_LINE_PRESETS } from '@/components/SponsorBadge'
+import { PROPOSAL_DESTS } from '@/lib/destinations'
 
 // Focused create/edit modal for Travail-sponsored excursions.
 //
@@ -27,6 +28,7 @@ export interface SponsoredExcursion {
   sponsor: string                 // Free-form collab line: "Travail × Tropic × Field & Stream"
   date: string                    // YYYY-MM-DD
   origin_code: string
+  dest_code: string               // destination for the Route Map ('' = none)
   stay_type: 'day_trip' | 'overnight' | 'multi_night'
   start_time: string
   depart_time: string
@@ -41,7 +43,7 @@ export interface SponsoredExcursion {
 }
 
 const EMPTY: SponsoredExcursion = {
-  name: '', sponsor: '', date: '', origin_code: '',
+  name: '', sponsor: '', date: '', origin_code: '', dest_code: '',
   stay_type: 'day_trip',
   start_time: '', depart_time: '', arrive_time: '', return_time: '',
   spots_total: 8, spots_anchor: 0, price_per_pax: 0,
@@ -111,6 +113,7 @@ export function SponsoredExcursionModal({
         sponsor: form.sponsor.trim(),
         date: form.date,
         origin_code: form.origin_code,
+        dest_code: form.dest_code || null,
         stay_type: form.stay_type,
         start_time: form.start_time || null,
         depart_time: form.depart_time || null,
@@ -207,12 +210,19 @@ export function SponsoredExcursionModal({
             <input className="input" type="date" value={form.date} onChange={e => patch('date', e.target.value)} />
           </div>
           <div className="field" style={{ margin: 0 }}>
-            <label className="field-lab">Origin airport</label>
+            <label className="field-lab">From (origin)</label>
             <select className="input" value={form.origin_code} onChange={e => patch('origin_code', e.target.value)}>
               <option value="">—</option>
               {airports.filter(a => a.role === 'origin' || a.role === 'both').map(a => (
                 <option key={a.code} value={a.code}>{a.code} · {a.name}</option>
               ))}
+            </select>
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label className="field-lab">To (destination) <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}>· puts it on the map</span></label>
+            <select className="input" value={form.dest_code} onChange={e => patch('dest_code', e.target.value)}>
+              <option value="">— No fixed destination —</option>
+              {PROPOSAL_DESTS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
             </select>
           </div>
           <div className="field" style={{ margin: 0 }}>

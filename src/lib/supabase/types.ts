@@ -264,6 +264,7 @@ export interface Database {
           anchor_member_id: string | null
           template_id: string | null
           origin_code: string
+          dest_code: string | null
           aircraft_id: string | null
           date: string
           start_time: string | null
@@ -297,6 +298,7 @@ export interface Database {
           anchor_member_id?: string | null
           template_id?: string | null
           origin_code: string
+          dest_code?: string | null
           aircraft_id?: string | null
           date: string
           start_time?: string | null
@@ -324,6 +326,7 @@ export interface Database {
           anchor_member_id?: string | null
           template_id?: string | null
           origin_code?: string
+          dest_code?: string | null
           aircraft_id?: string | null
           date?: string
           start_time?: string | null

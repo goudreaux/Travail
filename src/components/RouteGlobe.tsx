@@ -86,18 +86,31 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right')
 
     map.on('style.load', () => {
-      // Strip road/transit geometry and every base label so the map reads as a
-      // clean canvas — only our routes and origin/destination markers show.
-      try {
-        for (const layer of map.getStyle().layers ?? []) {
-          const id = layer.id
-          if (layer.type === 'symbol') { map.setLayoutProperty(id, 'visibility', 'none'); continue }
-          if (/road|street|tunnel|bridge|motorway|ferry|rail|transit|path|pedestrian/i.test(id)) {
-            map.setLayoutProperty(id, 'visibility', 'none')
-          }
+      // Recolor the basemap into a warm, tropical palette — turquoise seas,
+      // sun-warmed sand, hints of palm green — and strip every road line and
+      // base label so only our routes and markers show. Each layer is touched
+      // in its own try so one unsupported op never aborts the rest.
+      const SAND  = '#efdfb6' // sun-warmed sand
+      const WATER = '#5cc6c8' // tropical turquoise
+      const GREEN = '#a9d49a' // soft palm green
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const set = (id: string, prop: string, val: unknown) => { try { (map.setPaintProperty as any)(id, prop, val) } catch { /* layer may not support */ } }
+      const hide = (id: string) => { try { map.setLayoutProperty(id, 'visibility', 'none') } catch { /* ignore */ } }
+      for (const layer of map.getStyle().layers ?? []) {
+        const id = layer.id
+        const type = layer.type
+        // No labels, no road/admin lines, no 3D — a clean canvas.
+        if (type === 'symbol' || type === 'line' || type === 'fill-extrusion') { hide(id); continue }
+        if (type === 'background') { set(id, 'background-color', SAND); continue }
+        if (type === 'fill') {
+          if (/water|ocean|sea|bay|lake|river|pond|marine/i.test(id)) set(id, 'fill-color', WATER)
+          else if (/wood|forest|park|grass|vegetation|scrub|golf|pitch|landcover/i.test(id)) set(id, 'fill-color', GREEN)
+          else set(id, 'fill-color', SAND)
         }
-      } catch { /* layer set may differ across style versions */ }
-      map.setFog({ color: 'rgb(255,255,255)', 'high-color': 'rgb(176,208,232)', 'horizon-blend': 0.05, 'space-color': 'rgb(206,224,238)', 'star-intensity': 0 })
+      }
+      // Warm tropical atmosphere around the globe — golden haze into a soft
+      // aqua-cream sky.
+      map.setFog({ color: 'rgb(252,244,222)', 'high-color': 'rgb(255,214,140)', 'horizon-blend': 0.06, 'space-color': 'rgb(208,236,233)', 'star-intensity': 0 })
     })
     map.on('load', () => { map.resize(); setReady(true); paint() })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,11 +129,11 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
 
   useEffect(() => { if (ready) paint() }, [items, ready]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function ptEl(kind: 'origin' | 'dest', label: string | undefined, onClick?: () => void): HTMLElement {
+  function ptEl(kind: 'origin' | 'dest', onClick?: () => void): HTMLElement {
     const el = document.createElement(onClick ? 'button' : 'div')
     if (onClick) (el as HTMLButtonElement).type = 'button'
     el.className = `route-pt route-pt--${kind}`
-    el.innerHTML = `<span class="route-pt__dot">${kind === 'dest' ? '<span class="route-pt__pulse"></span>' : ''}</span>${label ? `<span class="route-pt__label">${label}</span>` : ''}`
+    el.innerHTML = `<span class="route-pt__dot">${kind === 'dest' ? '<span class="route-pt__pulse"></span>' : ''}</span>`
     if (onClick) el.addEventListener('click', ev => { ev.stopPropagation(); onClick() })
     return el
   }
@@ -144,29 +157,30 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     if (src) { src.setData(data) }
     else {
       map.addSource('routes', { type: 'geojson', data, lineMetrics: true })
-      // White casing to lift the line off the light map, then a blue→gold core.
-      map.addLayer({ id: 'routes-casing', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 6, 'line-opacity': 0.8 } })
+      // Soft white casing lifts the line off the water, then a tropical sunset
+      // core: coral at the origin warming to gold at the destination.
+      map.addLayer({ id: 'routes-casing', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 6, 'line-opacity': 0.85 } })
       map.addLayer({
         id: 'routes-core', type: 'line', source: 'routes',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-width': 3, 'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, '#2f80ed', 1, '#f0b63c'] },
+        paint: { 'line-width': 3.2, 'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, '#ff7a4d', 0.5, '#ff9b3d', 1, '#f6c233'] },
       })
     }
 
+    // Markers are bare dots — no text labels (the side list carries the names).
     for (const it of list) {
       if (it.dest) {
         // Full route: a blue origin dot + a shiny gold, clickable destination.
         coords[it.id] = it.dest
-        const om = new mapboxgl.Marker({ element: ptEl('origin', it.originName) }).setLngLat(it.origin).addTo(map)
-        const dm = new mapboxgl.Marker({ element: ptEl('dest', it.destName ?? it.label, () => onOpenRef.current(it.href)) })
+        const om = new mapboxgl.Marker({ element: ptEl('origin') }).setLngLat(it.origin).addTo(map)
+        const dm = new mapboxgl.Marker({ element: ptEl('dest', () => onOpenRef.current(it.href)) })
           .setLngLat(it.dest).addTo(map)
         markersRef.current.push(om, dm)
       } else {
         // No destination coordinates yet (e.g. a custom proposal) — show a
-        // single clickable origin pin. Never plant a "destination" on the
-        // origin, which would mislabel the departure point.
+        // single clickable origin dot.
         coords[it.id] = it.origin
-        const om = new mapboxgl.Marker({ element: ptEl('origin', it.originName ?? it.label, () => onOpenRef.current(it.href)) })
+        const om = new mapboxgl.Marker({ element: ptEl('origin', () => onOpenRef.current(it.href)) })
           .setLngLat(it.origin).addTo(map)
         markersRef.current.push(om)
       }
