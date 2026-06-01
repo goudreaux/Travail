@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
-import { ItineraryEditor } from './page'
+import { ItineraryEditor } from '@/components/ItineraryEditor'
 import { TripPhotoPicker } from '@/components/TripPhotoPicker'
 import { SPONSOR_LINE_PRESETS } from '@/components/SponsorBadge'
 

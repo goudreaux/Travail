@@ -119,6 +119,12 @@ export async function POST(req: NextRequest) {
   if (!capacity || !minSeats || !price) {
     return NextResponse.json({ error: 'capacityTotal, minSeats, and pricePerSeatCents required to approve' }, { status: 400 })
   }
+  // Flight proposals are capped by the aircraft — Cessna 206 (4) or Grand
+  // Caravan (8). Reject anything else so the board can't advertise a cabin no
+  // plane can fly.
+  if (prop.kind === 'flight' && capacity !== 4 && capacity !== 8) {
+    return NextResponse.json({ error: 'Flight capacity must be 4 (Cessna 206) or 8 (Grand Caravan).' }, { status: 400 })
+  }
 
   // expires_at = trip date - runway days.
   const tripDate = new Date(prop.date + 'T00:00:00Z')

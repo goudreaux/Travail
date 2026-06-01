@@ -8,6 +8,8 @@ import { getStripe } from '@/lib/stripe-browser'
 import PageHero from '@/components/PageHero'
 import { ProposalCountdown, ProposalDeadlineTag } from '@/components/ProposalCard'
 import { RosterStack, type RosterEntry } from '@/components/Roster'
+import { asItinerary, generateDefaultItinerary, fmtItineraryTime, type ItineraryStep } from '@/lib/itinerary'
+import { KIND_ICONS } from '@/lib/icons'
 
 // Member commits a seat on a Trip Proposal.
 //
@@ -516,6 +518,51 @@ function ProposalDetailsPanel({
           </div>
         ))}
       </div>
+
+      {/* Day plan — mirrors the flight/excursion reserve pages. Shows the
+          ops-authored itinerary (payload.itinerary) or an auto-generated
+          default so members always see a plan; ops confirms exact times. */}
+      {(() => {
+        const stored = asItinerary(p.itinerary)
+        const steps: ItineraryStep[] = stored.length > 0 ? stored : generateDefaultItinerary({
+          originCode: proposal.origin_code,
+          destCode: destCode ?? null,
+          destName: destName,
+          departTime: departTime ?? null,
+          returnTime: returnTime ?? null,
+        })
+        if (steps.length === 0) return null
+        const allTBD = stored.length === 0 && steps.every(s => !s.time)
+        return (
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--hair)' }}>
+            <div style={{ marginBottom: 10 }}>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600 }}>
+                Day plan
+              </span>
+              {allTBD && (
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.10em', color: 'var(--sun-d)', marginLeft: 10, fontWeight: 700 }}>
+                  PROPOSED · OPS CONFIRMS TIMES
+                </span>
+              )}
+            </div>
+            <ol className="dayplan">
+              {steps.map((s, i) => (
+                <li key={i} className="dayplan__step" style={{ animationDelay: `${i * 90}ms` }}>
+                  <span className="dayplan__rail" aria-hidden />
+                  <span className="dayplan__dot" aria-hidden>
+                    {s.icon && KIND_ICONS[s.icon] ? KIND_ICONS[s.icon] : <span className="dayplan__num">{i + 1}</span>}
+                  </span>
+                  <div className="dayplan__body">
+                    <div className="dayplan__time">{s.time ? fmtItineraryTime(s.time) : <span className="dayplan__tbd">TBD</span>}</div>
+                    <div className="dayplan__label">{s.label}</div>
+                    {s.sub && <div className="dayplan__sub">{s.sub}</div>}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )
+      })()}
       {pitch && (
         <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--hair)' }}>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--sun-d)', fontWeight: 700, marginBottom: 6 }}>

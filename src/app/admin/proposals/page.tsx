@@ -2,6 +2,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { PROPOSAL_STATUS_LABEL, PROPOSAL_STATUS_PILL, type ProposalStatus } from '@/lib/proposals'
+import { ItineraryEditor } from '@/components/ItineraryEditor'
+import { asItinerary, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
 
 // Ops review queue for Trip Proposals.
 //
@@ -243,6 +245,37 @@ export default function AdminProposalsPage() {
                 } catch (e) { flash(e instanceof Error ? e.message : 'Failed', false) }
                 finally { setBusy(null) }
               }}
+              onSaveItinerary={async (steps) => {
+                setBusy(r.id)
+                try {
+                  const res = await fetch('/api/admin/proposals/itinerary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ proposalId: r.id, itinerary: steps }),
+                  })
+                  const d = await res.json()
+                  if (!res.ok) throw new Error(d.error ?? 'Save failed')
+                  flash('Itinerary saved.')
+                  load()
+                } catch (e) { flash(e instanceof Error ? e.message : 'Failed', false) }
+                finally { setBusy(null) }
+              }}
+              onRemove={async () => {
+                if (!confirm(`Remove "${r.name}"? This deletes the proposal and everyone's commits (nothing is charged on an open proposal). This can't be undone.`)) return
+                setBusy(r.id)
+                try {
+                  const res = await fetch('/api/admin/proposals/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ proposalId: r.id }),
+                  })
+                  const d = await res.json()
+                  if (!res.ok) throw new Error(d.error ?? 'Remove failed')
+                  flash('Proposal removed.')
+                  load()
+                } catch (e) { flash(e instanceof Error ? e.message : 'Failed', false) }
+                finally { setBusy(null) }
+              }}
             />
           ))}
         </div>
@@ -252,20 +285,28 @@ export default function AdminProposalsPage() {
 }
 
 function ProposalRowCard({
-  row, busy, onApprove, onDecline, onLock,
+  row, busy, onApprove, onDecline, onLock, onSaveItinerary, onRemove,
 }: {
   row: ProposalRow
   busy: boolean
   onApprove: (capacity: number, min: number, price: number) => Promise<void>
   onDecline: (reason: string) => Promise<void>
   onLock: () => Promise<void>
+  onSaveItinerary: (steps: ItineraryStep[]) => Promise<void>
+  onRemove: () => Promise<void>
 }) {
   const suggested = (row.payload ?? {}) as Record<string, unknown>
-  const [capacity, setCapacity] = useState<number>(Number(suggested.suggested_capacity ?? 8) || 8)
-  const [minSeats, setMinSeats] = useState<number>(Number(suggested.suggested_min_seats ?? 4) || 4)
+  // Flight cabins are aircraft-bound (4 or 8). Snap any legacy/odd suggestion
+  // to the nearest valid size so the picker always starts on a real option.
+  const isFlight = row.kind === 'flight'
+  const rawCap = Number(suggested.suggested_capacity ?? 8) || 8
+  const [capacity, setCapacity] = useState<number>(isFlight ? (rawCap <= 4 ? 4 : 8) : rawCap)
+  const [minSeats, setMinSeats] = useState<number>(Math.min(Number(suggested.suggested_min_seats ?? 4) || 4, isFlight ? (rawCap <= 4 ? 4 : 8) : rawCap))
   const [priceCents, setPriceCents] = useState<number>(50000)
   const [showDecline, setShowDecline] = useState(false)
   const [declineReason, setDeclineReason] = useState('')
+  // Day-plan itinerary, seeded from whatever ops already saved on the payload.
+  const [itin, setItin] = useState<ItineraryStep[]>(asItinerary(suggested.itinerary))
 
   const pill = PROPOSAL_STATUS_PILL[row.status]
   const label = PROPOSAL_STATUS_LABEL[row.status]
@@ -314,8 +355,34 @@ function ProposalRowCard({
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 10 }}>
             <div className="field" style={{ margin: 0 }}>
-              <label className="field-lab">Capacity</label>
-              <input className="input" type="number" min={1} max={20} value={capacity} onChange={e => setCapacity(Math.max(1, Math.min(20, Number(e.target.value) || 1)))} />
+              <label className="field-lab">Capacity{isFlight ? ' · aircraft' : ''}</label>
+              {isFlight ? (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[{ name: 'Cessna 206', cap: 4 }, { name: 'Grand Caravan', cap: 8 }].map(ac => {
+                    const on = capacity === ac.cap
+                    return (
+                      <button
+                        key={ac.cap}
+                        type="button"
+                        className="input"
+                        onClick={() => { setCapacity(ac.cap); setMinSeats(m => Math.min(m, ac.cap)) }}
+                        style={{
+                          flex: 1, cursor: 'pointer', textAlign: 'center', padding: '0 6px', fontSize: 11.5,
+                          fontWeight: on ? 700 : 500,
+                          borderColor: on ? 'var(--tropic)' : undefined,
+                          background: on ? 'var(--tropic-glow)' : undefined,
+                          color: on ? 'var(--tropic-d)' : 'var(--ink-soft)',
+                        }}
+                        title={ac.name}
+                      >
+                        {ac.cap} · {ac.name.split(' ')[ac.name.split(' ').length - 1]}
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <input className="input" type="number" min={1} max={20} value={capacity} onChange={e => setCapacity(Math.max(1, Math.min(20, Number(e.target.value) || 1)))} />
+              )}
             </div>
             <div className="field" style={{ margin: 0 }}>
               <label className="field-lab">Minimum seats</label>
@@ -374,6 +441,36 @@ function ProposalRowCard({
           {row.status === 'funded' && row.funded_at && `Funded ${fmtDate(row.funded_at)}`}
           {row.status === 'expired' && row.expired_at && `Expired ${fmtDate(row.expired_at)}`}
           {row.status === 'withdrawn' && 'Withdrawn by proposer'}
+        </div>
+      )}
+
+      {/* Day plan — what the member sees on the proposal reserve page.
+          Editable while the proposal is live or under review. */}
+      {(row.status === 'pending_ops_review' || row.status === 'open') && (
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--hair)' }}>
+          <ItineraryEditor
+            steps={itin}
+            onChange={setItin}
+            onGenerateDefaults={() => setItin(generateDefaultItinerary({
+              originCode: row.origin_code,
+              destCode: (row.payload?.destCode as string | undefined) ?? null,
+              destName: (row.payload?.destName as string | undefined) ?? null,
+              departTime: (row.payload?.departTime as string | undefined) ?? null,
+              returnTime: (row.payload?.returnTime as string | undefined) ?? null,
+            }))}
+          />
+          <button className="btn-ghost" disabled={busy} onClick={() => onSaveItinerary(itin)} style={{ marginTop: 8, fontSize: 12 }}>
+            {busy ? 'Saving…' : 'Save itinerary'}
+          </button>
+        </div>
+      )}
+
+      {/* Remove — clears bad/duplicate proposals. Blocked server-side once funded. */}
+      {row.status !== 'funded' && (
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--hair)', display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="btn-ghost" disabled={busy} onClick={onRemove} style={{ color: 'var(--signal)', fontSize: 12 }}>
+            Remove proposal
+          </button>
         </div>
       )}
     </div>
