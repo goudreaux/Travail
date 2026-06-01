@@ -10,6 +10,7 @@ import MobileNav from '@/components/MobileNav'
 import PullToRefresh from '@/components/PullToRefresh'
 import ToastHost from '@/components/ToastHost'
 import AddToHomeScreen from '@/components/AddToHomeScreen'
+import AddToHomeScreenModal from '@/components/AddToHomeScreenModal'
 import SubscriptionBanner from '@/components/SubscriptionBanner'
 import { MaintenanceBanner } from '@/components/MaintenanceBanner'
 import { FirstLoginTutorial } from '@/components/FirstLoginTutorial'
@@ -34,6 +35,11 @@ function MemberShell({ children }: { children: React.ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0)
   const [pendingCount, setPendingCount] = useState(0)
   const [openSeatsCount, setOpenSeatsCount] = useState(0)
+  // First-login flow: after the tutorial closes, nudge the home-screen install
+  // as a separate popup. `installFlowStarted` suppresses the bottom banner for
+  // the session so the member isn't double-nagged.
+  const [installModalOpen, setInstallModalOpen] = useState(false)
+  const [installFlowStarted, setInstallFlowStarted] = useState(false)
   const supabase = createClient()
   const pathname = usePathname()
   const router = useRouter()
@@ -116,15 +122,24 @@ function MemberShell({ children }: { children: React.ReactNode }) {
       <MobileNav pathname={pathname} isAdmin={!!member?.is_admin} openSeatsCount={openSeatsCount} tripsAlertCount={actionItems.tripsCount} proposalsAlertCount={actionItems.proposalsCount} />
       <PullToRefresh />
       <ToastHost />
-      <AddToHomeScreen />
+      <AddToHomeScreen suppressed={installFlowStarted} />
       {/* One-shot welcome tutorial on first sign-in. Persistence is
           server-side via members.tutorial_completed_at (migration 054)
-          so switching devices doesn't re-trigger it. */}
+          so switching devices doesn't re-trigger it. When it closes, we
+          nudge the home-screen install as a separate popup (used to be
+          tutorial step 6 — it was tripping people up mid-tour). */}
       {member && !(member as Member & { tutorial_completed_at?: string | null }).tutorial_completed_at && (
         <FirstLoginTutorial
           memberId={member.id}
-          onDone={() => setMember(m => m ? ({ ...m, tutorial_completed_at: new Date().toISOString() } as Member) : m)}
+          onDone={() => {
+            setMember(m => m ? ({ ...m, tutorial_completed_at: new Date().toISOString() } as Member) : m)
+            setInstallFlowStarted(true)
+            setInstallModalOpen(true)
+          }}
         />
+      )}
+      {installModalOpen && (
+        <AddToHomeScreenModal onClose={() => setInstallModalOpen(false)} />
       )}
     </div>
   )

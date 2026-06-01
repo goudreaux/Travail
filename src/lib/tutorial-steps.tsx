@@ -54,13 +54,7 @@ export const BAKED_DEFAULTS: TutorialStep[] = [
     body: "Travail stays small and deliberate by design. A trip is only as good as the people on it, so we grow entirely by referral. Invite friends from your Membership page and our team reviews each request before extending an invitation. Bring the people you'd genuinely enjoy sharing a cabin with.",
   },
   {
-    step_key: 'install', order_idx: 6, icon_key: 'home', is_locked: true,
-    eyebrow: 'PIN IT TO YOUR PHONE',
-    title: 'Add Travail to your home screen.',
-    body: 'INSTALL_INSTRUCTIONS_PLACEHOLDER',
-  },
-  {
-    step_key: 'closer', order_idx: 7, icon_key: 'check',
+    step_key: 'closer', order_idx: 6, icon_key: 'check',
     eyebrow: "YOU'RE ALL SET",
     title: "That's the tour. Enjoy the ride.",
     body: "You now know the three ways to travel with us: Open Seats to ride along on a booked flight, Get Away to anchor your own, and Proposals to rally the network around a new idea. Everything lives in the navigation at the bottom of your screen whenever you need it. Tap Done when you're ready and we'll get out of your way.",

@@ -15,7 +15,7 @@ const DISMISS_KEY = 'tvl-a2hs-dismissed'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type BeforeInstallPromptEvent = any
 
-export default function AddToHomeScreen() {
+export default function AddToHomeScreen({ suppressed = false }: { suppressed?: boolean } = {}) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
   const [isIos, setIsIos] = useState(false)
   const [show, setShow] = useState(false)
@@ -48,7 +48,9 @@ export default function AddToHomeScreen() {
     return () => window.removeEventListener('beforeinstallprompt', onPrompt)
   }, [])
 
-  if (!show) return null
+  // Suppressed while the first-login tutorial / post-tutorial install popup
+  // owns the install nudge — avoids double-nagging on first sign-in.
+  if (suppressed || !show) return null
 
   function dismiss() {
     try { localStorage.setItem(DISMISS_KEY, '1') } catch { /* ignore */ }
