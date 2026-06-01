@@ -117,18 +117,27 @@ export interface Database {
           name: string
           sub: string | null
           role: 'origin' | 'destination' | 'both'
+          lat: number | null
+          lng: number | null
+          active: boolean
         }
         Insert: {
           code: string
           name: string
           sub?: string | null
           role?: 'origin' | 'destination' | 'both'
+          lat?: number | null
+          lng?: number | null
+          active?: boolean
         }
         Update: {
           code?: string
           name?: string
           sub?: string | null
           role?: 'origin' | 'destination' | 'both'
+          lat?: number | null
+          lng?: number | null
+          active?: boolean
         }
         Relationships: []
       }

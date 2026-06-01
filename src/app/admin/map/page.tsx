@@ -5,8 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import nextDynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
-import { coordFor } from '@/lib/airport-coords'
 import { destName as friendlyDestName } from '@/lib/destinations'
+import { fetchLocations, coordsFromLocations, type LibraryLocation } from '@/lib/locations'
 import type { RouteItem, RouteGlobeHandle } from '@/components/RouteGlobe'
 
 // Mapbox touches `window`, so the globe is browser-only.
@@ -40,7 +40,7 @@ export default function AdminMapPage() {
         supabase.from('excursions').select('id, name, origin_code, dest_code, date, status, template_id').in('status', ['open', 'full']),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase as any).from('trip_proposals').select('id, name, kind, origin_code, payload, date, status').eq('status', 'open'),
-        supabase.from('airports').select('code, name, sub'),
+        fetchLocations(supabase),
         supabase.from('excursion_templates').select('id, dest_code'),
       ])
 
@@ -49,11 +49,12 @@ export default function AdminMapPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const t of (templatesRes.data ?? []) as any[]) destByTemplate[t.id] = t.dest_code
 
+      // The Library is the source of truth for names + coordinates.
+      const locs = (airportsRes ?? []) as LibraryLocation[]
       const place: Record<string, string> = {}
-      for (const a of (airportsRes.data ?? []) as { code: string; name: string; sub: string | null }[]) {
-        place[a.code] = a.name
-      }
+      for (const a of locs) place[a.code] = a.name
       const name = (code: string | null | undefined) => (code ? place[code] ?? code : '')
+      const coordFor = (code: string | null | undefined) => coordsFromLocations(locs, code)
       const fmtDate = (d: string) =>
         new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 

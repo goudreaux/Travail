@@ -1,12 +1,14 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import PageHero from '@/components/PageHero'
+import { createClient } from '@/lib/supabase/client'
 import { PROPOSAL_MIN_LEAD_DAYS } from '@/lib/proposals'
 import { ProposerCardForm } from '@/components/ProposerCardForm'
-import { PROPOSAL_ORIGINS as ORIGINS, PROPOSAL_DEST_OPTIONS as DESTS } from '@/lib/destinations'
+import { PROPOSAL_ORIGINS, PROPOSAL_DEST_OPTIONS, CUSTOM_DEST } from '@/lib/destinations'
+import { fetchLocations, asOrigins, asDestinations } from '@/lib/locations'
 
 // Lightweight flight-proposal form. Mirrors the route-picking
 // vocabulary of the anchor-flight wizard but compresses everything
@@ -21,8 +23,21 @@ function todayPlus(days: number): string {
 
 export default function ProposeFlightPage() {
   const router = useRouter()
-  const [origin, setOrigin] = useState(ORIGINS[0].code)
-  const [destCode, setDestCode] = useState(DESTS[0].code)
+  const supabase = createClient()
+  // From/To options come from the Location Library; fall back to the built-in
+  // list until the library is seeded (or if it can't be reached).
+  const [origins, setOrigins] = useState(PROPOSAL_ORIGINS)
+  const [dests, setDests] = useState(PROPOSAL_DEST_OPTIONS)
+  useEffect(() => {
+    fetchLocations(supabase).then(locs => {
+      const o = asOrigins(locs).map(l => ({ code: l.code, name: l.name, sub: l.sub ?? '' }))
+      const d = asDestinations(locs).map(l => ({ code: l.code, name: l.name, sub: l.sub ?? '' }))
+      if (o.length) setOrigins(o)
+      if (d.length) setDests([...d, CUSTOM_DEST])
+    }).catch(() => { /* keep fallback */ })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const [origin, setOrigin] = useState(PROPOSAL_ORIGINS[0].code)
+  const [destCode, setDestCode] = useState(PROPOSAL_DEST_OPTIONS[0].code)
   const [customDestName, setCustomDestName] = useState('')
   const [date, setDate] = useState('')
   const [stayType, setStayType] = useState<'day_trip' | 'overnight'>('day_trip')
@@ -43,7 +58,7 @@ export default function ProposeFlightPage() {
   const [cardSaved, setCardSaved] = useState(false)
 
   const isCustomDest = destCode === 'CUSTOM'
-  const destMeta = DESTS.find(d => d.code === destCode)
+  const destMeta = dests.find(d => d.code === destCode)
   const destName = isCustomDest ? customDestName.trim() : (destMeta?.name ?? destCode)
   const minDate = todayPlus(PROPOSAL_MIN_LEAD_DAYS)
 
@@ -56,7 +71,7 @@ export default function ProposeFlightPage() {
     if (proposerMaxSeats < proposerMinSeats) { setError('Your maximum coverage must be at least your party size.'); return }
     if (proposerMaxSeats > suggestedCapacity) { setError('Your maximum coverage can\'t exceed the aircraft capacity.'); return }
 
-    const name = `${ORIGINS.find(o => o.code === origin)?.name ?? origin} → ${destName || destCode}`
+    const name = `${origins.find(o => o.code === origin)?.name ?? origin} → ${destName || destCode}`
 
     setSubmitting(true)
     try {
@@ -149,13 +164,13 @@ export default function ProposeFlightPage() {
               <div className="field">
                 <label className="field-lab">From</label>
                 <select className="input" value={origin} onChange={e => setOrigin(e.target.value)}>
-                  {ORIGINS.map(o => <option key={o.code} value={o.code}>{o.name} ({o.code})</option>)}
+                  {origins.map(o => <option key={o.code} value={o.code}>{o.name} ({o.code})</option>)}
                 </select>
               </div>
               <div className="field">
                 <label className="field-lab">To</label>
                 <select className="input" value={destCode} onChange={e => setDestCode(e.target.value)}>
-                  {DESTS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+                  {dests.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
                 </select>
               </div>
             </div>

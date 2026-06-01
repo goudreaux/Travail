@@ -80,6 +80,11 @@ export function SponsoredExcursionModal({
 
   if (!open) return null
 
+  // Destinations come from the Location Library (airports of type destination /
+  // both); fall back to the built-in list until the library is seeded.
+  const libDests = airports.filter(a => a.role === 'destination' || a.role === 'both')
+  const destOptions = libDests.length ? libDests : PROPOSAL_DESTS
+
   function patch<K extends keyof SponsoredExcursion>(k: K, v: SponsoredExcursion[K]) {
     setForm(f => ({ ...f, [k]: v }))
   }
@@ -222,7 +227,7 @@ export function SponsoredExcursionModal({
             <label className="field-lab">To (destination) <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}>· puts it on the map</span></label>
             <select className="input" value={form.dest_code} onChange={e => patch('dest_code', e.target.value)}>
               <option value="">— No fixed destination —</option>
-              {PROPOSAL_DESTS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+              {destOptions.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
             </select>
           </div>
           <div className="field" style={{ margin: 0 }}>

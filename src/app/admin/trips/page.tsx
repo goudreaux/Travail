@@ -704,19 +704,19 @@ export default function TripsPage() {
   // Build origin/destination option lists, always including the current selection.
   const originOptions = [...originAirports]
   if (FF.originSel && FF.originSel !== CUSTOM && !originOptions.some(a => a.code === FF.originSel)) {
-    originOptions.unshift({ code: FF.originSel, name: FF.originSel, sub: null, role: 'origin' })
+    originOptions.unshift({ code: FF.originSel, name: FF.originSel, sub: null, role: 'origin', lat: null, lng: null, active: true })
   }
   const destOptions = [...destAirports]
   if (FF.destSel && FF.destSel !== CUSTOM && !destOptions.some(a => a.code === FF.destSel)) {
-    destOptions.unshift({ code: FF.destSel, name: FF.destSel, sub: null, role: 'destination' })
+    destOptions.unshift({ code: FF.destSel, name: FF.destSel, sub: null, role: 'destination', lat: null, lng: null, active: true })
   }
   const excOriginOptions = [...originAirports]
   if (EF.originSel && EF.originSel !== CUSTOM && !excOriginOptions.some(a => a.code === EF.originSel)) {
-    excOriginOptions.unshift({ code: EF.originSel, name: EF.originSel, sub: null, role: 'origin' })
+    excOriginOptions.unshift({ code: EF.originSel, name: EF.originSel, sub: null, role: 'origin', lat: null, lng: null, active: true })
   }
   const tplDestOptions = [...destAirports]
   if (TF.destSel && TF.destSel !== CUSTOM && !tplDestOptions.some(a => a.code === TF.destSel)) {
-    tplDestOptions.unshift({ code: TF.destSel, name: TF.destSel, sub: null, role: 'destination' })
+    tplDestOptions.unshift({ code: TF.destSel, name: TF.destSel, sub: null, role: 'destination', lat: null, lng: null, active: true })
   }
 
   return (

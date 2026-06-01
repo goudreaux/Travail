@@ -7,7 +7,8 @@ import { createClient } from '@/lib/supabase/client'
 import PageHero from '@/components/PageHero'
 import { PROPOSAL_MIN_LEAD_DAYS } from '@/lib/proposals'
 import { ProposerCardForm } from '@/components/ProposerCardForm'
-import { PROPOSAL_DEST_OPTIONS } from '@/lib/destinations'
+import { PROPOSAL_DEST_OPTIONS, CUSTOM_DEST } from '@/lib/destinations'
+import { fetchLocations, asOrigins, asDestinations } from '@/lib/locations'
 
 // Excursion proposal wizard — same spread-guarantee mechanics as the
 // flight proposal. Free-form name + origin airport + date + party
@@ -28,6 +29,7 @@ export default function ProposeExcursionPage() {
   const [name, setName] = useState('')
   const [origin, setOrigin] = useState('KTPF')
   const [destCode, setDestCode] = useState(PROPOSAL_DEST_OPTIONS[0].code)
+  const [dests, setDests] = useState(PROPOSAL_DEST_OPTIONS)
   const [customDestName, setCustomDestName] = useState('')
   const [date, setDate] = useState('')
   const [stayType, setStayType] = useState<'day_trip' | 'overnight' | 'multi_night'>('day_trip')
@@ -47,14 +49,17 @@ export default function ProposeExcursionPage() {
   const minDate = todayPlus(PROPOSAL_MIN_LEAD_DAYS)
 
   const isCustomDest = destCode === 'CUSTOM'
-  const destMeta = PROPOSAL_DEST_OPTIONS.find(d => d.code === destCode)
+  const destMeta = dests.find(d => d.code === destCode)
   const destName = isCustomDest ? customDestName.trim() : (destMeta?.name ?? destCode)
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(supabase.from('airports') as any).select('code, name, sub, role').then(({ data }: { data: Airport[] | null }) => {
-      setAirports((data ?? []).filter(a => a.role === 'origin' || a.role === 'both'))
-    })
+    // Origins + destinations both come from the Location Library; destinations
+    // fall back to the built-in list until the library is seeded.
+    fetchLocations(supabase).then(locs => {
+      setAirports(asOrigins(locs).map(l => ({ code: l.code, name: l.name, sub: l.sub, role: l.role })))
+      const d = asDestinations(locs).map(l => ({ code: l.code, name: l.name, sub: l.sub ?? '' }))
+      if (d.length) setDests([...d, CUSTOM_DEST])
+    }).catch(() => { /* keep fallback */ })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function submit() {
@@ -165,7 +170,7 @@ export default function ProposeExcursionPage() {
               <div className="field">
                 <label className="field-lab">To</label>
                 <select className="input" value={destCode} onChange={e => setDestCode(e.target.value)}>
-                  {PROPOSAL_DEST_OPTIONS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+                  {dests.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
                 </select>
               </div>
             </div>

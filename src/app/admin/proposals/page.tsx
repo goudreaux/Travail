@@ -5,7 +5,8 @@ import { PROPOSAL_STATUS_LABEL, PROPOSAL_STATUS_PILL, type ProposalStatus } from
 import { ItineraryEditor } from '@/components/ItineraryEditor'
 import { TripPhotoPicker } from '@/components/TripPhotoPicker'
 import { asItinerary, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
-import { PROPOSAL_ORIGINS, PROPOSAL_DEST_OPTIONS } from '@/lib/destinations'
+import { PROPOSAL_ORIGINS, PROPOSAL_DEST_OPTIONS, CUSTOM_DEST, type PlaceOption } from '@/lib/destinations'
+import { fetchLocations, asOrigins, asDestinations } from '@/lib/locations'
 
 // Ops review queue for Trip Proposals.
 //
@@ -55,6 +56,17 @@ export default function AdminProposalsPage() {
   const [tab, setTab] = useState<'pending' | 'open' | 'terminal'>('pending')
   const [busy, setBusy] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
+  // From/To options for the route editor come from the Location Library.
+  const [originOpts, setOriginOpts] = useState<PlaceOption[]>(PROPOSAL_ORIGINS)
+  const [destOpts, setDestOpts] = useState<PlaceOption[]>(PROPOSAL_DEST_OPTIONS)
+  useEffect(() => {
+    fetchLocations(supabase).then(locs => {
+      const o = asOrigins(locs).map(l => ({ code: l.code, name: l.name, sub: l.sub ?? '' }))
+      const d = asDestinations(locs).map(l => ({ code: l.code, name: l.name, sub: l.sub ?? '' }))
+      if (o.length) setOriginOpts(o)
+      if (d.length) setDestOpts([...d, CUSTOM_DEST])
+    }).catch(() => { /* keep fallback */ })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function flash(msg: string, ok = true) {
     setToast({ msg, ok })
@@ -200,6 +212,8 @@ export default function AdminProposalsPage() {
             <ProposalRowCard
               key={r.id}
               row={r}
+              originOpts={originOpts}
+              destOpts={destOpts}
               busy={busy === r.id}
               onApprove={async (capacity, min, price) => {
                 setBusy(r.id)
@@ -302,9 +316,11 @@ export default function AdminProposalsPage() {
 }
 
 function ProposalRowCard({
-  row, busy, onApprove, onDecline, onLock, onSaveItinerary, onRemove, onUpdate,
+  row, originOpts, destOpts, busy, onApprove, onDecline, onLock, onSaveItinerary, onRemove, onUpdate,
 }: {
   row: ProposalRow
+  originOpts: PlaceOption[]
+  destOpts: PlaceOption[]
   busy: boolean
   onApprove: (capacity: number, min: number, price: number) => Promise<void>
   onDecline: (reason: string) => Promise<void>
@@ -334,7 +350,7 @@ function ProposalRowCard({
   // the known list shows as "Custom"; pick a real place to put it on the map.
   const [editOrigin, setEditOrigin] = useState<string>(row.origin_code)
   const payloadDestCode = (suggested.destCode as string) || ''
-  const knownDest = PROPOSAL_DEST_OPTIONS.some(d => d.code === payloadDestCode && d.code !== 'CUSTOM')
+  const knownDest = destOpts.some(d => d.code === payloadDestCode && d.code !== 'CUSTOM')
   const [editDest, setEditDest] = useState<string>(knownDest ? payloadDestCode : 'CUSTOM')
   const [editCustomDest, setEditCustomDest] = useState<string>(
     knownDest ? '' : ((suggested.destName as string) || ''),
@@ -493,16 +509,16 @@ function ProposalRowCard({
             <div className="field" style={{ margin: 0 }}>
               <label className="field-lab">From (origin)</label>
               <select className="input" value={editOrigin} onChange={e => setEditOrigin(e.target.value)}>
-                {PROPOSAL_ORIGINS.some(o => o.code === editOrigin)
+                {originOpts.some(o => o.code === editOrigin)
                   ? null
                   : <option value={editOrigin}>{editOrigin}</option>}
-                {PROPOSAL_ORIGINS.map(o => <option key={o.code} value={o.code}>{o.name} ({o.code})</option>)}
+                {originOpts.map(o => <option key={o.code} value={o.code}>{o.name} ({o.code})</option>)}
               </select>
             </div>
             <div className="field" style={{ margin: 0 }}>
               <label className="field-lab">To (destination)</label>
               <select className="input" value={editDest} onChange={e => setEditDest(e.target.value)}>
-                {PROPOSAL_DEST_OPTIONS.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+                {destOpts.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
               </select>
             </div>
           </div>
@@ -530,7 +546,7 @@ function ProposalRowCard({
               const isCustom = editDest === 'CUSTOM'
               const dName = isCustom
                 ? editCustomDest.trim()
-                : (PROPOSAL_DEST_OPTIONS.find(d => d.code === editDest)?.name ?? editDest)
+                : (destOpts.find(d => d.code === editDest)?.name ?? editDest)
               onUpdate({
                 pricePerSeatCents: editPrice,
                 minSeats: editMin,

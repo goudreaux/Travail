@@ -7,10 +7,11 @@ import { AnchorCardSetup } from '@/components/AnchorCardSetup'
 import { LastMinuteNotice } from '@/components/LastMinuteNotice'
 import TimeInput from '@/components/TimeInput'
 import { canAnchor } from '@/lib/trip-timing'
+import { fetchLocations, asOrigins } from '@/lib/locations'
 import type { AirportMeta } from '@/lib/data'
 import type { ExcursionTemplate } from '@/lib/supabase/types'
 
-// Seaplane departure bases for excursions.
+// Fallback seaplane departure bases — used until the Location Library loads.
 const EXCURSION_ORIGINS: AirportMeta[] = [
   { code: 'KTPF', name: 'Davis Island', sub: 'Tampa, FL', role: 'origin' },
   { code: 'KFXE', name: 'Fort Lauderdale Exec', sub: 'Fort Lauderdale, FL', role: 'origin' },
@@ -70,6 +71,7 @@ function AirportDropdown({
 
 export default function AnchorExcursionPage() {
   const [step, setStep] = useState(1)
+  const [origins, setOrigins] = useState<AirportMeta[]>(EXCURSION_ORIGINS)
   const [origin, setOrigin] = useState<AirportMeta>(EXCURSION_ORIGINS[0])
   const [templates, setTemplates] = useState<ExcursionTemplate[]>([])
   const [templateId, setTemplateId] = useState('')
@@ -106,6 +108,11 @@ export default function AnchorExcursionPage() {
       const am: Record<string, string> = {}
       for (const a of (aps ?? []) as { code: string; name: string }[]) am[a.code] = a.name
       setAirportName(am)
+      // Departure bases come from the Location Library (origins / both).
+      try {
+        const o = asOrigins(await fetchLocations(supabase)).map(l => ({ code: l.code, name: l.name, sub: l.sub ?? '', role: 'origin' as const }))
+        if (o.length) setOrigins(o)
+      } catch { /* keep fallback */ }
       const list = (tpls ?? []) as ExcursionTemplate[]
       setTemplates(list)
       if (list.length) setTemplateId(list[0].id)
@@ -328,7 +335,7 @@ export default function AnchorExcursionPage() {
               <div className="wiz-step-eyebrow">Step 2 of {STEPS.length} · Route</div>
               <h2 className="wiz-step-title">Where are you leaving from?</h2>
               <p className="wiz-step-sub">Your departure airport. The destination comes from the experience.</p>
-              <div className="field"><label className="field-lab">From</label><AirportDropdown value={origin} options={EXCURSION_ORIGINS} onChange={setOrigin} /></div>
+              <div className="field"><label className="field-lab">From</label><AirportDropdown value={origin} options={origins} onChange={setOrigin} /></div>
               <div className="field">
                 <label className="field-lab">To</label>
                 <div className="input" style={{ display: 'flex', alignItems: 'center', height: 38, color: 'var(--ink)', background: 'var(--warm)' }}>
