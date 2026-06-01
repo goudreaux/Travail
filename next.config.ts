@@ -22,11 +22,14 @@ const csp = [
   `script-src 'self' 'unsafe-inline' ${isProd ? '' : "'unsafe-eval'"} https://js.stripe.com`.replace(/\s+/g, ' ').trim(),
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
-  "img-src 'self' data: blob: https://*.supabase.co",
+  "img-src 'self' data: blob: https://*.supabase.co https://api.mapbox.com",
   "media-src 'self' blob:",
-  // Supabase REST + realtime WS + Stripe XHR. Add other origins here as
-  // we wire them in (never widen with wildcards beyond the host root).
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com",
+  // Mapbox GL JS runs its tile/style parsing in a Web Worker loaded from a
+  // blob: URL — without this the worker is blocked and the map silently fails.
+  "worker-src 'self' blob:",
+  // Supabase REST + realtime WS + Stripe XHR + Mapbox (route map). Add other
+  // origins here as we wire them in (never widen with wildcards beyond host).
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.mapbox.com https://events.mapbox.com",
   // Stripe Elements + 3DS challenge iframes.
   'frame-src https://js.stripe.com https://hooks.stripe.com',
   "frame-ancestors 'none'",

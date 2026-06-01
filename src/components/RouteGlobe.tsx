@@ -89,12 +89,10 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     map.on('error', (e: any) => {
       const status = e?.error?.status ?? e?.status
       const msg = String(e?.error?.message ?? e?.error ?? '')
-      if (status === 401 || status === 403 || /401|403|unauthorized|not authorized|allowlist|forbidden|token/i.test(msg)) {
-        // Show the RAW Mapbox error + a fingerprint of the token actually baked
-        // into this build, so it's fully diagnosable from a screenshot.
-        const tok = token ? `${token.slice(0, 16)}…${token.slice(-6)}` : 'EMPTY'
-        const origin = typeof window !== 'undefined' ? window.location.origin : ''
-        setError(`Mapbox ${status ?? ''}: ${msg || 'rejected'}  ·  origin: ${origin}  ·  token: ${tok}`)
+      if (status === 401 || status === 403) {
+        setError('Mapbox rejected the token. Check NEXT_PUBLIC_MAPBOX_TOKEN in Vercel.')
+      } else if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+        setError("Couldn't reach Mapbox — an ad blocker or network may be blocking api.mapbox.com.")
       }
     })
 
