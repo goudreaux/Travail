@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { fmtHomeBase, memberCode, tierLabel, tierPill, canonicalInterests } from '@/lib/data'
+import { fmtHomeBase, tierLabel, tierPill, canonicalInterests } from '@/lib/data'
 import { TRIP_TYPE_ICONS } from '@/lib/icons'
 import type { Member, Booking, Post, Friendship, ContactRequest } from '@/lib/supabase/types'
 
@@ -525,9 +525,6 @@ export default function MemberProfilePage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <TierBadge tier={member.tier} />
-                <span className="mono" style={{ fontSize: 9.5 }}>
-                  {memberCode(member)}
-                </span>
                 {member.home_base_code && (
                   <span className="mono" style={{ fontSize: 9.5, color: 'var(--ink-mid)' }}>
                     · {fmtHomeBase(member.home_base_code)}

@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { Icons } from '@/lib/icons'
-import { memberCode, tierLabel } from '@/lib/data'
+import { tierLabel } from '@/lib/data'
 import { usePendingFriendCount } from '@/lib/use-pending-friend-count'
 import type { Member } from '@/lib/supabase/types'
 
@@ -59,7 +59,7 @@ export default function Sidebar({ pathname, member, pendingCount = 0, openSeatsC
           <div className="side-brand-member__body">
             <div className="side-brand-member__name">{member.name}</div>
             <div className="side-brand-member__tier" style={{ color: TIER_COLOR[member.tier] ?? 'var(--tropic)' }}>
-              {tierLabel(member.tier).toUpperCase()}{member.tier === 'administrator' ? '' : ` · ${memberCode(member)}`}
+              {tierLabel(member.tier).toUpperCase()}
             </div>
           </div>
         </Link>

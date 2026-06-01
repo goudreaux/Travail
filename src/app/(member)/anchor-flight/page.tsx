@@ -27,7 +27,7 @@ const ANCHOR_DESTS: AirportMeta[] = [
   { code: 'LCC',  name: 'Lochloosa Country Club',     sub: 'North Central FL', role: 'destination' },
   { code: 'KEYW', name: 'Key West Airport',           sub: 'FL Keys',          role: 'destination' },
   { code: 'LPI',  name: 'Little Palm Island',         sub: 'FL Keys',          role: 'destination' },
-  { code: CUSTOM_DEST_CODE, name: 'Custom destination', sub: 'Request, ops will confirm with Tropic', role: 'destination' },
+  { code: CUSTOM_DEST_CODE, name: 'Custom destination', sub: 'Request, the Concierge Team will confirm with Tropic', role: 'destination' },
 ]
 
 type GuestEntry = { first_name: string; last_name: string; date_of_birth: string }
@@ -357,7 +357,7 @@ export default function AnchorFlightPage() {
                     />
                   </div>
                   <div className="field">
-                    <label className="field-lab">Notes for ops <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}>(optional)</span></label>
+                    <label className="field-lab">Notes for the Concierge Team <span style={{ color: 'var(--ink-light)', fontWeight: 400 }}>(optional)</span></label>
                     <textarea
                       className="input"
                       rows={3}
@@ -382,7 +382,7 @@ export default function AnchorFlightPage() {
                   </div>
                   <div style={{ fontSize: 12.5, color: 'var(--ink-mid)' }}>
                     {isCustomDest
-                      ? `${origin.code} (${origin.sub}) → custom · awaiting ops confirmation`
+                      ? `${origin.code} (${origin.sub}) → custom · awaiting Concierge confirmation`
                       : `${origin.code} (${origin.sub}) → ${dest.code} (${dest.sub})`}
                   </div>
                 </div>
@@ -478,7 +478,7 @@ export default function AnchorFlightPage() {
             <div>
               <div className="wiz-step-eyebrow">Step 4 of 4 · Review</div>
               <h2 className="wiz-step-title">Review &amp; send</h2>
-              <p className="wiz-step-sub">Confirm the details and send to Ops. They&apos;ll quote pricing with Tropic before it goes live.</p>
+              <p className="wiz-step-sub">Confirm the details and send to the Concierge Team. They&apos;ll quote pricing with Tropic before it goes live.</p>
 
               <div className="field">
                 <label className="field-lab">Sharing</label>
@@ -507,7 +507,7 @@ export default function AnchorFlightPage() {
 
               <div className="wiz-summary" style={{ marginTop: 6 }}>
                 {[
-                  { label: 'Route', value: `${origin.name} ${isRoundTrip ? '⇄' : '→'} ${isCustomDest ? (customDestName.trim() || 'Custom destination') : dest.name}${isCustomDest ? ' (custom, ops will confirm)' : ''}` },
+                  { label: 'Route', value: `${origin.name} ${isRoundTrip ? '⇄' : '→'} ${isCustomDest ? (customDestName.trim() || 'Custom destination') : dest.name}${isCustomDest ? ' (custom, the Concierge Team will confirm)' : ''}` },
                   { label: 'Trip type', value: isRoundTrip ? 'Round trip' : 'One way' },
                   { label: 'Departs', value: date || '—' },
                   { label: 'Departure time', value: departTime },
@@ -530,7 +530,7 @@ export default function AnchorFlightPage() {
               <div style={{ background: 'var(--tropic-glow)', border: '1px solid rgba(0,179,199,0.2)', borderRadius: 10, padding: '14px 16px', marginTop: 14 }}>
                 <div className="mono" style={{ color: 'var(--tropic-d)', marginBottom: 6 }}>Pricing</div>
                 <p style={{ fontSize: 12.5, color: 'var(--ink-mid)', lineHeight: 1.55, margin: 0 }}>
-                  Ops will source a Tropic quote, add Travail&apos;s 3% service fee, and send it to you for review. <strong style={{ color: 'var(--ink)' }}>No card is captured until you accept the quote</strong>. You&apos;ll get a notification with the total to review.
+                  The Concierge Team will source a Tropic quote, add Travail&apos;s 3% service fee, and send it to you for review. <strong style={{ color: 'var(--ink)' }}>No card is captured until you accept the quote</strong>. You&apos;ll get a notification with the total to review.
                 </p>
               </div>
 
@@ -562,7 +562,7 @@ export default function AnchorFlightPage() {
                 {submitting ? (
                   <><span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 2 }} /> Submitting…</>
                 ) : !hasCard ? 'Add a card to submit'
-                : 'Submit to Ops →'}
+                : 'Submit to the Concierge Team →'}
               </button>
             )}
           </div>

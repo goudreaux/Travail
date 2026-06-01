@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useMember } from '@/lib/member-context'
 import Link from 'next/link'
-import { fmtHomeBase, memberCode, tierLabel, tierPill, canonicalInterests } from '@/lib/data'
+import { fmtHomeBase, tierLabel, tierPill, canonicalInterests } from '@/lib/data'
 import { TRIP_TYPE_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
 import type { Member, Friendship } from '@/lib/supabase/types'
@@ -477,11 +477,12 @@ export default function NetworkPage() {
                   {/* Foil edge strip — color from data-tier */}
                   <span className="biz-card__foil" aria-hidden />
 
-                  {/* Top stamps: Travail mark on the left, member number on the right */}
+                  {/* Top stamps: Travail mark on the left, tier on the right
+                      (member number is Concierge-only now, not shown to members). */}
                   <div className="biz-card__stamps">
                     <span className="biz-card__mark">TRAVAIL · MEMBER</span>
                     <span className="biz-card__no">
-                      {member.member_no != null ? `№ ${String(member.member_no).padStart(3, '0')}` : memberCode(member)}
+                      {tierLabel(member.tier).toUpperCase()}
                     </span>
                   </div>
 

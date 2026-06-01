@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useMember } from '@/lib/member-context'
-import { fmtDate, fmtHomeBase, memberCode, tierLabel, tierPill, TRIP_TYPES, canonicalInterests } from '@/lib/data'
+import { fmtDate, fmtHomeBase, tierLabel, tierPill, TRIP_TYPES, canonicalInterests } from '@/lib/data'
 import { safeError } from '@/lib/pii-scrub'
 import PageHero from '@/components/PageHero'
 import ThemePicker from '@/components/ThemePicker'
@@ -206,11 +206,11 @@ export default function MembershipPage() {
     <div className="page">
       <PageHero
         accent="sun"
-        eyebrow={member.tier === 'administrator' ? tierLabel(member.tier) : `${memberCode(member)} · ${tierLabel(member.tier)}`}
+        eyebrow={tierLabel(member.tier)}
         title="Membership"
         sub="Your account, history, and settings."
         metric={{
-          value: memberCode(member).replace('#', ''),
+          value: member.initials || member.name.split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase(),
           label: tierLabel(member.tier),
           sub: dp && member.joined_at ? `Since ${dp.mo} ${member.joined_at.slice(0, 4)}` : undefined,
         }}
@@ -502,7 +502,6 @@ export default function MembershipPage() {
               <div style={{ padding: '6px 0 8px' }}>
                 {[
                   { label: 'Tier', value: <span className={`pill ${tierPill(member.tier)}`}>{tierLabel(member.tier)}</span> },
-                  { label: 'Member ID', value: <span className="mono" style={{ fontSize: 10 }}>{memberCode(member)}</span> },
                   { label: 'Joined', value: dp ? `${dp.mo} ${dp.day}, ${new Date(member.joined_at).getFullYear()}` : '—' },
                   { label: 'KYC status', value: member.kyc_verified ? <span className="pill moss">Verified</span> : <span className="pill signal">Pending</span> },
                   { label: 'Card on file', value: member.card_last4 ? `••••  ••••  ••••  ${member.card_last4}` : <span style={{ color: 'var(--ink-faint)' }}>None on file</span> },

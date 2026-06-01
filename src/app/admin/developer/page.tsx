@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import stats from '@/lib/code-stats.json'
 import { MemberStatsPanel } from './MemberStatsPanel'
@@ -10,55 +10,41 @@ import { TutorialEditorPanel } from './TutorialEditorPanel'
 import { FeatureMatrix } from './FeatureMatrix'
 import { MaintenancePanel } from './MaintenancePanel'
 
-// Reusable collapsible header — same hit area + chevron rotation pattern
-// as the section-panel on the member feed. Tap anywhere on the header
-// row to toggle. The badge slot is optional ("at N lines" or counts).
-function CollapsibleHead({
+// Collapsible wrapper for every developer tool. Collapsed by default so the
+// page opens as a clean index of tools; expand only what you need. The header
+// is a thin toggle bar; the tool's own panel renders below when open.
+function DevSection({
   title,
-  open,
-  onToggle,
   badge,
+  defaultOpen = false,
+  children,
 }: {
   title: React.ReactNode
-  open: boolean
-  onToggle: () => void
   badge?: React.ReactNode
+  defaultOpen?: boolean
+  children: React.ReactNode
 }) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={open}
-      className="panel-head"
-      style={{
-        width: '100%',
-        background: 'transparent',
-        border: 'none',
-        cursor: 'pointer',
-        textAlign: 'left',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
-      }}
-    >
-      <h3 style={{ margin: 0 }}>{title}</h3>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        {badge}
-        <span
-          aria-hidden
-          style={{
-            display: 'inline-block',
-            fontSize: 16,
-            color: 'var(--ink-light)',
-            transition: 'transform 0.18s',
-            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
-          }}
-        >
-          ▾
+    <div style={{ marginBottom: 14 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          padding: '13px 16px', background: 'var(--card)', border: '1px solid var(--hair)',
+          borderRadius: open ? '12px 12px 0 0' : 12, cursor: 'pointer', textAlign: 'left',
+        }}
+      >
+        <span style={{ fontFamily: 'var(--ui)', fontWeight: 600, fontSize: 15, color: 'var(--ink)' }}>{title}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {badge}
+          <span aria-hidden style={{ fontSize: 16, color: 'var(--ink-light)', transition: 'transform 0.18s', transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
         </span>
-      </span>
-    </button>
+      </button>
+      {open && <div style={{ border: '1px solid var(--hair)', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: 12 }}>{children}</div>}
+    </div>
   )
 }
 
@@ -110,20 +96,6 @@ export default function DeveloperDashboard() {
   const days = daysBetween(stats.firstCommitISO, stats.lastCommit.iso)
   const linesPerDay = Math.round(t.totalLines / days)
   const commitsPerDay = (t.commits / days).toFixed(1)
-  // Both heavyweight panels default to closed on mobile (≤ 720px) and
-  // open on desktop. Server-render assumes open so the markup is
-  // stable; an effect collapses them on mount if the viewport is
-  // narrow. Admins can toggle anytime via the header chevron.
-  const [stackOpen, setStackOpen] = useState(true)
-  const [memberStatsOpen, setMemberStatsOpen] = useState(true)
-  useEffect(() => {
-    if (window.matchMedia?.('(max-width: 720px)').matches) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStackOpen(false)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setMemberStatsOpen(false)
-    }
-  }, [])
 
   // "If you typed this out" — assumes 60wpm ≈ 300 chars/min, ~40 chars/line.
   const typingMinutes = Math.round((t.totalLines * 40) / 300)
@@ -161,35 +133,27 @@ export default function DeveloperDashboard() {
           </div>
         </div>
 
-        {/* Platform kill switch — freezes all transactions. Top of the
-            page since it's the most consequential control here. */}
-        <MaintenancePanel />
+        {/* Every tool collapsed by default — expand what you need. */}
+        <DevSection title="Maintenance · kill switch"><MaintenancePanel /></DevSection>
 
-        {/* Investor-facing feature matrix — collapsed by default,
-            expand to share with stakeholders. */}
-        <FeatureMatrix />
+        <DevSection title="Feature matrix"><FeatureMatrix /></DevSection>
 
-        {/* Grid of stat tiles */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 12, marginBottom: 28 }}>
-          <StatTile label="TypeScript / TSX" value={nf(t.tsLines)} sub={`${t.tsFiles} files`} accent="tropic" />
-          <StatTile label="CSS" value={nf(t.cssLines)} sub="globals.css" accent="sun" />
-          <StatTile label="DB migrations" value={nf(t.migrations)} sub={`${nf(t.migrationLines)} SQL lines`} accent="moss" />
-          <StatTile label="Pages" value={nf(t.pages)} sub="App Router screens" />
-          <StatTile label="Components" value={nf(t.components)} sub={`${nf(t.componentLines)} lines`} />
-          <StatTile label="API routes" value={nf(t.apiRoutes)} sub={`${nf(t.apiLines)} lines`} />
-          <StatTile label="Library modules" value={nf(t.libFiles)} sub={`${nf(t.libLines)} lines`} />
-          <StatTile label="Commits / day" value={commitsPerDay} sub="rolling average" />
-        </div>
+        <DevSection title="Codebase stats">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 12 }}>
+            <StatTile label="TypeScript / TSX" value={nf(t.tsLines)} sub={`${t.tsFiles} files`} accent="tropic" />
+            <StatTile label="CSS" value={nf(t.cssLines)} sub="globals.css" accent="sun" />
+            <StatTile label="DB migrations" value={nf(t.migrations)} sub={`${nf(t.migrationLines)} SQL lines`} accent="moss" />
+            <StatTile label="Pages" value={nf(t.pages)} sub="App Router screens" />
+            <StatTile label="Components" value={nf(t.components)} sub={`${nf(t.componentLines)} lines`} />
+            <StatTile label="API routes" value={nf(t.apiRoutes)} sub={`${nf(t.apiLines)} lines`} />
+            <StatTile label="Library modules" value={nf(t.libFiles)} sub={`${nf(t.libLines)} lines`} />
+            <StatTile label="Commits / day" value={commitsPerDay} sub="rolling average" />
+          </div>
+        </DevSection>
 
         {/* Comparisons */}
-        <div className="panel" style={{ marginBottom: 24 }}>
-          <CollapsibleHead
-            title="How we stack up"
-            open={stackOpen}
-            onToggle={() => setStackOpen(o => !o)}
-            badge={<span className="mono" style={{ fontSize: 9.5 }}>at {nf(t.totalLines)} lines</span>}
-          />
-          <div style={{ padding: '4px 0', display: stackOpen ? 'block' : 'none' }}>
+        <DevSection title="How we stack up" badge={<span className="mono" style={{ fontSize: 9.5 }}>at {nf(t.totalLines)} lines</span>}>
+          <div>
             {COMPARISONS.map(c => {
               const ratio = t.totalLines / c.lines
               const ahead = ratio >= 1
@@ -225,12 +189,11 @@ export default function DeveloperDashboard() {
               )
             })}
           </div>
-        </div>
+        </DevSection>
 
         {/* Fun stats */}
-        <div className="panel" style={{ marginBottom: 24 }}>
-          <div className="panel-head"><h3>Fun facts</h3></div>
-          <div style={{ padding: '18px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+        <DevSection title="Fun facts">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             <Fact
               big={`${typingHours} hours`}
               label="to type out every line at 60 wpm"
@@ -248,14 +211,10 @@ export default function DeveloperDashboard() {
               label={`since the first commit on ${fmtDate(stats.firstCommitISO)}`}
             />
           </div>
-        </div>
+        </DevSection>
 
         {/* Recent commits */}
-        <div className="panel">
-          <div className="panel-head">
-            <h3>Recent commits</h3>
-            <span className="mono" style={{ fontSize: 9.5 }}>{stats.branch}</span>
-          </div>
+        <DevSection title="Recent commits" badge={<span className="mono" style={{ fontSize: 9.5 }}>{stats.branch}</span>}>
           <div>
             {stats.recentCommits.map((c, i) => (
               <div
@@ -280,22 +239,17 @@ export default function DeveloperDashboard() {
               </div>
             ))}
           </div>
-        </div>
+        </DevSection>
+
+        <DevSection title="Email envelope preview"><EnvelopePreviewPanel /></DevSection>
+        <DevSection title="Booking splash preview"><BookingSplashPreviewPanel /></DevSection>
+        <DevSection title="Tutorial preview"><TutorialPreviewPanel /></DevSection>
+        <DevSection title="Tutorial editor"><TutorialEditorPanel /></DevSection>
+        <DevSection title="Member stats"><MemberStatsPanel /></DevSection>
 
         <div style={{ marginTop: 24, fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-faint)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           Snapshot {relDate(stats.generatedAt)} · refreshed on every deploy
         </div>
-
-        <EnvelopePreviewPanel />
-        <BookingSplashPreviewPanel />
-        <TutorialPreviewPanel />
-        <TutorialEditorPanel />
-
-        <MemberStatsPanel
-          collapsible
-          open={memberStatsOpen}
-          onToggle={() => setMemberStatsOpen(o => !o)}
-        />
 
         <div style={{ marginTop: 28 }}>
           <Link href="/admin" className="mono" style={{ fontSize: 10.5, color: 'var(--ink-mid)' }}>
