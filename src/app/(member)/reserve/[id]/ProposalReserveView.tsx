@@ -222,7 +222,7 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
           accent="moss"
           eyebrow="COMMITTED"
           title={`You're in on "${proposal.name}".`}
-          sub={`Your card stays on file until the proposal locks or expires. No charge yet. We'll notify you the moment ${seatsNeeded > 1 ? `${seatsNeeded - seats} more seats are claimed` : 'ops locks it in'}.`}
+          sub={`Your card stays on file until the proposal locks or expires. No charge yet. We'll notify you the moment ${seatsNeeded > 1 ? `${seatsNeeded - seats} more seats are claimed` : 'the Concierge Team locks it in'}.`}
         />
         <div className="page-view" style={{ display: 'flex', gap: 8 }}>
           <button className="btn-primary" onClick={() => router.push('/proposals')}>Back to proposals</button>
@@ -262,11 +262,11 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
             <div style={{ fontSize: 15, color: 'var(--ink)', marginBottom: 12 }}>
               {amProposer
                 ? <>You proposed this trip. Your card is on file for <strong>{proposerSeatsBestCase}–{proposerSeatsWorstCase} seats</strong> ({proposerSeatsBestCase === proposerSeatsWorstCase ? `your firm party of ${proposerSeatsBestCase}` : `firm ${proposerSeatsBestCase}, up to ${proposerSeatsWorstCase} if the network underfills`}). With current commits you'd be charged for <strong>{proposerSeatsNow}</strong>.</>
-                : <>You&apos;ve committed <strong>{myCommit.seats}</strong> seat{myCommit.seats === 1 ? '' : 's'}. Card on file, you won&apos;t be charged unless ops locks the trip.</>}
+                : <>You&apos;ve committed <strong>{myCommit.seats}</strong> seat{myCommit.seats === 1 ? '' : 's'}. Card on file, you won&apos;t be charged unless the Concierge Team locks the trip.</>}
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink-light)', lineHeight: 1.55, marginBottom: 16 }}>
               {amProposer
-                ? 'As the proposer, withdrawing while others have committed requires ops involvement. If no other members have committed yet, you can pull it now and nothing happens.'
+                ? 'As the proposer, withdrawing while others have committed requires Concierge Team involvement. If no other members have committed yet, you can pull it now and nothing happens.'
                 : 'You can withdraw any time before the proposal locks. Nothing is charged on withdraw.'}
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -350,7 +350,7 @@ export function ProposalReserveView({ proposalId }: { proposalId: string }) {
               </div>
             </div>
             <div style={{ background: 'rgba(0,179,199,0.06)', border: '1px solid rgba(0,179,199,0.20)', borderRadius: 10, padding: '12px 14px', fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.55, marginTop: 4, marginBottom: 16 }}>
-              We&apos;ll use the card on file (or save one if you don&apos;t have one yet) but won&apos;t charge it until ops confirms the trip with Tropic, and they only do that once the proposal hits its minimum {min} commit{min === 1 ? '' : 's'}.
+              We&apos;ll use the card on file (or save one if you don&apos;t have one yet) but won&apos;t charge it until the Concierge Team confirms the trip with Tropic, and they only do that once the proposal hits its minimum {min} commit{min === 1 ? '' : 's'}.
             </div>
             {error && (
               <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--signal)', marginBottom: 12 }}>
@@ -458,7 +458,7 @@ function ProposalSummaryPanel({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, fontSize: 12, color: 'var(--ink-soft)', flexWrap: 'wrap', gap: 8 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {hitMin
-            ? <span style={{ color: 'var(--moss)', fontWeight: 700, fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.06em' }}>✓ MIN REACHED · AWAITING OPS</span>
+            ? <span style={{ color: 'var(--moss)', fontWeight: 700, fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.06em' }}>✓ MIN REACHED · AWAITING CONCIERGE</span>
             : <><strong style={{ color: 'var(--ink)' }}>{networkNeeded}</strong> more network seat{networkNeeded === 1 ? '' : 's'} to go</>}
           {expiresAt && !hitMin && <ProposalDeadlineTag expiresAt={expiresAt} />}
         </span>
@@ -541,7 +541,7 @@ function ProposalDetailsPanel({
               </span>
               {allTBD && (
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.10em', color: 'var(--sun-d)', marginLeft: 10, fontWeight: 700 }}>
-                  PROPOSED · OPS CONFIRMS TIMES
+                  PROPOSED · CONCIERGE CONFIRMS TIMES
                 </span>
               )}
             </div>
@@ -732,7 +732,7 @@ function AddSeatsPanel({
           Bringing more people?
         </h3>
         <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, marginBottom: 16 }}>
-          You currently have <strong>{currentSeats}</strong> seat{currentSeats === 1 ? '' : 's'} committed. Add more using the same card on file. No charge until ops locks the trip.
+          You currently have <strong>{currentSeats}</strong> seat{currentSeats === 1 ? '' : 's'} committed. Add more using the same card on file. No charge until the Concierge Team locks the trip.
         </div>
 
         {maxAdditional === 0 ? (

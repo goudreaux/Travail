@@ -823,7 +823,7 @@ function ReferFriendPanel({ memberId }: { memberId: string }) {
       </div>
       <div style={{ padding: '20px 24px' }}>
         <p style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.6, margin: '0 0 14px' }}>
-          Know someone who&apos;d be a good Travail member? Send their info to Ops and we&apos;ll take it from there.
+          Know someone who&apos;d be a good Travail member? Send their info to the Concierge Team and we&apos;ll take it from there.
         </p>
 
         {!showForm && (
@@ -863,7 +863,7 @@ function ReferFriendPanel({ memberId }: { memberId: string }) {
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <button className="btn-primary" disabled={submitting} onClick={submit} style={{ fontSize: 13 }}>
-                {submitting ? 'Sending…' : 'Send to Ops'}
+                {submitting ? 'Sending…' : 'Send to the Concierge Team'}
               </button>
               <button className="btn-ghost" onClick={() => { setShowForm(false); resetForm() }} style={{ fontSize: 13 }}>Cancel</button>
             </div>

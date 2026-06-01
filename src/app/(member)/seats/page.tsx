@@ -486,7 +486,7 @@ export default function SeatsPage() {
     // 23505 = already on the list — treat as success
     if (!error || error.code === '23505') {
       setWaitlisted(prev => new Set(prev).add(itemId))
-      setToast('Added to the waitlist. Ops will offer the next open seat.')
+      setToast('Added to the waitlist. The Concierge Team will offer the next open seat.')
     } else {
       setToast(error.message ?? 'Could not join waitlist.')
     }

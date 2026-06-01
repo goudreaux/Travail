@@ -69,7 +69,7 @@ export { PROPOSAL_RUNWAY_DAYS, PROPOSAL_MIN_LEAD_DAYS } from './trip-timing'
 export const MAX_ACTIVE_PROPOSALS_PER_MEMBER = 2
 
 export const PROPOSAL_STATUS_LABEL: Record<ProposalStatus, string> = {
-  pending_ops_review: 'Awaiting Ops review',
+  pending_ops_review: 'Awaiting Concierge review',
   open:               'Open · gathering commits',
   funded:             'Funded · trip confirmed',
   expired:            'Expired · did not fund',

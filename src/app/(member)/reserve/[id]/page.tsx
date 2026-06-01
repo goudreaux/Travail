@@ -114,7 +114,7 @@ function FlightLeg({ label, f, names }: { label?: string; f: Flight; names: Reco
           { label: 'Departs', value: fmtTime(f.depart_time) },
           { label: 'Arrives', value: addMins(f.depart_time, blockMins) },
           { label: 'Block', value: fmtDur(blockMins) },
-          { label: 'Operator', value: 'Travail Ops' },
+          { label: 'Operator', value: 'Travail Concierge' },
           { label: 'Aircraft', value: f.aircraft_id },
         ].map(({ label, value }) => (
           <div key={label}>
@@ -690,7 +690,7 @@ export default function ReservePage() {
         {showSplash && (
           <BookingSuccessSplash
             caption={kind === 'flight' ? 'Flight requested' : 'Excursion requested'}
-            sub="Ops will confirm shortly."
+            sub="The Concierge Team will confirm shortly."
             onDone={() => setShowSplash(false)}
           />
         )}
@@ -707,16 +707,16 @@ export default function ReservePage() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
               <div className="pending-indicator" />
-              <span className="mono" style={{ color: 'var(--tropic-d)' }}>Pending Ops review</span>
+              <span className="mono" style={{ color: 'var(--tropic-d)' }}>Pending Concierge review</span>
             </div>
             <h2 className="display-i" style={{ fontSize: 34, color: 'var(--ink)', margin: '0 0 14px' }}>
               You're in the queue.
             </h2>
             <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.65, margin: '0 0 8px' }}>
-              Your seat{seats > 1 ? 's' : ''} on <strong>{itemName}</strong> {seats > 1 ? 'are' : 'is'} reserved pending Ops confirmation.
+              Your seat{seats > 1 ? 's' : ''} on <strong>{itemName}</strong> {seats > 1 ? 'are' : 'is'} reserved pending Concierge Team confirmation.
             </p>
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', lineHeight: 1.5, margin: '0 0 32px' }}>
-              Your card will only be captured when Ops confirms the flight manifest.
+              Your card will only be captured when the Concierge Team confirms the flight manifest.
             </p>
 
             <div style={{
@@ -792,7 +792,7 @@ export default function ReservePage() {
             <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--sun-d)', marginBottom: 10 }}>Fully booked</div>
             <h2 className="display-i" style={{ fontSize: 28, color: 'var(--ink)', margin: '0 0 8px' }}>{itemName || 'This trip'} is full.</h2>
             <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 24px' }}>
-              {kind === 'flight' && flight ? `${flight.origin_code} → ${flight.dest_code} · ` : ''}{dp ? `${dp.mo} ${dp.day}` : ''}. Join the waitlist and Ops will offer you the next seat that opens up.
+              {kind === 'flight' && flight ? `${flight.origin_code} → ${flight.dest_code} · ` : ''}{dp ? `${dp.mo} ${dp.day}` : ''}. Join the waitlist and the Concierge Team will offer you the next seat that opens up.
             </p>
             {error && (
               <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--signal)', marginBottom: 14 }}>{error}</div>
@@ -867,7 +867,7 @@ export default function ReservePage() {
               {kind === 'flight' && flight ? (
                 <p style={{ fontSize: 13, color: 'var(--ink-light)', margin: 0 }}>
                   {airportCity(flight.origin_code, airportNames)} {isRoundTrip ? '⇄' : '→'} {airportCity(flight.dest_code, airportNames)}{isRoundTrip ? ' · round trip' : ''} · {dp.dow}, {dp.mo} {dp.day} · Hosted by{' '}
-                  <span style={{ color: 'var(--ink)' }}>Travail Ops</span>
+                  <span style={{ color: 'var(--ink)' }}>Travail Concierge</span>
                 </p>
               ) : excursion ? (
                 <p style={{ fontSize: 13, color: 'var(--ink-light)', margin: 0 }}>
@@ -972,7 +972,7 @@ export default function ReservePage() {
                         { label: 'Date', value: `${dp.dow} ${dp.mo} ${dp.day}` },
                         { label: 'Departs', value: departTime },
                         { label: 'Duration', value: durationStr },
-                        { label: 'Operator', value: template?.operator ?? 'Travail Ops' },
+                        { label: 'Operator', value: template?.operator ?? 'Travail Concierge' },
                       ].map(({ label, value }) => (
                         <div key={label}>
                           <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-light)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3, fontWeight: 600 }}>
@@ -1018,7 +1018,7 @@ export default function ReservePage() {
                     </span>
                     {allTBD && (
                       <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.10em', color: 'var(--sun-d)', marginLeft: 10, fontWeight: 700 }}>
-                        OPS CONFIRMS · TIMES MAY ADJUST
+                        CONCIERGE CONFIRMS · TIMES MAY ADJUST
                       </span>
                     )}
                   </div>

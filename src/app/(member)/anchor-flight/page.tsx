@@ -283,7 +283,7 @@ export default function AnchorFlightPage() {
               We&apos;ve received your <strong>{origin.name} → {isCustomDest ? (customDestName.trim() || 'Custom destination') : dest.name}</strong> anchor request.
             </p>
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', lineHeight: 1.5, margin: '0 0 32px' }}>
-              Ops will quote pricing with Tropic + the 3% service fee. You&apos;ll get a notification to review and accept it, nothing is charged until you do.
+              The Concierge Team will quote pricing with Tropic + the 3% service fee. You&apos;ll get a notification to review and accept it, nothing is charged until you do.
             </p>
             <div style={{ background: 'var(--warm)', borderRadius: 10, padding: '14px 18px', marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="mono">Submission ID</span>
@@ -361,13 +361,13 @@ export default function AnchorFlightPage() {
                     <textarea
                       className="input"
                       rows={3}
-                      placeholder="Nearest known airport, who you're meeting, anything that helps Ops scope the route…"
+                      placeholder="Nearest known airport, who you're meeting, anything that helps the Concierge Team scope the route…"
                       value={customDestNotes}
                       onChange={e => setCustomDestNotes(e.target.value)}
                     />
                   </div>
                   <div style={{ background: 'rgba(244,167,44,0.08)', border: '1px solid rgba(244,167,44,0.25)', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.55 }}>
-                    Ops will confirm the routing with Tropic and lock the airport before quoting. Allow an extra 24 hours for custom destinations.
+                    The Concierge Team will confirm the routing with Tropic and lock the airport before quoting. Allow an extra 24 hours for custom destinations.
                   </div>
                 </>
               )}

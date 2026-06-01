@@ -253,7 +253,7 @@ export default function AnchorExcursionPage() {
               We&apos;ve received your <strong>{effectiveName}</strong> excursion request.
             </p>
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', lineHeight: 1.5, margin: '0 0 32px' }}>
-              Ops will confirm the operator + pricing and send you a quote to review. Nothing is charged until you accept it.
+              The Concierge Team will confirm the operator + pricing and send you a quote to review. Nothing is charged until you accept it.
             </p>
             <div style={{ background: 'var(--warm)', borderRadius: 10, padding: '14px 18px', marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="mono">Submission ID</span>
@@ -285,7 +285,7 @@ export default function AnchorExcursionPage() {
               <p className="wiz-step-sub">Choose from the club&apos;s curated excursions.</p>
               {templates.length === 0 ? (
                 <div style={{ background: 'var(--warm)', border: '1px solid var(--hair)', borderRadius: 10, padding: '16px 18px', fontSize: 13.5, color: 'var(--ink-mid)', lineHeight: 1.5 }}>
-                  No excursion templates yet. Ask Ops to add experiences in the dashboard, then come back to anchor one.
+                  No excursion templates yet. Ask the Concierge Team to add experiences in the dashboard, then come back to anchor one.
                 </div>
               ) : (
                 <>
@@ -417,7 +417,7 @@ export default function AnchorExcursionPage() {
             <div>
               <div className="wiz-step-eyebrow">Step 5 of {STEPS.length} · Review</div>
               <h2 className="wiz-step-title">Review &amp; send</h2>
-              <p className="wiz-step-sub">Confirm the details and send to Ops. They&apos;ll confirm the operator and pricing before it goes live.</p>
+              <p className="wiz-step-sub">Confirm the details and send to the Concierge Team. They&apos;ll confirm the operator and pricing before it goes live.</p>
               <div className="field">
                 <label className="field-lab">Sharing</label>
                 <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 10, overflow: 'hidden' }}>
@@ -464,7 +464,7 @@ export default function AnchorExcursionPage() {
               <div style={{ background: 'var(--tropic-glow)', border: '1px solid rgba(0,179,199,0.2)', borderRadius: 10, padding: '14px 16px', marginTop: 14 }}>
                 <div className="mono" style={{ color: 'var(--tropic-d)', marginBottom: 6 }}>Pricing</div>
                 <p style={{ fontSize: 12.5, color: 'var(--ink-mid)', lineHeight: 1.55, margin: 0 }}>
-                  Ops will confirm the operator pricing, add Travail&apos;s 3% service fee, and send the quote for your review. <strong style={{ color: 'var(--ink)' }}>No card is captured until you accept the quote</strong>. You&apos;ll get a notification with the total.
+                  The Concierge Team will confirm the operator pricing, add Travail&apos;s 3% service fee, and send the quote for your review. <strong style={{ color: 'var(--ink)' }}>No card is captured until you accept the quote</strong>. You&apos;ll get a notification with the total.
                 </p>
               </div>
 
@@ -495,7 +495,7 @@ export default function AnchorExcursionPage() {
               >
                 {submitting ? (<><span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 2 }} /> Submitting…</>)
                 : !hasCard ? 'Add a card to submit'
-                : 'Submit to Ops →'}
+                : 'Submit to the Concierge Team →'}
               </button>
             )}
           </div>

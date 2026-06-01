@@ -83,7 +83,7 @@ export default function NotificationsPage() {
           <div className="empty">
             <svg width="40" height="40" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M5 15h12M6 15v-5a5 5 0 0 1 10 0v5M9.5 17.5a1.5 1.5 0 0 0 3 0" /></svg>
             <h3>No notifications yet</h3>
-            <p>Booking confirmations, anchor updates, and ops messages will show up here.</p>
+            <p>Booking confirmations, anchor updates, and Concierge Team messages will show up here.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 720 }}>

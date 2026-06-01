@@ -22,7 +22,7 @@ type SubmissionStatus = AnchorSubmission['status']
 
 function bookingStatusLabel(status: BookingStatus): string {
   switch (status) {
-    case 'pending':   return 'IN OPS REVIEW'
+    case 'pending':   return 'IN CONCIERGE REVIEW'
     case 'approved':  return 'CONFIRMED'
     case 'declined':  return 'DECLINED'
     case 'cancelled': return 'CANCELLED'
@@ -44,7 +44,7 @@ function bookingStatusClass(status: BookingStatus): string {
 
 function submissionStatusLabel(status: SubmissionStatus): string {
   switch (status as string) {
-    case 'pending':         return 'IN OPS REVIEW'
+    case 'pending':         return 'IN CONCIERGE REVIEW'
     case 'quoted':          return 'QUOTE READY'
     case 'quote_accepted':  return 'AWAITING PUBLISH'
     case 'approved':        return 'APPROVED'
@@ -247,7 +247,7 @@ function AnchorCard({ submission, isExpanded, onSelect, airportName }: { submiss
           <span className="my-trip-card__conf" style={{ color: 'var(--tropic-d)' }}>YOU ACCEPTED · AWAITING PUBLISH</span>
         ) : submission.status === 'published' && submission.published_item_id ? (
           <span className="my-trip-card__conf" style={{ color: effStatus === 'cancelled' ? 'var(--signal)' : 'var(--moss)' }}>
-            {effStatus === 'cancelled' ? 'CANCELLED BY OPS' : 'LIVE & ACCEPTING BOOKINGS'}
+            {effStatus === 'cancelled' ? 'CANCELLED BY CONCIERGE' : 'LIVE & ACCEPTING BOOKINGS'}
           </span>
         ) : (
           <span className="my-trip-card__conf">{statusLabel}</span>
@@ -436,7 +436,7 @@ export default function BookingsPage() {
                       Decision needed · {pending.length === 1 ? '1 quote' : `${pending.length} quotes`}
                     </div>
                     <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>
-                      Ops sent you a price{pending.length === 1 ? '' : 's'}, review &amp; confirm
+                      The Concierge Team sent you a price{pending.length === 1 ? '' : 's'}, review &amp; confirm
                     </div>
                     <div style={{ fontSize: 12.5, color: 'var(--ink-mid)', marginTop: 4 }}>
                       Tap to open the quote{pending.length === 1 ? '' : 's'}. No charge happens until you accept.
@@ -679,7 +679,7 @@ function HistoryTable({
     if (settled) { statusLabel = 'SETTLED'; statusTone = 'moss' }
     else if (a.status === 'declined') { statusLabel = 'DECLINED'; statusTone = 'signal' }
     else if (a.status === 'cancelled') { statusLabel = 'CANCELLED'; statusTone = 'signal' }
-    else if (effectiveAnchorStatus(a) === 'cancelled') { statusLabel = 'CANCELLED BY OPS'; statusTone = 'signal' }
+    else if (effectiveAnchorStatus(a) === 'cancelled') { statusLabel = 'CANCELLED BY CONCIERGE'; statusTone = 'signal' }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload = a.payload as any
