@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
@@ -70,6 +70,7 @@ type Props = {
 
 function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGlobeHandle>) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
   const coordsRef = useRef<Record<string, [number, number]>>({})
@@ -115,6 +116,17 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     })
 
     map.on('load', () => paintRoutes())
+
+    // Surface auth/domain failures instead of leaving a silent blank globe —
+    // the usual cause is the token's Mapbox URL restrictions not allowing this
+    // domain (or an invalid token).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    map.on('error', (e: any) => {
+      const msg = String(e?.error?.message ?? e?.error ?? '')
+      if (/401|403|not authorized|allowlist|access token|forbidden/i.test(msg)) {
+        setLoadError("Mapbox rejected this domain. In your Mapbox account, add this site to the token's URL restrictions (or remove them) — then refresh.")
+      }
+    })
 
     let spin = true
     map.on('mousedown', () => { spin = false })
@@ -202,7 +214,19 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     coordsRef.current = coords
   }
 
-  return <div ref={containerRef} className="route-globe" />
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div ref={containerRef} className="route-globe" />
+      {loadError && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(6,34,43,0.88)', borderRadius: 18, textAlign: 'center' }}>
+          <div style={{ maxWidth: 440 }}>
+            <div style={{ fontFamily: 'var(--display)', fontSize: 21, color: 'var(--paper)', marginBottom: 8 }}>Map couldn&rsquo;t load</div>
+            <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.72)', lineHeight: 1.55, margin: 0 }}>{loadError}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 const RouteGlobe = forwardRef(RouteGlobeInner)
