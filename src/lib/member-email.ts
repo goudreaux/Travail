@@ -42,6 +42,10 @@ async function sendMemberMail(
     kind: string
     memberId?: string | null
     refs?: Record<string, unknown>
+    // When true, send to the MEMBER (with ops BCC'd as the paper trail) and
+    // drop the "[member copy]" subject prefix. Default false = ops-only audit
+    // copy (the legacy behavior for emails the Edge Function still owns).
+    deliverToMember?: boolean
   },
 ) {
   let resendId: string | null = null
@@ -49,15 +53,15 @@ async function sendMemberMail(
   let sendError: string | null = null
 
   try {
-    // Member delivery is intentionally OFF (F1/F2). Members now receive exactly
-    // ONE branded email per action from the Supabase `notify-email` Edge
-    // Function (fired on every public.notifications insert, sender: Travail
-    // Concierge). This app pipeline used to ALSO email members from the prod
-    // ops@ sender — the duplicate, off-brand mail testers reported. We still
-    // send this record to the ops paper-trail address so the audit thread is
-    // unbroken, but never to the member. Re-enabling member delivery is a
-    // one-line change (swap the recipient back to args.to).
+    // Two modes:
+    //  • deliverToMember=false (default): ops-only audit copy, "[member copy]"
+    //    subject. Used for events the Edge Function still emails to the member.
+    //  • deliverToMember=true: send to the MEMBER, BCC the ops paper trail, no
+    //    prefix. Used for the booking receipt, which the Edge Function now
+    //    SKIPS (the booking notification carries ref.skip_email) so the member
+    //    gets exactly one — this rich receipt — and no duplicate.
     const auditTo = OPS_PAPER_TRAIL_BCC || process.env.OPS_INBOX_EMAIL || 'ops@travailclub.com'
+    const toMember = !!args.deliverToMember && !!args.to
     const res = await resend.emails.send({
       // Always send as Travail Concierge. The prod RESEND_FROM env is set to
       // "Travail Ops <ops@travailclub.com>", which is exactly the unbranded
@@ -65,8 +69,9 @@ async function sendMemberMail(
       // pin the branded Concierge identity. (concierge@ is on the same
       // verified travailclub.com domain, so delivery is unaffected.)
       from: DEFAULT_FROM,
-      to: [auditTo],
-      subject: `[member copy] ${args.subject}`,
+      to: toMember ? [args.to] : [auditTo],
+      ...(toMember && auditTo ? { bcc: [auditTo] } : {}),
+      subject: toMember ? args.subject : `[member copy] ${args.subject}`,
       html: args.html,
       text: args.text,
       replyTo: process.env.OPS_INBOX_EMAIL ?? 'ops@travailclub.com',
@@ -211,6 +216,7 @@ export async function sendBookingReceiptEmail(p: BookingReceiptEmailParams): Pro
       to: p.to, subject, html, text,
       kind: 'booking_receipt',
       memberId: p.memberId ?? null,
+      deliverToMember: true,
       refs: {
         booking_id: p.bookingId ?? null,
         trip_id: p.tripId ?? null,

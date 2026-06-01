@@ -586,7 +586,10 @@ export default function ReservePage() {
           kind: 'booking',
           title: isRoundTrip ? 'Round-trip booking confirmed' : 'Booking confirmed',
           body: `Your reservation for "${itemName}"${seats > 1 ? ` (${seats} seats)` : ''} is confirmed and your card has been charged ${fmtMoney(paymentTotalCents != null ? paymentTotalCents / 100 : total)}.`,
-          ref: { kind, id: itemId, booking_id: primary.id },
+          // skip_email: the booking receipt is emailed by the app pipeline
+          // (sendBookingReceiptEmail) — tell the notify-email Edge Function to
+          // skip this one so the member doesn't get two emails.
+          ref: { kind, id: itemId, booking_id: primary.id, skip_email: true },
           read: false,
         } as never)
         if (notifErr) throw notifErr
