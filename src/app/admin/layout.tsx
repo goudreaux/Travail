@@ -118,6 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/queue', label: 'Queue', badge: pendingCount > 0 ? pendingCount : undefined },
     { href: '/admin/proposals', label: 'Proposals', badge: pendingProposalCount > 0 ? pendingProposalCount : undefined },
     { href: '/admin/trips', label: 'Trips & Excursions' },
+    { href: '/admin/map', label: 'Route Map' },
     { href: '/admin/bookings', label: 'Bookings', badge: newBookings > 0 ? newBookings : undefined },
     { href: '/admin/members', label: 'People' },
     { href: '/admin/subscriptions', label: 'Subscriptions' },
