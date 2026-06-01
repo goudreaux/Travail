@@ -91,7 +91,7 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     mapboxgl.accessToken = token
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: 'mapbox://styles/mapbox/standard',
+      style: 'mapbox://styles/mapbox/satellite-streets-v12',
       projection: 'globe',
       center: [-82, 25.6],
       zoom: 4.4,
@@ -102,10 +102,7 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right')
 
     map.on('style.load', () => {
-      // Warm "dusk" lighting + a tropical golden atmosphere on the globe.
-      try {
-        map.setConfigProperty('basemap', 'lightPreset', 'dusk')
-      } catch {}
+      // Warm atmosphere on the globe. (Classic style — no Standard-only config.)
       map.setFog({
         color: 'rgb(255, 224, 181)',
         'high-color': 'rgb(36, 92, 110)',
@@ -122,9 +119,10 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     // domain (or an invalid token).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     map.on('error', (e: any) => {
+      const status = e?.error?.status ?? e?.status
       const msg = String(e?.error?.message ?? e?.error ?? '')
-      if (/401|403|not authorized|allowlist|access token|forbidden/i.test(msg)) {
-        setLoadError("Mapbox rejected this domain. In your Mapbox account, add this site to the token's URL restrictions (or remove them) — then refresh.")
+      if (status === 401 || status === 403 || /401|403|not authorized|unauthorized|allowlist|access token|forbidden|token/i.test(msg)) {
+        setLoadError("Mapbox rejected the request (token or domain). Check the token in Vercel (NEXT_PUBLIC_MAPBOX_TOKEN) and that its URL restrictions allow this site — then refresh.")
       }
     })
 
