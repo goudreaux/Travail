@@ -109,7 +109,7 @@ const SECTIONS = [
       'Atomic counters / increments via SQL RPC (avoid read-modify-write races)',
       'Member delete with guard trigger: blocks on live bookings + active proposals',
       'SET NULL cascade for terminal bookings + proposals on member delete (preserves audit)',
-      'Locking sentinel on trip proposals: atomic CAS prevents double-locks across ops tabs',
+      'Locking sentinel on trip proposals: atomic CAS prevents double-locks across Concierge tabs',
       'Subscription reuse logic: incomplete subs are continued, not stacked, on returning members',
       'Early-cohort price grandfathering via Stripe Price metadata, so public price hikes don’t touch the original cohort',
       'Vercel Cron + custom Bearer-token auth for safe scheduled jobs',

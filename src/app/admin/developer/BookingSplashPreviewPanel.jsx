@@ -14,7 +14,7 @@ export function BookingSplashPreviewPanel() {
   const [playing, setPlaying] = useState(false)
   const [runId, setRunId] = useState(0)
   const [caption, setCaption] = useState('Reservation requested')
-  const [sub, setSub] = useState('Ops will confirm shortly.')
+  const [sub, setSub] = useState('The Concierge Team will confirm shortly.')
 
   function play() {
     setRunId(r => r + 1)

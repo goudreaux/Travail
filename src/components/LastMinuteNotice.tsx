@@ -34,7 +34,7 @@ export function LastMinuteNotice({ date, time }: { date: string; time?: string |
         <strong style={{ color: '#b3331c' }}>Last-minute charter.</strong>{' '}
         This departs within {PROPOSAL_MIN_LEAD_DAYS} days, so it&apos;s a rush:
         <ul style={{ margin: '6px 0 0', paddingLeft: 18, lineHeight: 1.5 }}>
-          <li>Ops will flag it urgent, but Tropic can&apos;t always confirm aircraft and crew on short notice.</li>
+          <li>The Concierge Team will flag it urgent, but Tropic can&apos;t always confirm aircraft and crew on short notice.</li>
           <li>Short-notice pricing may run higher than a planned trip.</li>
           <li>You&apos;ll need to review and accept the quote quickly to hold the date.</li>
           <li>Anything under {HARD_SOURCING_FLOOR_HOURS} hours out can&apos;t be booked at all.</li>

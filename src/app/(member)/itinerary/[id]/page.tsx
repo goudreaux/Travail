@@ -55,7 +55,7 @@ function FlightLeg({ label, f, names }: { label?: string; f: Flight; names: Reco
           { label: 'Departs', value: fmtTime(f.depart_time) },
           { label: 'Arrives', value: addMins(f.depart_time, f.duration_mins) },
           { label: 'Block', value: fmtDur(f.duration_mins) },
-          { label: 'Operator', value: 'Travail Ops' },
+          { label: 'Operator', value: 'Travail Concierge' },
           { label: 'Aircraft', value: f.aircraft_id },
         ].map(({ label, value }) => (
           <div key={label}>
@@ -190,7 +190,7 @@ export default function ItineraryPage() {
                 </h1>
                 {dp && (
                   <p style={{ fontSize: 13, color: 'var(--ink-light)', margin: '6px 0 0' }}>
-                    {dp.dow}, {dp.mo} {dp.day}{template?.operator ? ` · ${template.operator}` : kind === 'flight' ? ' · Hosted by Travail Ops' : ''}
+                    {dp.dow}, {dp.mo} {dp.day}{template?.operator ? ` · ${template.operator}` : kind === 'flight' ? ' · Hosted by Travail Concierge' : ''}
                   </p>
                 )}
               </div>
@@ -235,7 +235,7 @@ export default function ItineraryPage() {
                         {[
                           { label: 'Date', value: dp ? `${dp.dow} ${dp.mo} ${dp.day}` : '—' },
                           { label: 'Departs', value: fmtTime(excursion.depart_time ?? excursion.start_time) },
-                          { label: 'Operator', value: template?.operator ?? 'Travail Ops' },
+                          { label: 'Operator', value: template?.operator ?? 'Travail Concierge' },
                         ].map(({ label, value }) => (
                           <div key={label}>
                             <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--ink-light)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3, fontWeight: 600 }}>{label}</div>
@@ -309,7 +309,7 @@ export default function ItineraryPage() {
                   View boarding pass →
                 </button>
                 <button className="btn-ghost" style={{ width: '100%' }} onClick={() => router.push(`/trip/${booking.id}`)}>
-                  Message Ops about this trip
+                  Message the Concierge Team about this trip
                 </button>
               </div>
               <div className="reserve-page-pad" aria-hidden />

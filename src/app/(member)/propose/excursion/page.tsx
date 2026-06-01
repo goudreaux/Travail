@@ -120,8 +120,8 @@ export default function ProposeExcursionPage() {
         <PageHero
           accent="sun"
           eyebrow="PROPOSAL SUBMITTED"
-          title="Sent to ops for review."
-          sub={`Your proposal ${submittedId} is in the queue. Ops will set the minimum seat count + per-seat price, then it goes live for the network. You'll get a notification when it does, you can be the first to commit then.`}
+          title="Sent to the Concierge Team for review."
+          sub={`Your proposal ${submittedId} is in the queue. The Concierge Team will set the minimum seat count + per-seat price, then it goes live for the network. You'll get a notification when it does, you can be the first to commit then.`}
         />
         <div className="page-view" style={{ display: 'flex', gap: 10, padding: '12px 0' }}>
           <button className="btn-primary" onClick={() => router.push('/seats')}>Browse open seats</button>
@@ -133,7 +133,7 @@ export default function ProposeExcursionPage() {
 
   return (
     <div className="page">
-      <PageHero accent="sun" eyebrow="PROPOSE AN EXCURSION · NO RISK" title="Pitch the day" sub="Ops finalizes the day plan, capacity, and price. You only pay if it locks."
+      <PageHero accent="sun" eyebrow="PROPOSE AN EXCURSION · NO RISK" title="Pitch the day" sub="The Concierge Team finalizes the day plan, capacity, and price. You only pay if it locks."
         actions={<button className="page-hero__btn" onClick={() => router.push('/propose')}>← Back</button>} />
       <div className="page-view">
         <div className="wiz" style={{ maxWidth: 560 }}>
@@ -187,7 +187,7 @@ export default function ProposeExcursionPage() {
             </div>
             {stayType !== 'day_trip' && (
               <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', lineHeight: 1.5, marginTop: -2, marginBottom: 10 }}>
-                {stayType === 'overnight' ? 'Overnight' : 'Multi-night'}: note the lodging and number of nights for ops below — they’ll confirm the plan with the operator.
+                {stayType === 'overnight' ? 'Overnight' : 'Multi-night'}: note the lodging and number of nights for the Concierge Team below — they’ll confirm the plan with the operator.
               </div>
             )}
           </div>
@@ -246,7 +246,7 @@ export default function ProposeExcursionPage() {
           </div>
 
           <div className="field">
-            <label className="field-lab">Notes for ops <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(optional, private)</span></label>
+            <label className="field-lab">Notes for the Concierge Team <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(optional, private)</span></label>
             <textarea className="input" rows={3} value={opsNotes} onChange={e => setOpsNotes(e.target.value)} placeholder="Anything that helps us source it: operator or lodge you have in mind, a contact you've spoken to, gear or permits, special requests. Members never see this." />
           </div>
 

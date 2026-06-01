@@ -219,7 +219,7 @@ export default function ReferralsPanel({ onConvert }: { onConvert: (r: Referral)
                             </div>
                           )}
                           <div className="field" style={{ marginBottom: 8 }}>
-                            <label className="field-lab">Ops notes</label>
+                            <label className="field-lab">Concierge notes</label>
                             <textarea
                               className="input"
                               rows={3}

@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
       member_id: me.id,
       kind: 'system',
       title: 'Proposal submitted',
-      body: `Your proposal "${name}" is in the queue. Ops will set the minimum seats and per-seat price, then it goes live for the network — we'll let you know the moment it does.`,
+      body: `Your proposal "${name}" is in the queue. The Concierge Team will set the minimum seats and per-seat price, then it goes live for the network — we'll let you know the moment it does.`,
       ref: { proposal_id: proposalId },
       read: false,
     })

@@ -390,7 +390,7 @@ export default function FeedPage() {
     briefLines.push(nudges[Math.floor(Math.random() * nudges.length)])
   }
   briefLines.push('Tomorrow’s brief lands at 6:00 a.m.')
-  if (briefLines.length < 3) briefLines.push('Ops watching the wires for you')
+  if (briefLines.length < 3) briefLines.push('The Concierge Team watching the wires for you')
 
   const [briefIdx, setBriefIdx] = useState(0)
   useEffect(() => {
@@ -771,7 +771,7 @@ export default function FeedPage() {
               <path d="M4 11a7 7 0 0 1 7 7" /><path d="M4 5a13 13 0 0 1 13 13" /><circle cx="4.5" cy="17.5" r="1.2" fill="currentColor" stroke="none" />
             </svg>
             <h3>The feed is coming soon</h3>
-            <p>Member stories, ops updates, and trip recaps will land here. Stay tuned.</p>
+            <p>Member stories, Concierge Team updates, and trip recaps will land here. Stay tuned.</p>
           </div>
         </div>
       </div>
@@ -963,7 +963,7 @@ function anchorFeedLabel(status: string): { label: string; pill: string; action:
     case 'quoted':           return { label: 'QUOTE READY: REVIEW', pill: 'tropic', action: true }
     case 'quote_accepted':   return { label: 'ACCEPTED: PUBLISHING SOON', pill: 'tropic', action: false }
     case 'pending':
-    case 'pending_ops_review': return { label: 'IN OPS REVIEW', pill: 'sun', action: false }
+    case 'pending_ops_review': return { label: 'IN CONCIERGE REVIEW', pill: 'sun', action: false }
     default:                 return { label: status.toUpperCase(), pill: '', action: false }
   }
 }

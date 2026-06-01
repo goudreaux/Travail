@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react'
 
 export function BookingSuccessSplash({
   caption = 'Reservation requested',
-  sub = 'Ops will confirm shortly.',
+  sub = 'The Concierge Team will confirm shortly.',
   onDone,
 }: {
   caption?: string

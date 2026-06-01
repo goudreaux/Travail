@@ -60,7 +60,7 @@ export default function OnboardingSubscribePage() {
           // silently dropping the member into the app — likely an API
           // shape change or a config issue, and ops needs visibility.
           throw new Error(
-            'Could not load card form. Your subscription was created but the payment step did not initialize. Please reach out to ops.',
+            'Could not load card form. Your subscription was created but the payment step did not initialize. Please reach out to the Concierge Team.',
           )
         }
         setClientSecret(data.client_secret)

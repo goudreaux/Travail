@@ -142,7 +142,7 @@ export function AnchorCardSetup({ onCardReady }: { onCardReady?: () => void }) {
       </div>
       <p className="anchor-card__copy">
         Anchoring a trip commits you to the full charter cost; we hold
-        your card and capture it when Ops publishes. Add a card to continue.
+        your card and capture it when the Concierge Team publishes. Add a card to continue.
       </p>
       <button type="button" className="cta-outline" onClick={startSetup} disabled={replacing}>
         {replacing ? 'Loading…' : 'Add a card'}

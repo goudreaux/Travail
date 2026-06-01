@@ -342,7 +342,7 @@ export async function POST(req: NextRequest) {
         member_id: c.member_id,
         kind: 'approval',
         title: 'Card declined on your proposal commit',
-        body: `Your card declined when we tried to lock "${prop.name}". Update your card on file and contact Ops to keep your seat.`,
+        body: `Your card declined when we tried to lock "${prop.name}". Update your card on file and contact the Concierge Team to keep your seat.`,
         ref: { proposal_id: prop.id, error: err },
       })
     }

@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     kind: 'approval',
     title: `Quote ready · ${body.name ?? sub.kind}`,
     body:
-      `Ops sourced pricing for "${body.name ?? sub.kind}": ` +
+      `The Concierge Team sourced pricing for "${body.name ?? sub.kind}": ` +
       `$${charterDollars.toLocaleString()} charter + $${feeDollars.toFixed(2)} service fee (3%) = ` +
       `$${totalDollars.toLocaleString()} total. ` +
       `Review and accept to authorize the capture.`,

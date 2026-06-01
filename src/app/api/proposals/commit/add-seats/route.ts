@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Proposal is ${prop.status} and not accepting more seats.` }, { status: 400 })
   }
   if (prop.lock_started_at) {
-    return NextResponse.json({ error: 'Ops is currently locking, too late to add seats.' }, { status: 409 })
+    return NextResponse.json({ error: 'The Concierge Team is currently locking, too late to add seats.' }, { status: 409 })
   }
 
   // Pull all commits to check capacity headroom and find ours.
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
     const proposerMax = prop.proposer_max_seats ?? mine.seats
     if (newTotal > proposerMax) {
       return NextResponse.json({
-        error: `Your max coverage was set to ${proposerMax} seats during review. To raise it, ask ops to update the proposal.`,
+        error: `Your max coverage was set to ${proposerMax} seats during review. To raise it, ask the Concierge Team to update the proposal.`,
       }, { status: 400 })
     }
   }

@@ -389,7 +389,7 @@ export async function POST(req: NextRequest) {
     kind: 'approval',
     title: `Your ${sub.kind} is live`,
     body:
-      `Ops published "${body.name ?? sub.kind}" and held $${(charterTotalCents / 100).toFixed(2)} on your card, the full charter cost. ` +
+      `The Concierge Team published "${body.name ?? sub.kind}" and held $${(charterTotalCents / 100).toFixed(2)} on your card, the full charter cost. ` +
       `At trip departure you'll be rebated for every seat the network books at $${seatCostDollars} each. ` +
       `You'll always pay for your own ${seatsAnchor} seat${seatsAnchor === 1 ? '' : 's'} ` +
       `plus any seats that don't sell.`,

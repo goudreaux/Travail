@@ -301,7 +301,7 @@ export function ProposalCard({ p, onOpen }: { p: ProposalCardData; onOpen: () =>
         <span style={{ color: 'var(--ink-light)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
           {hitMin ? (
             <span style={{ color: 'var(--moss)', fontWeight: 700, fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.06em' }}>
-              ✓ MIN REACHED · AWAITING OPS LOCK
+              ✓ MIN REACHED · AWAITING CONCIERGE LOCK
             </span>
           ) : (
             <>
@@ -362,7 +362,7 @@ const MY_PROPOSAL_STATUS: Record<string, { label: string; color: string; bg: str
   },
   declined: {
     label: 'DECLINED', color: '#a23a23', bg: 'rgba(217,78,42,0.10)',
-    note: 'Ops could not move this one forward.',
+    note: 'The Concierge Team could not move this one forward.',
   },
   withdrawn: {
     label: 'WITHDRAWN', color: 'var(--ink-light)', bg: 'var(--paper)',
@@ -546,7 +546,7 @@ export function MyProposalCommitRow({ c, onOpen }: { c: MyProposalCommitData; on
 
   const statusLabel = c.status === 'pending_ops_review'
     ? 'PENDING REVIEW'
-    : hitMin ? 'MIN REACHED · AWAITING OPS' : `${needed} TO GO`
+    : hitMin ? 'MIN REACHED · AWAITING CONCIERGE' : `${needed} TO GO`
   const statusColor = c.status === 'pending_ops_review' ? '#8a5a06'
     : hitMin ? 'var(--moss-d)' : 'var(--sun-d)'
   const statusBg = c.status === 'pending_ops_review' ? 'rgba(244,167,44,0.14)'

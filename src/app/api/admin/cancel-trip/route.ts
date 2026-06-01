@@ -244,8 +244,8 @@ export async function POST(req: NextRequest) {
       kind: 'booking',
       title: 'Trip cancelled, full refund',
       body: r.refundCents > 0
-        ? `"${trip.name}" was cancelled by Ops. A full refund of $${(r.refundCents / 100).toFixed(2)} has been issued to your card.`
-        : `"${trip.name}" was cancelled by Ops. No refund was needed.`,
+        ? `"${trip.name}" was cancelled by the Concierge Team. A full refund of $${(r.refundCents / 100).toFixed(2)} has been issued to your card.`
+        : `"${trip.name}" was cancelled by the Concierge Team. No refund was needed.`,
       ref: { item_kind: itemKind, item_id: itemId, booking_id: r.bookingId },
     })
 
@@ -279,8 +279,8 @@ export async function POST(req: NextRequest) {
       kind: 'approval',
       title: `Trip cancelled, full refund`,
       body: anchorRefundCents > 0
-        ? `"${trip.name}" was cancelled by Travail Ops. Your full capture of $${(anchorRefundCents / 100).toFixed(2)} (charter and the 3% service fee) has been refunded to your card.`
-        : `"${trip.name}" was cancelled by Travail Ops. No anchor capture was on file to refund.`,
+        ? `"${trip.name}" was cancelled by Travail Concierge. Your full capture of $${(anchorRefundCents / 100).toFixed(2)} (charter and the 3% service fee) has been refunded to your card.`
+        : `"${trip.name}" was cancelled by Travail Concierge. No anchor capture was on file to refund.`,
       ref: { item_kind: itemKind, item_id: itemId },
     })
 

@@ -65,7 +65,7 @@ export default function ContactPage() {
       <PageHero
         accent="signal"
         eyebrow="Concierge"
-        title="Operations Team"
+        title="Concierge Team"
         sub="Drop us a line, we'll take care of the rest. Replies usually within minutes during desk hours."
       />
 
@@ -122,7 +122,7 @@ export default function ContactPage() {
               className="contact-submit"
               disabled={!message.trim() || sending}
             >
-              {sending ? 'Sending…' : 'Send to ops →'}
+              {sending ? 'Sending…' : 'Send to the Concierge Team →'}
             </button>
 
             {/* Subtle text-links for call/text — no big CTA cards */}
@@ -151,7 +151,7 @@ function SentState({ memberName, onAgain }: { memberName: string | null; onAgain
         Got it{memberName ? `, ${memberName.split(' ')[0]}.` : '.'}
       </h2>
       <p className="contact-sent__body">
-        Ops has your note. Expect a reply within minutes during desk hours.
+        The Concierge Team has your note. Expect a reply within minutes during desk hours.
       </p>
       <button type="button" className="contact-altlink" onClick={onAgain} style={{ marginTop: 18 }}>
         Send another →

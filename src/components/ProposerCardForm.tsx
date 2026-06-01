@@ -120,8 +120,8 @@ function InnerForm({
         lineHeight: 1.55, marginBottom: 16,
       }}>
         <strong style={{ color: 'var(--ink)' }}>No charge yet.</strong>{' '}
-        We save your card on file. If the network commits enough seats, ops
-        locks the trip and you&apos;re charged for your spread (best case
+        We save your card on file. If the network commits enough seats, the
+        Concierge Team locks the trip and you&apos;re charged for your spread (best case
         {' '}<strong>{minHint}</strong>, worst case <strong>{maxHint}</strong>).
         If the proposal expires without funding, nothing happens.
       </div>

@@ -62,7 +62,7 @@ export default function AnchorQuotePage() {
   async function respond(action: 'accept' | 'decline') {
     if (!sub) return
     if (action === 'decline' && !declineReason.trim()) {
-      setError('Please add a brief reason so ops can follow up.')
+      setError('Please add a brief reason so the Concierge Team can follow up.')
       return
     }
     setSubmitting(action)
@@ -123,7 +123,7 @@ export default function AnchorQuotePage() {
           accent="moss"
           eyebrow="QUOTE ACCEPTED"
           title="You're locked in"
-          sub={sub.status === 'published' ? 'Your trip is published.' : 'Ops will publish your trip and capture the charter on your card shortly.'}
+          sub={sub.status === 'published' ? 'Your trip is published.' : 'The Concierge Team will publish your trip and capture the charter on your card shortly.'}
         />
         <div className="page-view" style={{ maxWidth: 640 }}>
           <div style={{ background: 'var(--card)', borderRadius: 14, padding: 24, border: '1px solid var(--hair)' }}>
@@ -143,7 +143,7 @@ export default function AnchorQuotePage() {
           accent="signal"
           eyebrow="QUOTE DECLINED"
           title="Got it"
-          sub="Ops has been notified. They'll reach out if they can find different pricing."
+          sub="The Concierge Team has been notified. They'll reach out if they can find different pricing."
         />
       </div>
     )
@@ -156,7 +156,7 @@ export default function AnchorQuotePage() {
           accent="sun"
           eyebrow="QUOTE"
           title="Not ready yet"
-          sub={`This submission is currently ${sub.status}. Ops will send a quote when they have it.`}
+          sub={`This submission is currently ${sub.status}. The Concierge Team will send a quote when they have it.`}
         />
       </div>
     )
@@ -168,7 +168,7 @@ export default function AnchorQuotePage() {
         accent="teal"
         eyebrow="QUOTE READY"
         title={tripName}
-        sub="Ops sourced pricing for your charter. Review and confirm to authorize the capture."
+        sub="The Concierge Team sourced pricing for your charter. Review and confirm to authorize the capture."
       />
 
       <div className="page-view" style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -215,7 +215,7 @@ export default function AnchorQuotePage() {
           </div>
 
           <div style={{ background: 'rgba(0,179,199,0.06)', borderLeft: '3px solid var(--tropic)', borderRadius: '0 8px 8px 0', padding: '12px 14px', fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, marginTop: 18 }}>
-            On accept, we capture the full amount above on your card. As pax book seats, the charter portion you covered is rebated at trip departure, your final charter cost never goes above your floor. {feeDollars > 0 ? 'The 3% service fee stays with Travail; only refunded if Ops cancels the trip itself.' : ''}
+            On accept, we capture the full amount above on your card. As pax book seats, the charter portion you covered is rebated at trip departure, your final charter cost never goes above your floor. {feeDollars > 0 ? 'The 3% service fee stays with Travail; only refunded if the Concierge Team cancels the trip itself.' : ''}
           </div>
         </div>
 
@@ -266,7 +266,7 @@ export default function AnchorQuotePage() {
         ) : (
           <div style={{ background: 'var(--card)', borderRadius: 14, padding: 18, border: '1px solid var(--hair)' }}>
             <div style={{ fontSize: 13, color: 'var(--ink-mid)', marginBottom: 10 }}>
-              Tell ops what isn't working (pricing, dates, scope) so they can come back with revisions.
+              Tell the Concierge Team what isn't working (pricing, dates, scope) so they can come back with revisions.
             </div>
             <textarea
               value={declineReason}

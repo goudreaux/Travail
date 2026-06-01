@@ -134,7 +134,7 @@ export default function ActivityPage() {
         <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 12, overflow: 'hidden' }}>
           {filtered.map((r, i) => {
             const meta = ACTION_META[r.action] ?? { label: r.action, pill: 'ink' }
-            const actor = r.actor_member_id ? (names[r.actor_member_id] ?? 'Member') : (r.actor_kind === 'admin' ? 'Ops' : r.actor_kind === 'system' ? 'System' : '—')
+            const actor = r.actor_member_id ? (names[r.actor_member_id] ?? 'Member') : (r.actor_kind === 'admin' ? 'Concierge Team' : r.actor_kind === 'system' ? 'System' : '—')
             return (
               <div key={r.id} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 14, padding: '13px 18px',

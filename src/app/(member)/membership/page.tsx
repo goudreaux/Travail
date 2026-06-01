@@ -380,7 +380,7 @@ export default function MembershipPage() {
                       <span style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.45 }}>
                         Accept contact info requests
                         <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-light)', marginTop: 2 }}>
-                          When off, other members can&rsquo;t ask for your email or phone. They&rsquo;ll see a &ldquo;private&rdquo; cue and be told to coordinate through Ops.
+                          When off, other members can&rsquo;t ask for your email or phone. They&rsquo;ll see a &ldquo;private&rdquo; cue and be told to coordinate through the Concierge Team.
                         </span>
                       </span>
                     </label>
@@ -665,7 +665,7 @@ function SubscriptionPanel({ member }: { member: Member }) {
 
         {isPastDue && (
           <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.25)', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: 'var(--signal)', lineHeight: 1.5, marginBottom: 14 }}>
-            Your last renewal failed. Bookings are paused until the card clears. Update your card below, ops will be in touch shortly either way.
+            Your last renewal failed. Bookings are paused until the card clears. Update your card below, the Concierge Team will be in touch shortly either way.
           </div>
         )}
 
@@ -704,7 +704,7 @@ function SubscriptionPanel({ member }: { member: Member }) {
               To cancel
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.6 }}>
-              Call ops at <a href="tel:+14085073523" style={{ color: 'var(--ink)', fontWeight: 600, textDecoration: 'none' }}>(408) 507-3523</a>. We&apos;ll process it on the call. Your access continues through the end of the current billing period, no partial refund.
+              Call the Concierge Team at <a href="tel:+14085073523" style={{ color: 'var(--ink)', fontWeight: 600, textDecoration: 'none' }}>(408) 507-3523</a>. We&apos;ll process it on the call. Your access continues through the end of the current billing period, no partial refund.
               {isFounding && <> Re-subscribing later will be at the then-current public rate, not the founding rate.</>}
             </div>
           </div>
@@ -790,11 +790,11 @@ function ReferFriendPanel({ memberId }: { memberId: string }) {
           member_id: memberId,
           kind: 'system',
           title: 'Referral submitted',
-          body: `You introduced ${first.trim()} ${last.trim()} to Travail Ops. We'll be in touch shortly with next steps.`,
+          body: `You introduced ${first.trim()} ${last.trim()} to Travail Concierge. We'll be in touch shortly with next steps.`,
         })
       } catch { /* non-fatal */ }
       setShowForm(false); resetForm()
-      setToast('Sent to ops for review.')
+      setToast('Sent to the Concierge Team for review.')
       setTimeout(() => setToast(null), 3500)
       reload()
     } catch (err) {

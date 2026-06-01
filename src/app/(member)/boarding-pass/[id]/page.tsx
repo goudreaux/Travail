@@ -175,7 +175,7 @@ export default function BoardingPassPage() {
   const departTime = isFlight ? fmtTime(flight?.depart_time ?? null) : fmtTime(excursion?.depart_time ?? excursion?.start_time ?? null)
 
   const statusColor = confirmed ? 'var(--moss)' : booking.status === 'pending' ? 'var(--sun-d)' : 'var(--signal)'
-  const statusLabel = confirmed ? 'CONFIRMED' : booking.status === 'pending' ? 'PENDING OPS REVIEW' : booking.status.toUpperCase()
+  const statusLabel = confirmed ? 'CONFIRMED' : booking.status === 'pending' ? 'PENDING CONCIERGE REVIEW' : booking.status.toUpperCase()
 
   return (
     <div className="page">
@@ -270,7 +270,7 @@ export default function BoardingPassPage() {
           {!confirmed && (
             <div style={{ padding: '0 26px 20px' }}>
               <div style={{ background: 'var(--warm)', borderRadius: 8, padding: '10px 14px', fontSize: 12.5, color: 'var(--ink-mid)' }}>
-                This pass activates once Ops confirms your reservation. You&rsquo;ll get a notification with your confirmation code.
+                This pass activates once the Concierge Team confirms your reservation. You&rsquo;ll get a notification with your confirmation code.
               </div>
             </div>
           )}
@@ -278,7 +278,7 @@ export default function BoardingPassPage() {
 
         <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/contact" className="btn-ghost" style={{ height: 34, padding: '0 16px', fontSize: 12.5, display: 'inline-flex', alignItems: 'center' }}>
-            Contact ops
+            Contact the Concierge Team
           </Link>
           {(booking.status === 'pending' || booking.status === 'approved') && (
             cancelRequested && cancelResult ? (
@@ -309,7 +309,7 @@ export default function BoardingPassPage() {
 
         {isAnchor && (booking.status === 'pending' || booking.status === 'approved') && (
           <div style={{ marginTop: 10, background: 'var(--warm)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--ink-mid)', textAlign: 'center' }}>
-            You anchored this trip. Ops can&rsquo;t cancel it if other members are booked.
+            You anchored this trip. The Concierge Team can&rsquo;t cancel it if other members are booked.
           </div>
         )}
       </div>

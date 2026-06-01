@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
       } catch (e) {
         safeError('Stripe refund failed:', e)
         return NextResponse.json({
-          error: 'Refund failed at the payment processor. Try again in a few minutes or contact Ops.',
+          error: 'Refund failed at the payment processor. Try again in a few minutes or contact the Concierge Team.',
         }, { status: 502 })
       }
     } else {

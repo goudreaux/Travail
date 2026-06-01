@@ -191,7 +191,7 @@ export default function BookingsPage() {
     try {
       await supabase.from('notifications').insert({
         member_id: first.member_id, kind: 'booking',
-        title: 'A seat opened up', body: 'A seat opened on a trip you waitlisted, Ops is confirming it now.',
+        title: 'A seat opened up', body: 'A seat opened on a trip you waitlisted, the Concierge Team is confirming it now.',
         ref: { item_kind: itemKind, item_id: itemId },
       })
     } catch { /* supplementary */ }
@@ -223,7 +223,7 @@ export default function BookingsPage() {
       try {
         await supabase.from('notifications').insert({
           member_id: booking.member_id, kind: 'booking',
-          title: 'Booking Cancelled', body: 'Your reservation has been cancelled by Ops.',
+          title: 'Booking Cancelled', body: 'Your reservation has been cancelled by the Concierge Team.',
           ref: { booking_id: booking.id },
         })
       } catch { /* supplementary */ }

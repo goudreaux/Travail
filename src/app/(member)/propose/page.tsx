@@ -67,7 +67,7 @@ export default function ProposePage() {
             fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.6,
           }}>
             <strong style={{ color: 'var(--ink)' }}>How it works:</strong>{' '}
-            you submit a proposal, ops sets a minimum seat count + per-seat price,
+            you submit a proposal, the Concierge Team sets a minimum seat count + per-seat price,
             and the network has 5 days before departure to commit. Members commit
             with a card on file, nothing leaves their account until the proposal
             locks. If commits fall short by the 5-day window, the proposal expires

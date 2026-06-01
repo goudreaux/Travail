@@ -23,7 +23,7 @@ const DESTS = [
   { code: 'LCC',    name: 'Lochloosa Country Club',     sub: 'North Central FL' },
   { code: 'KEYW',   name: 'Key West Airport',           sub: 'FL Keys' },
   { code: 'LPI',    name: 'Little Palm Island',         sub: 'FL Keys' },
-  { code: 'CUSTOM', name: 'Custom destination',         sub: 'Request, ops will confirm' },
+  { code: 'CUSTOM', name: 'Custom destination',         sub: 'Request, the Concierge Team will confirm' },
 ]
 
 function todayPlus(days: number): string {
@@ -63,7 +63,7 @@ export default function ProposeFlightPage() {
     setError(null)
     if (!date) { setError('Pick a date.'); return }
     if (date < minDate) { setError(`Proposals need at least ${PROPOSAL_MIN_LEAD_DAYS} days of lead time so the network has a chance to commit. For a trip sooner than that, anchor it instead — you commit the charter and open the extra seats.`); return }
-    if (isCustomDest && !customDestName.trim()) { setError('Tell us where you want to go, ops will confirm with Tropic.'); return }
+    if (isCustomDest && !customDestName.trim()) { setError('Tell us where you want to go, the Concierge Team will confirm with Tropic.'); return }
     if (!isCustomDest && origin === destCode) { setError('Origin and destination must be different.'); return }
     if (proposerMaxSeats < proposerMinSeats) { setError('Your maximum coverage must be at least your party size.'); return }
     if (proposerMaxSeats > suggestedCapacity) { setError('Your maximum coverage can\'t exceed the aircraft capacity.'); return }
@@ -137,8 +137,8 @@ export default function ProposeFlightPage() {
         <PageHero
           accent="sun"
           eyebrow="PROPOSAL SUBMITTED"
-          title="Sent to ops for review."
-          sub={`Your proposal ${submittedId} is in the queue. Ops will set the minimum seat count + per-seat price, then it goes live for the network. You'll get a notification when it does, you can be the first to commit then.`}
+          title="Sent to the Concierge Team for review."
+          sub={`Your proposal ${submittedId} is in the queue. The Concierge Team will set the minimum seat count + per-seat price, then it goes live for the network. You'll get a notification when it does, you can be the first to commit then.`}
         />
         <div className="page-view" style={{ display: 'flex', gap: 10, padding: '12px 0' }}>
           <button className="btn-primary" onClick={() => router.push('/seats')}>Browse open seats</button>
@@ -150,7 +150,7 @@ export default function ProposeFlightPage() {
 
   return (
     <div className="page">
-      <PageHero accent="sun" eyebrow="PROPOSE A FLIGHT · NO RISK" title="Pitch the route" sub="Ops sets the minimum and per-seat price during review. No charge to you until the proposal locks."
+      <PageHero accent="sun" eyebrow="PROPOSE A FLIGHT · NO RISK" title="Pitch the route" sub="The Concierge Team sets the minimum and per-seat price during review. No charge to you until the proposal locks."
         actions={<button className="page-hero__btn" onClick={() => router.push('/propose')}>← Back</button>} />
       <div className="page-view">
         <div className="wiz" style={{ maxWidth: 560 }}>
@@ -208,7 +208,7 @@ export default function ProposeFlightPage() {
             </div>
             {stayType === 'overnight' && (
               <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', lineHeight: 1.5, marginTop: -2, marginBottom: 10 }}>
-                Overnight trips: tell ops the return date and lodging in the notes below — they’ll confirm the round-trip charter with Tropic.
+                Overnight trips: tell the Concierge Team the return date and lodging in the notes below — they’ll confirm the round-trip charter with Tropic.
               </div>
             )}
           </div>
@@ -246,14 +246,14 @@ export default function ProposeFlightPage() {
                 })}
               </div>
               <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
-                Seats are capped by the aircraft. Ops confirms the final plane with Tropic.
+                Seats are capped by the aircraft. The Concierge Team confirms the final plane with Tropic.
               </div>
             </div>
             <div className="field">
               <label className="field-lab">Minimum seats</label>
               <input className="input" type="number" min={1} max={suggestedCapacity} value={suggestedMinSeats} onChange={e => setSuggestedMinSeats(Math.max(1, Math.min(suggestedCapacity, Number(e.target.value) || 0)))} />
               <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
-                Ops sets the actual floor.
+                The Concierge Team sets the actual floor.
               </div>
             </div>
           </div>
@@ -297,7 +297,7 @@ export default function ProposeFlightPage() {
           </div>
 
           <div className="field">
-            <label className="field-lab">Notes for ops <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(optional, private)</span></label>
+            <label className="field-lab">Notes for the Concierge Team <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(optional, private)</span></label>
             <textarea className="input" rows={3} value={opsNotes} onChange={e => setOpsNotes(e.target.value)} placeholder="Anything that helps us source it: a contact at the destination, ground transport, dietary or schedule needs, special requests. Members never see this." />
           </div>
 

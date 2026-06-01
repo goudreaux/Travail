@@ -128,7 +128,7 @@ export function CancelReservationModal({
                 Heads up · {recentCancelCount} cancels in 90 days
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.55 }}>
-                Repeated cancellations may put your membership under review. Travail is a small network, and consistent commitments matter to the rest of the cabin. If something keeps coming up, reply to a recent email and let Ops know. We'd rather talk than escalate.
+                Repeated cancellations may put your membership under review. Travail is a small network, and consistent commitments matter to the rest of the cabin. If something keeps coming up, reply to a recent email and let the Concierge Team know. We'd rather talk than escalate.
               </div>
             </div>
           )}
