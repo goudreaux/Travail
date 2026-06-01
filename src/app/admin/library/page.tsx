@@ -2,8 +2,13 @@
 export const dynamic = 'force-dynamic'
 
 import { useCallback, useEffect, useState } from 'react'
+import nextDynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { fetchLocations, type LibraryLocation } from '@/lib/locations'
+
+// Mapbox touches window — load the coordinate picker browser-only.
+const LocationPicker = nextDynamic(() => import('@/components/LocationPicker'), { ssr: false })
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ''
 
 // Location Library — the single source of truth for origins and destinations.
 // Every From/To picker in the app and the Route Map read from this table
@@ -219,6 +224,9 @@ export default function AdminLibraryPage() {
 
 function LocationFields({ draft, setDraft, isNew }: { draft: Draft; setDraft: (d: Draft) => void; isNew: boolean }) {
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft({ ...draft, [k]: v })
+  const [showMap, setShowMap] = useState(false)
+  const latNum = draft.lat.trim() === '' || Number.isNaN(Number(draft.lat)) ? null : Number(draft.lat)
+  const lngNum = draft.lng.trim() === '' || Number.isNaN(Number(draft.lng)) ? null : Number(draft.lng)
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr', gap: 10, marginBottom: 10 }}>
@@ -256,6 +264,23 @@ function LocationFields({ draft, setDraft, isNew }: { draft: Draft; setDraft: (d
           <input type="checkbox" checked={draft.active} onChange={e => set('active', e.target.checked)} /> Active
         </label>
       </div>
+      {MAPBOX_TOKEN && (
+        <div style={{ marginTop: 10 }}>
+          <button type="button" className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setShowMap(s => !s)}>
+            {showMap ? 'Hide map' : (latNum != null ? 'Adjust on map' : 'Pick on map')}
+          </button>
+          {showMap && (
+            <div style={{ marginTop: 8 }}>
+              <LocationPicker
+                token={MAPBOX_TOKEN}
+                lat={latNum}
+                lng={lngNum}
+                onPick={(la, ln) => setDraft({ ...draft, lat: la.toFixed(5), lng: ln.toFixed(5) })}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </>
   )
 }

@@ -28,7 +28,10 @@ export async function fetchLocations(supabase: Db, opts?: { includeInactive?: bo
     .from('airports')
     .select('code, name, sub, role, lat, lng, active')
     .order('name')
-  const rows = (data ?? []) as LibraryLocation[]
+  // 'CUSTOM' is a system sentinel (it backs the FK for not-yet-assigned custom
+  // destinations) — never a real, pickable place. Always hide it; the pickers
+  // append their own "Custom destination" option.
+  const rows = (data ?? []).filter((r: LibraryLocation) => r.code !== 'CUSTOM') as LibraryLocation[]
   return opts?.includeInactive ? rows : rows.filter(r => r.active !== false)
 }
 

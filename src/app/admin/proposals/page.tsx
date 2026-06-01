@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import nextDynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { PROPOSAL_STATUS_LABEL, PROPOSAL_STATUS_PILL, type ProposalStatus } from '@/lib/proposals'
 import { ItineraryEditor } from '@/components/ItineraryEditor'
@@ -7,6 +8,10 @@ import { TripPhotoPicker } from '@/components/TripPhotoPicker'
 import { asItinerary, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
 import { PROPOSAL_ORIGINS, PROPOSAL_DEST_OPTIONS, CUSTOM_DEST, type PlaceOption } from '@/lib/destinations'
 import { fetchLocations, asOrigins, asDestinations } from '@/lib/locations'
+
+// Mapbox touches window — load the coordinate picker browser-only.
+const LocationPicker = nextDynamic(() => import('@/components/LocationPicker'), { ssr: false })
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ''
 
 // Ops review queue for Trip Proposals.
 //
@@ -71,6 +76,25 @@ export default function AdminProposalsPage() {
   function flash(msg: string, ok = true) {
     setToast({ msg, ok })
     setTimeout(() => setToast(null), 3500)
+  }
+
+  // Promote a custom destination into the Location Library so it maps. Mints a
+  // unique code from the name, inserts the airports row with coordinates, then
+  // refreshes the destination options and returns the new code.
+  async function addLocation(name: string, lat: number, lng: number): Promise<string | null> {
+    const clean = name.trim()
+    if (!clean) { flash('Name the destination first.', false); return null }
+    const base = clean.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'LOC'
+    const existing = new Set([...destOpts.map(d => d.code), ...originOpts.map(o => o.code)])
+    let code = base, i = 1
+    while (existing.has(code)) { code = base.slice(0, 5) + i; i++ }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('airports') as any).insert({ code, name: clean, role: 'destination', lat, lng, active: true })
+    if (error) { flash(error.message, false); return null }
+    const locs = await fetchLocations(supabase)
+    setDestOpts([...asDestinations(locs).map(l => ({ code: l.code, name: l.name, sub: l.sub ?? '' })), CUSTOM_DEST])
+    flash('Added to Library.')
+    return code
   }
 
   const load = useCallback(async () => {
@@ -214,6 +238,7 @@ export default function AdminProposalsPage() {
               row={r}
               originOpts={originOpts}
               destOpts={destOpts}
+              onAddLocation={addLocation}
               busy={busy === r.id}
               onApprove={async (capacity, min, price) => {
                 setBusy(r.id)
@@ -316,11 +341,12 @@ export default function AdminProposalsPage() {
 }
 
 function ProposalRowCard({
-  row, originOpts, destOpts, busy, onApprove, onDecline, onLock, onSaveItinerary, onRemove, onUpdate,
+  row, originOpts, destOpts, onAddLocation, busy, onApprove, onDecline, onLock, onSaveItinerary, onRemove, onUpdate,
 }: {
   row: ProposalRow
   originOpts: PlaceOption[]
   destOpts: PlaceOption[]
+  onAddLocation: (name: string, lat: number, lng: number) => Promise<string | null>
   busy: boolean
   onApprove: (capacity: number, min: number, price: number) => Promise<void>
   onDecline: (reason: string) => Promise<void>
@@ -355,6 +381,12 @@ function ProposalRowCard({
   const [editCustomDest, setEditCustomDest] = useState<string>(
     knownDest ? '' : ((suggested.destName as string) || ''),
   )
+  // Custom destination → "Add to Library": drop a pin to capture coordinates,
+  // then promote it into the Location Library so it maps.
+  const [showPick, setShowPick] = useState(false)
+  const [pickLat, setPickLat] = useState<number | null>(null)
+  const [pickLng, setPickLng] = useState<number | null>(null)
+  const [addingLoc, setAddingLoc] = useState(false)
 
   const pill = PROPOSAL_STATUS_PILL[row.status]
   const label = PROPOSAL_STATUS_LABEL[row.status]
@@ -523,9 +555,46 @@ function ProposalRowCard({
             </div>
           </div>
           {editDest === 'CUSTOM' && (
-            <div className="field" style={{ marginBottom: 10 }}>
-              <label className="field-lab">Custom destination name <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(won&apos;t map until it&apos;s a known place)</span></label>
-              <input className="input" value={editCustomDest} onChange={e => setEditCustomDest(e.target.value)} placeholder="Hotel, club, town, or marina" />
+            <div style={{ marginBottom: 10, padding: '12px 14px', background: 'var(--paper)', border: '1px solid var(--hair-2)', borderRadius: 10 }}>
+              <div className="field" style={{ marginBottom: 8 }}>
+                <label className="field-lab">Custom destination name</label>
+                <input className="input" value={editCustomDest} onChange={e => setEditCustomDest(e.target.value)} placeholder="Hotel, club, town, or marina" />
+              </div>
+              <p style={{ fontSize: 11.5, color: 'var(--ink-light)', lineHeight: 1.5, margin: '0 0 8px' }}>
+                A custom destination won&rsquo;t draw on the map. Drop a pin and <strong>Add to Library</strong> to give it coordinates and map it — it&rsquo;ll then be reusable on any trip.
+              </p>
+              {MAPBOX_TOKEN && (
+                <>
+                  <button type="button" className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setShowPick(s => !s)}>
+                    {showPick ? 'Hide map' : (pickLat != null ? 'Adjust pin' : 'Drop a pin')}
+                  </button>
+                  {showPick && (
+                    <div style={{ marginTop: 8 }}>
+                      <LocationPicker token={MAPBOX_TOKEN} lat={pickLat} lng={pickLng} onPick={(la, ln) => { setPickLat(la); setPickLng(ln) }} height={240} />
+                    </div>
+                  )}
+                </>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ fontSize: 12 }}
+                  disabled={addingLoc || !editCustomDest.trim() || pickLat == null || pickLng == null}
+                  onClick={async () => {
+                    setAddingLoc(true)
+                    try {
+                      const code = await onAddLocation(editCustomDest, pickLat as number, pickLng as number)
+                      if (code) { setEditDest(code); setEditCustomDest(''); setShowPick(false) }
+                    } finally { setAddingLoc(false) }
+                  }}
+                >
+                  {addingLoc ? 'Adding…' : 'Add to Library & use'}
+                </button>
+                <span style={{ fontSize: 11, color: 'var(--ink-faint)' }}>
+                  {pickLat != null && pickLng != null ? `${pickLat.toFixed(4)}, ${pickLng.toFixed(4)}` : 'No pin yet'}
+                </span>
+              </div>
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>

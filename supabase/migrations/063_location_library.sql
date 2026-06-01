@@ -42,3 +42,12 @@ insert into public.airports (code, name, sub, role, lng, lat) values
 on conflict (code) do update set
   lng = excluded.lng,
   lat = excluded.lat;
+
+-- Restore the 'CUSTOM' sentinel (originally from migration 049) as an INACTIVE
+-- row. It has no coordinates and the app hides it from every picker, but it
+-- must exist so a trip can carry dest_code='CUSTOM' before a real place is
+-- assigned (flights.dest_code is a foreign key to airports.code). Inactive keeps
+-- it out of the Library list and pickers while preserving referential integrity.
+insert into public.airports (code, name, sub, role, active) values
+  ('CUSTOM', 'Custom destination', 'Awaiting Concierge confirm', 'both', false)
+on conflict (code) do update set active = false;
