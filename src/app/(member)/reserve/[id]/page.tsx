@@ -783,26 +783,86 @@ export default function ReservePage() {
     )
   }
 
-  // ── Full trip → waitlist ────────────────────────────────────────────────────
+  // ── Full trip → review the plan, then waitlist ──────────────────────────────
+  // The trip's sold out, but members should still be able to read the full
+  // itinerary before deciding to waitlist — so we show the details + day plan,
+  // then the waitlist CTA in place of the booking form.
   if (isFull) {
+    const fullSteps: ItineraryStep[] = (kind === 'excursion' && excursion)
+      ? (() => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const stored = asItinerary((excursion as any).itinerary)
+          return stored.length > 0 ? stored : generateDefaultItinerary({
+            originCode: excursion.origin_code,
+            destCode: template?.dest_code ?? null,
+            destName: template?.dest_code ? airportCity(template.dest_code, airportNames) : null,
+            departTime: excursion.depart_time,
+            arriveTime: excursion.arrive_time,
+            startTime: excursion.start_time,
+            returnTime: excursion.return_time,
+            operator: template?.operator ?? null,
+          })
+        })()
+      : []
     return (
       <div className="page">
-        <div className="page-view" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 460 }}>
-          <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 18, padding: '44px 48px', maxWidth: 460, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(13,51,64,0.08)' }}>
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--sun-d)', marginBottom: 10 }}>Fully booked</div>
-            <h2 className="display-i" style={{ fontSize: 28, color: 'var(--ink)', margin: '0 0 8px' }}>{itemName || 'This trip'} is full.</h2>
-            <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 24px' }}>
-              {kind === 'flight' && flight ? `${flight.origin_code} → ${flight.dest_code} · ` : ''}{dp ? `${dp.mo} ${dp.day}` : ''}. Join the waitlist and the Concierge Team will offer you the next seat that opens up.
+        <div className="page-view" style={{ maxWidth: 620, margin: '0 auto' }}>
+          <div className="panel" style={{ padding: '28px 30px' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--sun-d)', marginBottom: 10 }}>Fully booked · waitlist open</div>
+            <h2 className="display-i" style={{ fontSize: 28, color: 'var(--ink)', margin: '0 0 6px' }}>{itemName || 'This trip'} is full.</h2>
+            <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 20px' }}>
+              {kind === 'flight' && flight ? `${flight.origin_code} → ${flight.dest_code} · ` : ''}{dp ? `${dp.mo} ${dp.day}` : ''}. Have a look at the plan — then join the waitlist and the Concierge Team will offer you the next seat that opens up.
             </p>
+
+            {/* Trip details */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '6px 16px', fontSize: 13, marginBottom: fullSteps.length ? 22 : 6, paddingBottom: 18, borderBottom: '1px solid var(--hair)' }}>
+              {kind === 'flight' && flight && (
+                <>
+                  <div style={{ color: 'var(--ink-light)' }}>Route</div>
+                  <div style={{ color: 'var(--ink)', fontWeight: 500 }}>{airportCity(flight.origin_code, airportNames)} → {airportCity(flight.dest_code, airportNames)}</div>
+                </>
+              )}
+              {kind === 'excursion' && excursion && (
+                <>
+                  <div style={{ color: 'var(--ink-light)' }}>From</div>
+                  <div style={{ color: 'var(--ink)', fontWeight: 500 }}>{airportCity(excursion.origin_code, airportNames)}</div>
+                </>
+              )}
+              <div style={{ color: 'var(--ink-light)' }}>Date</div>
+              <div style={{ color: 'var(--ink)', fontWeight: 500 }}>{dp ? `${dp.mo} ${dp.day}` : '—'}</div>
+            </div>
+
+            {/* Day plan (excursions) */}
+            {fullSteps.length > 0 && (
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 600, marginBottom: 10 }}>Day plan</div>
+                <ol className="dayplan">
+                  {fullSteps.map((s, i) => (
+                    <li key={i} className="dayplan__step" style={{ animationDelay: `${i * 90}ms` }}>
+                      <span className="dayplan__rail" aria-hidden />
+                      <span className="dayplan__dot" aria-hidden>
+                        {s.icon && KIND_ICONS[s.icon] ? KIND_ICONS[s.icon] : <span className="dayplan__num">{i + 1}</span>}
+                      </span>
+                      <div className="dayplan__body">
+                        <div className="dayplan__time">{s.time ? fmtItineraryTime(s.time) : <span className="dayplan__tbd">TBD</span>}</div>
+                        <div className="dayplan__label">{s.label}</div>
+                        {s.sub && <div className="dayplan__sub">{s.sub}</div>}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
             {error && (
               <div style={{ background: 'rgba(217,78,42,0.08)', border: '1px solid rgba(217,78,42,0.2)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--signal)', marginBottom: 14 }}>{error}</div>
             )}
             {wlJoined ? (
-              <div style={{ background: 'var(--tropic-glow)', borderRadius: 10, padding: '12px 16px', fontSize: 13.5, color: 'var(--tropic-d)', marginBottom: 16 }}>
+              <div style={{ background: 'var(--tropic-glow)', borderRadius: 10, padding: '12px 16px', fontSize: 13.5, color: 'var(--tropic-d)', marginBottom: 12 }}>
                 You&rsquo;re on the waitlist, we&rsquo;ll be in touch.
               </div>
             ) : (
-              <button className="btn-ghost" style={{ width: '100%', height: 44, justifyContent: 'center', marginBottom: 10 }} onClick={joinWaitlist}>
+              <button className="btn-primary" style={{ width: '100%', height: 44, justifyContent: 'center', marginBottom: 10 }} onClick={joinWaitlist}>
                 Join the waitlist
               </button>
             )}
