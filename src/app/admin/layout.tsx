@@ -8,10 +8,25 @@ import Image from 'next/image'
 import MobileNav from '@/components/MobileNav'
 import PullToRefresh from '@/components/PullToRefresh'
 
+// Per-section "last seen" timestamps (per device) drive the notification-style
+// badges — a count of rows created since the Concierge last opened that
+// section, cleared when they visit it. Kept in localStorage so there's no DB
+// dependency; first load seeds "now" so history isn't flagged as new.
+const SEEN_PREFIX = 'tvl-cseen:'
+function getSeen(key: string): string | null {
+  try { return typeof localStorage !== 'undefined' ? localStorage.getItem(SEEN_PREFIX + key) : null } catch { return null }
+}
+function setSeen(key: string, iso: string) {
+  try { localStorage.setItem(SEEN_PREFIX + key, iso) } catch { /* ignore */ }
+}
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
   const [pendingCount, setPendingCount] = useState(0)
   const [pendingProposalCount, setPendingProposalCount] = useState(0)
+  // "New since last viewed" counts (notification badges that clear on visit).
+  const [newBookings, setNewBookings] = useState(0)
+  const [newActivity, setNewActivity] = useState(0)
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
@@ -45,20 +60,46 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setPendingProposalCount(pp ?? 0)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // "New since last seen" counts for Bookings + Activity. First load seeds the
+  // baseline to now so existing rows aren't flagged; after that, anything newer
+  // than the last visit lights up the badge.
+  const fetchNew = useCallback(async () => {
+    const nowISO = new Date().toISOString()
+    let bSeen = getSeen('bookings'); if (!bSeen) { setSeen('bookings', nowISO); bSeen = nowISO }
+    let aSeen = getSeen('activity'); if (!aSeen) { setSeen('activity', nowISO); aSeen = nowISO }
+    const [{ count: nb }, { count: na }] = await Promise.all([
+      supabase.from('bookings').select('id', { count: 'exact', head: true }).gt('submitted_at', bSeen),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from('activity_log').select('id', { count: 'exact', head: true }).gt('created_at', aSeen),
+    ])
+    setNewBookings(nb ?? 0)
+    setNewActivity(na ?? 0)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!isAdmin) return
-    fetchPending()
+    const refresh = () => { fetchPending(); fetchNew() }
+    refresh()
 
     const ch = supabase
       .channel('admin-pending-count')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, fetchPending)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'anchor_submissions' }, fetchPending)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_proposals' }, fetchPending)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cancellation_requests' }, fetchPending)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'anchor_submissions' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_proposals' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cancellation_requests' }, refresh)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_log' }, refresh)
       .subscribe()
 
     return () => { supabase.removeChannel(ch) }
-  }, [isAdmin, fetchPending]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isAdmin, fetchPending, fetchNew]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Visiting a section marks it seen → clears its "new" badge.
+  useEffect(() => {
+    if (!isAdmin) return
+    const nowISO = new Date().toISOString()
+    if (pathname.startsWith('/admin/bookings')) { setSeen('bookings', nowISO); setNewBookings(0) }
+    if (pathname.startsWith('/admin/activity')) { setSeen('activity', nowISO); setNewActivity(0) }
+  }, [pathname, isAdmin])
 
   async function signOut() {
     await supabase.auth.signOut()
@@ -71,16 +112,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   )
 
-  const nav = [
-    { href: '/admin', label: 'Overview', exact: true },
+  const anythingNew = pendingCount + pendingProposalCount + newBookings + newActivity > 0
+  const nav: { href: string; label: string; exact?: boolean; badge?: number; dot?: boolean }[] = [
+    { href: '/admin', label: 'Overview', exact: true, dot: anythingNew },
     { href: '/admin/queue', label: 'Queue', badge: pendingCount > 0 ? pendingCount : undefined },
     { href: '/admin/proposals', label: 'Proposals', badge: pendingProposalCount > 0 ? pendingProposalCount : undefined },
     { href: '/admin/trips', label: 'Trips & Excursions' },
     { href: '/admin/map', label: 'Route Map' },
-    { href: '/admin/bookings', label: 'Bookings' },
+    { href: '/admin/bookings', label: 'Bookings', badge: newBookings > 0 ? newBookings : undefined },
     { href: '/admin/members', label: 'People' },
     { href: '/admin/subscriptions', label: 'Subscriptions' },
-    { href: '/admin/activity', label: 'Activity' },
+    { href: '/admin/activity', label: 'Activity', badge: newActivity > 0 ? newActivity : undefined },
     { href: '/admin/email-log', label: 'Email log' },
     { href: '/admin/posts', label: 'Feed' },
     { href: '/admin/developer', label: 'Developer' },
@@ -120,7 +162,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             textDecoration: 'none',
           }}>
             <span>{item.label}</span>
-            {item.badge !== undefined && (
+            {item.badge !== undefined ? (
               <span style={{
                 background: 'var(--signal)', color: '#fff', borderRadius: 10,
                 padding: '1px 7px', fontSize: 10.5, fontWeight: 700, fontFamily: 'var(--mono)',
@@ -128,7 +170,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               }}>
                 {item.badge}
               </span>
-            )}
+            ) : item.dot ? (
+              <span aria-label="New activity" style={{
+                width: 8, height: 8, borderRadius: '50%', background: 'var(--signal)', flexShrink: 0,
+                boxShadow: '0 0 0 3px rgba(217,78,42,0.18)',
+              }} />
+            ) : null}
           </Link>
         ))}
         <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 12 }}>
