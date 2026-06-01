@@ -37,6 +37,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // stylesheet loads, body bg takes over for the rest of the app.
     <html lang="en" style={{ background: '#065465' }}>
       <head>
+        {/* Apply the saved member display theme before paint so there's no
+            flash of the wrong palette. Token overrides are scoped to `.app`,
+            so this attribute is inert on admin/login. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('tvl-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}`,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />

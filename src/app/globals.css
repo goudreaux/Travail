@@ -26,6 +26,45 @@
   --mono: "JetBrains Mono", monospace;
 }
 
+/* ─── Member-app display themes ─────────────────────────────
+   Scoped to `.app` (the member layout wrapper) so the admin dashboard
+   and login — which aren't inside `.app` — keep the default look even
+   though data-theme is set on <html>. 'current' = no attribute = :root.
+   Only the tokens that differ are overridden; the rest inherit from :root. */
+
+/* Light — cooler, brighter white (distinct from the warm cream default). */
+html[data-theme="light"] .app {
+  --bg: #eef1f5;
+  --paper: #ffffff;
+  --warm: #e6ebf1;
+  --card: #ffffff;
+  --hair: rgba(13, 51, 64, 0.09);
+  --hair-2: rgba(13, 51, 64, 0.15);
+}
+
+/* Dark — deep teal-charcoal surfaces, near-white ink, lifted accents. */
+html[data-theme="dark"] .app {
+  color-scheme: dark;
+  --bg: #0a1b21;
+  --paper: #102830;
+  --warm: #173640;
+  --card: #15343f;
+  --ink: #eaf1f3;
+  --ink-soft: #c6d6db;
+  --ink-mid: #9eb6be;
+  --ink-light: #7f9ba5;
+  --ink-faint: #5d7884;
+  --hair: rgba(255, 255, 255, 0.10);
+  --hair-2: rgba(255, 255, 255, 0.17);
+  --tropic-d: #4fc6d8;
+  --tropic-glow: rgba(0, 179, 199, 0.22);
+  --sun-d: #f0b44a;
+  --sun-glow: rgba(244, 167, 44, 0.20);
+  --moss: #57c79b;
+  --signal: #ff6a4d;
+  --night: #0a2730;
+}
+
 /* ─── Reset ─────────────────────────────────────────────── */
 
 * {

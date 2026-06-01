@@ -5,6 +5,7 @@ import { useMember } from '@/lib/member-context'
 import { fmtDate, fmtHomeBase, memberCode, tierLabel, tierPill, TRIP_TYPES, canonicalInterests } from '@/lib/data'
 import { safeError } from '@/lib/pii-scrub'
 import PageHero from '@/components/PageHero'
+import ThemePicker from '@/components/ThemePicker'
 import type { Member, Booking, AnchorSubmission, MemberSensitive } from '@/lib/supabase/types'
 import { type Referral, REFERRAL_STATUS_LABEL, REFERRAL_STATUS_PILL } from '@/lib/referrals'
 
@@ -490,6 +491,9 @@ export default function MembershipPage() {
 
           {/* ── Right column ── */}
           <div className="rail">
+            {/* Display theme */}
+            <ThemePicker />
+
             {/* Membership details */}
             <div className="panel">
               <div className="panel-head">
