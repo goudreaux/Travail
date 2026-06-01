@@ -139,6 +139,10 @@ export default function AdminLibraryPage() {
 
   const q = search.trim().toLowerCase()
   const visible = rows.filter(r => !q || r.code.toLowerCase().includes(q) || r.name.toLowerCase().includes(q) || (r.sub ?? '').toLowerCase().includes(q))
+  // Existing pins (with coordinates) shown as context in the map picker.
+  const pins = (exclude?: string) => rows
+    .filter(r => r.lat != null && r.lng != null && r.code !== exclude)
+    .map(r => ({ code: r.code, name: r.name, lat: r.lat as number, lng: r.lng as number }))
 
   return (
     <div className="admin-page">
@@ -165,7 +169,7 @@ export default function AdminLibraryPage() {
       {adding && (
         <div style={{ background: 'var(--card)', border: '1px solid var(--tropic)', borderRadius: 12, padding: '16px 18px', marginBottom: 16 }}>
           <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tropic-d)', fontWeight: 700, marginBottom: 12 }}>New location</div>
-          <LocationFields draft={newDraft} setDraft={setNewDraft} isNew />
+          <LocationFields draft={newDraft} setDraft={setNewDraft} isNew others={pins()} />
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <button className="btn-primary" disabled={busy === '__new__'} onClick={saveNew}>{busy === '__new__' ? 'Adding…' : 'Add location'}</button>
             <button className="btn-ghost" onClick={() => setAdding(false)}>Cancel</button>
@@ -188,7 +192,7 @@ export default function AdminLibraryPage() {
           {visible.map(r => editCode === r.code ? (
             <div key={r.code} style={{ background: 'var(--card)', border: '1px solid var(--tropic)', borderRadius: 12, padding: '16px 18px' }}>
               <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--tropic-d)', fontWeight: 700, marginBottom: 12 }}>Editing {r.code}</div>
-              <LocationFields draft={draft} setDraft={setDraft} isNew={false} />
+              <LocationFields draft={draft} setDraft={setDraft} isNew={false} others={pins(r.code)} />
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button className="btn-primary" disabled={busy === r.code} onClick={saveEdit}>{busy === r.code ? 'Saving…' : 'Save'}</button>
                 <button className="btn-ghost" onClick={() => setEditCode(null)}>Cancel</button>
@@ -222,7 +226,7 @@ export default function AdminLibraryPage() {
   )
 }
 
-function LocationFields({ draft, setDraft, isNew }: { draft: Draft; setDraft: (d: Draft) => void; isNew: boolean }) {
+function LocationFields({ draft, setDraft, isNew, others }: { draft: Draft; setDraft: (d: Draft) => void; isNew: boolean; others: { code: string; name: string; lat: number; lng: number }[] }) {
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft({ ...draft, [k]: v })
   const [showMap, setShowMap] = useState(false)
   const latNum = draft.lat.trim() === '' || Number.isNaN(Number(draft.lat)) ? null : Number(draft.lat)
@@ -275,6 +279,7 @@ function LocationFields({ draft, setDraft, isNew }: { draft: Draft; setDraft: (d
                 token={MAPBOX_TOKEN}
                 lat={latNum}
                 lng={lngNum}
+                others={others}
                 onPick={(la, ln) => setDraft({ ...draft, lat: la.toFixed(5), lng: ln.toFixed(5) })}
               />
             </div>

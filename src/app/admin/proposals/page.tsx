@@ -7,7 +7,7 @@ import { ItineraryEditor } from '@/components/ItineraryEditor'
 import { TripPhotoPicker } from '@/components/TripPhotoPicker'
 import { asItinerary, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
 import { PROPOSAL_ORIGINS, PROPOSAL_DEST_OPTIONS, CUSTOM_DEST, type PlaceOption } from '@/lib/destinations'
-import { fetchLocations, asOrigins, asDestinations } from '@/lib/locations'
+import { fetchLocations, asOrigins, asDestinations, type LibraryLocation } from '@/lib/locations'
 
 // Mapbox touches window — load the coordinate picker browser-only.
 const LocationPicker = nextDynamic(() => import('@/components/LocationPicker'), { ssr: false })
@@ -64,8 +64,10 @@ export default function AdminProposalsPage() {
   // From/To options for the route editor come from the Location Library.
   const [originOpts, setOriginOpts] = useState<PlaceOption[]>(PROPOSAL_ORIGINS)
   const [destOpts, setDestOpts] = useState<PlaceOption[]>(PROPOSAL_DEST_OPTIONS)
+  const [libLocs, setLibLocs] = useState<LibraryLocation[]>([])
   useEffect(() => {
     fetchLocations(supabase).then(locs => {
+      setLibLocs(locs)
       const o = asOrigins(locs).map(l => ({ code: l.code, name: l.name, sub: l.sub ?? '' }))
       const d = asDestinations(locs).map(l => ({ code: l.code, name: l.name, sub: l.sub ?? '' }))
       if (o.length) setOriginOpts(o)
@@ -92,6 +94,7 @@ export default function AdminProposalsPage() {
     const { error } = await (supabase.from('airports') as any).insert({ code, name: clean, role: 'destination', lat, lng, active: true })
     if (error) { flash(error.message, false); return null }
     const locs = await fetchLocations(supabase)
+    setLibLocs(locs)
     setDestOpts([...asDestinations(locs).map(l => ({ code: l.code, name: l.name, sub: l.sub ?? '' })), CUSTOM_DEST])
     flash('Added to Library.')
     return code
@@ -238,6 +241,7 @@ export default function AdminProposalsPage() {
               row={r}
               originOpts={originOpts}
               destOpts={destOpts}
+              libLocs={libLocs}
               onAddLocation={addLocation}
               busy={busy === r.id}
               onApprove={async (capacity, min, price) => {
@@ -341,11 +345,12 @@ export default function AdminProposalsPage() {
 }
 
 function ProposalRowCard({
-  row, originOpts, destOpts, onAddLocation, busy, onApprove, onDecline, onLock, onSaveItinerary, onRemove, onUpdate,
+  row, originOpts, destOpts, libLocs, onAddLocation, busy, onApprove, onDecline, onLock, onSaveItinerary, onRemove, onUpdate,
 }: {
   row: ProposalRow
   originOpts: PlaceOption[]
   destOpts: PlaceOption[]
+  libLocs: LibraryLocation[]
   onAddLocation: (name: string, lat: number, lng: number) => Promise<string | null>
   busy: boolean
   onApprove: (capacity: number, min: number, price: number) => Promise<void>
@@ -570,7 +575,14 @@ function ProposalRowCard({
                   </button>
                   {showPick && (
                     <div style={{ marginTop: 8 }}>
-                      <LocationPicker token={MAPBOX_TOKEN} lat={pickLat} lng={pickLng} onPick={(la, ln) => { setPickLat(la); setPickLng(ln) }} height={240} />
+                      <LocationPicker
+                        token={MAPBOX_TOKEN}
+                        lat={pickLat}
+                        lng={pickLng}
+                        others={libLocs.filter(l => l.lat != null && l.lng != null).map(l => ({ code: l.code, name: l.name, lat: l.lat as number, lng: l.lng as number }))}
+                        onPick={(la, ln) => { setPickLat(la); setPickLng(ln) }}
+                        height={240}
+                      />
                     </div>
                   )}
                 </>
