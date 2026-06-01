@@ -34,13 +34,19 @@ export default function AdminMapPage() {
 
   useEffect(() => {
     async function load() {
-      const [flightsRes, excursionsRes, proposalsRes, airportsRes] = await Promise.all([
+      const [flightsRes, excursionsRes, proposalsRes, airportsRes, templatesRes] = await Promise.all([
         supabase.from('flights').select('id, name, origin_code, dest_code, date, status').in('status', ['open', 'full']),
-        supabase.from('excursions').select('id, name, origin_code, date, status').in('status', ['open', 'full']),
+        supabase.from('excursions').select('id, name, origin_code, date, status, template_id').in('status', ['open', 'full']),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase as any).from('trip_proposals').select('id, name, kind, origin_code, payload, date, status').eq('status', 'open'),
         supabase.from('airports').select('code, name, sub'),
+        supabase.from('excursion_templates').select('id, dest_code'),
       ])
+
+      // template_id → dest_code, so an excursion draws airport → activity.
+      const destByTemplate: Record<string, string> = {}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const t of (templatesRes.data ?? []) as any[]) destByTemplate[t.id] = t.dest_code
 
       const place: Record<string, string> = {}
       for (const a of (airportsRes.data ?? []) as { code: string; name: string; sub: string | null }[]) {
@@ -71,13 +77,18 @@ export default function AdminMapPage() {
       for (const e of (excursionsRes.data ?? []) as any[]) {
         const origin = coordFor(e.origin_code)
         if (!origin) continue
+        // Activity destination: from the template's dest_code, with a name
+        // override for one-off named spots (e.g. Boca Grande tarpon).
+        let destCode: string | null = destByTemplate[e.template_id] ?? null
+        if (/boca grande/i.test(e.name || '')) destCode = 'BOCA'
+        const dest = coordFor(destCode)
         next.push({
           id: e.id,
           kind: 'excursion',
           label: e.name || `Excursion · ${name(e.origin_code)}`,
           sub: `${fmtDate(e.date)} · from ${name(e.origin_code)}`,
           origin,
-          dest: null,
+          dest,
           href: `/reserve/${e.id}?kind=excursion`,
           accent: ACCENT.excursion,
         })

@@ -22,22 +22,23 @@ export type RouteItem = {
 
 export type RouteGlobeHandle = { flyTo: (id: string) => void }
 
-// Great-circle interpolation so the arc curves over the globe.
-function greatCircle(a: [number, number], b: [number, number], steps = 72): [number, number][] {
-  const rad = (d: number) => (d * Math.PI) / 180
-  const deg = (r: number) => (r * 180) / Math.PI
-  const lon1 = rad(a[0]), lat1 = rad(a[1]), lon2 = rad(b[0]), lat2 = rad(b[1])
-  const d = 2 * Math.asin(Math.sqrt(Math.sin((lat2 - lat1) / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin((lon2 - lon1) / 2) ** 2))
-  if (!d) return [a, b]
+// Curved "flight-path" arc: a quadratic bezier that bows out from the straight
+// line so every route reads as a pronounced arc (great-circle is near-flat over
+// short domestic hops). The bow scales with distance, capped so it always looks
+// like an arc — not a flat line and not a wild loop.
+function arcCurve(a: [number, number], b: [number, number], steps = 88): [number, number][] {
+  const [ax, ay] = a, [bx, by] = b
+  const dx = bx - ax, dy = by - ay
+  const dist = Math.hypot(dx, dy) || 1
+  // Perpendicular unit vector → push the control point off the midpoint.
+  const px = -dy / dist, py = dx / dist
+  const bow = Math.min(Math.max(dist * 0.28, 0.5), 16)
+  const cx = (ax + bx) / 2 + px * bow
+  const cy = (ay + by) / 2 + py * bow
   const pts: [number, number][] = []
   for (let i = 0; i <= steps; i++) {
-    const f = i / steps
-    const A = Math.sin((1 - f) * d) / Math.sin(d)
-    const B = Math.sin(f * d) / Math.sin(d)
-    const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2)
-    const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2)
-    const z = A * Math.sin(lat1) + B * Math.sin(lat2)
-    pts.push([deg(Math.atan2(y, x)), deg(Math.atan2(z, Math.sqrt(x * x + y * y)))])
+    const t = i / steps, u = 1 - t
+    pts.push([u * u * ax + 2 * u * t * cx + t * t * bx, u * u * ay + 2 * u * t * cy + t * t * by])
   }
   return pts
 }
@@ -161,7 +162,7 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     const features = list.filter(it => it.dest).map(it => ({
       type: 'Feature' as const,
       properties: { color: it.accent },
-      geometry: { type: 'LineString' as const, coordinates: greatCircle(it.origin, it.dest as [number, number]) },
+      geometry: { type: 'LineString' as const, coordinates: arcCurve(it.origin, it.dest as [number, number]) },
     }))
     const data = { type: 'FeatureCollection' as const, features }
 
@@ -169,10 +170,12 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     if (src) { src.setData(data) }
     else {
       map.addSource('routes', { type: 'geojson', data })
-      // Halo + dim base (always visible) + bright flowing dash on top.
-      map.addLayer({ id: 'routes-glow', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 8, 'line-opacity': 0.18, 'line-blur': 10 } })
-      map.addLayer({ id: 'routes-line', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 2, 'line-opacity': 0.55 } })
-      map.addLayer({ id: 'routes-flow', type: 'line', source: 'routes', layout: { 'line-cap': 'butt', 'line-join': 'round' }, paint: { 'line-color': 'rgba(255,255,255,0.92)', 'line-width': 2.6, 'line-dasharray': [0, 4, 3] } })
+      // Three stacked lines for a glowing, high-contrast, 3D-feel arc:
+      // a wide soft halo, a bright accent core, and a white spark flowing
+      // along it.
+      map.addLayer({ id: 'routes-glow', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 16, 'line-opacity': 0.45, 'line-blur': 16 } })
+      map.addLayer({ id: 'routes-core', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 3.5, 'line-opacity': 1 } })
+      map.addLayer({ id: 'routes-flow', type: 'line', source: 'routes', layout: { 'line-cap': 'butt', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 2, 'line-opacity': 0.95, 'line-dasharray': [0, 4, 3] } })
       startFlow(map)
     }
 
