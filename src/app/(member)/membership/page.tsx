@@ -6,6 +6,7 @@ import { fmtDate, fmtHomeBase, tierLabel, tierPill, TRIP_TYPES, canonicalInteres
 import { safeError } from '@/lib/pii-scrub'
 import PageHero from '@/components/PageHero'
 import ThemePicker from '@/components/ThemePicker'
+import PrivacyToggle from '@/components/PrivacyToggle'
 import type { Member, Booking, AnchorSubmission, MemberSensitive } from '@/lib/supabase/types'
 import { type Referral, REFERRAL_STATUS_LABEL, REFERRAL_STATUS_PILL } from '@/lib/referrals'
 
@@ -493,6 +494,17 @@ export default function MembershipPage() {
           <div className="rail">
             {/* Display theme */}
             <ThemePicker />
+
+            {/* Privacy mode */}
+            <PrivacyToggle
+              memberId={member.id}
+              value={member.private_mode ?? false}
+              onChange={(v) => {
+                const next = { ...member, private_mode: v }
+                setMember(next)
+                setCtxMember(next)
+              }}
+            />
 
             {/* Membership details */}
             <div className="panel">

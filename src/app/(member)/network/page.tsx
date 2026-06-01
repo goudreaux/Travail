@@ -211,6 +211,7 @@ export default function NetworkPage() {
   const q = search.trim().toLowerCase()
   const filtered = members.filter(m => {
     if (meId && m.id === meId) return false  // hide self from the directory
+    if (m.private_mode) return false  // privacy mode: not public on directory
     if (q && !(
       m.name.toLowerCase().includes(q) ||
       (m.home_base_code && m.home_base_code.toLowerCase().includes(q)) ||
