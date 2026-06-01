@@ -49,6 +49,9 @@ export default function BoardingPassPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [cancelRequested, setCancelRequested] = useState(false)
+  // Anchor cancellations aren't instant — they submit a request for the
+  // Concierge Team to approve. This flag drives the "request in" confirmation.
+  const [cancelPending, setCancelPending] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [cancelResult, setCancelResult] = useState<{ wasForfeit: boolean; refundCents: number } | null>(null)
@@ -72,6 +75,12 @@ export default function BoardingPassPage() {
       const json = await res.json().catch(() => ({}))
       if (!res.ok) {
         setCancelError(json.error ?? 'Cancellation failed. Try again or contact your concierge.')
+        return
+      }
+      // Anchor cancellations come back pending Concierge approval — not cancelled.
+      if (json.pending) {
+        setCancelPending(true)
+        setCancelOpen(false)
         return
       }
       setCancelResult({ wasForfeit: !!json.was_forfeit, refundCents: json.refund_amount_cents ?? 0 })
@@ -281,7 +290,11 @@ export default function BoardingPassPage() {
             Contact the Concierge Team
           </Link>
           {(booking.status === 'pending' || booking.status === 'approved') && (
-            cancelRequested && cancelResult ? (
+            cancelPending ? (
+              <span className="pill sun" style={{ height: 34, padding: '0 14px' }} title="The Concierge Team will review your cancellation request">
+                Cancellation requested
+              </span>
+            ) : cancelRequested && cancelResult ? (
               <span
                 className={`pill ${cancelResult.wasForfeit ? 'signal' : 'moss'}`}
                 style={{ height: 34, padding: '0 14px' }}
@@ -345,6 +358,7 @@ export default function BoardingPassPage() {
             windowHours={windowHours}
             amountPaidCents={paidCents}
             recentCancelCount={recentCancelCount}
+            isAnchor={isAnchor}
           />
         )
       })()}

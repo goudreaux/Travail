@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   // Resolve the calling member from the auth user.
   const { data: meRow } = await supabase
-    .from('members').select('id, is_admin').eq('user_id', user.id).maybeSingle()
+    .from('members').select('id, is_admin, name').eq('user_id', user.id).maybeSingle()
   if (!meRow) {
     return NextResponse.json({ error: 'Member record not found' }, { status: 403 })
   }
@@ -97,8 +97,8 @@ export async function POST(req: NextRequest) {
   const isFlight = booking.item_kind === 'flight'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: tripRow } = isFlight
-    ? await db.from('flights').select('id, date, depart_time, status, cancellation_policy').eq('id', booking.item_id).maybeSingle()
-    : await db.from('excursions').select('id, date, depart_time, start_time, status, cancellation_policy').eq('id', booking.item_id).maybeSingle()
+    ? await db.from('flights').select('id, date, depart_time, status, cancellation_policy, anchor_member_id, name').eq('id', booking.item_id).maybeSingle()
+    : await db.from('excursions').select('id, date, depart_time, start_time, status, cancellation_policy, anchor_member_id, name').eq('id', booking.item_id).maybeSingle()
   if (!tripRow) {
     return NextResponse.json({ error: 'Trip not found' }, { status: 404 })
   }
@@ -107,6 +107,34 @@ export async function POST(req: NextRequest) {
 
   if (t.status === 'departed' || t.status === 'completed') {
     return NextResponse.json({ error: 'Trip has already departed' }, { status: 409 })
+  }
+
+  // ─── Anchor guard ──────────────────────────────────────────────────────────
+  // An anchor self-cancelling would strand the committed cabin + the charter,
+  // so anchors can never cancel directly. We log a cancellation request for the
+  // Concierge Team to approve (approval runs the force-cancel, which refunds
+  // every committed pax). Admins acting from the dashboard bypass this.
+  if (t.anchor_member_id && t.anchor_member_id === meRow.id && !meRow.is_admin) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existingReq } = await (db as any)
+      .from('cancellation_requests').select('id').eq('booking_id', booking.id).eq('status', 'open').maybeSingle()
+    if (!existingReq) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (db as any).from('cancellation_requests').insert({ booking_id: booking.id, member_id: meRow.id })
+      try {
+        await notifyOps({
+          kind: 'anchor_cancel_request',
+          member: { name: meRow.name },
+          item: { kind: booking.item_kind as 'flight' | 'excursion', id: booking.item_id, name: t.name, date: t.date },
+          note: `${meRow.name ?? 'An anchor'} requested to cancel the ${booking.item_kind} they anchored ("${t.name}"). Approve in the Queue — approval force-cancels the trip and fully refunds every committed pax.`,
+        })
+      } catch { /* best-effort; the request row is the source of truth */ }
+    }
+    return NextResponse.json({
+      ok: true,
+      pending: true,
+      message: "Anchor cancellations are reviewed by the Concierge Team. Your request is in — we'll be in touch shortly.",
+    })
   }
 
   const departAt = tripDeparture(

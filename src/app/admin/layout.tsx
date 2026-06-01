@@ -28,16 +28,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchPending = useCallback(async () => {
-    const [{ data: bks }, { count: a }, { count: pp }] = await Promise.all([
+    const [{ data: bks }, { count: a }, { count: pp }, { count: cr }] = await Promise.all([
       supabase.from('bookings').select('id').eq('status', 'pending'),
       supabase.from('anchor_submissions').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase as any).from('trip_proposals').select('id', { count: 'exact', head: true }).eq('status', 'pending_ops_review'),
+      // Open cancellation requests (incl. anchor cancels, which need manual
+      // approval) — surface them on the Queue badge so they can't be missed.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from('cancellation_requests').select('id', { count: 'exact', head: true }).eq('status', 'open'),
     ])
     // A round trip is two leg bookings (B-X + B-XR) — count it once.
     const ids = new Set((bks ?? []).map(b => b.id))
     const bookingCount = (bks ?? []).filter(b => !(b.id.endsWith('R') && ids.has(b.id.slice(0, -1)))).length
-    setPendingCount(bookingCount + (a ?? 0))
+    setPendingCount(bookingCount + (a ?? 0) + (cr ?? 0))
     setPendingProposalCount(pp ?? 0)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -50,6 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, fetchPending)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'anchor_submissions' }, fetchPending)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trip_proposals' }, fetchPending)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cancellation_requests' }, fetchPending)
       .subscribe()
 
     return () => { supabase.removeChannel(ch) }

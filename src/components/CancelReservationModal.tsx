@@ -27,12 +27,15 @@ export interface CancelReservationModalProps {
   // soft "this may put your membership under review" notice. No hard
   // block — ops makes the call from the data.
   recentCancelCount?: number    // count in the last 90 days, defaults to 0
+  // Anchor of the trip — they can't self-cancel (it strands the cabin), so the
+  // modal becomes a "request cancellation" flow reviewed by the Concierge Team.
+  isAnchor?: boolean
 }
 
 export function CancelReservationModal({
   open, onClose, onConfirm, submitting, error,
   tripName, tripDate, hoursUntilDeparture, windowHours, amountPaidCents,
-  recentCancelCount = 0,
+  recentCancelCount = 0, isAnchor = false,
 }: CancelReservationModalProps) {
   const insideWindow = hoursUntilDeparture < windowHours
   const departed = hoursUntilDeparture <= 0
@@ -60,9 +63,11 @@ export function CancelReservationModal({
 
   const canConfirm = departed
     ? false  // Trip departed — endpoint refuses anyway
-    : insideWindow
-      ? (ackNoRefund && ackForfeit && forfeitText.trim().toUpperCase() === 'FORFEIT')
-      : ackPoolReturn
+    : isAnchor
+      ? true   // Anchors submit a request (no refund/forfeit math) — no friction acks
+      : insideWindow
+        ? (ackNoRefund && ackForfeit && forfeitText.trim().toUpperCase() === 'FORFEIT')
+        : ackPoolReturn
 
   const hoursLabel = (() => {
     if (hoursUntilDeparture <= 0) return 'Already departed'
@@ -105,7 +110,7 @@ export function CancelReservationModal({
             textTransform: 'uppercase', color: insideWindow ? '#f4a72c' : '#00b3c7',
             fontWeight: 700, marginBottom: 8,
           }}>
-            {insideWindow ? 'Cancellation · inside policy window' : 'Cancel reservation'}
+            {isAnchor ? 'Anchor cancellation · Concierge review' : insideWindow ? 'Cancellation · inside policy window' : 'Cancel reservation'}
           </div>
           <div style={{
             fontFamily: 'var(--display)', fontSize: 24, fontWeight: 700,
@@ -138,6 +143,15 @@ export function CancelReservationModal({
               borderRadius: 10, padding: '14px 16px', color: 'var(--signal)', fontSize: 14, fontWeight: 600,
             }}>
               This trip has already departed. Reservations can't be cancelled after wheels-up, so contact your concierge if you need to discuss.
+            </div>
+          ) : isAnchor ? (
+            <div style={{ background: 'var(--tropic-glow)', border: '1px solid rgba(0,179,199,0.30)', borderRadius: 10, padding: '16px 18px', marginBottom: 4 }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--tropic-d)', fontWeight: 700, marginBottom: 8 }}>
+                Reviewed by the Concierge Team
+              </div>
+              <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.55 }}>
+                You anchored this trip, so it can&rsquo;t be cancelled on the spot &mdash; dropping it affects everyone who&rsquo;s committed. Submit a request and the Concierge Team will review it. If other members are booked, approval fully refunds them.
+              </div>
             </div>
           ) : insideWindow ? (
             <>
@@ -275,7 +289,7 @@ export function CancelReservationModal({
               className="btn-primary"
               style={{
                 flex: 1, height: 46, fontSize: 14, justifyContent: 'center',
-                background: insideWindow ? 'var(--signal)' : undefined,
+                background: insideWindow && !isAnchor ? 'var(--signal)' : undefined,
                 opacity: canConfirm && !submitting ? 1 : 0.5,
                 cursor: canConfirm && !submitting ? 'pointer' : 'not-allowed',
               }}
@@ -284,7 +298,7 @@ export function CancelReservationModal({
             >
               {submitting
                 ? <><span className="pending-indicator" style={{ width: 14, height: 14, borderWidth: 2 }} />Processing…</>
-                : insideWindow ? `Forfeit ${fmtMoney(amountPaidCents / 100)}` : `Cancel & refund ${fmtMoney(amountPaidCents / 100)}`}
+                : isAnchor ? 'Request cancellation' : insideWindow ? `Forfeit ${fmtMoney(amountPaidCents / 100)}` : `Cancel & refund ${fmtMoney(amountPaidCents / 100)}`}
             </button>
           )}
         </div>
