@@ -4,10 +4,11 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-// Clean 2D route map on the light Standard basemap with its labels turned off
-// (only our origins/destinations are labeled). Each route is a gently arched
-// line that runs blue (origin) → gold (destination), with a blue origin dot
-// and a shiny gold, clickable destination dot.
+// Tropical 3D route map. A pitched globe on a warm turquoise/sand basemap
+// (labels + roads stripped), with terrain relief and flight paths that physically
+// arc up into the air — coral at the origin warming to gold at the destination —
+// using Mapbox's native elevated lines (line-z-offset). Bare origin/destination
+// dots; the side list carries the names.
 
 export type RouteItem = {
   id: string
@@ -24,14 +25,31 @@ export type RouteItem = {
 
 export type RouteGlobeHandle = { flyTo: (id: string) => void }
 
-// Gently arched line (slight bow off the straight line) so routes read as arcs
-// without the heavy curve.
-function arcCurve(a: [number, number], b: [number, number], steps = 72): [number, number][] {
+// Rough great-circle distance in km (equirectangular approximation — fine at
+// these regional scales) so each arc's peak height scales with its length.
+function distKm(a: [number, number], b: [number, number]): number {
+  const R = 6371, toR = Math.PI / 180
+  const dLat = (b[1] - a[1]) * toR
+  const dLon = (b[0] - a[0]) * toR
+  const lat = ((a[1] + b[1]) / 2) * toR
+  const x = dLon * Math.cos(lat), y = dLat
+  return Math.sqrt(x * x + y * y) * R
+}
+
+// Peak height (metres) of the airborne arc — taller for longer hops, clamped so
+// short and long routes both read well at the map's pitch.
+function arcPeak(a: [number, number], b: [number, number]): number {
+  return Math.min(Math.max(distKm(a, b) * 95, 32000), 190000)
+}
+
+// Mostly-straight ground track with a faint horizontal bow; the dramatic curve
+// comes from the vertical arc (line-z-offset), not the geometry.
+function arcCurve(a: [number, number], b: [number, number], steps = 96): [number, number][] {
   const [ax, ay] = a, [bx, by] = b
   const dx = bx - ax, dy = by - ay
   const dist = Math.hypot(dx, dy) || 1
   const px = -dy / dist, py = dx / dist
-  const bow = Math.min(Math.max(dist * 0.12, 0.22), 6)
+  const bow = Math.min(Math.max(dist * 0.05, 0.06), 1.2)
   const cx = (ax + bx) / 2 + px * bow
   const cy = (ay + by) / 2 + py * bow
   const pts: [number, number][] = []
@@ -41,6 +59,10 @@ function arcCurve(a: [number, number], b: [number, number], steps = 72): [number
   }
   return pts
 }
+
+// Parabolic vertical profile: 0 at both ends (flush with the ground dots),
+// peaking at the route's midpoint. Scaled per-feature by its `peak` property.
+const ARC_Z = ['*', ['get', 'peak'], ['-', 1, ['^', ['-', ['*', 2, ['line-progress']], 1], 2]]]
 
 type Props = { token: string; items: RouteItem[]; onOpen: (href: string) => void }
 
@@ -57,7 +79,7 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
   useImperativeHandle(ref, () => ({
     flyTo(id: string) {
       const c = coordsRef.current[id]
-      if (c && mapRef.current) mapRef.current.flyTo({ center: c, zoom: 7, speed: 0.7, essential: true })
+      if (c && mapRef.current) mapRef.current.flyTo({ center: c, zoom: 7.4, pitch: 62, speed: 0.7, essential: true })
     },
   }))
 
@@ -73,9 +95,10 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
         // base labels (only our origin/destination markers carry text).
         style: 'mapbox://styles/mapbox/light-v11',
         projection: 'globe',
-        center: [-82.2, 27.6],
-        zoom: 5.8,
-        pitch: 0,
+        center: [-82.0, 26.7],
+        zoom: 5.3,
+        pitch: 62,        // tilt the camera so the airborne arcs read as 3D
+        bearing: -17,
         attributionControl: false,
       })
     } catch (e) {
@@ -83,7 +106,8 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
       return
     }
     mapRef.current = map
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right')
+    // Compass lets you spin the 3D scene and reset north.
+    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'bottom-right')
 
     map.on('style.load', () => {
       // Recolor the basemap into a warm, tropical palette — turquoise seas,
@@ -108,6 +132,15 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
           else set(id, 'fill-color', SAND)
         }
       }
+      // Terrain relief for genuine 3D land (gentle exaggeration — the footprint
+      // is mostly low coastal Florida, but it gives the globe real depth).
+      try {
+        if (!map.getSource('mapbox-dem')) {
+          map.addSource('mapbox-dem', { type: 'raster-dem', url: 'mapbox://mapbox.mapbox-terrain-dem-v1', tileSize: 512, maxzoom: 14 })
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(map as any).setTerrain({ source: 'mapbox-dem', exaggeration: 1.15 })
+      } catch { /* terrain unsupported — arcs + pitch still read 3D */ }
       // Warm tropical atmosphere around the globe — golden haze into a soft
       // aqua-cream sky.
       map.setFog({ color: 'rgb(252,244,222)', 'high-color': 'rgb(255,214,140)', 'horizon-blend': 0.06, 'space-color': 'rgb(208,236,233)', 'star-intensity': 0 })
@@ -146,25 +179,36 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     markersRef.current.forEach(m => m.remove()); markersRef.current = []
     const coords: Record<string, [number, number]> = {}
 
-    const features = list.filter(it => it.dest).map(it => ({
-      type: 'Feature' as const,
-      properties: {},
-      geometry: { type: 'LineString' as const, coordinates: arcCurve(it.origin, it.dest as [number, number]) },
-    }))
+    const features = list.filter(it => it.dest).map(it => {
+      const o = it.origin, d = it.dest as [number, number]
+      return {
+        type: 'Feature' as const,
+        properties: { peak: arcPeak(o, d) },
+        geometry: { type: 'LineString' as const, coordinates: arcCurve(o, d) },
+      }
+    })
     const data = { type: 'FeatureCollection' as const, features }
 
     const src = map.getSource('routes') as mapboxgl.GeoJSONSource | undefined
     if (src) { src.setData(data) }
     else {
       map.addSource('routes', { type: 'geojson', data, lineMetrics: true })
-      // Soft white casing lifts the line off the water, then a tropical sunset
-      // core: coral at the origin warming to gold at the destination.
-      map.addLayer({ id: 'routes-casing', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 6, 'line-opacity': 0.85 } })
+      // Elevated lines: each arc bows up off the surface (line-z-offset) and
+      // lands flush on the dots. Soft white casing underneath, then a tropical
+      // sunset core — coral at the origin warming to gold at the destination.
+      // line-z-offset / line-elevation-reference aren't in the typings yet.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      map.addLayer({
+        id: 'routes-casing', type: 'line', source: 'routes',
+        layout: { 'line-cap': 'round', 'line-join': 'round', 'line-elevation-reference': 'ground', 'line-z-offset': ARC_Z },
+        paint: { 'line-color': '#ffffff', 'line-width': 6, 'line-opacity': 0.8, 'line-emissive-strength': 1 },
+      } as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       map.addLayer({
         id: 'routes-core', type: 'line', source: 'routes',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-width': 3.2, 'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, '#ff7a4d', 0.5, '#ff9b3d', 1, '#f6c233'] },
-      })
+        layout: { 'line-cap': 'round', 'line-join': 'round', 'line-elevation-reference': 'ground', 'line-z-offset': ARC_Z },
+        paint: { 'line-width': 3.2, 'line-emissive-strength': 1, 'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, '#ff7a4d', 0.5, '#ff9b3d', 1, '#f6c233'] },
+      } as any)
     }
 
     // Markers are bare dots — no text labels (the side list carries the names).
