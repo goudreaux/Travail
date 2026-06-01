@@ -4,9 +4,10 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-// Minimal, robust route globe. Draws great-circle arcs + clickable pins for
-// each route over a satellite globe. Kept deliberately simple: no idle-spin,
-// no Standard-style config — just init, paint, fly, and a clear error state.
+// Route globe on the Mapbox Standard (v3) style — soft 3D terrain + dusk
+// lighting + atmosphere. Each route draws an origin dot, a great-circle arc
+// with an animated "flight path" flowing along it, and a clickable
+// destination pin.
 
 export type RouteItem = {
   id: string
@@ -22,7 +23,7 @@ export type RouteItem = {
 export type RouteGlobeHandle = { flyTo: (id: string) => void }
 
 // Great-circle interpolation so the arc curves over the globe.
-function greatCircle(a: [number, number], b: [number, number], steps = 64): [number, number][] {
+function greatCircle(a: [number, number], b: [number, number], steps = 72): [number, number][] {
   const rad = (d: number) => (d * Math.PI) / 180
   const deg = (r: number) => (r * 180) / Math.PI
   const lon1 = rad(a[0]), lat1 = rad(a[1]), lon2 = rad(b[0]), lat2 = rad(b[1])
@@ -41,6 +42,14 @@ function greatCircle(a: [number, number], b: [number, number], steps = 64): [num
   return pts
 }
 
+// Dash-array sequence for the flowing "ant-march" flight path (Mapbox's
+// canonical animate-a-line technique).
+const DASH_SEQ: number[][] = [
+  [0, 4, 3], [0.5, 4, 2.5], [1, 4, 2], [1.5, 4, 1.5], [2, 4, 1], [2.5, 4, 0.5],
+  [3, 4, 0], [0, 0.5, 3, 3.5], [0, 1, 3, 3], [0, 1.5, 3, 2.5], [0, 2, 3, 2],
+  [0, 2.5, 3, 1.5], [0, 3, 3, 1], [0, 3.5, 3, 0.5],
+]
+
 type Props = { token: string; items: RouteItem[]; onOpen: (href: string) => void }
 
 function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGlobeHandle>) {
@@ -48,6 +57,7 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
   const coordsRef = useRef<Record<string, [number, number]>>({})
+  const rafRef = useRef<number | null>(null)
   const onOpenRef = useRef(onOpen); onOpenRef.current = onOpen
   const itemsRef = useRef(items); itemsRef.current = items
   const [error, setError] = useState<string | null>(null)
@@ -56,7 +66,7 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
   useImperativeHandle(ref, () => ({
     flyTo(id: string) {
       const c = coordsRef.current[id]
-      if (c && mapRef.current) mapRef.current.flyTo({ center: c, zoom: 5.2, speed: 0.7, essential: true })
+      if (c && mapRef.current) mapRef.current.flyTo({ center: c, zoom: 6, pitch: 45, speed: 0.7, essential: true })
     },
   }))
 
@@ -68,7 +78,7 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     try {
       map = new mapboxgl.Map({
         container: containerRef.current,
-        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        style: 'mapbox://styles/mapbox/standard',
         projection: 'globe',
         center: [-82, 25.5],
         zoom: 4.2,
@@ -82,6 +92,8 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right')
 
     map.on('style.load', () => {
+      // Warm "dusk" lighting on the Standard basemap + a golden atmosphere.
+      try { map.setConfigProperty('basemap', 'lightPreset', 'dusk') } catch { /* style may not support it */ }
       map.setFog({ color: 'rgb(255,224,181)', 'high-color': 'rgb(36,92,110)', 'horizon-blend': 0.04, 'space-color': 'rgb(11,24,30)', 'star-intensity': 0.12 })
     })
     map.on('load', () => { map.resize(); setReady(true); paint() })
@@ -97,6 +109,7 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     })
 
     return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
       markersRef.current.forEach(m => m.remove()); markersRef.current = []
       map.remove(); mapRef.current = null
     }
@@ -104,6 +117,38 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
 
   // Repaint when data changes (once the style is ready).
   useEffect(() => { if (ready) paint() }, [items, ready]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function startFlow(map: mapboxgl.Map) {
+    if (rafRef.current != null) return
+    let last = -1
+    const tick = (ts: number) => {
+      const step = Math.floor((ts / 95) % DASH_SEQ.length)
+      if (step !== last && map.getLayer('routes-flow')) {
+        map.setPaintProperty('routes-flow', 'line-dasharray', DASH_SEQ[step])
+        last = step
+      }
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+  }
+
+  function originEl(accent: string): HTMLElement {
+    const o = document.createElement('div')
+    o.className = 'route-origin'
+    o.style.setProperty('--mk', accent)
+    return o
+  }
+
+  function destEl(it: RouteItem): HTMLElement {
+    const el = document.createElement('button')
+    el.type = 'button'
+    el.className = 'route-marker'
+    el.setAttribute('aria-label', it.label)
+    el.style.setProperty('--mk', it.accent)
+    el.innerHTML = '<span class="route-marker__dot"></span><span class="route-marker__pulse"></span>'
+    el.addEventListener('click', ev => { ev.stopPropagation(); onOpenRef.current(it.href) })
+    return el
+  }
 
   function paint() {
     const map = mapRef.current
@@ -124,22 +169,25 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     if (src) { src.setData(data) }
     else {
       map.addSource('routes', { type: 'geojson', data })
-      map.addLayer({ id: 'routes-glow', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 7, 'line-opacity': 0.25, 'line-blur': 8 } })
-      map.addLayer({ id: 'routes-line', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 2.4 } })
+      // Halo + dim base (always visible) + bright flowing dash on top.
+      map.addLayer({ id: 'routes-glow', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 8, 'line-opacity': 0.18, 'line-blur': 10 } })
+      map.addLayer({ id: 'routes-line', type: 'line', source: 'routes', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 2, 'line-opacity': 0.55 } })
+      map.addLayer({ id: 'routes-flow', type: 'line', source: 'routes', layout: { 'line-cap': 'butt', 'line-join': 'round' }, paint: { 'line-color': 'rgba(255,255,255,0.92)', 'line-width': 2.6, 'line-dasharray': [0, 4, 3] } })
+      startFlow(map)
     }
 
     for (const it of list) {
       const at = it.dest ?? it.origin
       coords[it.id] = at
-      const el = document.createElement('button')
-      el.type = 'button'
-      el.className = 'route-marker'
-      el.setAttribute('aria-label', it.label)
-      el.style.setProperty('--mk', it.accent)
-      el.innerHTML = '<span class="route-marker__dot"></span><span class="route-marker__pulse"></span>'
-      el.addEventListener('click', ev => { ev.stopPropagation(); onOpenRef.current(it.href) })
+      // Origin dot (only when there's a separate destination).
+      if (it.dest) {
+        const om = new mapboxgl.Marker({ element: originEl(it.accent) }).setLngLat(it.origin).addTo(map)
+        markersRef.current.push(om)
+      }
+      // Clickable destination pin (or the single point for an excursion).
       const popup = new mapboxgl.Popup({ offset: 16, closeButton: false, className: 'route-popup' })
         .setHTML(`<strong>${it.label}</strong>${it.sub ? `<span>${it.sub}</span>` : ''}`)
+      const el = destEl(it)
       const m = new mapboxgl.Marker({ element: el }).setLngLat(at).setPopup(popup).addTo(map)
       el.addEventListener('mouseenter', () => m.togglePopup())
       el.addEventListener('mouseleave', () => m.togglePopup())

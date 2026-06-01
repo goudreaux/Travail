@@ -8163,6 +8163,13 @@ textarea.input {
 }
 .admin-map-list__open:hover { text-decoration: underline; }
 
+/* Origin dot — the departure end of a route (the destination gets the pin). */
+.route-origin {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--mk, #00b3c7);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
 /* Pulsing trip pin */
 .route-marker {
   position: relative; width: 16px; height: 16px; padding: 0; border: 0;
