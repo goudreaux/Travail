@@ -92,7 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             — the Ops sidebar stays clean. */}
         <Link
           href="/"
-          aria-label="Travail Ops · back to the member app"
+          aria-label="Travail Concierge · back to the member app"
           className="admin-brand"
         >
           <Image
@@ -103,7 +103,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             priority
             className="admin-brand__wordmark"
           />
-          <div className="admin-brand__tag">Ops Dashboard</div>
+          <div className="admin-brand__tag">Concierge Dashboard</div>
         </Link>
         {nav.map(item => (
           <Link key={item.href} href={item.href} style={{
@@ -154,7 +154,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <header className="admin-mobile-top">
         <div className="admin-mobile-top__brand">
           <span className="admin-mobile-top__name">Travail</span>
-          <span className="admin-mobile-top__tag">OPS</span>
+          <span className="admin-mobile-top__tag">CONCIERGE</span>
         </div>
         <Link href="/" className="admin-mobile-top__back" aria-label="Back to member app">
           ← App

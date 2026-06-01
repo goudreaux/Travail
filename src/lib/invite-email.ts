@@ -105,8 +105,8 @@ function brandedInviteEmail(p: InviteEmailParams, first: string, isReset: boolea
     : 'You&rsquo;ve been invited to Travail &mdash; private aviation and curated experiences with a small, vetted network. Tap below to set up your account; it takes about a minute.'
   const cta = isReset ? 'Set a new password &rarr;' : 'Set up your account &rarr;'
   const footnote = isReset
-    ? 'If you didn&rsquo;t ask to reset your password, you can safely ignore this email. Questions? Reply and Ops will follow up.'
-    : 'This invitation is just for you and expires in 30 days. Questions? Reply to this email and Ops will follow up.'
+    ? 'If you didn&rsquo;t ask to reset your password, you can safely ignore this email. Questions? Reply and the Concierge Team will follow up.'
+    : 'This invitation is just for you and expires in 30 days. Questions? Reply to this email and the Concierge Team will follow up.'
   const title = isReset ? 'Reset your Travail password' : 'Your invitation to Travail'
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>

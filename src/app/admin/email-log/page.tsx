@@ -28,7 +28,7 @@ const KIND_FILTERS = [
   { key: 'pax_trip_complete',    label: 'Trip wrapped' },
   { key: 'trip_cancelled',       label: 'Cancelled' },
   { key: 'notify_email',         label: 'In-app' },
-  { key: 'ops_notify',           label: 'Ops alerts' },
+  { key: 'ops_notify',           label: 'Concierge alerts' },
 ] as const
 
 const KIND_PILL: Record<string, string> = {
@@ -102,7 +102,7 @@ export default function EmailLogPage() {
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Email log</h1>
         <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>
-          Every transactional email: member receipts, settlements, cancellations, ops alerts. The structured twin of the ops@ BCC paper trail.
+          Every transactional email: member receipts, settlements, cancellations, Concierge alerts. The structured twin of the ops@ BCC paper trail.
         </p>
       </div>
 

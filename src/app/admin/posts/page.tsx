@@ -132,7 +132,7 @@ export default function PostsPage() {
           <div className="field">
             <label className="field-lab">Author</label>
             <select className="select" value={authorKind} onChange={e => setAuthorKind(e.target.value as 'ops' | 'member')}>
-              <option value="ops">Travail Ops (system)</option>
+              <option value="ops">Travail Concierge (system)</option>
               <option value="member">Specific Member</option>
             </select>
           </div>
@@ -185,7 +185,7 @@ export default function PostsPage() {
               </div>
               <div>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
-                  {authorKind === 'ops' ? 'Travail Ops' : (members.find(m => m.id === authorMemberId)?.name ?? 'Member')}
+                  {authorKind === 'ops' ? 'Travail Concierge' : (members.find(m => m.id === authorMemberId)?.name ?? 'Member')}
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink-light)' }}>Just now · {kind.replace('_', ' ')}</div>
               </div>
@@ -240,7 +240,7 @@ export default function PostsPage() {
                         {p.author_kind === 'system' ? 'T' : (p.author?.initials ?? '?')}
                       </div>
                       <span style={{ fontWeight: 500, color: 'var(--ink)', fontSize: 13 }}>
-                        {p.author_kind === 'system' ? 'Travail Ops' : (p.author?.name ?? 'Unknown')}
+                        {p.author_kind === 'system' ? 'Travail Concierge' : (p.author?.name ?? 'Unknown')}
                       </span>
                     </div>
                   </td>

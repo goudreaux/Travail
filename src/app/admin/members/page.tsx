@@ -763,7 +763,7 @@ export default function MembersPage() {
             <div className="toggle-row" style={{ border: 'none', padding: 0 }}>
               <div>
                 <div className="t-lab">Admin Access</div>
-                <div className="t-sub">Can access Ops Dashboard</div>
+                <div className="t-sub">Can access Concierge Dashboard</div>
               </div>
               <Toggle on={form.is_admin} onChange={v => setForm(f => ({ ...f, is_admin: v }))} />
             </div>

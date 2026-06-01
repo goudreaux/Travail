@@ -205,7 +205,7 @@ export async function sendBookingReceiptEmail(p: BookingReceiptEmailParams): Pro
     '',
     "Cancellations more than 72 hours from departure get a full refund. Inside the 72-hour window, the seat forfeits per policy.",
     '',
-    'Questions? Reply to this email and Ops will follow up.',
+    'Questions? Reply to this email and the Concierge Team will follow up.',
   ].filter(Boolean).join('\n')
 
   const html = brandedBookingReceiptEmail(p)
@@ -286,7 +286,7 @@ function brandedBookingReceiptEmail(p: BookingReceiptEmailParams): string {
 
         <!-- Footer -->
         <tr><td style="padding:14px 36px 22px;border-top:1px solid rgba(13,51,64,0.08);">
-          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions, changes, or roster updates? Reply to this email and Ops will follow up.</div>
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions, changes, or roster updates? Reply to this email and the Concierge Team will follow up.</div>
         </td></tr>
       </table>
     </td></tr>
@@ -329,18 +329,18 @@ export async function sendTripCancelledEmail(p: TripCancelledEmailParams): Promi
     : `${p.tripName} cancelled`
 
   const text = [
-    `${p.tripName} has been cancelled by Travail Ops.`,
+    `${p.tripName} has been cancelled by Travail Concierge.`,
     p.tripDate ? `Trip date: ${p.tripDate}` : null,
     '',
     p.refundCents > 0
       ? `A full refund of ${fmtMoney(p.refundCents)} has been issued to your card, including any service fees. Travail eats those on a force-cancel; you're not out anything.`
       : 'No payment was on file to refund.',
     '',
-    p.reason ? `Reason from Ops: ${p.reason}` : null,
+    p.reason ? `Reason from the Concierge Team: ${p.reason}` : null,
     p.refundId ? `Stripe refund: ${p.refundId}` : null,
     '',
     'Refunds typically appear on your card within 5–10 business days.',
-    'Questions? Reply to this email and Ops will follow up.',
+    'Questions? Reply to this email and the Concierge Team will follow up.',
   ].filter(Boolean).join('\n')
 
   const html = brandedTripCancelledEmail(p)
@@ -404,11 +404,11 @@ function brandedTripCancelledEmail(p: TripCancelledEmailParams): string {
         <tr><td style="padding:8px 36px 22px;">
           <div style="font-size:14px;color:#1f4856;line-height:1.6;">
             ${p.role === 'anchor'
-              ? `Travail Ops cancelled <strong>${escapeHtml(p.tripName)}</strong>. Because Travail initiated the cancel, your full capture has been refunded, including the 3% service fee that's normally non-refundable.`
-              : `Travail Ops cancelled <strong>${escapeHtml(p.tripName)}</strong>. Because Travail initiated the cancel, your full payment has been refunded, including any service fees.`}
+              ? `Travail Concierge cancelled <strong>${escapeHtml(p.tripName)}</strong>. Because Travail initiated the cancel, your full capture has been refunded, including the 3% service fee that's normally non-refundable.`
+              : `Travail Concierge cancelled <strong>${escapeHtml(p.tripName)}</strong>. Because Travail initiated the cancel, your full payment has been refunded, including any service fees.`}
           </div>
           ${p.reason ? `<div style="background:rgba(244,167,44,0.08);border-left:3px solid #f4a72c;border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:#1f4b5b;line-height:1.55;margin-top:18px;">
-            <strong style="color:#0d3340;font-weight:700;">Note from Ops:</strong> ${escapeHtml(p.reason)}
+            <strong style="color:#0d3340;font-weight:700;">Note from the Concierge Team:</strong> ${escapeHtml(p.reason)}
           </div>` : ''}
         </td></tr>
 
@@ -432,7 +432,7 @@ function brandedTripCancelledEmail(p: TripCancelledEmailParams): string {
 
         <!-- Footer -->
         <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
-          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;margin-bottom:10px;">Refunds typically land on your card within 5–10 business days depending on your card issuer. Questions? Reply to this email and Ops will follow up.</div>
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;margin-bottom:10px;">Refunds typically land on your card within 5–10 business days depending on your card issuer. Questions? Reply to this email and the Concierge Team will follow up.</div>
         </td></tr>
       </table>
     </td></tr>
@@ -534,7 +534,7 @@ function brandedPaxTripCompleteEmail(p: PaxTripCompleteParams): string {
 
         <!-- Footer -->
         <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
-          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions about your trip or need a different receipt format? Reply to this email and Ops will follow up.</div>
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions about your trip or need a different receipt format? Reply to this email and the Concierge Team will follow up.</div>
         </td></tr>
       </table>
     </td></tr>
@@ -596,7 +596,7 @@ export async function sendSettlementEmail(p: SettlementEmailParams): Promise<voi
     '',
     p.refundId ? `Stripe refund id: ${p.refundId}` : null,
     '',
-    'Questions? Reply to this email and Ops will follow up.',
+    'Questions? Reply to this email and the Concierge Team will follow up.',
   ].filter(Boolean).join('\n')
 
   const html = brandedSettlementEmail(p, filled, fullFill)
@@ -698,7 +698,7 @@ function brandedSettlementEmail(p: SettlementEmailParams, filled: boolean, fullF
         <!-- Footer -->
         <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
           <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;margin-bottom:10px;">
-            Refunds usually land within 5–10 business days depending on your card issuer. Questions? Reply to this email and Ops will follow up.
+            Refunds usually land within 5–10 business days depending on your card issuer. Questions? Reply to this email and the Concierge Team will follow up.
           </div>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
             <tr>
@@ -755,7 +755,7 @@ export async function sendSubscriptionWelcomeEmail(p: SubscriptionWelcomeParams)
     '  • Anchor your own charter or excursion',
     '  • Connect with the rest of the network',
     '',
-    'Questions about your membership? Reply to this email and Ops will follow up.',
+    'Questions about your membership? Reply to this email and the Concierge Team will follow up.',
   ].join('\n')
 
   const html = brandedSubscriptionWelcomeEmail(p)
@@ -816,7 +816,7 @@ function brandedSubscriptionWelcomeEmail(p: SubscriptionWelcomeParams): string {
         </td></tr>
 
         <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
-          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions about your membership? Reply to this email and Ops will follow up.</div>
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions about your membership? Reply to this email and the Concierge Team will follow up.</div>
         </td></tr>
       </table>
     </td></tr>
@@ -850,7 +850,7 @@ export async function sendSubscriptionPastDueEmail(p: SubscriptionPastDueParams)
     '',
     p.hostedInvoiceUrl ? `Update your card or pay this invoice directly: ${p.hostedInvoiceUrl}` : 'Update your card from your membership page in the app.',
     '',
-    'Ops has been notified and will reach out shortly. Questions in the meantime? Reply to this email.',
+    'The Concierge Team has been notified and will reach out shortly. Questions in the meantime? Reply to this email.',
   ].join('\n')
 
   const html = brandedSubscriptionPastDueEmail(p)
@@ -910,7 +910,7 @@ function brandedSubscriptionPastDueEmail(p: SubscriptionPastDueParams): string {
         </td></tr>
 
         <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
-          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Ops has been notified and will reach out. Reply to this email if you want to discuss before then.</div>
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">The Concierge Team has been notified and will reach out. Reply to this email if you want to discuss before then.</div>
         </td></tr>
       </table>
     </td></tr>
@@ -939,7 +939,7 @@ export async function sendSubscriptionCancelledEmail(p: SubscriptionCancelledPar
     '',
     "If you change your mind, you're welcome back anytime. Note that re-subscribing later will be at the current public rate, not the founding rate you had.",
     '',
-    'Questions or feedback on the way out? Reply to this email and Ops will read it personally.',
+    'Questions or feedback on the way out? Reply to this email and the Concierge Team will read it personally.',
   ].join('\n')
 
   const html = brandedSubscriptionCancelledEmail(p)
@@ -986,7 +986,7 @@ function brandedSubscriptionCancelledEmail(p: SubscriptionCancelledParams): stri
         </td></tr>
 
         <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
-          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions or feedback? Reply to this email and Ops will read it personally.</div>
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions or feedback? Reply to this email and the Concierge Team will read it personally.</div>
         </td></tr>
       </table>
     </td></tr>
@@ -1036,7 +1036,7 @@ function proposalShell({
           <a href="${escapeHtml(ctaHref)}" style="display:inline-block;padding:13px 24px;background:${accent};color:#fff;text-decoration:none;border-radius:10px;font-size:14px;font-weight:700;font-family:'Inter Tight',sans-serif;letter-spacing:-0.005em;">${escapeHtml(ctaLabel)}</a>
         </td></tr>` : ''}
         <tr><td style="padding:18px 36px 24px;border-top:1px solid rgba(13,51,64,0.08);">
-          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions? Reply to this email and Ops will follow up.</div>
+          <div style="font-size:12.5px;color:#6b7c80;line-height:1.55;">Questions? Reply to this email and the Concierge Team will follow up.</div>
         </td></tr>
       </table>
     </td></tr>
@@ -1057,11 +1057,11 @@ export async function sendProposalSubmittedEmail(p: ProposalEmailBase): Promise<
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) { safeError('sendProposalSubmittedEmail: RESEND_API_KEY not set', { to: p.to }); return }
   const subject = `Proposal submitted · ${p.proposalName}`
-  const text = `Hi ${p.memberName.split(' ')[0]},\n\nYour proposal for "${p.proposalName}" is in the queue for ops review. We'll set the minimum seat count and per-seat price, then the network can start committing.\n\nIf your card declined, your proposal is held, so please retry from the wizard to put a working card on file.\n\nQuestions? Just reply.\n`
+  const text = `Hi ${p.memberName.split(' ')[0]},\n\nYour proposal for "${p.proposalName}" is in the queue for Concierge review. We'll set the minimum seat count and per-seat price, then the network can start committing.\n\nIf your card declined, your proposal is held, so please retry from the wizard to put a working card on file.\n\nQuestions? Just reply.\n`
   const html = proposalShell({
     title: subject, eyebrow: 'Proposal submitted', accent: '#e09418',
-    headline: 'In the queue for ops review.',
-    body: `Your proposal for <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` on <strong>${escapeHtml(p.tripDate)}</strong>` : ''} is being reviewed. Ops will set the minimum commit count and per-seat price, then it goes live for the network.<br/><br/>If your card on file declined, please head back to the wizard and re-save a working card. Your proposal is held until that's done.`,
+    headline: 'In the queue for Concierge review.',
+    body: `Your proposal for <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` on <strong>${escapeHtml(p.tripDate)}</strong>` : ''} is being reviewed. The Concierge Team will set the minimum commit count and per-seat price, then it goes live for the network.<br/><br/>If your card on file declined, please head back to the wizard and re-save a working card. Your proposal is held until that's done.`,
     ctaLabel: 'View my proposals →', ctaHref: 'https://travailclub.com/proposals',
   })
   const resend = new Resend(apiKey)
@@ -1084,11 +1084,11 @@ export async function sendProposalApprovedEmail(p: ProposalApprovedEmailParams):
   if (!apiKey) { safeError('sendProposalApprovedEmail: RESEND_API_KEY not set', { to: p.to }); return }
   const subject = `Approved · ${p.proposalName} · ${p.minSeats} commits needed`
   const expiresStr = p.expiresAt ? new Date(p.expiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : null
-  const text = `Hi ${p.memberName.split(' ')[0]},\n\nOps approved your proposal "${p.proposalName}". It's live on the board now.\n\n  ${p.minSeats} commits needed at $${(p.pricePerSeatCents / 100).toFixed(0)}/seat\n  ${expiresStr ? `Auto-expires on ${expiresStr} if minimum not met` : ''}\n\nShare it with the network. The faster the commits come in, the more confident ops + Tropic can be about locking it.\n`
+  const text = `Hi ${p.memberName.split(' ')[0]},\n\nThe Concierge Team approved your proposal "${p.proposalName}". It's live on the board now.\n\n  ${p.minSeats} commits needed at $${(p.pricePerSeatCents / 100).toFixed(0)}/seat\n  ${expiresStr ? `Auto-expires on ${expiresStr} if minimum not met` : ''}\n\nShare it with the network. The faster the commits come in, the more confident the Concierge Team + Tropic can be about locking it.\n`
   const html = proposalShell({
     title: subject, eyebrow: 'Approved · go live', accent: '#3e8c6d',
     headline: 'Your proposal is on the board.',
-    body: `Ops approved <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''}. It's live for the network right now.<br/><br/><strong>${p.minSeats} commits needed</strong> at <strong>$${(p.pricePerSeatCents / 100).toFixed(0)}/seat</strong>.${expiresStr ? ` Auto-expires on <strong>${escapeHtml(expiresStr)}</strong> if the minimum isn't met.` : ''}<br/><br/>Share it with friends in the network, since momentum matters once the commit window starts ticking.`,
+    body: `The Concierge Team approved <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''}. It's live for the network right now.<br/><br/><strong>${p.minSeats} commits needed</strong> at <strong>$${(p.pricePerSeatCents / 100).toFixed(0)}/seat</strong>.${expiresStr ? ` Auto-expires on <strong>${escapeHtml(expiresStr)}</strong> if the minimum isn't met.` : ''}<br/><br/>Share it with friends in the network, since momentum matters once the commit window starts ticking.`,
     ctaLabel: 'See it on the board →', ctaHref: `https://travailclub.com/reserve/${p.proposalId}?kind=proposal`,
   })
   const resend = new Resend(apiKey)
@@ -1160,11 +1160,11 @@ export async function sendProposalDeclinedEmail(p: ProposalDeclinedEmailParams):
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) { safeError('sendProposalDeclinedEmail: RESEND_API_KEY not set', { to: p.to }); return }
   const subject = `Your proposal was declined · ${p.proposalName}`
-  const text = `Hi ${p.memberName.split(' ')[0]},\n\nOps declined your proposal "${p.proposalName}".\n\n${p.reason ?? 'No specific reason was given, reply to this email and ops will explain.'}\n\nNo charge, feel free to try another proposal whenever you're ready.\n`
+  const text = `Hi ${p.memberName.split(' ')[0]},\n\nThe Concierge Team declined your proposal "${p.proposalName}".\n\n${p.reason ?? 'No specific reason was given, reply to this email and the Concierge Team will explain.'}\n\nNo charge, feel free to try another proposal whenever you're ready.\n`
   const html = proposalShell({
     title: subject, eyebrow: 'Declined', accent: '#c97e0e',
     headline: 'Your proposal was declined.',
-    body: `Ops decided not to move forward with <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''}.<br/><br/>${p.reason ? `<em>${escapeHtml(p.reason)}</em>` : 'No specific reason was attached, reply to this email and ops will explain.'}<br/><br/>No charge to your card, your proposal slot is freed up and you can submit a fresh one whenever you're ready.`,
+    body: `The Concierge Team decided not to move forward with <strong>${escapeHtml(p.proposalName)}</strong>${p.tripDate ? ` (${escapeHtml(p.tripDate)})` : ''}.<br/><br/>${p.reason ? `<em>${escapeHtml(p.reason)}</em>` : 'No specific reason was attached, reply to this email and the Concierge Team will explain.'}<br/><br/>No charge to your card, your proposal slot is freed up and you can submit a fresh one whenever you're ready.`,
     ctaLabel: 'Propose another →', ctaHref: 'https://travailclub.com/propose',
   })
   const resend = new Resend(apiKey)

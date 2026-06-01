@@ -271,7 +271,7 @@ function brandedOpsEmail(p: BrandedOpsEmailParams): string {
 
         <!-- Header band -->
         <tr><td style="background:linear-gradient(135deg,#042128 0%,#0a3340 52%,#073744 100%);padding:24px 32px;color:#fff;">
-          <div style="font-family:'JetBrains Mono','Courier New',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:${p.meta.accent};font-weight:700;margin-bottom:6px;">Ops record · for the books</div>
+          <div style="font-family:'JetBrains Mono','Courier New',monospace;font-size:9.5px;letter-spacing:0.22em;text-transform:uppercase;color:${p.meta.accent};font-weight:700;margin-bottom:6px;">Concierge record · for the books</div>
           <div style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.018em;line-height:1.1;">${escapeHtml(p.meta.label)}</div>
         </td></tr>
 
@@ -311,7 +311,7 @@ function brandedOpsEmail(p: BrandedOpsEmailParams): string {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
             <tr>
               <td style="font-family:'JetBrains Mono','Courier New',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#7c9aa6;line-height:1.6;">
-                Travail · Ops Ledger
+                Travail · Concierge Ledger
               </td>
               <td align="right" style="font-family:'JetBrains Mono','Courier New',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#7c9aa6;">
                 ${escapeHtml(p.tsHuman)}

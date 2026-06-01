@@ -91,7 +91,7 @@ export default function AdminOverview() {
   return (
     <div className="admin-page">
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Operations</h1>
+        <h1 style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>Concierge</h1>
         <p style={{ fontSize: 13, color: 'var(--ink-light)', marginTop: 4, marginBottom: 0 }}>The state of the network at a glance.</p>
       </div>
 
@@ -111,7 +111,7 @@ export default function AdminOverview() {
           </div>
           <div style={{ fontFamily: 'var(--display)', fontSize: 22, color: stats.queue > 0 ? '#fff' : 'var(--ink)' }}>
             {loading ? '…' : stats.queue > 0
-              ? `${stats.queue} item${stats.queue !== 1 ? 's' : ''} need ops action`
+              ? `${stats.queue} item${stats.queue !== 1 ? 's' : ''} need Concierge Team action`
               : 'Queue is clear'}
           </div>
           {stats.queue > 0 && (

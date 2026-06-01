@@ -109,7 +109,7 @@ export function TutorialEditorPanel() {
       >
         <h3 style={{ margin: 0 }}>First-login tutorial · edit copy</h3>
         <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="pill sun" style={{ fontSize: 9.5 }}>OPS COPY</span>
+          <span className="pill sun" style={{ fontSize: 9.5 }}>CONCIERGE COPY</span>
           <span aria-hidden style={{
             fontSize: 16, color: 'var(--ink-light)',
             transition: 'transform 0.18s',

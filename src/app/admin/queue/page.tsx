@@ -313,7 +313,7 @@ export default function QueuePage() {
     await db.from('bookings').insert({ id, member_id: first.member_id, item_kind: itemKind, item_id: itemId, seats: 1, price_per_seat: price, fees: fee, total: price + fee, payment_method: 'card', status: 'pending' })
     await db.from('waitlist').delete().eq('id', first.id)
     try {
-      await supabase.from('notifications').insert({ member_id: first.member_id, kind: 'booking', title: 'A seat opened up', body: 'A seat opened on a trip you waitlisted, Ops is confirming it now.', ref: { item_kind: itemKind, item_id: itemId } } as never)
+      await supabase.from('notifications').insert({ member_id: first.member_id, kind: 'booking', title: 'A seat opened up', body: 'A seat opened on a trip you waitlisted, the Concierge Team is confirming it now.', ref: { item_kind: itemKind, item_id: itemId } } as never)
     } catch { /* supplementary */ }
     logActivity({
       action: 'waitlist_promoted', actor_kind: 'system', subject_member_id: first.member_id,
@@ -341,7 +341,7 @@ export default function QueuePage() {
       if (error) throw error
       await db.from('cancellation_requests').update({ status: 'resolved' }).eq('id', c.id)
       try {
-        await supabase.from('notifications').insert({ member_id: b.member_id, kind: 'booking', title: 'Booking Cancelled', body: 'Your reservation has been cancelled by Ops.', ref: { booking_id: b.id } } as never)
+        await supabase.from('notifications').insert({ member_id: b.member_id, kind: 'booking', title: 'Booking Cancelled', body: 'Your reservation has been cancelled by the Concierge Team.', ref: { booking_id: b.id } } as never)
       } catch { /* supplementary */ }
       if (wasApproved) await promoteWaitlist(b.item_kind, b.item_id)
       logActivity({
@@ -760,7 +760,7 @@ export default function QueuePage() {
       <div style={{ marginBottom: 36 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
           <h1 style={{ fontFamily: 'var(--display)', fontSize: 32, fontWeight: 500, color: 'var(--ink)', margin: 0 }}>
-            Ops Queue
+            Concierge Queue
           </h1>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,

@@ -130,7 +130,7 @@ export default function AdminMapPage() {
           </p>
         </div>
         <span style={{ flexShrink: 0, fontFamily: 'var(--mono)', fontSize: 10.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--tropic-d)', background: 'var(--tropic-glow, rgba(0,179,199,0.12))', borderRadius: 999, padding: '5px 12px' }}>
-          Ops preview
+          Concierge preview
         </span>
       </div>
 
