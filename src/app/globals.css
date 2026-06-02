@@ -8186,6 +8186,15 @@ textarea.input {
   position: absolute; inset: -3px; border-radius: 50%;
   background: #f0b63c; opacity: 0.5; animation: route-pulse 2.2s ease-out infinite;
 }
+/* Count badge — how many routes share this destination. */
+.route-pt__count {
+  position: absolute; top: -7px; right: -8px;
+  min-width: 15px; height: 15px; padding: 0 3px; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 9px; font-weight: 600; line-height: 1;
+  color: #fff; background: #0d3340; border: 1.5px solid #fff; border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(13, 51, 64, 0.4);
+}
 .route-pt__label {
   position: absolute; left: calc(100% + 7px); top: 50%; transform: translateY(-50%);
   /* JetBrains Mono is loaded at 400/500/600 only — using 600 (not 700) so the

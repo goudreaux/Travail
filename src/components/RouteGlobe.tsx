@@ -29,14 +29,23 @@ export type RouteItem = {
 
 export type RouteGlobeHandle = { flyTo: (id: string) => void }
 
-// Gently arched ground track (a horizontal bow off the straight line). Flat
-// lines render reliably at every zoom and camera angle, unlike elevated lines.
-function arcCurve(a: [number, number], b: [number, number], steps = 96): [number, number][] {
+function lineDist(a: [number, number], b: [number, number]): number {
+  return Math.hypot(b[0] - a[0], b[1] - a[1]) || 1
+}
+
+// Default horizontal bow for a single route.
+function baseBow(a: [number, number], b: [number, number]): number {
+  return Math.min(Math.max(lineDist(a, b) * 0.14, 0.25), 6)
+}
+
+// Gently arched ground track with an explicit perpendicular bow (so multiple
+// routes between the same two points can be fanned apart by varying the bow).
+// Flat lines render reliably at every zoom and camera angle.
+function arcCurve(a: [number, number], b: [number, number], bow: number, steps = 96): [number, number][] {
   const [ax, ay] = a, [bx, by] = b
   const dx = bx - ax, dy = by - ay
   const dist = Math.hypot(dx, dy) || 1
   const px = -dy / dist, py = dx / dist
-  const bow = Math.min(Math.max(dist * 0.14, 0.25), 6)
   const cx = (ax + bx) / 2 + px * bow
   const cy = (ay + by) / 2 + py * bow
   const pts: [number, number][] = []
@@ -66,8 +75,9 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
   const itemsRef = useRef(items); itemsRef.current = items
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
-  // The trip whose pin was tapped — shows a preview card before navigating.
-  const [selected, setSelected] = useState<RouteItem | null>(null)
+  // The trips at the tapped pin — one or more routes sharing that endpoint.
+  // Shows a preview card (a list when there's more than one) before navigating.
+  const [selected, setSelected] = useState<RouteItem[] | null>(null)
 
   useImperativeHandle(ref, () => ({
     flyTo(id: string) {
@@ -157,12 +167,14 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
 
   useEffect(() => { if (ready) paint() }, [items, ready]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function ptEl(kind: 'origin' | 'dest', label?: string, onClick?: () => void): HTMLElement {
+  function ptEl(kind: 'origin' | 'dest', label?: string, onClick?: () => void, count = 1): HTMLElement {
     const el = document.createElement(onClick ? 'button' : 'div')
     if (onClick) (el as HTMLButtonElement).type = 'button'
     el.className = `route-pt route-pt--${kind}`
     const labelHtml = label ? `<span class="route-pt__label">${escapeHtml(label)}</span>` : ''
-    el.innerHTML = `<span class="route-pt__dot">${kind === 'dest' ? '<span class="route-pt__pulse"></span>' : ''}</span>${labelHtml}`
+    // Count badge when several routes share this destination.
+    const countHtml = count > 1 ? `<span class="route-pt__count">${count}</span>` : ''
+    el.innerHTML = `<span class="route-pt__dot">${kind === 'dest' ? '<span class="route-pt__pulse"></span>' : ''}</span>${countHtml}${labelHtml}`
     if (onClick) el.addEventListener('click', ev => { ev.stopPropagation(); onClick() })
     return el
   }
@@ -174,13 +186,30 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
 
     markersRef.current.forEach(m => m.remove()); markersRef.current = []
     const coords: Record<string, [number, number]> = {}
+    const key = (c: [number, number]) => `${c[0].toFixed(4)},${c[1].toFixed(4)}`
 
-    const features = list.filter(it => it.dest).map(it => ({
-      type: 'Feature' as const,
-      // Line color correlates with trip type (open seats / excursion / proposal).
-      properties: { color: it.accent },
-      geometry: { type: 'LineString' as const, coordinates: arcCurve(it.origin, it.dest as [number, number]) },
-    }))
+    // Lines: one per route, colored by trip type. Routes that share the same
+    // origin+destination are fanned apart (varying bow) so each colored line
+    // stays visible — a bundle of arcs converging on the single destination dot.
+    const withDest = list.filter(it => it.dest)
+    const lineGroups = new Map<string, RouteItem[]>()
+    for (const it of withDest) {
+      const k = `${key(it.origin)}|${key(it.dest as [number, number])}`
+      const g = lineGroups.get(k); if (g) g.push(it); else lineGroups.set(k, [it])
+    }
+    const features: GeoJSON.Feature[] = []
+    for (const arr of lineGroups.values()) {
+      const n = arr.length
+      arr.forEach((it, i) => {
+        const o = it.origin, d = it.dest as [number, number]
+        const fan = (i - (n - 1) / 2) * Math.max(0.32, lineDist(o, d) * 0.12)
+        features.push({
+          type: 'Feature',
+          properties: { color: it.accent },
+          geometry: { type: 'LineString', coordinates: arcCurve(o, d, baseBow(o, d) + fan) },
+        })
+      })
+    }
     const data = { type: 'FeatureCollection' as const, features }
 
     const src = map.getSource('routes') as mapboxgl.GeoJSONSource | undefined
@@ -206,24 +235,45 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
       })
     }
 
-    // Blue origin dots, gold destination dots. The destination carries a label
-    // beside it and opens a preview card on tap (origin-only items open from
-    // their single dot).
+    // One blue origin dot per unique origin (no label, not clickable).
+    const originSeen = new Set<string>()
+    for (const it of withDest) {
+      const k = key(it.origin)
+      if (originSeen.has(k)) continue
+      originSeen.add(k)
+      const om = new mapboxgl.Marker({ element: ptEl('origin') }).setLngLat(it.origin).addTo(map)
+      markersRef.current.push(om)
+    }
+
+    // One gold destination dot per destination — tapping opens a card listing
+    // every trip going there (a count badge hints when there's more than one).
+    const destGroups = new Map<string, RouteItem[]>()
+    for (const it of withDest) {
+      const k = key(it.dest as [number, number])
+      const g = destGroups.get(k); if (g) g.push(it); else destGroups.set(k, [it])
+      coords[it.id] = it.dest as [number, number]
+    }
+    for (const arr of destGroups.values()) {
+      const head = arr[0]
+      const dm = new mapboxgl.Marker({ element: ptEl('dest', head.destName ?? head.label, () => setSelected(arr), arr.length) })
+        .setLngLat(head.dest as [number, number]).addTo(map)
+      markersRef.current.push(dm)
+    }
+
+    // Origin-only items (e.g. custom proposals with no destination yet) — one
+    // blue dot per location, grouped, tap to preview.
+    const originOnly = new Map<string, RouteItem[]>()
     for (const it of list) {
-      if (it.dest) {
-        coords[it.id] = it.dest
-        const om = new mapboxgl.Marker({ element: ptEl('origin') }).setLngLat(it.origin).addTo(map)
-        const dm = new mapboxgl.Marker({ element: ptEl('dest', it.destName ?? it.label, () => setSelected(it)) })
-          .setLngLat(it.dest).addTo(map)
-        markersRef.current.push(om, dm)
-      } else {
-        // No destination coordinates yet (e.g. a custom proposal) — a single
-        // origin dot (no label; origins are never labelled), tap to preview.
-        coords[it.id] = it.origin
-        const om = new mapboxgl.Marker({ element: ptEl('origin', undefined, () => setSelected(it)) })
-          .setLngLat(it.origin).addTo(map)
-        markersRef.current.push(om)
-      }
+      if (it.dest) continue
+      const k = key(it.origin)
+      const g = originOnly.get(k); if (g) g.push(it); else originOnly.set(k, [it])
+      coords[it.id] = it.origin
+    }
+    for (const arr of originOnly.values()) {
+      const head = arr[0]
+      const om = new mapboxgl.Marker({ element: ptEl('origin', undefined, () => setSelected(arr), arr.length) })
+        .setLngLat(head.origin).addTo(map)
+      markersRef.current.push(om)
     }
     coordsRef.current = coords
   }
@@ -232,8 +282,8 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={containerRef} className="route-globe" />
 
-      {/* Preview card — tap a pin to see the trip before opening its page. */}
-      {selected && (
+      {/* Preview card — tap a pin to see the trip(s) before opening a page. */}
+      {selected && selected.length > 0 && (
         <div style={{
           position: 'absolute', left: 12, right: 12, bottom: 'calc(env(safe-area-inset-bottom) + 14px)',
           maxWidth: 420, margin: '0 auto', zIndex: 5,
@@ -244,53 +294,79 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
             type="button"
             aria-label="Close"
             onClick={() => setSelected(null)}
-            style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'var(--warm, #f1ece0)', color: 'var(--ink-light)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
+            style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'var(--warm, #f1ece0)', color: 'var(--ink-light)', cursor: 'pointer', fontSize: 16, lineHeight: 1, zIndex: 1 }}
           >
             ×
           </button>
-          <div style={{ display: 'flex', gap: 12, paddingRight: 22 }}>
-            {/* Thumbnail */}
-            <div style={{ position: 'relative', width: 72, height: 72, borderRadius: 12, overflow: 'hidden', flexShrink: 0, background: 'var(--warm, #f1ece0)' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={selected.imageUrl || '/trip-default.jpeg'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              {/* Type icon badge */}
-              <span style={{
-                position: 'absolute', bottom: 4, left: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', color: selected.accent,
-                boxShadow: '0 1px 3px rgba(13,51,64,0.3)',
-              }}>
-                {KIND_ICONS[selected.icon ?? (selected.kind === 'flight' ? 'flight' : 'sun')] ?? KIND_ICONS.flight}
-              </span>
-            </div>
-            {/* Text */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: selected.accent, flexShrink: 0 }} />
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 700 }}>
-                  {KIND_TITLE[selected.kind]}
-                </span>
-              </div>
-              <div style={{ fontFamily: 'var(--display)', fontSize: 16.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {selected.destName || selected.label}
-              </div>
-              {selected.price && (
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginTop: 2 }}>
-                  {selected.price}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}> · +3% fee</span>
+
+          {selected.length === 1 ? (
+            // ── Single trip: rich card ──
+            (() => {
+              const it = selected[0]
+              return (
+                <>
+                  <div style={{ display: 'flex', gap: 12, paddingRight: 22 }}>
+                    <div style={{ position: 'relative', width: 72, height: 72, borderRadius: 12, overflow: 'hidden', flexShrink: 0, background: 'var(--warm, #f1ece0)' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={it.imageUrl || '/trip-default.jpeg'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <span style={{ position: 'absolute', bottom: 4, left: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', color: it.accent, boxShadow: '0 1px 3px rgba(13,51,64,0.3)' }}>
+                        {KIND_ICONS[it.icon ?? (it.kind === 'flight' ? 'flight' : 'sun')] ?? KIND_ICONS.flight}
+                      </span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: it.accent, flexShrink: 0 }} />
+                        <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 700 }}>{KIND_TITLE[it.kind]}</span>
+                      </div>
+                      <div style={{ fontFamily: 'var(--display)', fontSize: 16.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {it.destName || it.label}
+                      </div>
+                      {it.price ? (
+                        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginTop: 2 }}>
+                          {it.price}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}> · +3% fee</span>
+                        </div>
+                      ) : it.sub ? (
+                        <div style={{ fontSize: 12, color: 'var(--ink-light)', marginTop: 2 }}>{it.sub}</div>
+                      ) : null}
+                    </div>
+                  </div>
+                  <button type="button" className="btn-primary" onClick={() => { const href = it.href; setSelected(null); onOpenRef.current(href) }} style={{ marginTop: 12, width: '100%' }}>
+                    View details →
+                  </button>
+                </>
+              )
+            })()
+          ) : (
+            // ── Several trips to the same place: a tappable list ──
+            <>
+              <div style={{ paddingRight: 22, marginBottom: 8 }}>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 16.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2 }}>
+                  {selected[0].destName || selected[0].label}
                 </div>
-              )}
-              {!selected.price && selected.sub && (
-                <div style={{ fontSize: 12, color: 'var(--ink-light)', marginTop: 2 }}>{selected.sub}</div>
-              )}
-            </div>
-          </div>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => { const href = selected.href; setSelected(null); onOpenRef.current(href) }}
-            style={{ marginTop: 12, width: '100%' }}
-          >
-            View details →
-          </button>
+                <div style={{ fontSize: 12, color: 'var(--ink-light)', marginTop: 1 }}>{selected.length} trips going here</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 230, overflowY: 'auto' }}>
+                {selected.map(it => (
+                  <button
+                    key={it.id}
+                    type="button"
+                    onClick={() => { const href = it.href; setSelected(null); onOpenRef.current(href) }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', width: '100%', padding: 8, borderRadius: 12, border: '1px solid var(--hair, rgba(13,51,64,0.08))', background: 'var(--paper, #faf6ec)', cursor: 'pointer' }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: '50%', background: '#fff', color: it.accent, flexShrink: 0, boxShadow: '0 1px 3px rgba(13,51,64,0.2)' }}>
+                      {KIND_ICONS[it.icon ?? (it.kind === 'flight' ? 'flight' : 'sun')] ?? KIND_ICONS.flight}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 700 }}>{KIND_TITLE[it.kind]}</span>
+                      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.label}</span>
+                      <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-light)' }}>{it.price ? `${it.price} · +3% fee` : it.sub}</span>
+                    </span>
+                    <span style={{ color: 'var(--ink-faint, #9bb0b5)', flexShrink: 0 }}>›</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
