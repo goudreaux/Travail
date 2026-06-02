@@ -5,24 +5,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import nextDynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
-import { destName as friendlyDestName } from '@/lib/destinations'
-import { fetchLocations, coordsFromLocations, type LibraryLocation } from '@/lib/locations'
+import { loadRouteItems, ROUTE_ACCENT as ACCENT, ROUTE_KIND_LABEL as KIND_LABEL } from '@/lib/route-items'
 import type { RouteItem, RouteGlobeHandle } from '@/components/RouteGlobe'
 
 // Mapbox touches `window`, so the globe is browser-only.
 const RouteGlobe = nextDynamic(() => import('@/components/RouteGlobe'), { ssr: false })
-
-const ACCENT: Record<RouteItem['kind'], string> = {
-  flight: '#00b3c7',
-  excursion: '#5bbfa3',
-  proposal: '#f4a72c',
-}
-
-const KIND_LABEL: Record<RouteItem['kind'], string> = {
-  flight: 'Open seats',
-  excursion: 'Excursion',
-  proposal: 'Proposal',
-}
 
 export default function AdminMapPage() {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ''
@@ -34,109 +21,9 @@ export default function AdminMapPage() {
   const [activeId, setActiveId] = useState<string | null>(null)
 
   useEffect(() => {
-    async function load() {
-      const [flightsRes, excursionsRes, proposalsRes, airportsRes, templatesRes] = await Promise.all([
-        supabase.from('flights').select('id, name, origin_code, dest_code, date, status').in('status', ['open', 'full']),
-        supabase.from('excursions').select('id, name, origin_code, dest_code, date, status, template_id').in('status', ['open', 'full']),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase as any).from('trip_proposals').select('id, name, kind, origin_code, payload, date, status').eq('status', 'open'),
-        fetchLocations(supabase),
-        supabase.from('excursion_templates').select('id, dest_code'),
-      ])
-
-      // template_id → dest_code, so an excursion draws airport → activity.
-      const destByTemplate: Record<string, string> = {}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const t of (templatesRes.data ?? []) as any[]) destByTemplate[t.id] = t.dest_code
-
-      // The Library is the source of truth for names + coordinates.
-      const locs = (airportsRes ?? []) as LibraryLocation[]
-      const place: Record<string, string> = {}
-      for (const a of locs) place[a.code] = a.name
-      const name = (code: string | null | undefined) => (code ? place[code] ?? code : '')
-      const coordFor = (code: string | null | undefined) => coordsFromLocations(locs, code)
-      const fmtDate = (d: string) =>
-        new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-
-      const next: RouteItem[] = []
-
-      for (const f of (flightsRes.data ?? []) as any[]) {
-        const origin = coordFor(f.origin_code)
-        if (!origin) continue
-        const dest = coordFor(f.dest_code)
-        next.push({
-          id: f.id,
-          kind: 'flight',
-          label: `${name(f.origin_code)} → ${name(f.dest_code)}`,
-          sub: `${fmtDate(f.date)}${f.status === 'full' ? ' · Full' : ' · Open seats'}`,
-          origin,
-          dest,
-          originName: name(f.origin_code),
-          destName: name(f.dest_code),
-          href: `/reserve/${f.id}?kind=flight`,
-          accent: ACCENT.flight,
-        })
-      }
-
-      for (const e of (excursionsRes.data ?? []) as any[]) {
-        const origin = coordFor(e.origin_code)
-        if (!origin) continue
-        // Activity destination: the excursion's own dest_code is authoritative;
-        // fall back to the template's dest_code for older rows, then a name
-        // override for legacy one-off spots (e.g. Boca Grande tarpon).
-        let destCode: string | null = e.dest_code ?? destByTemplate[e.template_id] ?? null
-        if (!destCode && /boca grande/i.test(e.name || '')) destCode = 'BOCA'
-        const dest = coordFor(destCode)
-        // Friendly venue name (e.g. "Lake Nona Golf Club"), then the airports
-        // table, then the excursion's own name.
-        const dName = destCode
-          ? (friendlyDestName(destCode) !== destCode ? friendlyDestName(destCode) : (name(destCode) || (e.name || '')))
-          : (e.name || '')
-        next.push({
-          id: e.id,
-          kind: 'excursion',
-          label: e.name || `Excursion · ${name(e.origin_code)}`,
-          sub: `${fmtDate(e.date)} · from ${name(e.origin_code)}`,
-          origin,
-          dest,
-          originName: name(e.origin_code),
-          destName: dName,
-          href: `/reserve/${e.id}?kind=excursion`,
-          accent: ACCENT.excursion,
-        })
-      }
-
-      for (const p of (proposalsRes.data ?? []) as any[]) {
-        const origin = coordFor(p.origin_code)
-        if (!origin) continue
-        // Both flight and excursion proposals store the destination in the
-        // payload (destCode + a human destName). A 'CUSTOM' destCode has no
-        // coordinates yet — it draws as an origin-only pin until the Concierge
-        // Team edits it to a known place.
-        const rawDestCode: string | null = p.payload?.destCode ?? p.payload?.dest_code ?? null
-        const destCode = rawDestCode && rawDestCode !== 'CUSTOM' ? rawDestCode : null
-        const payloadDestName: string | null = p.payload?.destName ?? null
-        const dest = coordFor(destCode)
-        const dName = payloadDestName
-          || (destCode ? (friendlyDestName(destCode) !== destCode ? friendlyDestName(destCode) : name(destCode)) : null)
-        next.push({
-          id: p.id,
-          kind: 'proposal',
-          label: p.name || (dName ? `${name(p.origin_code)} → ${dName}` : name(p.origin_code)),
-          sub: `${fmtDate(p.date)} · Proposal`,
-          origin,
-          dest,
-          originName: name(p.origin_code),
-          destName: dName ?? undefined,
-          href: `/reserve/${p.id}?kind=proposal`,
-          accent: ACCENT.proposal,
-        })
-      }
-
-      setItems(next)
-      setLoading(false)
-    }
-    load().catch(() => setLoading(false))
+    loadRouteItems(supabase)
+      .then(next => { setItems(next); setLoading(false) })
+      .catch(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

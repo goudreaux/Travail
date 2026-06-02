@@ -11,6 +11,7 @@ import { SeatMeter } from '@/components/SeatMeter'
 import { SponsorBadge } from '@/components/SponsorBadge'
 import { isPastBookingCutoff } from '@/lib/trip-timing'
 import { UrgencyTag } from '@/components/UrgencyTag'
+import MemberRouteMap from '@/components/MemberRouteMap'
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 import type { DisplayFlight, DisplayExcursion } from '@/lib/data'
 
@@ -660,6 +661,9 @@ export default function SeatsPage() {
           </>
         )}
       </div>
+
+      {/* Floating Route Map (fed by the same data as the Concierge map). */}
+      <MemberRouteMap />
     </div>
   )
 }
