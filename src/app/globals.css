@@ -8188,7 +8188,9 @@ textarea.input {
 }
 .route-pt__label {
   position: absolute; left: calc(100% + 7px); top: 50%; transform: translateY(-50%);
-  font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.03em;
+  /* JetBrains Mono is loaded at 400/500/600 only — using 600 (not 700) so the
+     label actually renders in JetBrains rather than a fallback monospace. */
+  font-family: "JetBrains Mono", var(--mono), monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.03em;
   color: #0d3340; background: rgba(255, 255, 255, 0.9);
   padding: 1px 6px; border-radius: 6px; white-space: nowrap; pointer-events: none;
   box-shadow: 0 1px 3px rgba(13, 51, 64, 0.2);
