@@ -4,12 +4,18 @@ import { useEffect, useState } from 'react'
 import nextDynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { loadRouteItems, ROUTE_ACCENT, ROUTE_KIND_LABEL } from '@/lib/route-items'
+import { loadRouteItems, ROUTE_ACCENT } from '@/lib/route-items'
 import type { RouteItem } from '@/components/RouteGlobe'
 
 // Mapbox touches window — browser-only.
 const RouteGlobe = nextDynamic(() => import('@/components/RouteGlobe'), { ssr: false })
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ''
+
+const LEGEND_LABEL: Record<RouteItem['kind'], string> = {
+  flight: 'Open seats',
+  excursion: 'Excursions',
+  proposal: 'Proposals',
+}
 
 // Member-facing Route Map: a floating "Map" button (Airbnb-style, above the
 // bottom nav) that opens a full-screen, mobile-friendly map of the live network
@@ -124,7 +130,7 @@ export default function MemberRouteMap() {
                 {present.map(k => (
                   <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: 'var(--ink-soft)', fontWeight: 600 }}>
                     <span style={{ width: 9, height: 9, borderRadius: '50%', background: ROUTE_ACCENT[k] }} />
-                    {ROUTE_KIND_LABEL[k]}{k !== 'excursion' ? 's' : 's'}
+                    {LEGEND_LABEL[k]}
                   </div>
                 ))}
               </div>
