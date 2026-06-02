@@ -13,6 +13,7 @@ import { BookingSuccessSplash } from '@/components/BookingSuccessSplash'
 import { AnchorLiability } from '@/components/AnchorLiability'
 import { ReservePaymentForm } from '@/components/ReservePaymentForm'
 import { fetchRosters, type RosterEntry } from '@/components/Roster'
+import RoutePreview from '@/components/RoutePreview'
 import { ProposalReserveView } from './ProposalReserveView'
 
 // Roster avatar (image or initials) for the FOMO "who's going" block.
@@ -1048,6 +1049,13 @@ export default function ReservePage() {
                 ) : null}
               </div>
             </div>
+
+            {/* Route map — lightweight single-route preview */}
+            {kind === 'flight' && flight ? (
+              <RoutePreview originCode={flight.origin_code} destCode={flight.dest_code} kind="flight" />
+            ) : kind === 'excursion' && excursion ? (
+              <RoutePreview originCode={excursion.origin_code} destCode={excursion.dest_code ?? template?.dest_code ?? null} kind="excursion" />
+            ) : null}
 
             {/* Day plan — excursions only. Bubble-down timeline of the
                 major stops. Falls back to a generated default when the

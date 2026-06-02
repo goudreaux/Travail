@@ -8,6 +8,7 @@ import { getStripe } from '@/lib/stripe-browser'
 import PageHero from '@/components/PageHero'
 import { ProposalCountdown, ProposalDeadlineTag } from '@/components/ProposalCard'
 import { RosterStack, type RosterEntry } from '@/components/Roster'
+import RoutePreview from '@/components/RoutePreview'
 import { asItinerary, generateDefaultItinerary, fmtItineraryTime, type ItineraryStep } from '@/lib/itinerary'
 import { KIND_ICONS } from '@/lib/icons'
 
@@ -501,6 +502,11 @@ function ProposalDetailsPanel({
             <div style={{ color: 'var(--ink)', fontWeight: 500 }}>{v}</div>
           </div>
         ))}
+      </div>
+
+      {/* Route map — lightweight single-route preview */}
+      <div style={{ marginTop: 14 }}>
+        <RoutePreview originCode={proposal.origin_code} destCode={destCode ?? null} kind="proposal" />
       </div>
 
       {/* Day plan — mirrors the flight/excursion reserve pages. Shows the

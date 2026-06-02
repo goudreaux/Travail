@@ -8,6 +8,7 @@ import { fmtDate, fmtDur, fmtMoney, fmtTime, airportCity } from '@/lib/data'
 import { asItinerary, fmtItineraryTime, generateDefaultItinerary, type ItineraryStep } from '@/lib/itinerary'
 import { KIND_ICONS } from '@/lib/icons'
 import { fetchRosters, type RosterEntry } from '@/components/Roster'
+import RoutePreview from '@/components/RoutePreview'
 import type { Member, Booking, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 
 // Read-only itinerary for a booked trip. Opened by tapping a trip card in
@@ -247,6 +248,13 @@ export default function ItineraryPage() {
                   ) : null}
                 </div>
               </div>
+
+              {/* Route map — lightweight single-route preview */}
+              {kind === 'flight' && flight ? (
+                <RoutePreview originCode={flight.origin_code} destCode={flight.dest_code} kind="flight" />
+              ) : kind === 'excursion' && excursion ? (
+                <RoutePreview originCode={excursion.origin_code} destCode={excursion.dest_code ?? template?.dest_code ?? null} kind="excursion" />
+              ) : null}
 
               {/* Day plan — excursions */}
               {kind === 'excursion' && excursion && (() => {
