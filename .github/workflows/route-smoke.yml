@@ -1,0 +1,29 @@
+name: Route smoke
+
+# Hits every static route on a deployed URL and flags broken/blank/error pages.
+# Set a repo variable SMOKE_BASE_URL (Settings → Secrets and variables → Actions
+# → Variables) to your preview/staging URL, e.g. https://travail-preview.vercel.app
+# Runs on demand and daily. No browser, no login, no secrets needed.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 13 * * *' # daily at 13:00 UTC
+
+jobs:
+  route-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run route smoke
+        env:
+          SMOKE_BASE_URL: ${{ vars.SMOKE_BASE_URL }}
+        run: |
+          if [ -z "$SMOKE_BASE_URL" ]; then
+            echo "SMOKE_BASE_URL repo variable not set — skipping. Add it to enable."
+            exit 0
+          fi
+          node scripts/route-smoke.mjs
