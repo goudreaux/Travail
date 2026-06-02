@@ -8,6 +8,7 @@
 
 import { fetchLocations, coordsFromLocations, type LibraryLocation } from '@/lib/locations'
 import { destName as friendlyDestName } from '@/lib/destinations'
+import { fmtMoney } from '@/lib/data'
 import type { RouteItem } from '@/components/RouteGlobe'
 
 export const ROUTE_ACCENT: Record<RouteItem['kind'], string> = {
@@ -27,21 +28,28 @@ type Db = { from: (t: string) => any }
 
 export async function loadRouteItems(supabase: Db): Promise<RouteItem[]> {
   const [flightsRes, excursionsRes, proposalsRes, locs, templatesRes] = await Promise.all([
-    supabase.from('flights').select('id, name, origin_code, dest_code, date, status').in('status', ['open', 'full']),
-    supabase.from('excursions').select('id, name, origin_code, dest_code, date, status, template_id').in('status', ['open', 'full']),
+    supabase.from('flights').select('id, name, origin_code, dest_code, date, status, price_per_seat, image_url').in('status', ['open', 'full']),
+    supabase.from('excursions').select('id, name, origin_code, dest_code, date, status, template_id, icon, price_per_pax, image_url').in('status', ['open', 'full']),
     // Proposals may be denied by RLS in some contexts — tolerate failure.
-    supabase.from('trip_proposals').select('id, name, kind, origin_code, payload, date, status').eq('status', 'open').then(
+    supabase.from('trip_proposals').select('id, name, kind, origin_code, payload, date, status, price_per_seat_cents').eq('status', 'open').then(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (r: any) => r, () => ({ data: [] }),
     ),
     fetchLocations(supabase),
-    supabase.from('excursion_templates').select('id, dest_code'),
+    supabase.from('excursion_templates').select('id, dest_code, icon, price_per_pax'),
   ])
 
-  // template_id → dest_code, so an excursion draws airport → activity.
+  // template_id → dest_code / icon / price, so an excursion draws airport →
+  // activity and the preview card can show the activity icon + price.
   const destByTemplate: Record<string, string> = {}
+  const iconByTemplate: Record<string, string> = {}
+  const priceByTemplate: Record<string, number> = {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const t of (templatesRes.data ?? []) as any[]) destByTemplate[t.id] = t.dest_code
+  for (const t of (templatesRes.data ?? []) as any[]) {
+    destByTemplate[t.id] = t.dest_code
+    if (t.icon) iconByTemplate[t.id] = t.icon
+    if (t.price_per_pax != null) priceByTemplate[t.id] = t.price_per_pax
+  }
 
   // The Library is the source of truth for names + coordinates.
   const locations = (locs ?? []) as LibraryLocation[]
@@ -69,6 +77,10 @@ export async function loadRouteItems(supabase: Db): Promise<RouteItem[]> {
       destName: name(f.dest_code),
       href: `/reserve/${f.id}?kind=flight`,
       accent: ROUTE_ACCENT.flight,
+      imageUrl: f.image_url ?? null,
+      // flights store price in dollars.
+      price: f.price_per_seat ? `${fmtMoney(f.price_per_seat)}/seat` : null,
+      icon: 'flight',
     })
   }
 
@@ -81,6 +93,8 @@ export async function loadRouteItems(supabase: Db): Promise<RouteItem[]> {
     const dName = destCode
       ? (friendlyDestName(destCode) !== destCode ? friendlyDestName(destCode) : (name(destCode) || (e.name || '')))
       : (e.name || '')
+    // excursions store price in dollars; fall back to the template's price.
+    const excPrice = e.price_per_pax || priceByTemplate[e.template_id] || 0
     next.push({
       id: e.id,
       kind: 'excursion',
@@ -92,6 +106,9 @@ export async function loadRouteItems(supabase: Db): Promise<RouteItem[]> {
       destName: dName,
       href: `/reserve/${e.id}?kind=excursion`,
       accent: ROUTE_ACCENT.excursion,
+      imageUrl: e.image_url ?? null,
+      price: excPrice > 0 ? `${fmtMoney(excPrice)}/person` : null,
+      icon: e.icon ?? iconByTemplate[e.template_id] ?? 'fish',
     })
   }
 
@@ -114,6 +131,10 @@ export async function loadRouteItems(supabase: Db): Promise<RouteItem[]> {
       destName: dName ?? undefined,
       href: `/reserve/${p.id}?kind=proposal`,
       accent: ROUTE_ACCENT.proposal,
+      imageUrl: (p.payload?.imageUrl as string | null) ?? null,
+      // proposals store price in CENTS, and may be unset until review.
+      price: p.price_per_seat_cents ? `${fmtMoney(p.price_per_seat_cents / 100)}/seat` : null,
+      icon: p.kind === 'flight' ? 'flight' : 'sun',
     })
   }
 

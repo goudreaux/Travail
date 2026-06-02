@@ -3,6 +3,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
+import { KIND_ICONS } from '@/lib/icons'
 
 // Tropical route map. A gently pitched globe on a soft turquoise/sand basemap
 // (labels + roads stripped), with terrain relief and curved flight-path lines —
@@ -20,6 +21,10 @@ export type RouteItem = {
   destName?: string
   href: string
   accent: string
+  // For the tap-to-preview card:
+  imageUrl?: string | null
+  price?: string | null   // formatted, e.g. "$500/seat"
+  icon?: string           // KIND_ICONS key (flight / fish / golf / …)
 }
 
 export type RouteGlobeHandle = { flyTo: (id: string) => void }
@@ -213,9 +218,9 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
         markersRef.current.push(om, dm)
       } else {
         // No destination coordinates yet (e.g. a custom proposal) — a single
-        // labelled origin dot.
+        // origin dot (no label; origins are never labelled), tap to preview.
         coords[it.id] = it.origin
-        const om = new mapboxgl.Marker({ element: ptEl('origin', it.originName ?? it.label, () => setSelected(it)) })
+        const om = new mapboxgl.Marker({ element: ptEl('origin', undefined, () => setSelected(it)) })
           .setLngLat(it.origin).addTo(map)
         markersRef.current.push(om)
       }
@@ -243,23 +248,41 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
           >
             ×
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
-            <span style={{ width: 9, height: 9, borderRadius: '50%', background: selected.accent, flexShrink: 0 }} />
-            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 700 }}>
-              {KIND_TITLE[selected.kind]}
-            </span>
-          </div>
-          <div style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2, paddingRight: 24 }}>
-            {selected.destName || selected.label}
-          </div>
-          {selected.originName && selected.destName && (
-            <div style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink-light)', marginTop: 3 }}>
-              {selected.originName} → {selected.destName}
+          <div style={{ display: 'flex', gap: 12, paddingRight: 22 }}>
+            {/* Thumbnail */}
+            <div style={{ position: 'relative', width: 72, height: 72, borderRadius: 12, overflow: 'hidden', flexShrink: 0, background: 'var(--warm, #f1ece0)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={selected.imageUrl || '/trip-default.jpeg'} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {/* Type icon badge */}
+              <span style={{
+                position: 'absolute', bottom: 4, left: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', color: selected.accent,
+                boxShadow: '0 1px 3px rgba(13,51,64,0.3)',
+              }}>
+                {KIND_ICONS[selected.icon ?? (selected.kind === 'flight' ? 'flight' : 'sun')] ?? KIND_ICONS.flight}
+              </span>
             </div>
-          )}
-          {selected.sub && (
-            <div style={{ fontSize: 12.5, color: 'var(--ink-soft, #4a6b73)', marginTop: 4 }}>{selected.sub}</div>
-          )}
+            {/* Text */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: selected.accent, flexShrink: 0 }} />
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 700 }}>
+                  {KIND_TITLE[selected.kind]}
+                </span>
+              </div>
+              <div style={{ fontFamily: 'var(--display)', fontSize: 16.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {selected.destName || selected.label}
+              </div>
+              {selected.price && (
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginTop: 2 }}>
+                  {selected.price}<span style={{ fontWeight: 400, fontSize: 11, color: 'var(--ink-light)' }}> · +3% fee</span>
+                </div>
+              )}
+              {!selected.price && selected.sub && (
+                <div style={{ fontSize: 12, color: 'var(--ink-light)', marginTop: 2 }}>{selected.sub}</div>
+              )}
+            </div>
+          </div>
           <button
             type="button"
             className="btn-primary"
