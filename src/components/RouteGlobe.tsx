@@ -42,6 +42,14 @@ function arcCurve(a: [number, number], b: [number, number], steps = 96): [number
   return pts
 }
 
+const KIND_TITLE: Record<RouteItem['kind'], string> = {
+  flight: 'Open seats', excursion: 'Excursion', proposal: 'Proposal',
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
+}
+
 type Props = { token: string; items: RouteItem[]; onOpen: (href: string) => void }
 
 function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGlobeHandle>) {
@@ -53,6 +61,8 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
   const itemsRef = useRef(items); itemsRef.current = items
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
+  // The trip whose pin was tapped — shows a preview card before navigating.
+  const [selected, setSelected] = useState<RouteItem | null>(null)
 
   useImperativeHandle(ref, () => ({
     flyTo(id: string) {
@@ -124,6 +134,8 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
       map.setFog({ color: 'rgb(250,246,234)', 'high-color': 'rgb(238,226,200)', 'horizon-blend': 0.05, 'space-color': 'rgb(224,238,234)', 'star-intensity': 0 })
     })
     map.on('load', () => { map.resize(); setReady(true); paint() })
+    // Tapping empty map dismisses the preview card (marker taps stopPropagation).
+    map.on('click', () => setSelected(null))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     map.on('error', (e: any) => {
       const status = e?.error?.status ?? e?.status
@@ -140,11 +152,12 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
 
   useEffect(() => { if (ready) paint() }, [items, ready]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function ptEl(kind: 'origin' | 'dest', onClick?: () => void): HTMLElement {
+  function ptEl(kind: 'origin' | 'dest', label?: string, onClick?: () => void): HTMLElement {
     const el = document.createElement(onClick ? 'button' : 'div')
     if (onClick) (el as HTMLButtonElement).type = 'button'
     el.className = `route-pt route-pt--${kind}`
-    el.innerHTML = `<span class="route-pt__dot">${kind === 'dest' ? '<span class="route-pt__pulse"></span>' : ''}</span>`
+    const labelHtml = label ? `<span class="route-pt__label">${escapeHtml(label)}</span>` : ''
+    el.innerHTML = `<span class="route-pt__dot">${kind === 'dest' ? '<span class="route-pt__pulse"></span>' : ''}</span>${labelHtml}`
     if (onClick) el.addEventListener('click', ev => { ev.stopPropagation(); onClick() })
     return el
   }
@@ -159,7 +172,8 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
 
     const features = list.filter(it => it.dest).map(it => ({
       type: 'Feature' as const,
-      properties: {},
+      // Line color correlates with trip type (open seats / excursion / proposal).
+      properties: { color: it.accent },
       geometry: { type: 'LineString' as const, coordinates: arcCurve(it.origin, it.dest as [number, number]) },
     }))
     const data = { type: 'FeatureCollection' as const, features }
@@ -167,10 +181,10 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
     const src = map.getSource('routes') as mapboxgl.GeoJSONSource | undefined
     if (src) { src.setData(data) }
     else {
-      map.addSource('routes', { type: 'geojson', data, lineMetrics: true })
-      // Soft white casing under a tropical sunset core (coral at the origin
-      // warming to gold at the destination). Width is zoom-responsive so the
-      // lines stay bold and visible when you zoom out, never hairline-thin.
+      map.addSource('routes', { type: 'geojson', data })
+      // Soft white casing under a core colored by trip type (open seats /
+      // excursion / proposal). Width is zoom-responsive so the lines stay bold
+      // and visible when you zoom out, never hairline-thin.
       const casingWidth = ['interpolate', ['linear'], ['zoom'], 3, 10, 6, 7.5, 10, 6] as unknown
       const coreWidth = ['interpolate', ['linear'], ['zoom'], 3, 5.5, 6, 4, 10, 3.4] as unknown
       map.addLayer({
@@ -183,24 +197,25 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
         id: 'routes-core', type: 'line', source: 'routes',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        paint: { 'line-width': coreWidth as any, 'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, '#ff7a4d', 0.5, '#ff9b3d', 1, '#f6c233'] },
+        paint: { 'line-color': ['get', 'color'] as any, 'line-width': coreWidth as any },
       })
     }
 
-    // Markers are bare dots — no text labels (the side list carries the names).
+    // Blue origin dots, gold destination dots. The destination carries a label
+    // beside it and opens a preview card on tap (origin-only items open from
+    // their single dot).
     for (const it of list) {
       if (it.dest) {
-        // Full route: a blue origin dot + a shiny gold, clickable destination.
         coords[it.id] = it.dest
         const om = new mapboxgl.Marker({ element: ptEl('origin') }).setLngLat(it.origin).addTo(map)
-        const dm = new mapboxgl.Marker({ element: ptEl('dest', () => onOpenRef.current(it.href)) })
+        const dm = new mapboxgl.Marker({ element: ptEl('dest', it.destName ?? it.label, () => setSelected(it)) })
           .setLngLat(it.dest).addTo(map)
         markersRef.current.push(om, dm)
       } else {
-        // No destination coordinates yet (e.g. a custom proposal) — show a
-        // single clickable origin dot.
+        // No destination coordinates yet (e.g. a custom proposal) — a single
+        // labelled origin dot.
         coords[it.id] = it.origin
-        const om = new mapboxgl.Marker({ element: ptEl('origin', () => onOpenRef.current(it.href)) })
+        const om = new mapboxgl.Marker({ element: ptEl('origin', it.originName ?? it.label, () => setSelected(it)) })
           .setLngLat(it.origin).addTo(map)
         markersRef.current.push(om)
       }
@@ -211,6 +226,51 @@ function RouteGlobeInner({ token, items, onOpen }: Props, ref: React.Ref<RouteGl
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={containerRef} className="route-globe" />
+
+      {/* Preview card — tap a pin to see the trip before opening its page. */}
+      {selected && (
+        <div style={{
+          position: 'absolute', left: 12, right: 12, bottom: 'calc(env(safe-area-inset-bottom) + 14px)',
+          maxWidth: 420, margin: '0 auto', zIndex: 5,
+          background: 'var(--card, #fff)', borderRadius: 16, padding: '14px 16px',
+          boxShadow: '0 12px 36px rgba(13,51,64,0.26)', border: '1px solid var(--hair, rgba(13,51,64,0.08))',
+        }}>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={() => setSelected(null)}
+            style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'var(--warm, #f1ece0)', color: 'var(--ink-light)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
+          >
+            ×
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+            <span style={{ width: 9, height: 9, borderRadius: '50%', background: selected.accent, flexShrink: 0 }} />
+            <span style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-light)', fontWeight: 700 }}>
+              {KIND_TITLE[selected.kind]}
+            </span>
+          </div>
+          <div style={{ fontFamily: 'var(--display)', fontSize: 17, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.2, paddingRight: 24 }}>
+            {selected.destName || selected.label}
+          </div>
+          {selected.originName && selected.destName && (
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink-light)', marginTop: 3 }}>
+              {selected.originName} → {selected.destName}
+            </div>
+          )}
+          {selected.sub && (
+            <div style={{ fontSize: 12.5, color: 'var(--ink-soft, #4a6b73)', marginTop: 4 }}>{selected.sub}</div>
+          )}
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => { const href = selected.href; setSelected(null); onOpenRef.current(href) }}
+            style={{ marginTop: 12, width: '100%' }}
+          >
+            View details →
+          </button>
+        </div>
+      )}
+
       {error && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(6,34,43,0.88)', borderRadius: 18, textAlign: 'center' }}>
           <div style={{ maxWidth: 440 }}>

@@ -8163,14 +8163,16 @@ textarea.input {
 }
 .admin-map-list__open:hover { text-decoration: underline; }
 
-/* Route endpoints: blue origin dot, shiny gold destination dot, each with a
-   small white-pill label (the only labels on the decluttered map). */
+/* Route endpoints: blue origin dot, shiny gold destination dot. The marker
+   element is sized to the dot so Mapbox centers the DOT exactly on the
+   coordinate; the label floats beside it (absolutely positioned, so it never
+   nudges the dot off the point). */
 .route-pt {
-  display: flex; align-items: center; gap: 6px;
+  position: relative; width: 13px; height: 13px;
   background: none; border: 0; padding: 0; line-height: 1;
 }
 .route-pt--dest { cursor: pointer; }
-.route-pt__dot { position: relative; width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; }
+.route-pt__dot { position: absolute; inset: 0; border-radius: 50%; }
 .route-pt--origin .route-pt__dot {
   background: #2f80ed;
   box-shadow: 0 0 0 2px #fff, 0 1px 4px rgba(13, 51, 64, 0.45);
@@ -8184,9 +8186,10 @@ textarea.input {
   background: #f0b63c; opacity: 0.5; animation: route-pulse 2.2s ease-out infinite;
 }
 .route-pt__label {
+  position: absolute; left: calc(100% + 7px); top: 50%; transform: translateY(-50%);
   font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.03em;
-  color: #0d3340; background: rgba(255, 255, 255, 0.85);
-  padding: 1px 6px; border-radius: 6px; white-space: nowrap;
+  color: #0d3340; background: rgba(255, 255, 255, 0.9);
+  padding: 1px 6px; border-radius: 6px; white-space: nowrap; pointer-events: none;
   box-shadow: 0 1px 3px rgba(13, 51, 64, 0.2);
 }
 
