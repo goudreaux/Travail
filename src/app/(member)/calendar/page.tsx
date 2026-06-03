@@ -6,6 +6,7 @@ import { useMember } from '@/lib/member-context'
 import { adaptFlight, adaptExcursion, fmtDate, fmtMoney, returnLegIds, MONTHS, DOWS_SHORT } from '@/lib/data'
 import { KIND_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
+import { fetchBlackoutDates } from '@/lib/blackout'
 import type { Flight, Excursion, ExcursionTemplate, Booking } from '@/lib/supabase/types'
 import type { DisplayFlight, DisplayExcursion } from '@/lib/data'
 
@@ -70,6 +71,7 @@ export default function CalendarPage() {
   const [excursions, setExcursions] = useState<DisplayExcursion[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  const [blackoutSet, setBlackoutSet] = useState<Set<string>>(new Set())
 
   const today = new Date()
   const todayIso = isoDate(today.getFullYear(), today.getMonth(), today.getDate())
@@ -131,6 +133,8 @@ export default function CalendarPage() {
 
       setFlights(adaptedFlights)
       setExcursions(adaptedExcursions)
+      // Tropic blackout dates — shown as unavailable on the calendar.
+      try { setBlackoutSet(new Set(await fetchBlackoutDates(supabase))) } catch { /* non-blocking */ }
       setLoading(false)
     }
 
@@ -250,6 +254,20 @@ export default function CalendarPage() {
                           const hasTrips = tripsOnDay.length > 0
                           const tripColor = tripsOnDay[0]?.color.dot ?? 'var(--tropic)'
                           const anyBooked = tripsOnDay.some(t => t.isBooked)
+                          const isBlackout = blackoutSet.has(dateStr) && !hasTrips
+
+                          if (isBlackout) {
+                            return (
+                              <div
+                                key={dateStr}
+                                className={`cal-cell${isToday ? ' today' : ''}`}
+                                title="No aircraft available"
+                                style={{ cursor: 'default', position: 'relative' }}
+                              >
+                                <span style={{ fontSize: 12.5, lineHeight: 1, color: 'var(--signal)', textDecoration: 'line-through', textDecorationColor: 'rgba(217,78,42,0.6)', opacity: 0.85 }}>{day}</span>
+                              </div>
+                            )
+                          }
 
                           return (
                             <div

@@ -9,6 +9,7 @@ import { PROPOSAL_MIN_LEAD_DAYS } from '@/lib/proposals'
 import { ProposerCardForm } from '@/components/ProposerCardForm'
 import { PROPOSAL_ORIGINS, PROPOSAL_DEST_OPTIONS, CUSTOM_DEST } from '@/lib/destinations'
 import { fetchLocations, asOrigins, asDestinations } from '@/lib/locations'
+import { useBlackoutDates } from '@/lib/use-blackout'
 
 // Lightweight flight-proposal form. Mirrors the route-picking
 // vocabulary of the anchor-flight wizard but compresses everything
@@ -24,6 +25,7 @@ function todayPlus(days: number): string {
 export default function ProposeFlightPage() {
   const router = useRouter()
   const supabase = createClient()
+  const blackout = useBlackoutDates()
   // From/To options come from the Location Library; fall back to the built-in
   // list until the library is seeded (or if it can't be reached).
   const [origins, setOrigins] = useState(PROPOSAL_ORIGINS)
@@ -65,6 +67,7 @@ export default function ProposeFlightPage() {
   async function submit() {
     setError(null)
     if (!date) { setError('Pick a date.'); return }
+    if (blackout.has(date)) { setError('Tropic has no aircraft available on that date. Pick another date.'); return }
     if (date < minDate) { setError(`Proposals need at least ${PROPOSAL_MIN_LEAD_DAYS} days of lead time so the network has a chance to commit. For a trip sooner than that, anchor it instead — you commit the charter and open the extra seats.`); return }
     if (isCustomDest && !customDestName.trim()) { setError('Tell us where you want to go, the Concierge Team will confirm with Tropic.'); return }
     if (!isCustomDest && origin === destCode) { setError('Origin and destination must be different.'); return }
@@ -203,6 +206,9 @@ export default function ProposeFlightPage() {
                 <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
                   Earliest: {minDate} ({PROPOSAL_MIN_LEAD_DAYS}-day floor)
                 </div>
+                {date && blackout.has(date) && (
+                  <div style={{ fontSize: 11.5, color: 'var(--signal)', marginTop: 4, fontWeight: 600 }}>✕ No Tropic aircraft available on this date.</div>
+                )}
               </div>
               <div className="field">
                 <label className="field-lab">Suggested depart time</label>

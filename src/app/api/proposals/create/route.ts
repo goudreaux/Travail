@@ -5,6 +5,7 @@ import { stripe } from '@/lib/stripe'
 import { safeError } from '@/lib/pii-scrub'
 import { MAX_ACTIVE_PROPOSALS_PER_MEMBER } from '@/lib/proposals'
 import { canPropose } from '@/lib/trip-timing'
+import { isBlackout } from '@/lib/blackout'
 import { notifyOps } from '@/lib/ops-notify'
 import { assertCanBook } from '@/lib/can-book'
 import { assertTransactionsAllowed } from '@/lib/maintenance'
@@ -125,6 +126,12 @@ export async function POST(req: NextRequest) {
   }
 
   const db = admin()
+
+  // Tropic blackout date — no aircraft available, reject server-side too.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (await isBlackout(db as any, date)) {
+    return NextResponse.json({ error: 'Tropic has no aircraft available on that date. Pick another date.' }, { status: 400 })
+  }
 
   // Cap at MAX_ACTIVE_PROPOSALS_PER_MEMBER active proposals (pending +
   // open) per member so the queue stays manageable.

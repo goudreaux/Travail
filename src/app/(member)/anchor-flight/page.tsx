@@ -8,6 +8,7 @@ import TimeInput from '@/components/TimeInput'
 import { AnchorCardSetup } from '@/components/AnchorCardSetup'
 import { LastMinuteNotice } from '@/components/LastMinuteNotice'
 import { canAnchor } from '@/lib/trip-timing'
+import { useBlackoutDates } from '@/lib/use-blackout'
 import type { AirportMeta } from '@/lib/data'
 
 // Tropic Ocean Airways' scheduled-flight routes — the bases they fly
@@ -136,6 +137,7 @@ export default function AnchorFlightPage() {
 
   const supabase = createClient()
   const router = useRouter()
+  const blackout = useBlackoutDates()
 
   // Anchoring is open to every member. (The membership/timing guards live on
   // the submit path — /api/anchor/setup-intent + canAnchor — not here.)
@@ -159,6 +161,8 @@ export default function AnchorFlightPage() {
     if (s === 1 && isCustomDest && !customDestName.trim()) return 'Tell us where you want to go, we’ll confirm with Tropic.'
     if (s === 2) {
       if (!date) return 'Select a departure date.'
+      if (blackout.has(date)) return 'Tropic has no aircraft available on that date. Pick another date.'
+      if (isRoundTrip && returnDate && blackout.has(returnDate)) return 'Tropic has no aircraft available on the return date. Pick another.'
       if (isRoundTrip && !returnDate) return 'Select a return date.'
       if (isRoundTrip && returnDate < date) return 'Return date must be on or after departure.'
       const gate = canAnchor(date, departTime)
@@ -401,6 +405,9 @@ export default function AnchorFlightPage() {
                 <div className="field">
                   <label className="field-lab">Departure date <span className="req">*</span></label>
                   <input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} min={today} />
+                  {date && blackout.has(date) && (
+                    <div style={{ fontSize: 11.5, color: 'var(--signal)', marginTop: 4, fontWeight: 600 }}>✕ No Tropic aircraft available on this date.</div>
+                  )}
                 </div>
                 <TimeInput label="Departure time" value={departTime} onChange={setDepartTime} />
               </div>

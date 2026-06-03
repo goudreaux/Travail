@@ -9,6 +9,7 @@ import { PROPOSAL_MIN_LEAD_DAYS } from '@/lib/proposals'
 import { ProposerCardForm } from '@/components/ProposerCardForm'
 import { PROPOSAL_DEST_OPTIONS, CUSTOM_DEST } from '@/lib/destinations'
 import { fetchLocations, asOrigins, asDestinations } from '@/lib/locations'
+import { useBlackoutDates } from '@/lib/use-blackout'
 
 // Excursion proposal wizard — same spread-guarantee mechanics as the
 // flight proposal. Free-form name + origin airport + date + party
@@ -25,6 +26,7 @@ interface Airport { code: string; name: string; sub: string | null; role: string
 export default function ProposeExcursionPage() {
   const router = useRouter()
   const supabase = createClient()
+  const blackout = useBlackoutDates()
   const [airports, setAirports] = useState<Airport[]>([])
   const [name, setName] = useState('')
   const [origin, setOrigin] = useState('KTPF')
@@ -67,6 +69,7 @@ export default function ProposeExcursionPage() {
     if (!name.trim()) { setError('Pick a name.'); return }
     if (isCustomDest && !customDestName.trim()) { setError('Tell us where you want to go, the Concierge Team will confirm.'); return }
     if (!date) { setError('Pick a date.'); return }
+    if (blackout.has(date)) { setError('Tropic has no aircraft available on that date. Pick another date.'); return }
     if (date < minDate) { setError(`Proposals need at least ${PROPOSAL_MIN_LEAD_DAYS} days of lead time so the network has a chance to commit. For a trip sooner than that, anchor it instead — you commit the charter and open the extra seats.`); return }
     if (proposerMaxSeats < proposerMinSeats) { setError('Your maximum coverage must be at least your party size.'); return }
     if (proposerMaxSeats > suggestedCapacity) { setError('Your max coverage can\'t exceed capacity.'); return }
@@ -183,6 +186,9 @@ export default function ProposeExcursionPage() {
             <div className="field">
               <label className="field-lab">Date</label>
               <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} min={minDate} />
+              {date && blackout.has(date) && (
+                <div style={{ fontSize: 11.5, color: 'var(--signal)', marginTop: 4, fontWeight: 600 }}>✕ No Tropic aircraft available on this date.</div>
+              )}
             </div>
           </div>
 

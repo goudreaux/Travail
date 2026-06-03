@@ -8,6 +8,7 @@ import { LastMinuteNotice } from '@/components/LastMinuteNotice'
 import TimeInput from '@/components/TimeInput'
 import { canAnchor } from '@/lib/trip-timing'
 import { fetchLocations, asOrigins } from '@/lib/locations'
+import { useBlackoutDates } from '@/lib/use-blackout'
 import type { AirportMeta } from '@/lib/data'
 import type { ExcursionTemplate } from '@/lib/supabase/types'
 
@@ -95,6 +96,7 @@ export default function AnchorExcursionPage() {
 
   const supabase = createClient()
   const router = useRouter()
+  const blackout = useBlackoutDates()
 
   useEffect(() => {
     (async () => {
@@ -146,6 +148,8 @@ export default function AnchorExcursionPage() {
     if (s === 2 && origin.code === destCode) return 'Origin and destination must be different.'
     if (s === 3) {
       if (!date) return 'Select a date.'
+      if (blackout.has(date)) return 'Tropic has no aircraft available on that date. Pick another date.'
+      if (isOvernight && returnDate && blackout.has(returnDate)) return 'Tropic has no aircraft available on the return date. Pick another.'
       if (isOvernight && !returnDate) return 'Select a return date.'
       if (isOvernight && returnDate < date) return 'Return date must be on or after the start date.'
       const gate = canAnchor(date, departTime ?? startTime)
@@ -355,6 +359,9 @@ export default function AnchorExcursionPage() {
                 <div className="field">
                   <label className="field-lab">{isOvernight ? 'Start date' : 'Date'} <span className="req">*</span></label>
                   <input type="date" className="input" value={date} onChange={e => setDate(e.target.value)} min={today} />
+                  {date && blackout.has(date) && (
+                    <div style={{ fontSize: 11.5, color: 'var(--signal)', marginTop: 4, fontWeight: 600 }}>✕ No Tropic aircraft available on this date.</div>
+                  )}
                 </div>
                 {isOvernight && (
                   <div className="field">
