@@ -29,7 +29,9 @@ function admin() {
 
 interface QuotePayload {
   anchor_submission_id?: string
-  total_cost?: number   // dollars
+  total_cost?: number     // dollars — legacy single charter cost (back-compat)
+  charter_cost?: number   // dollars — Tropic flight charter
+  vendor_cost?: number    // dollars — experience / vendor cost
 }
 
 export async function POST(req: NextRequest) {
@@ -45,19 +47,29 @@ export async function POST(req: NextRequest) {
   catch { return NextResponse.json({ error: 'Invalid payload' }, { status: 400 }) }
 
   const submissionId = (payload.anchor_submission_id ?? '').trim()
-  const totalCost = Number(payload.total_cost)
+  // Charter (Tropic flight) — accepts the new `charter_cost` or the legacy
+  // `total_cost`. Vendor (experience) is optional and defaults to 0.
+  const charterCost = Number(payload.charter_cost ?? payload.total_cost)
+  const vendorCost = Number(payload.vendor_cost ?? 0)
   if (!submissionId) return NextResponse.json({ error: 'anchor_submission_id required' }, { status: 400 })
-  if (!Number.isFinite(totalCost) || totalCost <= 0) {
-    return NextResponse.json({ error: 'total_cost must be a positive number (dollars)' }, { status: 400 })
+  if (!Number.isFinite(charterCost) || charterCost < 0) {
+    return NextResponse.json({ error: 'charter_cost must be a non-negative number (dollars)' }, { status: 400 })
   }
-  // The Ops form supplies the bare Tropic charter cost. Travail's 3%
-  // service fee gets added on top so the anchor authorizes (and is
-  // captured for) charter + fee. The fee stays with Travail; it's
-  // not refunded at settlement.
+  if (!Number.isFinite(vendorCost) || vendorCost < 0) {
+    return NextResponse.json({ error: 'vendor_cost must be a non-negative number (dollars)' }, { status: 400 })
+  }
+  if (charterCost + vendorCost <= 0) {
+    return NextResponse.json({ error: 'The quote must be more than $0' }, { status: 400 })
+  }
+  // Itemized: Tropic charter + vendor/experience cost. Travail's 3% service fee
+  // is charged on the combined base; the total is what the anchor's card
+  // authorizes. The fee stays with Travail; it's not refunded at settlement.
   const ANCHOR_FEE_RATE = 0.03
-  const charterCents = Math.round(totalCost * 100)
-  const feeCents = Math.round(charterCents * ANCHOR_FEE_RATE)
-  const totalCents = charterCents + feeCents
+  const charterCents = Math.round(charterCost * 100)
+  const vendorCents = Math.round(vendorCost * 100)
+  const baseCents = charterCents + vendorCents
+  const feeCents = Math.round(baseCents * ANCHOR_FEE_RATE)
+  const totalCents = baseCents + feeCents
 
   const db = admin()
   const { data: sub } = await db
@@ -78,9 +90,10 @@ export async function POST(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: updErr } = await (db.from('anchor_submissions') as any)
     .update({
-      // Tropic's bare charter cost — stored separately so we can
-      // recover the fee breakdown for receipts + display.
+      // Itemized cost — stored separately so we can show the full
+      // breakdown on receipts + the member quote page.
       charter_cost_cents: charterCents,
+      vendor_cost_cents: vendorCents,
       // What we'll actually capture from the anchor's card.
       quoted_total_cents: totalCents,
       quoted_at: new Date().toISOString(),
@@ -106,8 +119,13 @@ export async function POST(req: NextRequest) {
   // out to the anchor's email). Deep-links to the accept/decline page.
   const totalDollars = totalCents / 100
   const charterDollars = charterCents / 100
+  const vendorDollars = vendorCents / 100
   const feeDollars = feeCents / 100
   const perPax = totalDollars / seatsTotal
+  const lineItems =
+    `$${charterDollars.toLocaleString()} flight` +
+    (vendorDollars > 0 ? ` + $${vendorDollars.toLocaleString()} experience` : '') +
+    ` + $${feeDollars.toFixed(2)} service fee (3%)`
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (db.from('notifications') as any).insert({
     member_id: sub.member_id,
@@ -115,8 +133,7 @@ export async function POST(req: NextRequest) {
     title: `Quote ready · ${body.name ?? sub.kind}`,
     body:
       `The Concierge Team sourced pricing for "${body.name ?? sub.kind}": ` +
-      `$${charterDollars.toLocaleString()} charter + $${feeDollars.toFixed(2)} service fee (3%) = ` +
-      `$${totalDollars.toLocaleString()} total. ` +
+      `${lineItems} = $${totalDollars.toLocaleString()} total. ` +
       `Review and accept to authorize the capture.`,
     ref: {
       kind: 'anchor_quote',
@@ -141,7 +158,8 @@ export async function POST(req: NextRequest) {
     amountCents: totalCents,
     details: {
       'Action': 'Quote sent to anchor',
-      'Charter cost (Tropic)': `$${charterDollars.toLocaleString()}`,
+      'Flight (Tropic)': `$${charterDollars.toLocaleString()}`,
+      ...(vendorDollars > 0 ? { 'Experience (vendor)': `$${vendorDollars.toLocaleString()}` } : {}),
       'Service fee (3%)': `$${feeDollars.toFixed(2)}`,
       'Total quoted': `$${totalDollars.toLocaleString()}`,
       'Per seat (derived)': `$${perPax.toFixed(2)}`,

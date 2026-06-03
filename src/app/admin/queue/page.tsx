@@ -30,6 +30,7 @@ type AnchorRow = AnchorSubmission & {
   // Quote-flow columns (migration 042). Cast at the type boundary since
   // generated supabase types haven't been regenerated yet.
   charter_cost_cents?: number | null
+  vendor_cost_cents?: number | null
   quoted_total_cents?: number | null
   quoted_at?: string | null
   quote_accepted_at?: string | null
@@ -77,30 +78,32 @@ function Toast({ msg, kind }: { msg: string; kind: 'success' | 'error' | 'info' 
 // already been shown this number or already accepted it. Editing it
 // at publish time would create a member-vs-server price discrepancy.
 function TotalCostField({
-  draft, setDraft, seatsKey, perLabel, lockedCents,
+  draft, setDraft, seatsKey, perLabel, locked, lockedCharterCents, lockedVendorCents,
 }: {
   draft: Record<string, string>
   setDraft: React.Dispatch<React.SetStateAction<Record<string, string>>>
   seatsKey: 'seatsTotal' | 'spotsTotal'
   perLabel: 'seat' | 'person'
-  lockedCents?: number | null
+  locked?: boolean
+  lockedCharterCents?: number | null
+  lockedVendorCents?: number | null
 }) {
   const seats = Number(draft[seatsKey] ?? 0)
-  const locked = typeof lockedCents === 'number' && lockedCents > 0
-  // Field input = the BARE Tropic charter cost. Travail's 3% service
-  // fee gets added on top to produce the total the anchor authorizes.
+  // Two line items — the Tropic flight charter and the (optional) experience /
+  // vendor cost. Travail's 3% service fee is charged on the combined base; the
+  // total is what the anchor's card authorizes.
   const ANCHOR_FEE_RATE = 0.03
-  const charter = locked ? (lockedCents! / 100) / (1 + ANCHOR_FEE_RATE) : Number(draft.totalCost ?? 0)
-  const fee = charter * ANCHOR_FEE_RATE
-  const total = charter + fee
+  const charter = locked ? ((lockedCharterCents ?? 0) / 100) : Number(draft.totalCost ?? 0)
+  const vendor = locked ? ((lockedVendorCents ?? 0) / 100) : Number(draft.vendorCost ?? 0)
+  const base = charter + vendor
+  const fee = base * ANCHOR_FEE_RATE
+  const total = base + fee
   const perSeat = seats > 0 && total > 0 ? total / seats : 0
+  const lockStyle = locked ? { background: 'var(--paper)', color: 'var(--tropic-d)', fontWeight: 700, cursor: 'not-allowed' as const } : undefined
+  const lockTag = locked ? <span style={{ fontFamily: 'var(--mono)', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tropic-d)', fontWeight: 700, marginLeft: 8 }}>· locked</span> : null
   return (
     <div className="field" style={{ marginBottom: 0 }}>
-      <label className="field-lab">
-        {locked
-          ? <>Charter cost (Tropic) <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--tropic-d)', fontWeight: 700, marginLeft: 8 }}>· locked by quote</span></>
-          : 'Charter cost (Tropic + operators)'}
-      </label>
+      <label className="field-lab">Flight charter (Tropic) {lockTag}</label>
       <input
         className="input"
         type="number"
@@ -109,15 +112,33 @@ function TotalCostField({
         placeholder="e.g. 6800"
         readOnly={locked}
         disabled={locked}
-        style={locked ? { background: 'var(--paper)', color: 'var(--tropic-d)', fontWeight: 700, cursor: 'not-allowed' } : undefined}
+        style={lockStyle}
         onChange={locked ? undefined : e => setDraft(prev => ({ ...prev, totalCost: e.target.value }))}
       />
-      {charter > 0 && (
+      <label className="field-lab" style={{ marginTop: 10 }}>Experience / vendor <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>(optional — guide, club, lodge…)</span> {lockTag}</label>
+      <input
+        className="input"
+        type="number"
+        min={0}
+        value={locked ? vendor.toFixed(2) : (draft.vendorCost ?? '')}
+        placeholder="e.g. 1500"
+        readOnly={locked}
+        disabled={locked}
+        style={lockStyle}
+        onChange={locked ? undefined : e => setDraft(prev => ({ ...prev, vendorCost: e.target.value }))}
+      />
+      {base > 0 && (
         <div style={{ background: 'var(--paper)', borderRadius: 8, padding: '10px 12px', marginTop: 8, fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--ink-mid)', letterSpacing: '0.06em', lineHeight: 1.7 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>Charter</span>
+            <span>Flight charter</span>
             <span style={{ fontWeight: 700, color: 'var(--ink)' }}>${charter.toFixed(2)}</span>
           </div>
+          {vendor > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Experience</span>
+              <span style={{ fontWeight: 700, color: 'var(--ink)' }}>${vendor.toFixed(2)}</span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Service fee (3%)</span>
             <span style={{ fontWeight: 700, color: 'var(--ink)' }}>${fee.toFixed(2)}</span>
@@ -561,6 +582,8 @@ export default function QueuePage() {
         if (perSeat > 0 && seats > 0) return String(perSeat * seats)
         return ''
       })(),
+      // Experience / vendor cost (optional second line item).
+      vendorCost: anchor.vendor_cost_cents && anchor.vendor_cost_cents > 0 ? String(anchor.vendor_cost_cents / 100) : '',
       pitch: s(p.pitch),
     })
     setExpanded(anchor.id)
@@ -580,13 +603,14 @@ export default function QueuePage() {
     }
     const seatsKey = anchor.kind === 'flight' ? 'seatsTotal' : 'spotsTotal'
     const seatsTotal = num(seatsKey, p.seatsTotal ?? p.seats_total ?? p.spotsTotal ?? p.spots_total ?? 0)
-    const totalCost = num('totalCost', (() => {
+    const charterCost = num('totalCost', (() => {
       const legacyTotal = Number(p.totalCost ?? p.total_cost ?? 0)
       if (legacyTotal > 0) return legacyTotal
       return 0
     })())
-    if (totalCost <= 0 || seatsTotal <= 0) {
-      showToast('Set seats + total trip cost before sending the quote', 'error')
+    const vendorCost = num('vendorCost', 0)
+    if (charterCost + vendorCost <= 0 || seatsTotal <= 0) {
+      showToast('Set seats + flight (and any experience) cost before sending the quote', 'error')
       setExpanded(anchor.id)
       if (expanded !== anchor.id) openAnchor(anchor)
       return
@@ -597,11 +621,11 @@ export default function QueuePage() {
       const res = await fetch('/api/admin/quote-anchor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anchor_submission_id: anchor.id, total_cost: totalCost }),
+        body: JSON.stringify({ anchor_submission_id: anchor.id, charter_cost: charterCost, vendor_cost: vendorCost }),
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) { showToast(`Quote failed: ${json.error ?? 'Unknown error'}`, 'error'); return }
-      showToast(`Quote sent, $${totalCost.toLocaleString()} · awaiting anchor accept`, 'success')
+      showToast(`Quote sent, $${(charterCost + vendorCost).toLocaleString()} + fee · awaiting anchor accept`, 'success')
       // Reflect new status locally so the row's CTA flips immediately.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setAnchors(prev => prev.map(a => a.id === anchor.id ? ({ ...a, status: 'quoted' as any }) : a))
@@ -1182,7 +1206,7 @@ export default function QueuePage() {
                               {F({ label: 'Destination code', k: 'destCode' })}
                               {F({ label: 'Seats total', k: 'seatsTotal', type: 'number' })}
                               {F({ label: 'Anchor seats', k: 'seatsAnchor', type: 'number' })}
-                              <TotalCostField draft={draft} setDraft={setDraft} seatsKey="seatsTotal" perLabel="seat" lockedCents={a.quoted_total_cents ?? null} />
+                              <TotalCostField draft={draft} setDraft={setDraft} seatsKey="seatsTotal" perLabel="seat" locked={(a.quoted_total_cents ?? 0) > 0} lockedCharterCents={a.charter_cost_cents ?? null} lockedVendorCents={a.vendor_cost_cents ?? null} />
                             </>
                           ) : (
                             <>
@@ -1190,7 +1214,7 @@ export default function QueuePage() {
                               {F({ label: 'Return time', k: 'returnTime', placeholder: '4:00 PM' })}
                               {F({ label: 'Spots total', k: 'spotsTotal', type: 'number' })}
                               {F({ label: 'Anchor spots', k: 'spotsAnchor', type: 'number' })}
-                              <TotalCostField draft={draft} setDraft={setDraft} seatsKey="spotsTotal" perLabel="person" lockedCents={a.quoted_total_cents ?? null} />
+                              <TotalCostField draft={draft} setDraft={setDraft} seatsKey="spotsTotal" perLabel="person" locked={(a.quoted_total_cents ?? 0) > 0} lockedCharterCents={a.charter_cost_cents ?? null} lockedVendorCents={a.vendor_cost_cents ?? null} />
                             </>
                           )}
                         </div>

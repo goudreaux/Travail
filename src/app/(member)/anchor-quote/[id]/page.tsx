@@ -17,6 +17,7 @@ interface QuoteSubmission {
   member_id: string
   status: string
   charter_cost_cents: number | null
+  vendor_cost_cents: number | null
   quoted_total_cents: number | null
   quoted_at: string | null
   quote_declined_at: string | null
@@ -47,7 +48,7 @@ export default function AnchorQuotePage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error: subErr } = await (supabase as any)
         .from('anchor_submissions')
-        .select('id, kind, member_id, status, charter_cost_cents, quoted_total_cents, quoted_at, quote_accepted_at, quote_declined_at, payload')
+        .select('id, kind, member_id, status, charter_cost_cents, vendor_cost_cents, quoted_total_cents, quoted_at, quote_accepted_at, quote_declined_at, payload')
         .eq('id', submissionId)
         .maybeSingle()
       if (cancelled) return
@@ -109,8 +110,10 @@ export default function AnchorQuotePage() {
   // migration) have null charter_cost_cents; treat the whole quoted
   // total as charter with $0 fee so display still makes sense.
   const charterCents = sub.charter_cost_cents ?? totalCents
+  const vendorCents = sub.vendor_cost_cents ?? 0
   const charterDollars = charterCents / 100
-  const feeDollars = (totalCents - charterCents) / 100
+  const vendorDollars = vendorCents / 100
+  const feeDollars = (totalCents - charterCents - vendorCents) / 100
   const perPax = seatsTotal > 0 ? totalDollars / seatsTotal : 0
   const anchorSeats = Number(body.seatsAnchor ?? body.spotsAnchor ?? body.seats_anchor ?? body.spots_anchor ?? 0)
   const anchorFloor = perPax * anchorSeats
@@ -188,9 +191,15 @@ export default function AnchorQuotePage() {
           {feeDollars > 0 && (
             <div style={{ background: 'var(--paper)', borderRadius: 10, padding: '14px 16px', marginTop: 18, border: '1px solid var(--hair)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-soft)', marginBottom: 8 }}>
-                <span>Charter cost (Tropic + operators)</span>
+                <span>Flight charter (Tropic)</span>
                 <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{fmtMoney(charterDollars)}</span>
               </div>
+              {vendorDollars > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-soft)', marginBottom: 8 }}>
+                  <span>Experience {sub.kind === 'excursion' ? '(included)' : ''}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{fmtMoney(vendorDollars)}</span>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-soft)' }}>
                 <span>Travail service fee <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-light)' }}>3%</span></span>
                 <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{fmtMoney(feeDollars)}</span>
