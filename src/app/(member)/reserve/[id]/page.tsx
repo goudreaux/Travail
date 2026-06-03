@@ -14,6 +14,7 @@ import { AnchorLiability } from '@/components/AnchorLiability'
 import { ReservePaymentForm } from '@/components/ReservePaymentForm'
 import { fetchRosters, type RosterEntry } from '@/components/Roster'
 import RoutePreview from '@/components/RoutePreview'
+import InviteToSplit from '@/components/InviteToSplit'
 import { ProposalReserveView } from './ProposalReserveView'
 
 // Roster avatar (image or initials) for the FOMO "who's going" block.
@@ -1056,6 +1057,19 @@ export default function ReservePage() {
             ) : kind === 'excursion' && excursion ? (
               <RoutePreview originCode={excursion.origin_code} destCode={excursion.dest_code ?? template?.dest_code ?? null} kind="excursion" />
             ) : null}
+
+            {/* Invite the network to split this trip */}
+            {((kind === 'flight' && flight) || (kind === 'excursion' && excursion)) && (
+              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                <InviteToSplit
+                  kind={kind}
+                  itemId={itemId}
+                  itemName={kind === 'flight' && flight
+                    ? `${airportCity(flight.origin_code, airportNames)} → ${airportCity(flight.dest_code, airportNames)}`
+                    : (excursion?.name ?? 'this excursion')}
+                />
+              </div>
+            )}
 
             {/* Day plan — excursions only. Bubble-down timeline of the
                 major stops. Falls back to a generated default when the

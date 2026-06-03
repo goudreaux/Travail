@@ -9,6 +9,7 @@ import PageHero from '@/components/PageHero'
 import { ProposalCountdown, ProposalDeadlineTag } from '@/components/ProposalCard'
 import { RosterStack, type RosterEntry } from '@/components/Roster'
 import RoutePreview from '@/components/RoutePreview'
+import InviteToSplit from '@/components/InviteToSplit'
 import { asItinerary, generateDefaultItinerary, fmtItineraryTime, type ItineraryStep } from '@/lib/itinerary'
 import { KIND_ICONS } from '@/lib/icons'
 
@@ -507,6 +508,11 @@ function ProposalDetailsPanel({
       {/* Route map — lightweight single-route preview */}
       <div style={{ marginTop: 14 }}>
         <RoutePreview originCode={proposal.origin_code} destCode={destCode ?? null} kind="proposal" />
+      </div>
+
+      {/* Invite the network to split this proposal */}
+      <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+        <InviteToSplit kind="proposal" itemId={proposal.id} itemName={proposal.name} />
       </div>
 
       {/* Day plan — mirrors the flight/excursion reserve pages. Shows the
