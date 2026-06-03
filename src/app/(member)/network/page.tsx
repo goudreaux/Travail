@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { fmtHomeBase, tierLabel, tierPill, canonicalInterests } from '@/lib/data'
 import { TRIP_TYPE_ICONS } from '@/lib/icons'
 import PageHero from '@/components/PageHero'
-import type { Member, Friendship } from '@/lib/supabase/types'
+import type { Member, Friendship, ContactRequest } from '@/lib/supabase/types'
 
 function Avatar({ member, size = 52 }: { member: Member; size?: number }) {
   if (member.avatar_url) {
@@ -70,6 +70,8 @@ export default function NetworkPage() {
   const [loading, setLoading] = useState(true)
   const [meId, setMeId] = useState<string | null>(null)
   const [pending, setPending] = useState<PendingRequest[]>([])
+  // Inbound contact-info requests (someone asking to see my contact details).
+  const [contactReqs, setContactReqs] = useState<{ id: string; requester: Member; note: string | null }[]>([])
   const [decidingId, setDecidingId] = useState<string | null>(null)
   // Friend relationship maps, keyed by counterparty member id.
   //   friendSet:           accepted friendships
@@ -151,6 +153,19 @@ export default function NetworkPage() {
           localStorage.setItem('travail.pending_friend_count', String(items.length))
           window.dispatchEvent(new CustomEvent('travail:pending-friend-count', { detail: items.length }))
         } catch { /* SSR / private browsing — best effort */ }
+
+        // Inbound contact-info requests addressed to me — the missing surface
+        // that left these requests undiscoverable (only the notification
+        // deep-link reached them before).
+        const { data: crs } = await supabase
+          .from('contact_requests')
+          .select('*')
+          .eq('addressee_id', myId)
+          .eq('status', 'pending')
+        const citems = ((crs ?? []) as ContactRequest[])
+          .map(c => ({ id: c.id, requester: requesterMap[c.requester_id], note: c.note }))
+          .filter(c => !!c.requester)
+        setContactReqs(citems)
       }
       setLoading(false)
     }
@@ -172,6 +187,18 @@ export default function NetworkPage() {
       })
     }
     setConnectBusy(null)
+  }
+
+  async function respondToContact(id: string, action: 'granted' | 'declined') {
+    if (decidingId) return
+    setDecidingId(id)
+    const supabase = createClient()
+    // Granting fires the DB trigger that notifies the requester their access
+    // was shared; declining just closes the request.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('contact_requests') as any).update({ status: action }).eq('id', id)
+    setContactReqs(prev => prev.filter(c => c.id !== id))
+    setDecidingId(null)
   }
 
   async function respondToRequest(friendshipId: string, action: 'accepted' | 'declined') {
@@ -271,6 +298,52 @@ export default function NetworkPage() {
                 </svg>
               </button>
             )}
+          </div>
+        )}
+
+        {/* Inbound contact-info requests — someone asking to see your contact
+            details. Surfaced here so they're discoverable without the
+            notification deep-link. Grant shares your email/phone; Decline closes it. */}
+        {!loading && contactReqs.length > 0 && (
+          <div className="pending-friends panel" aria-label="Contact info requests">
+            <div className="pending-friends__head">
+              <div>
+                <div className="pending-friends__title">Contact info request{contactReqs.length > 1 ? 's' : ''}</div>
+                <div className="pending-friends__sub">
+                  {contactReqs.length === 1
+                    ? `${contactReqs[0].requester.name.split(' ')[0]} wants your contact info`
+                    : `${contactReqs.length} members want your contact info`}
+                </div>
+              </div>
+              <span className="pill sun" style={{ flexShrink: 0 }}>{contactReqs.length}</span>
+            </div>
+            <div className="pending-friends__list">
+              {contactReqs.map(c => (
+                <div key={c.id} className="pending-friends__row">
+                  <Link href={`/network/${c.requester.id}`} className="pending-friends__who">
+                    {c.requester.avatar_url ? (
+                      <img src={c.requester.avatar_url} alt={c.requester.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--night)', color: 'var(--sun)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                        {c.requester.initials}
+                      </div>
+                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <div className="pending-friends__name">{c.requester.name}</div>
+                      <div className="pending-friends__meta">{c.note ? `“${c.note}”` : 'Wants to see your contact details'}</div>
+                    </div>
+                  </Link>
+                  <div className="pending-friends__actions">
+                    <button type="button" className="cta-outline" onClick={() => respondToContact(c.id, 'granted')} disabled={decidingId === c.id}>
+                      Share
+                    </button>
+                    <button type="button" className="btn-ghost" onClick={() => respondToContact(c.id, 'declined')} disabled={decidingId === c.id} style={{ fontSize: 12, padding: '6px 12px' }}>
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
