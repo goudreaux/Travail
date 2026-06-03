@@ -1067,6 +1067,9 @@ export default function ReservePage() {
                   itemName={kind === 'flight' && flight
                     ? `${airportCity(flight.origin_code, airportNames)} → ${airportCity(flight.dest_code, airportNames)}`
                     : (excursion?.name ?? 'this excursion')}
+                  priceLabel={kind === 'flight' && flight
+                    ? `${fmtMoney(flight.price_per_seat)}/seat`
+                    : (excursion?.price_per_pax ? `${fmtMoney(excursion.price_per_pax)}/person` : undefined)}
                 />
               </div>
             )}

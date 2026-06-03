@@ -6,10 +6,11 @@ import type { Member } from '@/lib/supabase/types'
 
 // "Invite to split" — let a member invite others to grab seats on an open trip
 // or proposal. Opens a picker of network members and notifies the ones chosen.
-export default function InviteToSplit({ kind, itemId, itemName }: {
+export default function InviteToSplit({ kind, itemId, itemName, priceLabel }: {
   kind: 'flight' | 'excursion' | 'proposal'
   itemId: string
   itemName: string
+  priceLabel?: string  // e.g. "$500/seat" — shown as the per-person share
 }) {
   const supabase = createClient()
   const [open, setOpen] = useState(false)
@@ -20,6 +21,7 @@ export default function InviteToSplit({ kind, itemId, itemName }: {
   const [sending, setSending] = useState(false)
   const [done, setDone] = useState<number | null>(null)
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!open || members.length) return
@@ -36,6 +38,23 @@ export default function InviteToSplit({ kind, itemId, itemName }: {
 
   function toggle(id: string) {
     setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+
+  // Text-a-link: share the trip via the native share sheet (mobile) or copy it.
+  // Works for anyone — members land on the trip; not-yet-members land on sign-in.
+  async function shareLink() {
+    const url = `${window.location.origin}/reserve/${itemId}?kind=${kind}`
+    const text = `Split "${itemName}" with me on Travail`
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nav = navigator as any
+    if (nav.share) {
+      try { await nav.share({ title: 'Travail', text, url }) } catch { /* user cancelled */ }
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(`${text}: ${url}`)
+      setCopied(true); setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard blocked */ }
   }
 
   async function send() {
@@ -74,7 +93,20 @@ export default function InviteToSplit({ kind, itemId, itemName }: {
                 <div style={{ fontFamily: 'var(--display)', fontSize: 19, fontWeight: 600, color: 'var(--ink)' }}>Invite to split</div>
                 <button className="btn-ghost" onClick={() => setOpen(false)} style={{ fontSize: 18, padding: 4 }}>×</button>
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink-light)', marginTop: 2 }}>Pick members to invite onto <strong style={{ color: 'var(--ink-soft)' }}>{itemName}</strong>. They&rsquo;ll get a notification to grab a seat.</div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-light)', marginTop: 2 }}>
+                Invite onto <strong style={{ color: 'var(--ink-soft)' }}>{itemName}</strong>.
+                {priceLabel ? <> Each share is <strong style={{ color: 'var(--ink)' }}>{priceLabel}</strong>.</> : ''}
+              </div>
+              {/* Text-a-link — works for anyone, including not-yet-members. */}
+              <button
+                type="button"
+                onClick={shareLink}
+                style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 7, background: 'var(--tropic-glow)', color: 'var(--tropic-d)', border: '1px solid var(--tropic)', borderRadius: 999, padding: '7px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5l7 6-7 6v-4C8 9 5 14 4 18c-.5-6 2-9 10-9Z" /></svg>
+                {copied ? 'Link copied ✓' : 'Share a link'}
+              </button>
+              <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 6 }}>Or pick members below to notify them in-app.</div>
             </div>
 
             {done !== null ? (

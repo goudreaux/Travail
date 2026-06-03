@@ -512,7 +512,12 @@ function ProposalDetailsPanel({
 
       {/* Invite the network to split this proposal */}
       <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-        <InviteToSplit kind="proposal" itemId={proposal.id} itemName={proposal.name} />
+        <InviteToSplit
+          kind="proposal"
+          itemId={proposal.id}
+          itemName={proposal.name}
+          priceLabel={proposal.price_per_seat_cents ? `$${Math.round(proposal.price_per_seat_cents / 100).toLocaleString()}/seat` : undefined}
+        />
       </div>
 
       {/* Day plan — mirrors the flight/excursion reserve pages. Shows the
