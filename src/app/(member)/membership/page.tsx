@@ -44,6 +44,8 @@ export default function MembershipPage() {
   const [name, setName] = useState('')
   const [bio, setBio] = useState('')
   const [interests, setInterests] = useState<string[]>([])
+  const [otherClubs, setOtherClubs] = useState<string[]>([])
+  const [clubInput, setClubInput] = useState('')
   const [acceptsContact, setAcceptsContact] = useState(true)
 
   const toggleInterest = (t: string) =>
@@ -59,6 +61,7 @@ export default function MembershipPage() {
         // Pre-select canonical trip types from whatever's stored (older free-text
         // interests like "deep sea fishing" still light up the matching type).
         setInterests(canonicalInterests(m.interests))
+        setOtherClubs(m.other_clubs ?? [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setAcceptsContact(((m as any).accepts_contact_requests ?? true) === true)
 
@@ -106,6 +109,7 @@ export default function MembershipPage() {
         name,
         bio: bio || null,
         interests: interestArr.length > 0 ? interestArr : null,
+        other_clubs: otherClubs.length > 0 ? otherClubs : null,
         accepts_contact_requests: acceptsContact,
       } as never)
       .eq('id', member.id)
@@ -118,6 +122,7 @@ export default function MembershipPage() {
         name,
         bio: bio || null,
         interests: interestArr.length > 0 ? interestArr : null,
+        other_clubs: otherClubs.length > 0 ? otherClubs : null,
         accepts_contact_requests: acceptsContact,
       }
       setMember(prev => prev ? { ...prev, ...patch } : prev)
@@ -366,6 +371,52 @@ export default function MembershipPage() {
                           {t}
                         </button>
                       ))}
+                    </div>
+                  </div>
+
+                  <div className="field">
+                    <label className="field-lab">Other Clubs <span style={{ fontWeight: 400, color: 'var(--ink-light)' }}>(country clubs, social clubs, etc.)</span></label>
+                    {otherClubs.length > 0 && (
+                      <div className="chips" style={{ flexWrap: 'wrap', marginBottom: 8 }}>
+                        {otherClubs.map(c => (
+                          <button
+                            key={c}
+                            type="button"
+                            className="chip active"
+                            onClick={() => setOtherClubs(prev => prev.filter(x => x !== c))}
+                            title="Remove"
+                          >
+                            {c} <span aria-hidden style={{ marginLeft: 4, opacity: 0.7 }}>×</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input
+                        className="input"
+                        value={clubInput}
+                        onChange={e => setClubInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            const v = clubInput.trim()
+                            if (v && !otherClubs.some(c => c.toLowerCase() === v.toLowerCase())) setOtherClubs(prev => [...prev, v])
+                            setClubInput('')
+                          }
+                        }}
+                        placeholder="e.g. Augusta National, Soho House"
+                      />
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => {
+                          const v = clubInput.trim()
+                          if (v && !otherClubs.some(c => c.toLowerCase() === v.toLowerCase())) setOtherClubs(prev => [...prev, v])
+                          setClubInput('')
+                        }}
+                      >
+                        Add
+                      </button>
                     </div>
                   </div>
 

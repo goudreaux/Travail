@@ -835,6 +835,22 @@ export default function MemberProfilePage() {
               </div>
             )}
 
+            {/* Other Clubs */}
+            {(member.other_clubs?.length ?? 0) > 0 && (
+              <div className="panel">
+                <div className="panel-head">
+                  <h3>Other Clubs</h3>
+                </div>
+                <div style={{ padding: '16px 20px' }}>
+                  <div className="chips" style={{ flexWrap: 'wrap' }}>
+                    {member.other_clubs!.map(c => (
+                      <span key={c} className="chip" style={{ cursor: 'default' }}>{c}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Trip history */}
             <div className="panel">
               <div className="panel-head">

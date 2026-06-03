@@ -24,6 +24,7 @@ export interface Database {
           joined_at: string
           bio: string | null
           interests: string[] | null
+          other_clubs: string[] | null
           avatar_url: string | null
           is_admin: boolean
           private_mode: boolean
@@ -49,6 +50,7 @@ export interface Database {
           joined_at?: string
           bio?: string | null
           interests?: string[] | null
+          other_clubs?: string[] | null
           avatar_url?: string | null
           is_admin?: boolean
           private_mode?: boolean
@@ -74,6 +76,7 @@ export interface Database {
           joined_at?: string
           bio?: string | null
           interests?: string[] | null
+          other_clubs?: string[] | null
           avatar_url?: string | null
           is_admin?: boolean
           private_mode?: boolean
