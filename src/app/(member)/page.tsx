@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { adaptFlight, adaptExcursion, returnLegIds, fmtMoney, airportCity, DisplayFlight, DisplayExcursion } from '@/lib/data'
+import MemberRouteMap from '@/components/MemberRouteMap'
 import { isPastBookingCutoff } from '@/lib/trip-timing'
 import { KIND_ICONS } from '@/lib/icons'
 import { SeatMeter } from '@/components/SeatMeter'
@@ -401,6 +402,7 @@ export default function FeedPage() {
 
   return (
     <div className="page">
+      <MemberRouteMap />
       <section className="feed-hero">
         <div className="feed-hero__glow feed-hero__glow--teal" aria-hidden />
         <div className="feed-hero__glow feed-hero__glow--sun" aria-hidden />

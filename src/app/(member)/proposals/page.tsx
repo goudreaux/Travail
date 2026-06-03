@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useMember } from '@/lib/member-context'
 import PageHero from '@/components/PageHero'
 import { ProposalCard, MyProposalRow, loadOpenProposals, loadMyProposals, type ProposalCardData, type MyProposalData } from '@/components/ProposalCard'
+import MemberRouteMap from '@/components/MemberRouteMap'
 
 // Dedicated Trip Proposals board. Same card renderer as /seats; this
 // page exists so the proposals model has its own dedicated home on
@@ -60,6 +61,7 @@ export default function ProposalsPage() {
 
   return (
     <div className="page">
+      <MemberRouteMap />
       <PageHero
         accent="sun"
         sansTitle
