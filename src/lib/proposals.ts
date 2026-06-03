@@ -66,7 +66,8 @@ export { PROPOSAL_RUNWAY_DAYS, PROPOSAL_MIN_LEAD_DAYS } from './trip-timing'
 // Per-member cap on active proposals (pending_ops_review + open).
 // Keeps the queue manageable and prevents one member from drowning
 // the network in low-conviction pitches.
-export const MAX_ACTIVE_PROPOSALS_PER_MEMBER = 2
+// TESTING: limit lifted (was 2) — restore to 2 before launch.
+export const MAX_ACTIVE_PROPOSALS_PER_MEMBER = 9999
 
 export const PROPOSAL_STATUS_LABEL: Record<ProposalStatus, string> = {
   pending_ops_review: 'Awaiting Concierge review',
