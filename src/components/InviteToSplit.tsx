@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Member } from '@/lib/supabase/types'
 
-// "Invite to split" — let a member invite others to grab seats on an open trip
+// "Invite to join" — let a member invite others to grab a seat on an open trip
 // or proposal. Opens a picker of network members and notifies the ones chosen.
+// (Internally named InviteToSplit; the member-facing language is "join".)
 export default function InviteToSplit({ kind, itemId, itemName, priceLabel }: {
   kind: 'flight' | 'excursion' | 'proposal'
   itemId: string
@@ -44,7 +45,7 @@ export default function InviteToSplit({ kind, itemId, itemName, priceLabel }: {
   // Works for anyone — members land on the trip; not-yet-members land on sign-in.
   async function shareLink() {
     const url = `${window.location.origin}/reserve/${itemId}?kind=${kind}`
-    const text = `Split "${itemName}" with me on Travail`
+    const text = `Join me on "${itemName}" — Travail`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nav = navigator as any
     if (nav.share) {
@@ -82,7 +83,7 @@ export default function InviteToSplit({ kind, itemId, itemName, priceLabel }: {
         <svg width="16" height="16" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M16 14a4 4 0 1 0-4-4M3 19a5 5 0 0 1 10 0M18 8v4M20 10h-4" />
         </svg>
-        Invite to split
+        Invite to join
       </button>
 
       {open && (
@@ -90,12 +91,12 @@ export default function InviteToSplit({ kind, itemId, itemName, priceLabel }: {
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--card)', borderRadius: '18px 18px 0 0', width: '100%', maxWidth: 520, maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 -8px 40px rgba(0,0,0,0.25)' }}>
             <div style={{ padding: '16px 20px 10px', borderBottom: '1px solid var(--hair)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontFamily: 'var(--display)', fontSize: 19, fontWeight: 600, color: 'var(--ink)' }}>Invite to split</div>
+                <div style={{ fontFamily: 'var(--display)', fontSize: 19, fontWeight: 600, color: 'var(--ink)' }}>Invite to join</div>
                 <button className="btn-ghost" onClick={() => setOpen(false)} style={{ fontSize: 18, padding: 4 }}>×</button>
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--ink-light)', marginTop: 2 }}>
-                Invite onto <strong style={{ color: 'var(--ink-soft)' }}>{itemName}</strong>.
-                {priceLabel ? <> Each share is <strong style={{ color: 'var(--ink)' }}>{priceLabel}</strong>.</> : ''}
+                Invite members to grab a seat on <strong style={{ color: 'var(--ink-soft)' }}>{itemName}</strong>.
+                {priceLabel ? <> Each seat is <strong style={{ color: 'var(--ink)' }}>{priceLabel}</strong>.</> : ''}
               </div>
               {/* Text-a-link — works for anyone, including not-yet-members. */}
               <button

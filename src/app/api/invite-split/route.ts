@@ -3,9 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
 
-// "Invite to split" — a member invites others to grab seats on (and split the
-// cost of) an open trip or proposal. Each invitee gets a notification that
-// deep-links to the reserve page where they commit/book as normal.
+// "Invite to join" — a member invites others to grab a seat on an open trip or
+// proposal. Each invitee gets a notification that deep-links to the reserve page
+// where they book/commit as normal. (Route path kept as invite-split.)
 //
 // POST { kind: 'flight'|'excursion'|'proposal', itemId, itemName, memberIds[], note? }
 
@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
   const rows = memberIds.map(id => ({
     member_id: id,
     kind: 'system',
-    title: 'Invitation to split a trip',
-    body: `${firstName} invited you to split "${itemName}" — grab a seat before it fills.${noteSuffix}`,
+    title: 'You’re invited to join a trip',
+    body: `${firstName} invited you to join "${itemName}" — grab a seat before it fills.${noteSuffix}`,
     // item_kind + item_id routes the notification to /reserve/<id>?kind=<kind>.
     ref: { item_kind: kind, item_id: itemId, invited_by: me.id },
     read: false,
