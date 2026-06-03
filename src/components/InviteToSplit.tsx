@@ -65,7 +65,7 @@ export default function InviteToSplit({ kind, itemId, itemName, priceLabel }: {
       const res = await fetch('/api/invite-split', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind, itemId, itemName, memberIds: [...selected], note: note.trim() || undefined }),
+        body: JSON.stringify({ kind, itemId, itemName, memberIds: [...selected], note: note.trim() || undefined, priceLabel }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Failed to send invites')

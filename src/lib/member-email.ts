@@ -230,6 +230,75 @@ export async function sendBookingReceiptEmail(p: BookingReceiptEmailParams): Pro
   }
 }
 
+// ── Trip invite ("Invite to join") ───────────────────────────────────────────
+export interface TripInviteEmailParams {
+  to: string
+  memberName: string        // recipient
+  inviterName: string
+  tripName: string
+  url: string               // absolute link to the trip's reserve page
+  note?: string | null
+  priceLabel?: string | null
+  memberId?: string | null
+}
+
+export async function sendTripInviteEmail(p: TripInviteEmailParams): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) { safeError('sendTripInviteEmail: RESEND_API_KEY not set; skipping', { to: p.to }); return }
+  const subject = `${p.inviterName} invited you to join ${p.tripName}`
+  const text = [
+    `${p.inviterName} invited you to join "${p.tripName}" on Travail.`,
+    p.priceLabel ? `Your seat: ${p.priceLabel}` : null,
+    p.note ? `“${p.note}”` : null,
+    '',
+    `Grab a seat: ${p.url}`,
+    '',
+    'Seats are first-come — open Travail to reserve yours.',
+  ].filter(Boolean).join('\n')
+  const html = brandedTripInviteEmail(p)
+  const resend = new Resend(apiKey)
+  try {
+    await sendMemberMail(resend, {
+      to: p.to, subject, html, text,
+      kind: 'trip_invite', memberId: p.memberId ?? null, deliverToMember: true,
+      refs: { trip_name: p.tripName, url: p.url },
+    })
+  } catch (err) {
+    safeError('sendTripInviteEmail: send failed (non-fatal)', err)
+  }
+}
+
+function brandedTripInviteEmail(p: TripInviteEmailParams): string {
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light only"/>
+<title>${escapeHtml(p.inviterName)} invited you to ${escapeHtml(p.tripName)}</title></head>
+<body style="margin:0;padding:0;background:#fbf6ec;font-family:-apple-system,BlinkMacSystemFont,'Inter Tight','Inter','Segoe UI',sans-serif;color:#0d3340;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fbf6ec;padding:36px 14px 24px;">
+    <tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:580px;background:#fffbf0;border-radius:18px;overflow:hidden;box-shadow:0 18px 48px rgba(13,51,64,0.10);">
+        <tr><td style="background:linear-gradient(135deg,#042128 0%,#0a3340 52%,#073744 100%);padding:32px 36px 28px;color:#fff;">
+          <div style="font-family:'JetBrains Mono','Courier New',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:#00b3c7;font-weight:700;margin-bottom:8px;">You're invited</div>
+          <div style="font-size:28px;font-weight:700;color:#fff;letter-spacing:-0.02em;line-height:1.1;font-family:'Inter Tight',sans-serif;">Join ${escapeHtml(p.inviterName.split(' ')[0])} on a trip</div>
+        </td></tr>
+        <tr><td style="padding:24px 36px 4px;"><div style="font-size:15px;color:#1f4856;">Hi ${escapeHtml(p.memberName.split(' ')[0] || 'there')},</div></td></tr>
+        <tr><td style="padding:8px 36px 8px;">
+          <div style="font-size:14px;color:#1f4856;line-height:1.6;">
+            <strong>${escapeHtml(p.inviterName)}</strong> invited you to join <strong>${escapeHtml(p.tripName)}</strong>.
+            ${p.priceLabel ? `Your seat is <strong>${escapeHtml(p.priceLabel)}</strong>.` : ''}
+          </div>
+          ${p.note ? `<div style="margin-top:12px;padding:12px 14px;background:#f4efe2;border-left:3px solid #00b3c7;border-radius:0 8px 8px 0;font-size:13.5px;color:#1f4856;font-style:italic;">“${escapeHtml(p.note)}”</div>` : ''}
+        </td></tr>
+        <tr><td style="padding:18px 36px 28px;">
+          <a href="${escapeHtml(p.url)}" style="display:inline-block;background:#00b3c7;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 26px;border-radius:999px;">Grab a seat →</a>
+          <div style="font-size:12px;color:#6b7c80;margin-top:14px;">Seats are first-come — reserve before it fills.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+}
+
 function brandedBookingReceiptEmail(p: BookingReceiptEmailParams): string {
   const showFee = p.feeCents > 0
   return `<!doctype html>
