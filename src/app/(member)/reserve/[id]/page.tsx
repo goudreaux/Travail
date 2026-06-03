@@ -154,6 +154,10 @@ export default function ReservePage() {
 
   // Form state
   const [seats, setSeats] = useState(1)
+  // The viewer's existing active booking on THIS trip (so we don't mint a
+  // duplicate boarding pass and can show the "you're booked" view + invite).
+  const [myBookedSeats, setMyBookedSeats] = useState(0)
+  const [myBookingId, setMyBookingId] = useState<string | null>(null)
   const [paymentMethod] = useState<'card'>('card')
   const [savedGuests, setSavedGuests] = useState<Guest[]>([])
   const [guestSlots, setGuestSlots] = useState<GuestSlot[]>([])
@@ -328,6 +332,19 @@ export default function ReservePage() {
       // Who's already going (opted-in members only).
       const rosters = await fetchRosters(supabase, kind, [itemId])
       setRoster(rosters[itemId] ?? [])
+
+      // Does the viewer already hold a booking on this trip? If so we show the
+      // "you're booked" view instead of letting them create a second one.
+      const { data: myBks } = await supabase
+        .from('bookings')
+        .select('id, seats, item_id')
+        .eq('member_id', (memberData as Member).id)
+        .eq('item_kind', kind)
+        .eq('item_id', itemId)
+        .in('status', ['pending', 'approved'])
+      const mine = (myBks ?? []) as { id: string; seats: number }[]
+      setMyBookedSeats(mine.reduce((s, b) => s + (b.seats ?? 0), 0))
+      setMyBookingId(mine[0]?.id ?? null)
 
       setLoading(false)
     }
@@ -767,6 +784,44 @@ export default function ReservePage() {
 
   const dp = fmtDate(itemDate)
 
+  // ── Already booked → don't mint a second boarding pass ──────────────────────
+  // If the viewer already holds a seat on this trip, show their status + the
+  // ways to bring others (invite members to their own seats; the Concierge adds
+  // guests onto the existing ticket) rather than the new-booking flow.
+  if (myBookedSeats > 0) {
+    const bookedName = flight
+      ? `${airportCity(flight.origin_code, airportNames)} → ${airportCity(flight.dest_code, airportNames)}`
+      : (excursion?.name ?? 'this trip')
+    const bookedPrice = flight
+      ? `${fmtMoney(flight.price_per_seat)}/seat`
+      : (excursion?.price_per_pax ? `${fmtMoney(excursion.price_per_pax)}/person` : undefined)
+    return (
+      <div className="page">
+        <div className="page-view" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 480 }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--hair)', borderRadius: 18, padding: '40px 40px 32px', maxWidth: 480, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(13,51,64,0.08)' }}>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--moss)', marginBottom: 10, fontWeight: 700 }}>You&rsquo;re booked</div>
+            <h2 className="display-i" style={{ fontSize: 28, color: 'var(--ink)', margin: '0 0 8px' }}>You&rsquo;re on this trip ✓</h2>
+            <p style={{ fontSize: 14, color: 'var(--ink-light)', lineHeight: 1.6, margin: '0 0 8px' }}>
+              You hold <strong style={{ color: 'var(--ink)' }}>{myBookedSeats} seat{myBookedSeats === 1 ? '' : 's'}</strong> on {bookedName}. No need to book again — that would create a separate ticket.
+            </p>
+            <p style={{ fontSize: 12.5, color: 'var(--ink-faint)', lineHeight: 1.5, margin: '0 0 22px' }}>
+              Bringing a guest on your own ticket? Message the Concierge Team and they&rsquo;ll add them to your existing booking.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <InviteToSplit kind={kind} itemId={itemId} itemName={bookedName} priceLabel={bookedPrice} />
+              </div>
+              {myBookingId && (
+                <button className="btn-primary" style={{ width: '100%' }} onClick={() => router.push(`/itinerary/${myBookingId}`)}>View your trip</button>
+              )}
+              <button className="btn-ghost" style={{ width: '100%' }} onClick={() => router.push('/seats')}>Back to open seats</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // ── Booking cutoff → locked ─────────────────────────────────────────────────
   if (bookingClosed) {
     return (
@@ -1057,22 +1112,6 @@ export default function ReservePage() {
             ) : kind === 'excursion' && excursion ? (
               <RoutePreview originCode={excursion.origin_code} destCode={excursion.dest_code ?? template?.dest_code ?? null} kind="excursion" />
             ) : null}
-
-            {/* Invite the network to split this trip */}
-            {((kind === 'flight' && flight) || (kind === 'excursion' && excursion)) && (
-              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                <InviteToSplit
-                  kind={kind}
-                  itemId={itemId}
-                  itemName={kind === 'flight' && flight
-                    ? `${airportCity(flight.origin_code, airportNames)} → ${airportCity(flight.dest_code, airportNames)}`
-                    : (excursion?.name ?? 'this excursion')}
-                  priceLabel={kind === 'flight' && flight
-                    ? `${fmtMoney(flight.price_per_seat)}/seat`
-                    : (excursion?.price_per_pax ? `${fmtMoney(excursion.price_per_pax)}/person` : undefined)}
-                />
-              </div>
-            )}
 
             {/* Day plan — excursions only. Bubble-down timeline of the
                 major stops. Falls back to a generated default when the

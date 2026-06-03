@@ -9,6 +9,7 @@ import { asItinerary, fmtItineraryTime, generateDefaultItinerary, type Itinerary
 import { KIND_ICONS } from '@/lib/icons'
 import { fetchRosters, type RosterEntry } from '@/components/Roster'
 import RoutePreview from '@/components/RoutePreview'
+import InviteToSplit from '@/components/InviteToSplit'
 import type { Member, Booking, Flight, Excursion, ExcursionTemplate } from '@/lib/supabase/types'
 
 // Read-only itinerary for a booked trip. Opened by tapping a trip card in
@@ -255,6 +256,22 @@ export default function ItineraryPage() {
               ) : kind === 'excursion' && excursion ? (
                 <RoutePreview originCode={excursion.origin_code} destCode={excursion.dest_code ?? template?.dest_code ?? null} kind="excursion" />
               ) : null}
+
+              {/* Invite others to join this trip */}
+              {((kind === 'flight' && flight) || (kind === 'excursion' && excursion)) && (
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <InviteToSplit
+                    kind={kind === 'flight' ? 'flight' : 'excursion'}
+                    itemId={kind === 'flight' ? flight!.id : excursion!.id}
+                    itemName={kind === 'flight' && flight
+                      ? `${airportCity(flight.origin_code, airportNames)} → ${airportCity(flight.dest_code, airportNames)}`
+                      : (excursion?.name ?? 'this trip')}
+                    priceLabel={kind === 'flight' && flight
+                      ? `${fmtMoney(flight.price_per_seat)}/seat`
+                      : (excursion?.price_per_pax ? `${fmtMoney(excursion.price_per_pax)}/person` : undefined)}
+                  />
+                </div>
+              )}
 
               {/* Day plan — excursions */}
               {kind === 'excursion' && excursion && (() => {
