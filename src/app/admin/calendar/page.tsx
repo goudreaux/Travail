@@ -19,6 +19,9 @@ function firstDow(y: number, m: number) { return new Date(y, m, 1).getDay() }
 export default function AdminCalendarPage() {
   const supabase = createClient()
   const [rows, setRows] = useState<BlackoutRow[]>([])
+  // Existing scheduled trips per date — so we can flag a conflict when a date
+  // that already has a trip gets blacked out.
+  const [tripsByDate, setTripsByDate] = useState<Record<string, number>>({})
   const [meId, setMeId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
@@ -33,6 +36,15 @@ export default function AdminCalendarPage() {
       setMeId(me?.id ?? null)
     }
     setRows(await fetchBlackoutRows(supabase))
+    // Existing scheduled trips, to flag conflicts with blackout dates.
+    const start = new Date().toISOString().slice(0, 10)
+    const [{ data: fl }, { data: ex }] = await Promise.all([
+      supabase.from('flights').select('date').in('status', ['open', 'full']).gte('date', start),
+      supabase.from('excursions').select('date').in('status', ['open', 'full']).gte('date', start),
+    ])
+    const counts: Record<string, number> = {}
+    for (const r of [...(fl ?? []), ...(ex ?? [])] as { date: string }[]) counts[r.date] = (counts[r.date] ?? 0) + 1
+    setTripsByDate(counts)
     setLoading(false)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -64,7 +76,7 @@ export default function AdminCalendarPage() {
         const { error } = await (supabase as any).from('blackout_dates').insert({ date: dateStr, created_by: meId })
         if (error) throw error
         setRows(prev => [...prev, { date: dateStr, note: null }].sort((a, b) => a.date.localeCompare(b.date)))
-        flash('Date blacked out.')
+        flash(tripsByDate[dateStr] > 0 ? `Blacked out — ⚠ ${tripsByDate[dateStr]} trip(s) already scheduled this day` : 'Date blacked out.')
       }
     } catch (e) { flash(e instanceof Error ? e.message : 'Failed') }
     finally { setBusy(null) }
@@ -122,6 +134,7 @@ export default function AdminCalendarPage() {
                           onClick={() => toggle(dateStr)}
                           title={isBlack ? 'Blacked out — click to clear' : 'Click to black out'}
                           style={{
+                            position: 'relative',
                             aspectRatio: '1', border: isToday ? '1px solid var(--tropic)' : '1px solid transparent',
                             borderRadius: 8, fontSize: 12, fontFamily: 'var(--ui)', cursor: isPast ? 'default' : 'pointer',
                             background: isBlack ? 'var(--signal)' : 'transparent',
@@ -132,6 +145,13 @@ export default function AdminCalendarPage() {
                           }}
                         >
                           {day}
+                          {tripsByDate[dateStr] > 0 && (
+                            <span
+                              aria-hidden
+                              title={`${tripsByDate[dateStr]} trip(s) scheduled`}
+                              style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: isBlack ? '#fff' : 'var(--tropic)' }}
+                            />
+                          )}
                         </button>
                       )
                     })}
@@ -157,6 +177,11 @@ export default function AdminCalendarPage() {
                       </span>
                       <button type="button" className="btn-ghost" style={{ fontSize: 11, color: 'var(--signal)', padding: '2px 8px' }} disabled={busy === r.date} onClick={() => toggle(r.date)}>Clear</button>
                     </div>
+                    {tripsByDate[r.date] > 0 && (
+                      <div style={{ fontSize: 11.5, color: 'var(--signal)', fontWeight: 600, marginTop: 3 }}>
+                        ⚠ {tripsByDate[r.date]} trip{tripsByDate[r.date] === 1 ? '' : 's'} already scheduled this day
+                      </div>
+                    )}
                     <input
                       className="input"
                       defaultValue={r.note ?? ''}
