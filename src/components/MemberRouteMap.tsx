@@ -45,8 +45,25 @@ export default function MemberRouteMap() {
     return () => { document.body.style.overflow = prev }
   }, [open])
 
+  // Wire the map into browser history so the phone/browser Back gesture closes
+  // the map and returns to the page they were on — same as the arrow button —
+  // instead of navigating away from that page.
+  useEffect(() => {
+    if (!open) return
+    window.history.pushState({ tvlMap: true }, '')
+    const onPop = () => setOpen(false)
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [open])
+
   if (!MAPBOX_TOKEN) return null
 
+  // Back / close: pop the history entry we added on open (so the arrow and the
+  // device Back behave identically), landing back on the launch page.
+  function close() {
+    if (typeof window !== 'undefined' && window.history.state?.tvlMap) window.history.back()
+    else setOpen(false)
+  }
   function go(href: string) { setOpen(false); router.push(href) }
 
   const kinds: RouteItem['kind'][] = ['flight', 'excursion', 'proposal']
@@ -86,7 +103,7 @@ export default function MemberRouteMap() {
           }}>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={close}
               aria-label="Back"
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
