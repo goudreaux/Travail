@@ -262,7 +262,7 @@ export default function ProposeFlightPage() {
             </div>
             <div className="field">
               <label className="field-lab">Minimum seats</label>
-              <input className="input" type="number" min={1} max={suggestedCapacity} value={suggestedMinSeats} onChange={e => setSuggestedMinSeats(Math.max(1, Math.min(suggestedCapacity, Number(e.target.value) || 0)))} />
+              <input className="input" type="number" min={1} max={suggestedCapacity} value={suggestedMinSeats} onChange={e => setSuggestedMinSeats(e.target.value === '' ? 0 : Number(e.target.value))} onBlur={e => setSuggestedMinSeats(Math.max(1, Math.min(suggestedCapacity, Number(e.target.value) || 1)))} />
               <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 4, fontFamily: 'var(--mono)' }}>
                 The Concierge Team sets the actual floor.
               </div>
@@ -286,15 +286,19 @@ export default function ProposeFlightPage() {
             <div className="row-2">
               <div className="field" style={{ marginBottom: 0 }}>
                 <label className="field-lab">Your party (firm)</label>
-                <input className="input" type="number" min={1} max={suggestedCapacity} value={proposerMinSeats} onChange={e => {
-                  const v = Math.max(1, Math.min(suggestedCapacity, Number(e.target.value) || 1))
-                  setProposerMinSeats(v)
-                  if (proposerMaxSeats < v) setProposerMaxSeats(v)
-                }} />
+                <input className="input" type="number" min={1} max={suggestedCapacity} value={proposerMinSeats}
+                  onChange={e => setProposerMinSeats(e.target.value === '' ? 0 : Number(e.target.value))}
+                  onBlur={e => {
+                    const v = Math.max(1, Math.min(suggestedCapacity, Number(e.target.value) || 1))
+                    setProposerMinSeats(v)
+                    if (proposerMaxSeats < v) setProposerMaxSeats(v)
+                  }} />
               </div>
               <div className="field" style={{ marginBottom: 0 }}>
                 <label className="field-lab">Your max coverage</label>
-                <input className="input" type="number" min={proposerMinSeats} max={suggestedCapacity} value={proposerMaxSeats} onChange={e => setProposerMaxSeats(Math.max(proposerMinSeats, Math.min(suggestedCapacity, Number(e.target.value) || proposerMinSeats)))} />
+                <input className="input" type="number" min={proposerMinSeats} max={suggestedCapacity} value={proposerMaxSeats}
+                  onChange={e => setProposerMaxSeats(e.target.value === '' ? 0 : Number(e.target.value))}
+                  onBlur={e => setProposerMaxSeats(Math.max(proposerMinSeats, Math.min(suggestedCapacity, Number(e.target.value) || proposerMinSeats)))} />
               </div>
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginTop: 10, lineHeight: 1.5 }}>
