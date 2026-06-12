@@ -15,6 +15,7 @@ import { ReservePaymentForm } from '@/components/ReservePaymentForm'
 import { fetchRosters, type RosterEntry } from '@/components/Roster'
 import RoutePreview from '@/components/RoutePreview'
 import InviteToSplit from '@/components/InviteToSplit'
+import AddGuestToTicket from '@/components/AddGuestToTicket'
 import { ProposalReserveView } from './ProposalReserveView'
 
 // Roster avatar (image or initials) for the FOMO "who's going" block.
@@ -805,9 +806,19 @@ export default function ReservePage() {
               You hold <strong style={{ color: 'var(--ink)' }}>{myBookedSeats} seat{myBookedSeats === 1 ? '' : 's'}</strong> on {bookedName}. No need to book again — that would create a separate ticket.
             </p>
             <p style={{ fontSize: 12.5, color: 'var(--ink-faint)', lineHeight: 1.5, margin: '0 0 22px' }}>
-              Bringing a guest on your own ticket? Message the Concierge Team and they&rsquo;ll add them to your existing booking.
+              Bringing a guest on your own ticket? Add them below — your card is charged for the extra {kind === 'flight' ? 'seat' : 'spot'} and they go straight onto your existing booking.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {myBookingId && maxSeats > 0 && (
+                <AddGuestToTicket
+                  bookingId={myBookingId}
+                  kind={kind}
+                  pricePerSeatDollars={flight ? flight.price_per_seat : (excursion?.price_per_pax ?? null)}
+                  legs={isRoundTrip ? 2 : 1}
+                  maxAddable={maxSeats}
+                  onAdded={(n) => setMyBookedSeats(n)}
+                />
+              )}
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <InviteToSplit kind={kind} itemId={itemId} itemName={bookedName} priceLabel={bookedPrice} />
               </div>

@@ -9,6 +9,7 @@ import { fetchRosters, RosterStack, type RosterEntry } from '@/components/Roster
 import { ProposalCard, MyProposalCommitRow, loadOpenProposals, loadMyProposalCommits, type ProposalCardData, type MyProposalCommitData } from '@/components/ProposalCard'
 import { SponsorBadge } from '@/components/SponsorBadge'
 import { UrgencyTag } from '@/components/UrgencyTag'
+import FriendRequestsCard from '@/components/FriendRequestsCard'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Booking, ExcursionTemplate, Flight, Excursion, AnchorSubmission } from '@/lib/supabase/types'
@@ -434,6 +435,9 @@ export default function FeedPage() {
       </section>
 
       <div className="page-view feed-stack" data-no-trips={hasNoTrips ? '1' : '0'} style={{ display: 'flex', flexDirection: 'column', maxWidth: 1400, width: '100%' }}>
+      {/* Inbound friend requests — surfaced here so they're one tap from the
+          first screen, not buried under More → Network on mobile. */}
+      <FriendRequestsCard />
       {/* My trips (left/top) + open seats (right/bottom) */}
       <div className="dash-cols">
         {/* My Trips */}
