@@ -141,9 +141,13 @@ export default function NetworkPage() {
         setPendingToMeSet(toMe)
 
         // Pending requests addressed to me — feeds the friend-request panel
-        // at the top of the page and the badge-dot counts.
+        // at the top of the page and the badge-dot counts. Build the lookup
+        // from the FULL member set (membersData), not the public directory
+        // `list` — otherwise a request from a non-listed account (e.g. the
+        // founder/ops M-001) has its sender filtered out and the request is
+        // silently dropped even though the member was notified.
         const requesterMap: Record<string, Member> = {}
-        for (const m of list) requesterMap[m.id] = m
+        for (const m of membersData) requesterMap[m.id] = m
         const items: PendingRequest[] = rows
           .filter(f => f.status === 'pending' && f.addressee_id === myId)
           .map(f => ({ friendshipId: f.id, requester: requesterMap[f.requester_id] }))
