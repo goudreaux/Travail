@@ -220,7 +220,10 @@ export default function FeedPage() {
       .channel('feed-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, payload => {
         const changed = payload.new as Booking
-        if (changed?.member_id) {
+        // Only fold in MY own bookings. Without this guard, if `bookings` is
+        // ever added to the realtime publication, another member's booking
+        // event would be appended to my "My Trips" list.
+        if (changed?.member_id && changed.member_id === memberId) {
           setBookings(prev => {
             const idx = prev.findIndex(b => b.id === changed.id)
             if (idx >= 0) {

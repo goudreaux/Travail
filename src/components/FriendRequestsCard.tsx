@@ -21,6 +21,7 @@ export default function FriendRequestsCard() {
   const { member, loading: memberLoading } = useMember()
   const [pending, setPending] = useState<PendingRequest[]>([])
   const [deciding, setDeciding] = useState<string | null>(null)
+  const [err, setErr] = useState('')
 
   useEffect(() => {
     if (memberLoading || !member?.id) return
@@ -61,17 +62,25 @@ export default function FriendRequestsCard() {
   async function respond(friendshipId: string, action: 'accepted' | 'declined') {
     if (deciding) return
     setDeciding(friendshipId)
+    setErr('')
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('friendships') as any).update({ status: action }).eq('id', friendshipId)
-    setPending(prev => {
-      const next = prev.filter(p => p.friendshipId !== friendshipId)
-      try {
-        localStorage.setItem('travail.pending_friend_count', String(next.length))
-        window.dispatchEvent(new CustomEvent('travail:pending-friend-count', { detail: next.length }))
-      } catch { /* ignore */ }
-      return next
-    })
+    const { error } = await (supabase.from('friendships') as any).update({ status: action }).eq('id', friendshipId)
+    if (error) {
+      // The write failed (offline / RLS) — keep the row rather than
+      // optimistically dropping it and desyncing the nav badge.
+      setErr('That didn’t go through — check your connection and try again.')
+      setDeciding(null)
+      return
+    }
+    // Compute the next list outside setState (updaters must be pure), then
+    // broadcast the new count so the sidebar / mobile-nav badges stay in sync.
+    const next = pending.filter(p => p.friendshipId !== friendshipId)
+    setPending(next)
+    try {
+      localStorage.setItem('travail.pending_friend_count', String(next.length))
+      window.dispatchEvent(new CustomEvent('travail:pending-friend-count', { detail: next.length }))
+    } catch { /* ignore */ }
     setDeciding(null)
   }
 
@@ -90,6 +99,7 @@ export default function FriendRequestsCard() {
         </div>
         <span className="pill signal" style={{ flexShrink: 0 }}>{pending.length}</span>
       </div>
+      {err && <div style={{ fontSize: 12, color: 'var(--danger)', padding: '0 2px 6px' }}>{err}</div>}
       <div className="pending-friends__list">
         {pending.map(p => (
           <div key={p.friendshipId} className="pending-friends__row">

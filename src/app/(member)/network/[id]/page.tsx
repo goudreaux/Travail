@@ -342,6 +342,24 @@ export default function MemberProfilePage() {
     setFriendBusy(false)
   }
 
+  // After any friendship change here, re-broadcast the live pending-request
+  // count so the sidebar / mobile-nav badges and the friend-ring set update
+  // without a full reload (they listen for this event).
+  async function syncFriendBadges() {
+    if (!meId) return
+    const supabase = createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count } = await (supabase.from('friendships') as any)
+      .select('id', { count: 'exact', head: true })
+      .eq('addressee_id', meId)
+      .eq('status', 'pending')
+    const n = count ?? 0
+    try {
+      localStorage.setItem('travail.pending_friend_count', String(n))
+      window.dispatchEvent(new CustomEvent('travail:pending-friend-count', { detail: n }))
+    } catch { /* ignore */ }
+  }
+
   async function acceptRequest() {
     if (!friendship || friendBusy) return
     setFriendBusy(true)
@@ -352,7 +370,7 @@ export default function MemberProfilePage() {
       .eq('id', friendship.id)
       .select()
       .single()
-    if (!error && data) setFriendship(data as Friendship)
+    if (!error && data) { setFriendship(data as Friendship); await syncFriendBadges() }
     setFriendBusy(false)
   }
 
@@ -364,7 +382,7 @@ export default function MemberProfilePage() {
     const { error } = await (supabase.from('friendships') as any)
       .update({ status: 'declined' })
       .eq('id', friendship.id)
-    if (!error) setFriendship(prev => prev ? { ...prev, status: 'declined' } : prev)
+    if (!error) { setFriendship(prev => prev ? { ...prev, status: 'declined' } : prev); await syncFriendBadges() }
     setFriendBusy(false)
   }
 
@@ -374,7 +392,7 @@ export default function MemberProfilePage() {
     setFriendBusy(true)
     const supabase = createClient()
     const { error } = await supabase.from('friendships').delete().eq('id', friendship.id)
-    if (!error) setFriendship(null)
+    if (!error) { setFriendship(null); await syncFriendBadges() }
     setFriendBusy(false)
   }
 

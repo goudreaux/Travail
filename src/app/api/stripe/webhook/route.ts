@@ -274,8 +274,13 @@ export async function POST(req: NextRequest) {
         const bookingId = meta.booking_id
 
         // Legacy invoice flow: update the linked booking row if the PI
-        // metadata still includes booking_id.
-        if (bookingId) {
+        // metadata still includes booking_id. EXCLUDE the add-guests flow:
+        // its PI also carries booking_id, but it's an INCREMENTAL charge on
+        // an already-paid booking — /add-guests/finalize owns that row's
+        // seats/paid_amount. Letting this branch run would overwrite
+        // paid_amount_cents with just the guest charge and repoint the PI id,
+        // breaking later refunds/cancellations.
+        if (bookingId && meta.kind !== 'pax_add_guests') {
           await db
             .from('bookings')
             .update({
@@ -363,7 +368,11 @@ export async function POST(req: NextRequest) {
         const meta = pi.metadata ?? {}
         const bookingId = meta.booking_id
 
-        if (bookingId) {
+        // Skip the add-guests flow: a declined guest-add must not mark the
+        // already-paid booking as failed or repoint its PI id (see the
+        // succeeded handler above). /add-guests/finalize only runs on a
+        // cleared charge, so a failed add-guests PI means "no change."
+        if (bookingId && meta.kind !== 'pax_add_guests') {
           await db
             .from('bookings')
             .update({ payment_status: 'failed', stripe_payment_intent_id: pi.id })

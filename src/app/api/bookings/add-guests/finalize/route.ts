@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 1. Verify the charge with Stripe — never trust the client that it paid.
-  let pi
+  let pi: Awaited<ReturnType<typeof stripe.paymentIntents.retrieve>>
   try {
     pi = await stripe.paymentIntents.retrieve(paymentIntentId)
   } catch (e) {
@@ -127,32 +127,70 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, alreadyApplied: true, seats: primary.seats })
   }
 
-  // 2. Re-check availability per leg, then 3+4. apply.
+  // The charge already cleared. If we can't deliver the seats (capacity
+  // lost to a race, trip pulled, DB rejection), we must not keep the money:
+  // auto-refund the PI and flag ops, rather than silently returning ok.
+  // Capture the non-null locals the guards above already established, so the
+  // helper doesn't depend on TS re-narrowing them across the closure.
+  const opsMember = { name: meRow.name, email: user.email ?? null }
+  const opsItem = { kind: primary.item_kind, id: primary.item_id }
+  const piAmountCents = typeof pi.amount === 'number' ? pi.amount : null
+  const piCustomerId = pi.customer as string | null
+  async function refundAndReport(reason: string, appliedAny: boolean): Promise<void> {
+    if (!appliedAny) {
+      try { await stripe.refunds.create({ payment_intent: paymentIntentId }) }
+      catch (rerr) { safeError('add-guests.finalize: auto-refund failed:', rerr) }
+    }
+    try {
+      await notifyOps({
+        kind: appliedAny ? 'pax_booking' : 'pax_cancel_refund',
+        member: opsMember,
+        item: opsItem,
+        amountCents: piAmountCents,
+        stripe: { paymentIntentId, customerId: piCustomerId },
+        note: appliedAny
+          ? `PARTIAL add-guests on booking ${bookingId}: ${reason}. One leg extended, the other did not — needs manual reconciliation (no auto-refund issued).`
+          : `Add-guests on booking ${bookingId} could not be applied (${reason}) — auto-refunded, booking unchanged.`,
+      })
+    } catch (e) { safeError('add-guests.finalize: refund/report notifyOps failed:', e) }
+  }
+
+  // 2. Re-check availability per leg. Capture the live per-seat price too, so
+  //    the recorded amount uses the SAME fallback the PI route charged with
+  //    (a booking row with null price_per_seat was charged at the trip price,
+  //    and must record that — not $0).
   const tripNames: string[] = []
+  const priceByLeg: Record<string, number> = {}
   for (const leg of legs) {
     if (leg.item_kind === 'flight') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: f } = await (db as any)
-        .from('flights').select('name, seats_total, seats_anchor, seats_taken, status').eq('id', leg.item_id).maybeSingle()
+        .from('flights').select('name, seats_total, seats_anchor, seats_taken, price_per_seat, status').eq('id', leg.item_id).maybeSingle()
       if (!f || f.status === 'cancelled' || f.status === 'departed') {
-        return NextResponse.json({ error: 'This flight is no longer available. Your card was charged — the Concierge will refund and follow up.' }, { status: 409 })
+        await refundAndReport('flight no longer available', false)
+        return NextResponse.json({ error: 'That flight is no longer available — your card has been refunded.' }, { status: 409 })
       }
       const avail = Math.max(0, f.seats_total - f.seats_anchor - (f.seats_taken ?? 0))
       if (addSeats > avail) {
-        return NextResponse.json({ error: 'Those seats were just taken. Your card was charged — the Concierge will refund and follow up.' }, { status: 409 })
+        await refundAndReport('seats sold out during checkout', false)
+        return NextResponse.json({ error: 'Those seats were just taken — your card has been refunded.' }, { status: 409 })
       }
+      priceByLeg[leg.id] = leg.price_per_seat ?? f.price_per_seat ?? 0
       if (f.name) tripNames.push(f.name)
     } else {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: e } = await (db as any)
-        .from('excursions').select('name, spots_total, spots_anchor, spots_taken, status').eq('id', leg.item_id).maybeSingle()
+        .from('excursions').select('name, spots_total, spots_anchor, spots_taken, price_per_pax, status').eq('id', leg.item_id).maybeSingle()
       if (!e || e.status === 'cancelled' || e.status === 'completed') {
-        return NextResponse.json({ error: 'This excursion is no longer available. Your card was charged — the Concierge will refund and follow up.' }, { status: 409 })
+        await refundAndReport('excursion no longer available', false)
+        return NextResponse.json({ error: 'That excursion is no longer available — your card has been refunded.' }, { status: 409 })
       }
       const avail = Math.max(0, e.spots_total - e.spots_anchor - (e.spots_taken ?? 0))
       if (addSeats > avail) {
-        return NextResponse.json({ error: 'Those spots were just taken. Your card was charged — the Concierge will refund and follow up.' }, { status: 409 })
+        await refundAndReport('spots sold out during checkout', false)
+        return NextResponse.json({ error: 'Those spots were just taken — your card has been refunded.' }, { status: 409 })
       }
+      priceByLeg[leg.id] = leg.price_per_seat ?? e.price_per_pax ?? 0
       if (e.name) tripNames.push(e.name)
     }
   }
@@ -169,10 +207,14 @@ export async function POST(req: NextRequest) {
     date_of_birth: g.date_of_birth ?? null,
   }))
 
-  // 3. Extend each leg: seats, fees, total (dollars) + paid_amount (cents),
-  //    and record the PI so a retry is idempotent.
+  // 3. Extend each leg: seats, fees, total (dollars) + paid_amount (cents).
+  //    The UPDATE is conditional on the PI not already being recorded, so a
+  //    concurrent double-submit can't double-count the seats or re-charge the
+  //    manifest — only the row that actually flips (rows-affected > 0) inserts
+  //    passengers.
+  let appliedAny = false
   for (const leg of legs) {
-    const pricePerSeat = leg.price_per_seat ?? 0
+    const pricePerSeat = priceByLeg[leg.id] ?? 0
     const subDollars = pricePerSeat * addSeats
     const feeDollars = Math.round(subDollars * SERVICE_FEE_RATE)
     // Mirror the PI route's cents formula exactly so paid_amount_cents
@@ -180,13 +222,29 @@ export async function POST(req: NextRequest) {
     const subtotalCents = Math.round(pricePerSeat * 100) * addSeats
     const legChargeCents = subtotalCents + Math.round(subtotalCents * SERVICE_FEE_RATE)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (db as any).from('bookings').update({
+    const { data: updated, error: updErr } = await (db as any).from('bookings').update({
       seats: leg.seats + addSeats,
       fees: (leg.fees ?? 0) + feeDollars,
       total: (leg.total ?? 0) + subDollars + feeDollars,
       paid_amount_cents: (leg.paid_amount_cents ?? 0) + legChargeCents,
       add_guests_pis: [...(leg.add_guests_pis ?? []), paymentIntentId],
-    }).eq('id', leg.id)
+    }).eq('id', leg.id).not('add_guests_pis', 'cs', `{${paymentIntentId}}`).select('id')
+
+    if (updErr) {
+      // Capacity trigger rejected, or the write failed. Refund if nothing has
+      // been applied yet; otherwise flag ops for manual reconciliation.
+      safeError('add-guests.finalize: seat extension failed:', updErr)
+      await refundAndReport('seat extension rejected by the database', appliedAny)
+      return NextResponse.json({
+        error: appliedAny
+          ? 'We could only extend part of your round-trip. The Concierge has been notified and will sort it out.'
+          : 'We couldn’t add your guest — your card has been refunded.',
+      }, { status: 409 })
+    }
+    // Zero rows flipped → a concurrent finalize already applied this PI to
+    // this leg. Skip the manifest insert so we don't duplicate passengers.
+    if (!updated || updated.length === 0) continue
+    appliedAny = true
 
     // 4. Append the guests to this leg's manifest. Best-effort — the seat
     //    extension is the source of truth; a manifest hiccup shouldn't 500.

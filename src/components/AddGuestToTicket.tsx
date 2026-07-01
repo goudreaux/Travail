@@ -1,10 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useMember } from '@/lib/member-context'
 import { fmtMoney } from '@/lib/data'
 import { ReservePaymentForm } from '@/components/ReservePaymentForm'
-import { type Guest, type GuestSlot, NEW_GUEST, emptyGuestSlot } from '@/lib/guests'
+import { type Guest, type GuestSlot, NEW_GUEST, emptyGuestSlot, validateDob } from '@/lib/guests'
 
 // Self-serve "bring a guest on your own ticket" — opens from the
 // "you're booked" view. The member picks how many guests to add,
@@ -72,11 +72,17 @@ export default function AddGuestToTicket({
   // Load the member's saved-guest roster once the sheet opens.
   useEffect(() => {
     if (!open || !member?.id) return
+    let cancelled = false
     const supabase = createClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(supabase as any).from('guests').select('*').eq('host_member_id', member.id)
       .order('created_at', { ascending: false })
-      .then(({ data }: { data: Guest[] | null }) => setSavedGuests(data ?? []))
+      .then(({ data, error }: { data: Guest[] | null; error: unknown }) => {
+        // Ignore a failed fetch rather than blanking the dropdown (which would
+        // make a saved guest look missing); keep whatever we had.
+        if (!cancelled && !error) setSavedGuests(data ?? [])
+      })
+    return () => { cancelled = true }
   }, [open, member?.id])
 
   // Keep one slot per guest being added.
@@ -92,10 +98,14 @@ export default function AddGuestToTicket({
     setSlots(prev => prev.map((s, idx) => idx === i ? { ...s, ...patch } : s))
   }
 
-  // Per-leg subtotal/fee → grand total across legs (display only).
+  // Preview subtotal/fee computed in CENTS, per-leg, mirroring the server's
+  // rounding (payment-intent route) so this breakdown matches what the Pay
+  // button actually charges — no dollar-vs-cent drift between the two steps.
   const perSeat = pricePerSeatDollars ?? 0
-  const subtotal = perSeat * count * legs
-  const fee = Math.round(perSeat * count * SERVICE_FEE_RATE) * legs
+  const perLegSubtotalCents = Math.round(perSeat * 100) * count
+  const perLegFeeCents = Math.round(perLegSubtotalCents * SERVICE_FEE_RATE)
+  const subtotal = (perLegSubtotalCents * legs) / 100
+  const fee = (perLegFeeCents * legs) / 100
   const displayTotal = subtotal + fee
 
   function reset() {
@@ -123,6 +133,8 @@ export default function AddGuestToTicket({
       if (s.savedGuestId === NEW_GUEST) {
         if (!s.first_name.trim() || !s.last_name.trim()) { setError('Enter a first and last name for each new guest.'); return null }
         if (!s.date_of_birth) { setError('Enter each guest’s date of birth.'); return null }
+        const dobErr = validateDob(s.date_of_birth)
+        if (dobErr) { setError(dobErr); return null }
         const email = s.email.trim()
         if (!email) { setError('Enter an email for each new guest — we use it to follow up about membership.'); return null }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('Enter a valid email for each new guest.'); return null }
@@ -166,23 +178,29 @@ export default function AddGuestToTicket({
   }
 
   const [resolved, setResolved] = useState<ResolvedPax[] | null>(null)
+  // Synchronous re-entry guard: a fast double-tap on "Continue to payment"
+  // must not save guests twice or mint two PaymentIntents (state updates are
+  // async, so a boolean state flag alone can race).
+  const submittingRef = useRef(false)
 
   // Step 1 → 2: validate + save guests, then ask the server for a PI.
   async function startPayment() {
+    if (submittingRef.current) return
+    submittingRef.current = true
     setError('')
-    if (count < 1 || count > cap) { setError(`You can add up to ${cap} ${unit}${cap === 1 ? '' : 's'}.`); return }
-    const pax = await resolveGuests()
-    if (!pax) return
-    setResolved(pax)
-    setPiLoading(true)
     try {
+      if (count < 1 || count > cap) { setError(`You can add up to ${cap} ${unit}${cap === 1 ? '' : 's'}.`); return }
+      const pax = await resolveGuests()
+      if (!pax) return
+      setResolved(pax)
+      setPiLoading(true)
       const res = await fetch('/api/bookings/add-guests/payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId, addSeats: count }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Could not start payment.'); setPiLoading(false); return }
+      if (!res.ok) { setError(data.error ?? 'Could not start payment.'); return }
       setClientSecret(data.clientSecret)
       setTotalCents(data.totalCents)
       setSavedCard(data.savedCard ?? null)
@@ -190,6 +208,7 @@ export default function AddGuestToTicket({
       setError('Network error starting payment. Please try again.')
     } finally {
       setPiLoading(false)
+      submittingRef.current = false
     }
   }
 
