@@ -544,98 +544,34 @@ export default function ReservePage() {
         }
       }
 
-      // 2. Create booking(s) — one per leg for round-trips. The card has
-      //    already been charged for the full total; we stamp the PI id
-      //    on the outbound row and split paid_amount_cents per leg using
-      //    the server breakdown. Status goes straight to 'approved' —
-      //    no Ops gate because payment cleared.
-      const paidAtIso = new Date().toISOString()
-      const paidFor = (legItemId: string) =>
-        legBreakdown.find(b => b.itemId === legItemId)?.totalCents ?? 0
-
-      let bookingIds: string[] = []
-      let primary: { id: string; confirmation_code: string | null }
-
-      const stamp = Date.now().toString(36).toUpperCase()
-
-      if (isRoundTrip && flight && returnFlight) {
-        const rows = [flight, returnFlight].map((leg, idx) => {
-          const sub = leg.price_per_seat * seats
-          const fee = Math.round(sub * SERVICE_FEE_RATE)
-          return {
-            id: `B-${stamp}${idx === 0 ? '' : 'R'}`,
-            member_id: member.id, item_kind: 'flight', item_id: leg.id, seats,
-            price_per_seat: leg.price_per_seat, fees: fee, total: sub + fee,
-            payment_method: paymentMethod, status: 'approved', show_on_roster: rosterPublic,
-            // PI lives on the outbound only (the index is unique). The
-            // return booking still records what was paid so settlement
-            // math reads the same.
-            stripe_payment_intent_id: idx === 0 ? paymentIntentId : null,
-            paid_amount_cents: paidFor(leg.id),
-            paid_at: paidAtIso,
-            payment_status: 'succeeded',
-          }
-        })
-        const { data: rowsData, error: insertError } = await supabase.from('bookings').insert(rows as never).select()
-        if (insertError) throw insertError
-        const arr = rowsData as { id: string; confirmation_code: string | null }[]
-        bookingIds = arr.map(r => r.id)
-        primary = arr[0]
-      } else {
-        const { data: bookingRaw, error: insertError } = await supabase
-          .from('bookings')
-          .insert({
-            id: `B-${stamp}`,
-            member_id: member.id, item_kind: kind, item_id: itemId, seats,
-            price_per_seat: pricePerSeat, fees: serviceFee, total,
-            payment_method: paymentMethod, status: 'approved', show_on_roster: rosterPublic,
-            stripe_payment_intent_id: paymentIntentId,
-            paid_amount_cents: paidFor(itemId),
-            paid_at: paidAtIso,
-            payment_status: 'succeeded',
-          } as never)
-          .select()
-          .single()
-        if (insertError) throw insertError
-        primary = bookingRaw as { id: string; confirmation_code: string | null }
-        bookingIds = [primary.id]
+      // 2. Create the booking(s) server-side. The card has already cleared;
+      //    the finalize route retrieves the PaymentIntent, verifies it cleared
+      //    for THIS member/item/seats, re-derives the money from the trip rows
+      //    (so the client is never trusted with price/paid amounts), and
+      //    inserts the row(s) + passenger manifest with the service role.
+      //    Members can no longer insert bookings directly (migration 069).
+      const finalizeRes = await fetch('/api/bookings/finalize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentIntentId,
+          itemId,
+          kind,
+          seats,
+          isRoundTrip,
+          returnItemId: isRoundTrip && returnFlight ? returnFlight.id : null,
+          showOnRoster: rosterPublic,
+          guests: guestPax,
+        }),
+      })
+      const finalizeData = await finalizeRes.json()
+      if (!finalizeRes.ok) {
+        setError(finalizeData.error ?? 'We couldn’t confirm your booking. If your card was charged, the Concierge will follow up.')
+        setSubmitting(false)
+        return
       }
-
-      // 3. Record passengers (the member is always seat 1) on every leg.
-      const [hostFirst, ...hostRest] = member.name.trim().split(/\s+/)
-      const paxRows = bookingIds.flatMap(bid => [
-        { booking_id: bid, guest_id: null, is_host: true, first_name: hostFirst ?? member.name, last_name: hostRest.join(' '), email: null, phone: null, date_of_birth: null },
-        ...guestPax.map(gp => ({
-          booking_id: bid, guest_id: gp.guest_id, is_host: false,
-          first_name: gp.first_name, last_name: gp.last_name, email: gp.email, phone: gp.phone, date_of_birth: gp.date_of_birth,
-        })),
-      ])
-      // Best-effort: the booking is the source of truth; don't fail it if the
-      // manifest table isn't present yet.
-      try {
-        const { error: paxErr } = await db.from('booking_passengers').insert(paxRows)
-        if (paxErr) throw paxErr
-      } catch (paxErr) {
-        safeError('Passenger manifest not recorded:', paxErr)
-      }
-
-      // 4. Notify (best-effort — booking already succeeded).
-      try {
-        const { error: notifErr } = await supabase.from('notifications').insert({
-          member_id: member.id,
-          kind: 'booking',
-          title: isRoundTrip ? 'Round-trip booking confirmed' : 'Booking confirmed',
-          body: `Your reservation for "${itemName}"${seats > 1 ? ` (${seats} seats)` : ''} is confirmed and your card has been charged ${fmtMoney(paymentTotalCents != null ? paymentTotalCents / 100 : total)}.`,
-          // skip_email: the booking receipt is emailed by the app pipeline
-          // (sendBookingReceiptEmail) — tell the notify-email Edge Function to
-          // skip this one so the member doesn't get two emails.
-          ref: { kind, id: itemId, booking_id: primary.id, skip_email: true },
-          read: false,
-        } as never)
-        if (notifErr) throw notifErr
-      } catch (notifErr) {
-        safeError('Booking notification not recorded:', notifErr)
-      }
+      const bookingIds: string[] = finalizeData.bookingIds ?? []
+      const primary = { id: finalizeData.primaryId as string, confirmation_code: (finalizeData.confirmationCode ?? null) as string | null }
 
       // Fire-and-forget branded receipt email. Stripe's auto receipt
       // also lands separately; this one carries Travail context
