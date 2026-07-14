@@ -109,6 +109,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Trip has already departed' }, { status: 409 })
   }
 
+  // ─── Round-trip siblings ───────────────────────────────────────────────────
+  // A round-trip flight is two booking rows — outbound `B-XXXX` and return
+  // `B-XXXXR` — with the Stripe PI stamped only on the outbound. Cancelling one
+  // has to cancel BOTH legs and refund the whole journey against that PI;
+  // otherwise the return leg (null PI) refunds $0 and stays booked (its seat
+  // never released).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const legRows: any[] = [booking]
+  if (isFlight) {
+    const outboundId = booking.id.endsWith('R') ? booking.id.slice(0, -1) : booking.id
+    const siblingId = booking.id === outboundId ? `${outboundId}R` : outboundId
+    const { data: sibling } = await db.from('bookings').select('*').eq('id', siblingId).maybeSingle()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sib = sibling as any
+    if (sib && sib.member_id === booking.member_id && sib.status !== 'cancelled' && sib.status !== 'refunded') {
+      legRows.push(sib)
+    }
+  }
+
   // ─── Anchor guard ──────────────────────────────────────────────────────────
   // An anchor self-cancelling would strand the committed cabin + the charter,
   // so anchors can never cancel directly. We log a cancellation request for the
@@ -154,19 +173,22 @@ export async function POST(req: NextRequest) {
   const wasForfeit = insideWindow
 
   if (!insideWindow) {
-    // Outside the window — full refund.
-    const piId = booking.stripe_payment_intent_id
-    const paidCents = booking.paid_amount_cents ?? 0
-    if (piId && paidCents > 0) {
+    // Outside the window — full refund of every leg against the PI-holding
+    // (outbound) leg. The PI was charged for the whole journey, so a single
+    // refund of the summed paid_amount covers both legs.
+    const piLeg = legRows.find(l => l.stripe_payment_intent_id)
+    const piId = piLeg?.stripe_payment_intent_id ?? null
+    const totalPaidCents = legRows.reduce((s, l) => s + (l.paid_amount_cents ?? 0), 0)
+    if (piId && totalPaidCents > 0) {
       try {
         const refund = await stripe.refunds.create({
           payment_intent: piId,
-          amount: paidCents,
+          amount: totalPaidCents,
           reason: 'requested_by_customer',
           metadata: { booking_id: booking.id, member_id: meRow.id, kind: 'pax_cancel_outside_window' },
         })
         refundId = refund.id
-        refundAmountCents = paidCents
+        refundAmountCents = totalPaidCents
       } catch (e) {
         safeError('Stripe refund failed:', e)
         return NextResponse.json({
@@ -180,19 +202,24 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ─── DB update — atomic-ish via a single update ────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updates: any = {
-    status: 'cancelled',
-    cancelled_at: new Date().toISOString(),
-    refund_amount_cents: refundAmountCents,
-    refund_id: refundId,
-    was_forfeit: wasForfeit,
-  }
-  const { error: upErr } = await db.from('bookings').update(updates).eq('id', booking.id)
-  if (upErr) {
-    safeError('Booking cancel update failed:', upErr)
-    return NextResponse.json({ error: 'Failed to update booking record.' }, { status: 500 })
+  // ─── DB update — cancel every leg of the journey ───────────────────────────
+  // One Stripe refund (above) covers the whole journey; record each leg's own
+  // paid_amount as its refund share so the per-booking audit sums correctly.
+  const cancelledAt = new Date().toISOString()
+  for (const leg of legRows) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updates: any = {
+      status: 'cancelled',
+      cancelled_at: cancelledAt,
+      refund_amount_cents: insideWindow ? 0 : (leg.paid_amount_cents ?? 0),
+      refund_id: refundId,
+      was_forfeit: wasForfeit,
+    }
+    const { error: upErr } = await db.from('bookings').update(updates).eq('id', leg.id)
+    if (upErr) {
+      safeError('Booking cancel update failed:', upErr)
+      return NextResponse.json({ error: 'Failed to update booking record.' }, { status: 500 })
+    }
   }
 
   // Activity log — permanent audit chain. activity_log isn't in the

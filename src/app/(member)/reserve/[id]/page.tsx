@@ -130,19 +130,29 @@ function FlightLeg({ label, f, names }: { label?: string; f: Flight; names: Reco
   )
 }
 
+// Parent selector. Trip Proposals own a different commit flow (SetupIntent,
+// no immediate charge), so they render a separate component. Branch by
+// COMPONENT here rather than with an early return inside the flight/excursion
+// component: the App Router reuses this page instance across /reserve URLs, so
+// an early return that sits before the ~30 hooks below would change the hook
+// count between renders and crash React ("rendered more hooks than during the
+// previous render"). This parent's own hook set is constant.
 export default function ReservePage() {
+  const params = useParams()
+  const searchParams = useSearchParams()
+  const kind = searchParams.get('kind') ?? 'flight'
+  if (kind === 'proposal') return <ProposalReserveView key="proposal" proposalId={params.id as string} />
+  return <FlightExcursionReserve key="flight-excursion" />
+}
+
+function FlightExcursionReserve() {
   const params = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
   const supabase = createClient()
 
   const itemId = params.id as string
-  const kindRaw = (searchParams.get('kind') ?? 'flight') as 'flight' | 'excursion' | 'proposal'
-  // Trip Proposals own their own commit flow (SetupIntent only, no
-  // immediate charge). Short-circuit here so the existing reserve
-  // route doesn't try to load a flight/excursion row.
-  if (kindRaw === 'proposal') return <ProposalReserveView proposalId={itemId} />
-  const kind = kindRaw as 'flight' | 'excursion'
+  const kind = (searchParams.get('kind') ?? 'flight') as 'flight' | 'excursion'
   const returnId = searchParams.get('return')
 
   const [member, setMember] = useState<Member | null>(null)
